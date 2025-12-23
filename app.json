@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Sticket",
+    "slug": "sticket",
+    "scheme": "sticket",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "entryPoint": "./apps/mobile/App.tsx",
+    "icon": "./apps/mobile/assets/icon.png",
+    "splash": {
+      "image": "./apps/mobile/assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#07001F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.sticket.app",
+      "buildNumber": "1",
+      "associatedDomains": [
+        "applinks:sticket.in",
+        "applinks:sticket.in"
+      ],
+      "infoPlist": {
+        "NSCameraUsageDescription": "Sticket needs camera access to scan ticket barcodes",
+        "NSPhotoLibraryUsageDescription": "Sticket needs photo access to upload concert photos",
+        "NSContactsUsageDescription": "Sticket can help you find friends from your contacts",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./apps/mobile/assets/adaptive-icon.png",
+        "backgroundColor": "#07001F"
+      },
+      "package": "com.sticket.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_CONTACTS",
+        "VIBRATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "sticket.in",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./apps/mobile/assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4d02162f-b563-4ea6-ae9e-a140fa111ee6"
+      }
+    },
+    "owner": "vdpro"
+  }
+}

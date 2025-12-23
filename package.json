@@ -1,0 +1,29 @@
+{
+  "name": "sticket-app",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3"
+  },
+  "scripts": {
+    "dev:mobile": "npm --workspace mobile run start",
+    "dev:mobile:go": "npm --workspace mobile run start -- --go --clear",
+    "dev:mobile:8083": "npm --workspace mobile run start -- --clear --port 8083",
+    "dev:api": "npm --workspace api run dev",
+    "dev:api:3001": "PORT=3001 npm --workspace api run dev",
+    "dev:api:local": "DATABASE_URL=\"postgresql://$(whoami)@localhost:5432/sticket\" PORT=3001 npm --workspace api run dev"
+  },
+  "dependencies": {
+    "expo-dev-client": "~6.0.20"
+  }
+}
