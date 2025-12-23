@@ -69,6 +69,12 @@
         "projectId": "4d02162f-b563-4ea6-ae9e-a140fa111ee6"
       }
     },
-    "owner": "vdpro"
+    "owner": "vdpro",
+    "plugins": [
+      "expo-sqlite",
+      "expo-barcode-scanner",
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
   }
 }
