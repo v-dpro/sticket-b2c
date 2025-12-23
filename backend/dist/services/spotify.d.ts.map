@@ -1,0 +1,1 @@
+{"version":3,"file":"spotify.d.ts","sourceRoot":"","sources":["../../src/services/spotify.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,OAAO,CAAC;AAE1B,wBAAsB,4BAA4B,CAAC,IAAI,EAAE,MAAM,iBAK9D;AAED,wBAAsB,gBAAgB,CAAC,UAAU,EAAE,MAAM,iBAGxD;AAED,OAAO,EAAE,KAAK,IAAI,WAAW,EAAE,CAAC"}

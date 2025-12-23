@@ -1,0 +1,31 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = __importDefault(require("./auth"));
+const users_1 = __importDefault(require("./users"));
+const artists_1 = __importDefault(require("./artists"));
+const venues_1 = __importDefault(require("./venues"));
+const events_1 = __importDefault(require("./events"));
+const logs_1 = __importDefault(require("./logs"));
+const discover_1 = __importDefault(require("./discover"));
+const feed_1 = __importDefault(require("./feed"));
+const tickets_1 = __importDefault(require("./tickets"));
+const notifications_1 = __importDefault(require("./notifications"));
+const search_1 = __importDefault(require("./search"));
+const router = (0, express_1.Router)();
+router.use('/auth', auth_1.default);
+router.use('/users', users_1.default);
+router.use('/artists', artists_1.default);
+router.use('/venues', venues_1.default);
+router.use('/events', events_1.default);
+router.use('/logs', logs_1.default);
+router.use('/discover', discover_1.default);
+router.use('/feed', feed_1.default);
+router.use('/tickets', tickets_1.default);
+router.use('/notifications', notifications_1.default);
+router.use('/search', search_1.default);
+exports.default = router;
+//# sourceMappingURL=index.js.map
