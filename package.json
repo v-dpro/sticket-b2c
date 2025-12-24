@@ -1,53 +1,25 @@
 {
   "name": "sticket-app",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "overrides": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3"
+  "scripts": {
+    "dev:mobile": "cd apps/mobile && npm run start",
+    "dev:mobile:go": "cd apps/mobile && npm run start -- --go --clear",
+    "dev:mobile:8083": "cd apps/mobile && npm run start -- --clear --port 8083",
+    "dev:api": "cd apps/api && npm run dev",
+    "dev:api:3001": "cd apps/api && PORT=3001 npm run dev",
+    "dev:api:local": "cd apps/api && DATABASE_URL=\"postgresql://$(whoami)@localhost:5432/sticket\" PORT=3001 npm run dev"
   },
   "devDependencies": {
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3"
-  },
-  "scripts": {
-    "dev:mobile": "npm --workspace mobile run start",
-    "dev:mobile:go": "npm --workspace mobile run start -- --go --clear",
-    "dev:mobile:8083": "npm --workspace mobile run start -- --clear --port 8083",
-    "dev:api": "npm --workspace api run dev",
-    "dev:api:3001": "PORT=3001 npm --workspace api run dev",
-    "dev:api:local": "DATABASE_URL=\"postgresql://$(whoami)@localhost:5432/sticket\" PORT=3001 npm --workspace api run dev"
+    "@types/react": "~19.1.10",
+    "expo": "^54.0.30",
+    "expo-dev-client": "^6.0.20",
+    "expo-secure-store": "^15.0.8",
+    "expo-sqlite": "^16.0.10",
+    "expo-web-browser": "^15.0.10",
+    "react-native": "^0.81.5",
+    "typescript": "~5.9.2"
   },
   "dependencies": {
-    "@expo/ngrok": "^4.1.3",
-    "expo-apple-authentication": "~8.0.8",
-    "expo-application": "~7.0.8",
-    "expo-auth-session": "~7.0.10",
-    "expo-barcode-scanner": "^13.0.1",
-    "expo-blur": "~15.0.8",
-    "expo-calendar": "~15.0.8",
-    "expo-camera": "~17.0.10",
-    "expo-clipboard": "~8.0.8",
-    "expo-constants": "~18.0.12",
-    "expo-contacts": "~15.0.11",
-    "expo-crypto": "~15.0.8",
-    "expo-dev-client": "~6.0.20",
-    "expo-device": "~8.0.10",
-    "expo-haptics": "~15.0.8",
-    "expo-image-picker": "~17.0.10",
-    "expo-linear-gradient": "~15.0.8",
-    "expo-linking": "~8.0.11",
-    "expo-media-library": "~18.2.1",
-    "expo-notifications": "~0.32.15",
-    "expo-secure-store": "~15.0.8",
-    "expo-sharing": "~14.0.8",
-    "expo-sqlite": "~16.0.10",
-    "expo-status-bar": "~3.0.9",
-    "expo-web-browser": "~15.0.10"
+    "@expo/ngrok": "^4.1.3"
   }
 }

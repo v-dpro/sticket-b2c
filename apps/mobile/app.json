@@ -17,11 +17,15 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.sticket.app",
       "buildNumber": "1",
-      "associatedDomains": ["applinks:sticket.in"],
+      "associatedDomains": [
+        "applinks:sticket.in",
+        "applinks:sticket.in"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Sticket needs camera access to scan ticket barcodes",
         "NSPhotoLibraryUsageDescription": "Sticket needs photo access to upload concert photos",
-        "NSContactsUsageDescription": "Sticket can help you find friends from your contacts"
+        "NSContactsUsageDescription": "Sticket can help you find friends from your contacts",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -31,7 +35,11 @@
       },
       "package": "com.sticket.app",
       "versionCode": 1,
-      "permissions": ["CAMERA", "READ_CONTACTS", "VIBRATE"],
+      "permissions": [
+        "CAMERA",
+        "READ_CONTACTS",
+        "VIBRATE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -43,7 +51,10 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "edgeToEdgeEnabled": true,
@@ -64,12 +75,11 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-barcode-scanner",
       "sentry-expo"
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "4d02162f-b563-4ea6-ae9e-a140fa111ee6"
       }
     }
   }

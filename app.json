@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "entryPoint": "./apps/mobile/App.tsx",
     "icon": "./apps/mobile/assets/icon.png",
     "splash": {
@@ -72,7 +72,6 @@
     "owner": "vdpro",
     "plugins": [
       "expo-sqlite",
-      "expo-barcode-scanner",
       "expo-secure-store",
       "expo-web-browser"
     ]
