@@ -7,39 +7,12 @@
  *
  * Setting it here ensures it's defined *before* `expo-router/entry` is evaluated.
  */
-// Set EXPO_ROUTER_APP_ROOT using Object.defineProperty to work around readonly process.env
-try {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const p: any = typeof process !== 'undefined' ? (process as any) : undefined;
-  if (p?.env) {
-    const defineEnvVar = (key: string, value: string) => {
-      try {
-        const descriptor = Object.getOwnPropertyDescriptor(p.env, key);
-        if (descriptor && !descriptor.configurable) {
-          // Property exists and is not configurable, skip
-          return;
-        }
-        Object.defineProperty(p.env, key, {
-          value,
-          writable: true,
-          enumerable: true,
-          configurable: true,
-        });
-      } catch {
-        // Ignore - Metro/Babel should handle this
-      }
-    };
-    
-    if (!p.env.EXPO_ROUTER_APP_ROOT) {
-      defineEnvVar('EXPO_ROUTER_APP_ROOT', './app');
-    }
-    if (!p.env.EXPO_ROUTER_IMPORT_MODE) {
-      defineEnvVar('EXPO_ROUTER_IMPORT_MODE', 'sync');
-    }
-  }
-} catch {
-  // Ignore - Metro/Babel should handle this
-}
+// NOTE: Do NOT modify process.env here - it's read-only in React Native/Hermes
+// and will cause "property is not writable" errors.
+// EXPO_ROUTER_APP_ROOT should be set by:
+// 1. Metro/Babel transforms (via babel-preset-expo)
+// 2. EAS build environment variables (see eas.json)
+// 3. The _expoRouterCtx.js file handles require.context routing
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('expo-router/entry');
