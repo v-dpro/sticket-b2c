@@ -75,10 +75,14 @@ export default function FeedScreen() {
   const emptyMessage = useMemo(() => {
     if (activeTab !== 'friends') return null;
     if (!requiresAuth) return null;
-    // If user exists but requiresAuth is true, it means token expired
+    // If user exists but requiresAuth is true, it means token expired or API error
     // If no user, they need to sign in
+    if (user) {
+      // User is signed in but API call failed - likely token issue
+      return error || 'Unable to load feed. Please try again.';
+    }
     return error || 'Sign in to view your friends feed.';
-  }, [activeTab, error, requiresAuth]);
+  }, [activeTab, error, requiresAuth, user]);
 
   return (
     <Screen padded={false}>
@@ -103,17 +107,32 @@ export default function FeedScreen() {
         <FeedSkeleton />
       ) : emptyMessage ? (
         <View style={styles.center}>
-          <Ionicons name="lock-closed-outline" size={48} color={colors.textSecondary} />
+          <Ionicons name={user ? "refresh-outline" : "lock-closed-outline"} size={48} color={colors.textSecondary} />
           <Text style={styles.errorText}>{emptyMessage}</Text>
-          <Pressable onPress={() => router.replace('/(auth)/welcome')} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
-            <Text style={[styles.retryText, styles.primaryButtonText]}>Sign In (online)</Text>
-          </Pressable>
-          <Pressable onPress={() => router.replace('/(tabs)/discover')} style={styles.retryButton} accessibilityRole="button">
-            <Text style={styles.retryText}>Go to Discover</Text>
-          </Pressable>
-          <Pressable onPress={refresh} style={styles.retryButton} accessibilityRole="button">
-            <Text style={styles.retryText}>Try Again</Text>
-          </Pressable>
+          {user ? (
+            // User is signed in but feed failed - show retry option
+            <>
+              <Pressable onPress={refresh} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
+                <Text style={[styles.retryText, styles.primaryButtonText]}>Try Again</Text>
+              </Pressable>
+              <Pressable onPress={() => router.replace('/(tabs)/discover')} style={styles.retryButton} accessibilityRole="button">
+                <Text style={styles.retryText}>Go to Discover</Text>
+              </Pressable>
+            </>
+          ) : (
+            // No user - show sign in option
+            <>
+              <Pressable onPress={() => router.replace('/(auth)/welcome')} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
+                <Text style={[styles.retryText, styles.primaryButtonText]}>Sign In</Text>
+              </Pressable>
+              <Pressable onPress={() => router.replace('/(tabs)/discover')} style={styles.retryButton} accessibilityRole="button">
+                <Text style={styles.retryText}>Go to Discover</Text>
+              </Pressable>
+              <Pressable onPress={refresh} style={styles.retryButton} accessibilityRole="button">
+                <Text style={styles.retryText}>Try Again</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       ) : error && items.length === 0 ? (
         <View style={styles.center}>

@@ -57,8 +57,19 @@ export function useFeed() {
 
     // User exists, try to fetch feed
     try {
-      // Check for token, but don't fail if it's missing - let the API call handle it
-      // The API will return 401 if token is invalid/missing, and we'll handle that
+      // Check for token first
+      const hasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
+      if (!hasToken) {
+        // No token at all - user needs to sign in
+        setRequiresAuth(true);
+        setError('Sign in to view your friends feed.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Token exists, try to fetch feed
+      // The token refresh interceptor will handle 401s automatically
       const data = await getFeed({ limit: LIMIT });
       setItems(data.items ?? []);
       setNextCursor(data.nextCursor);
@@ -69,9 +80,18 @@ export function useFeed() {
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401) {
-        // Token expired or invalid - user needs to sign in again
-        setRequiresAuth(true);
-        setError('Your session expired. Please sign in again.');
+        // 401 after token refresh attempt failed - check if we still have a user
+        // If user exists, it's a token issue, not an auth issue
+        const stillHasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
+        if (stillHasToken) {
+          // Token exists but invalid - might be a temporary issue
+          setRequiresAuth(false);
+          setError('Unable to load feed. Please try again.');
+        } else {
+          // No token after refresh attempt - user needs to sign in
+          setRequiresAuth(true);
+          setError('Your session expired. Please sign in again.');
+        }
       } else {
         // Other errors (network, server, etc.)
         setError(getErrorMessage(err));
