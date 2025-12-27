@@ -5400,18 +5400,34 @@ app.get('/presales', async (req, reply) => {
     };
 
     if (q.artistId) {
-      const artist = await prisma.artist.findUnique({
-        where: { id: q.artistId },
-        select: { name: true },
-      });
-      if (artist) where.artistName = artist.name;
+      try {
+        const artist = await prisma.artist.findUnique({
+          where: { id: q.artistId },
+          select: { name: true },
+        });
+        if (artist) where.artistName = artist.name;
+      } catch (err) {
+        // If artist lookup fails, continue without filtering
+        req.log.warn({ error: err, artistId: q.artistId }, 'Failed to lookup artist for presale filter');
+      }
     }
 
-    const presales = await prisma.presale.findMany({
-      where,
-      orderBy: { presaleStart: 'asc' },
-      take: limit,
-    });
+    let presales;
+    try {
+      presales = await prisma.presale.findMany({
+        where,
+        orderBy: { presaleStart: 'asc' },
+        take: limit,
+      });
+    } catch (dbError: any) {
+      // If the Presale table doesn't exist or there's a DB error, return empty array
+      if (isDbUnavailable(dbError)) {
+        req.log.warn({ error: dbError }, 'Database unavailable for presales query, returning empty array');
+        return [];
+      }
+      // Re-throw if it's not a DB availability issue
+      throw dbError;
+    }
 
     // Handle empty presales array
     if (presales.length === 0) {
@@ -5481,8 +5497,17 @@ app.get('/presales', async (req, reply) => {
       code: error?.code,
       meta: error?.meta,
     }, 'Get presales error');
-    reply.status(500);
-    return { error: 'Failed to load presales' };
+    
+    // If database is unavailable or table doesn't exist, return empty array instead of error
+    if (isDbUnavailable(error) || error?.code === 'P2021' || error?.code === '42P01') {
+      req.log.warn({ error }, 'Presales table unavailable, returning empty array');
+      return [];
+    }
+    
+    // For other errors, still return empty array to prevent app crashes
+    // Presales are optional functionality
+    req.log.warn({ error }, 'Presales endpoint error, returning empty array as fallback');
+    return [];
   }
 });
 
