@@ -49,10 +49,26 @@ export default function SignUpScreen() {
   const isLoading = useSessionStore((s) => s.isLoading);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
+  // Check if Google auth is properly configured
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const isGoogleConfigured = Boolean(
+    Platform.OS === 'ios' 
+      ? iosClientId && webClientId && iosClientId !== 'not-configured' && webClientId !== 'not-configured'
+      : webClientId && webClientId !== 'not-configured'
+  );
+
+  // Always call the hook (required by React rules), but provide placeholder values if not configured
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest(
+    Platform.OS === 'ios'
+      ? {
+          iosClientId: iosClientId || 'not-configured-placeholder',
+          webClientId: webClientId || 'not-configured-placeholder',
+        }
+      : {
+          webClientId: webClientId || 'not-configured-placeholder',
+        }
+  );
 
   useEffect(() => {
     if (Platform.OS === 'ios') {
@@ -373,21 +389,23 @@ export default function SignUpScreen() {
                 </Pressable>
               )}
 
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleGoogleSignIn}
-                disabled={googleLoading || !googleRequest}
-                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator size="small" color={colors.textPrimary} />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
-                    <Text style={styles.socialText}>Continue with Google</Text>
-                  </>
-                )}
-              </Pressable>
+              {isGoogleConfigured && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleGoogleSignIn}
+                  disabled={googleLoading || !googleRequest}
+                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
+                      <Text style={styles.socialText}>Continue with Google</Text>
+                    </>
+                  )}
+                </Pressable>
+              )}
             </View>
 
             <Text style={styles.footer}>
