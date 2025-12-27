@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -24,6 +24,21 @@ export default function FeedScreen() {
 
   const friendsFeed = useFeed();
   const publicFeed = usePublicFeed();
+
+  // Refresh feed when screen comes into focus (e.g., after signing in)
+  useFocusEffect(
+    useCallback(() => {
+      // Small delay to ensure token is stored after sign-in
+      const timer = setTimeout(() => {
+        if (activeTab === 'friends') {
+          void friendsFeed.refresh();
+        } else {
+          void publicFeed.refresh();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }, [activeTab, friendsFeed, publicFeed])
+  );
 
   const activeFeed = activeTab === 'friends' ? friendsFeed : publicFeed;
   const { items, loading, refreshing, loadingMore, hasMore, hasNoFriends, error, requiresAuth, refresh, loadMore, updateItem, addCommentToItem } = activeFeed;
