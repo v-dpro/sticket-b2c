@@ -7,10 +7,12 @@ import { Screen } from '../../components/ui/Screen';
 import { submitFeedback, type FeedbackType } from '../../lib/api/feedback';
 import { colors, radius, spacing } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function FeedbackScreen() {
   const router = useRouter();
   const { user } = useSession();
+  const goBack = useSafeBack();
 
   const [type, setType] = useState<FeedbackType>('bug');
   const [message, setMessage] = useState('');
@@ -33,7 +35,7 @@ export default function FeedbackScreen() {
       await submitFeedback({ type, message: message.trim(), userId: user?.id, email: user?.email, path: '/feedback' });
       Alert.alert('Thank you!', 'Your feedback has been submitted.');
       setMessage('');
-      router.back();
+      goBack();
     } catch {
       Alert.alert('Couldn\'t send', 'Failed to submit feedback. Please try again.');
     } finally {
@@ -46,7 +48,7 @@ export default function FeedbackScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Feedback</Text>

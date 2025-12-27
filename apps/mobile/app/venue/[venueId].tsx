@@ -27,13 +27,16 @@ import { useVenue } from '../../hooks/useVenue';
 import { useVenueTips } from '../../hooks/useVenueTips';
 import { useSeatViews } from '../../hooks/useSeatViews';
 import { useVenueShows } from '../../hooks/useVenueShows';
+import { useSession } from '../../hooks/useSession';
 
 import { submitSeatView, submitVenueRatings } from '../../lib/api/venues';
 import type { VenueRatingsSubmission, VenueShow } from '../../types/venue';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function VenueScreen() {
   const router = useRouter();
   const { venueId } = useLocalSearchParams<{ venueId: string }>();
+  const { user } = useSession();
   const id = venueId ? String(venueId) : '';
 
   const { venue, loading, error, refetch, updateRatings } = useVenue(id);
@@ -46,6 +49,7 @@ export default function VenueScreen() {
   const [rateModalVisible, setRateModalVisible] = useState(false);
   const [addTipVisible, setAddTipVisible] = useState(false);
   const [addSeatViewVisible, setAddSeatViewVisible] = useState(false);
+  const goBack = useSafeBack();
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -56,9 +60,7 @@ export default function VenueScreen() {
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = goBack;
 
   const handleShare = async () => {
     if (!venue) return;
@@ -109,7 +111,10 @@ export default function VenueScreen() {
   };
 
   const handleSeeAllHistory = () => {
-    // TODO: navigate to full venue history
+    // Navigate to user's own profile where they can see all their shows at this venue
+    if (user?.id) {
+      router.push({ pathname: '/profile/[id]', params: { id: user.id } });
+    }
   };
 
   if (loading && !venue) {

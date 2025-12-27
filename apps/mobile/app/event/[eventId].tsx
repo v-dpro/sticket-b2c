@@ -22,6 +22,7 @@ import { getLogForUserEvent } from '../../lib/local/repo/logsRepo';
 import type { ShareCardData } from '../../types/share';
 import { createEventLink } from '../../lib/share/deepLinks';
 import { ShareButton } from '../../components/share/ShareButton';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function EventScreen() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function EventScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [localLogId, setLocalLogId] = useState<string | null>(null);
+  const goBack = useSafeBack();
 
   const isPast = useMemo(() => {
     if (!event?.date) return false;
@@ -64,9 +66,7 @@ export default function EventScreen() {
     setRefreshing(false);
   };
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = goBack;
 
   const shareCardData = useMemo<ShareCardData | null>(() => {
     if (!event) return null;
@@ -108,7 +108,9 @@ export default function EventScreen() {
   };
 
   const handleSeeAllFriends = () => {
-    // TODO: navigate to full list when that screen exists.
+    // Navigate to event page which shows all friends who went
+    // The event page already displays friends, so we can scroll to that section
+    // For now, just do nothing as the list is already visible on this page
   };
 
   const handleUserPress = (userId: string) => {

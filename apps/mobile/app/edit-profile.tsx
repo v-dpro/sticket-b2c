@@ -20,11 +20,13 @@ import { useProfile } from '../hooks/useProfile';
 import { useSession } from '../hooks/useSession';
 import { useSessionStore } from '../stores/sessionStore';
 import { updateProfile as updateLocalProfile } from '../lib/local/repo/profileRepo';
+import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user } = useSession();
   const refreshSession = useSessionStore((s) => s.refresh);
+  const goBack = useSafeBack();
 
   const { profile, loading: profileLoading, refetch } = useProfile();
 
@@ -108,7 +110,7 @@ export default function EditProfileScreen() {
       await refreshSession();
       await refetch();
 
-      router.back();
+      goBack();
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.error || 'Failed to update profile');
     } finally {
@@ -116,9 +118,7 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleCancel = () => {
-    router.back();
-  };
+  const handleCancel = goBack;
 
   if (profileLoading || !profile) {
     return (

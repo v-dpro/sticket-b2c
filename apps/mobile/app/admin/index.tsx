@@ -7,6 +7,7 @@ import { Screen } from '../../components/ui/Screen';
 import { colors, radius, spacing } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
 import { isAdminUser } from '../../lib/admin/isAdmin';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -19,6 +20,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { user } = useSession();
 
   if (!isAdminUser(user)) {
@@ -26,7 +28,7 @@ export default function AdminDashboard() {
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+          <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </Pressable>
           <Text style={styles.title}>Admin</Text>
@@ -47,7 +49,7 @@ export default function AdminDashboard() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Admin</Text>

@@ -16,9 +16,11 @@ import { useContactsSync } from '../../hooks/useContactsSync';
 import { useSuggestions } from '../../hooks/useSuggestions';
 import { useUserSearch } from '../../hooks/useUserSearch';
 import { colors, radius } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function FindFriendsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
 
   const { query, setQuery, results, loading: searchLoading, searched, updateFollowStatus: updateSearchFollowStatus, clear } =
     useUserSearch();
@@ -56,7 +58,7 @@ export default function FindFriendsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={10}>
+        <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Find Friends</Text>

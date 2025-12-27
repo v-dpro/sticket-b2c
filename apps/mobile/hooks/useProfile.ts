@@ -6,6 +6,7 @@ import { listLogsForUser } from '../lib/local/repo/logsRepo';
 import { ensureProfile as ensureLocalProfile, getProfile as getLocalProfile } from '../lib/local/repo/profileRepo';
 import type { UserProfile } from '../types/profile';
 import { useSession } from './useSession';
+import { getErrorMessage } from '../lib/api/errorUtils';
 
 async function buildLocalOwnProfile(user: LocalUser): Promise<UserProfile> {
   await ensureLocalProfile(user.id);
@@ -96,7 +97,7 @@ export function useProfile(userId?: string) {
       const data = await getUserProfile(userId!);
       setProfile({ ...data, isOwnProfile });
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to load profile');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

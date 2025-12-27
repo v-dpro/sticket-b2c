@@ -8,9 +8,11 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
 import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
 
@@ -19,7 +21,7 @@ export default function ForgotPasswordScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <Pressable onPress={() => router.back()} style={styles.back} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
           <Text style={styles.backText}>Back to Login</Text>
         </Pressable>

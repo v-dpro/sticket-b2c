@@ -6,9 +6,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '../../components/ui/Screen';
 import { changePassword } from '../../lib/api/settings';
 import { colors, radius, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,7 +37,7 @@ export default function ChangePasswordScreen() {
     setLoading(true);
     try {
       await changePassword(currentPassword, newPassword);
-      Alert.alert('Success', 'Your password has been changed', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Success', 'Your password has been changed', [{ text: 'OK', onPress: goBack }]);
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.error || err?.message || 'Failed to change password');
     } finally {
@@ -48,7 +50,7 @@ export default function ChangePasswordScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Change Password</Text>

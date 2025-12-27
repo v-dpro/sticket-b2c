@@ -12,9 +12,11 @@ import { useSettings } from '../../hooks/useSettings';
 import { useSession } from '../../hooks/useSession';
 import { isAdminUser } from '../../lib/admin/isAdmin';
 import { colors, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { user } = useSession();
   const { settings, refresh } = useSettings();
   const { logout, loading: logoutLoading } = useAccountActions();
@@ -33,7 +35,7 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Settings</Text>

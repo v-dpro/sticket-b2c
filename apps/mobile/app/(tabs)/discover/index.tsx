@@ -121,14 +121,29 @@ export default function DiscoverScreen() {
 
           {isEmpty && (
             <View style={styles.emptyContainer}>
-              <EmptyState
-                icon="musical-notes-outline"
-                title="No shows yet"
-                description="Start following artists (or connect Spotify) and we’ll surface upcoming concerts here."
-                actionLabel="Find a Show"
-                onAction={() => router.push('/log/search')}
-              />
-              <Text style={[styles.mutedText, { marginTop: 10 }]}>Popular in {city}</Text>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="musical-notes" size={48} color={colors.brandPurple} />
+              </View>
+              <Text style={styles.emptyTitle}>No shows yet</Text>
+              <Text style={styles.emptyText}>
+                Start following artists (or connect Spotify) and we'll surface upcoming concerts here.
+              </Text>
+              
+              <Pressable
+                style={styles.emptyButton}
+                onPress={() => router.push('/(tabs)/search')}
+                accessibilityRole="button"
+              >
+                <Text style={styles.emptyButtonText}>Find Artists</Text>
+              </Pressable>
+              
+              <Pressable
+                style={styles.emptyButtonSecondary}
+                onPress={() => router.push('/settings/connected-services')}
+                accessibilityRole="button"
+              >
+                <Text style={styles.emptyButtonSecondaryText}>Connect Spotify</Text>
+              </Pressable>
             </View>
           )}
         </ScrollView>
@@ -190,6 +205,9 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     marginTop: 24,
   },
+  emptyIcon: {
+    marginBottom: 16,
+  },
   emptyTitle: {
     marginTop: 16,
     fontSize: 20,
@@ -202,6 +220,36 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 24,
+  },
+  emptyButton: {
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: colors.brandPurple,
+    borderRadius: 10,
+    minWidth: 160,
+    alignItems: 'center',
+  },
+  emptyButtonText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyButtonSecondary: {
+    marginTop: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+    minWidth: 160,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyButtonSecondaryText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   primaryButton: {
     marginTop: 24,

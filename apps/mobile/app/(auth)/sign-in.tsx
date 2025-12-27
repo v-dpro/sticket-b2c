@@ -2,15 +2,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, Stack, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
 import { colors, fonts, radius, spacing } from '../../lib/theme';
 import { useSessionStore } from '../../stores/sessionStore';
+import { apiClient } from '../../lib/api/client';
+import * as SecureStore from '../../lib/storage/secureStore';
+import { upsertUserFromRemote } from '../../lib/local/users';
+import { ensureProfile, getProfile } from '../../lib/local/repo/profileRepo';
+import { getLogCount } from '../../lib/local/repo/logsRepo';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const SESSION_KEY = 'sticket.currentUserId';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -22,9 +34,29 @@ type FormValues = z.infer<typeof schema>;
 export default function SignInScreen() {
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const signIn = useSessionStore((s) => s.signIn);
   const storeError = useSessionStore((s) => s.error);
   const isLoading = useSessionStore((s) => s.isLoading);
+
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setIsAppleAvailable);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      handleGoogleToken(googleResponse.authentication?.idToken);
+    }
+  }, [googleResponse]);
 
   const {
     control,
@@ -45,6 +77,129 @@ export default function SignInScreen() {
       return;
     }
     setAuthError(error ?? 'Sign in failed');
+  };
+
+  const handleAppleSignIn = async () => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Apple Sign In', 'Only available on iOS devices');
+      return;
+    }
+    
+    if (!isAppleAvailable) {
+      Alert.alert('Apple Sign In', 'Apple Sign In is not available on this device.');
+      return;
+    }
+    
+    setAppleLoading(true);
+    try {
+      setAuthError(null);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error('No identity token received');
+      }
+
+      // Send to backend
+      const response = await apiClient.post('/auth/apple/callback', {
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        fullName: credential.fullName,
+        email: credential.email,
+      });
+
+      const { accessToken, refreshToken, user } = response.data;
+      
+      // Store tokens
+      await SecureStore.setItemAsync('access_token', accessToken);
+      await SecureStore.setItemAsync('refresh_token', refreshToken);
+      await SecureStore.setItemAsync('auth_token', accessToken);
+
+      const localUser = await upsertUserFromRemote({ id: user.id, email: user.email });
+      await SecureStore.setItemAsync(SESSION_KEY, localUser.id);
+      await ensureProfile(localUser.id);
+      const profile = await getProfile(localUser.id);
+      const logCount = await getLogCount(localUser.id);
+
+      useSessionStore.setState({
+        user: localUser,
+        profile,
+        hasLoggedFirstShow: logCount > 0,
+        isLoading: false,
+        error: null,
+      });
+      
+      // Navigate to app
+      router.replace('/');
+    } catch (error: any) {
+      if (error.code === 'ERR_REQUEST_CANCELED' || error.code === 'ERR_CANCELED') {
+        // User cancelled, do nothing
+        return;
+      }
+      console.error('Apple Sign In error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Could not sign in with Apple';
+      setAuthError(errorMessage);
+      Alert.alert(
+        'Sign In Failed',
+        errorMessage
+      );
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+  const handleGoogleToken = async (idToken: string | undefined) => {
+    if (!idToken) return;
+    
+    setGoogleLoading(true);
+    try {
+      setAuthError(null);
+      const response = await apiClient.post('/auth/google/callback', { idToken });
+      
+      const { accessToken, refreshToken, user } = response.data;
+      
+      await SecureStore.setItemAsync('access_token', accessToken);
+      await SecureStore.setItemAsync('refresh_token', refreshToken);
+      await SecureStore.setItemAsync('auth_token', accessToken);
+
+      const localUser = await upsertUserFromRemote({ id: user.id, email: user.email });
+      await SecureStore.setItemAsync(SESSION_KEY, localUser.id);
+      await ensureProfile(localUser.id);
+      const profile = await getProfile(localUser.id);
+      const logCount = await getLogCount(localUser.id);
+
+      useSessionStore.setState({
+        user: localUser,
+        profile,
+        hasLoggedFirstShow: logCount > 0,
+        isLoading: false,
+        error: null,
+      });
+      
+      router.replace('/');
+    } catch (error: any) {
+      console.error('Google Sign In error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Could not sign in with Google';
+      setAuthError(errorMessage);
+      Alert.alert(
+        'Sign In Failed',
+        errorMessage
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    if (!googleRequest) {
+      Alert.alert('Google Sign In', 'Google Sign In is not configured');
+      return;
+    }
+    googlePromptAsync();
   };
 
   return (
@@ -128,22 +283,38 @@ export default function SignInScreen() {
 
             {/* Social */}
             <View style={styles.socialList}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => Alert.alert('Apple Sign In', 'Not wired up in this build yet.')}
-                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-              >
-                <Ionicons name="logo-apple" size={20} color={colors.textPrimary} />
-                <Text style={styles.socialText}>Continue with Apple</Text>
-              </Pressable>
+              {Platform.OS === 'ios' && isAppleAvailable && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleAppleSignIn}
+                  disabled={appleLoading}
+                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, appleLoading && { opacity: 0.6 }]}
+                >
+                  {appleLoading ? (
+                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-apple" size={20} color={colors.textPrimary} />
+                      <Text style={styles.socialText}>Continue with Apple</Text>
+                    </>
+                  )}
+                </Pressable>
+              )}
 
               <Pressable
                 accessibilityRole="button"
-                onPress={() => Alert.alert('Google Sign In', 'Not wired up in this build yet.')}
-                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+                onPress={handleGoogleSignIn}
+                disabled={googleLoading || !googleRequest}
+                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
               >
-                <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
-                <Text style={styles.socialText}>Continue with Google</Text>
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
+                    <Text style={styles.socialText}>Continue with Google</Text>
+                  </>
+                )}
               </Pressable>
             </View>
 
@@ -255,6 +426,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
+  },
+  disabled: {
+    opacity: 0.5,
   },
   footer: {
     color: colors.textSecondary,

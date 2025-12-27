@@ -18,9 +18,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAddTicket } from '../../hooks/useAddTicket';
 import type { BarcodeFormat } from '../../types/ticket';
 import { ensureTicketRemindersScheduled } from '../../lib/notifications/ticketReminders';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function AddTicketScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const params = useLocalSearchParams<{ barcode?: string; barcodeFormat?: BarcodeFormat }>();
   const { loading, searchResults, searching, searchEvents, submitTicket, clearSearch } = useAddTicket();
 
@@ -116,7 +118,7 @@ export default function AddTicketScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={goBack} style={styles.backButton}>
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </Pressable>
         <Text style={styles.title}>Add Ticket</Text>

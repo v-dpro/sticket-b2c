@@ -7,9 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ContactCard } from '../../components/friends/ContactCard';
 import { useContactsSync } from '../../hooks/useContactsSync';
 import { colors } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function FindFriendsContactsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { matches, loading, error, sync, updateFollowStatus } = useContactsSync();
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function FindFriendsContactsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={10}>
+        <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Contacts</Text>

@@ -8,6 +8,7 @@ import { Screen } from '../../components/ui/Screen';
 import { useSettings } from '../../hooks/useSettings';
 import type { VisibilityOption } from '../../types/settings';
 import { colors, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 const VISIBILITY_OPTIONS: Array<{ value: VisibilityOption; label: string; icon: string }> = [
   { value: 'public', label: 'Everyone', icon: 'globe' },
@@ -18,6 +19,7 @@ const VISIBILITY_OPTIONS: Array<{ value: VisibilityOption; label: string; icon: 
 export default function PrivacySettingsScreen() {
   const router = useRouter();
   const { settings, updateSetting, saving } = useSettings();
+  const goBack = useSafeBack();
 
   const showVisibilityPicker = (title: string, currentValue: VisibilityOption, onSelect: (value: VisibilityOption) => void) => {
     Alert.alert(
@@ -39,7 +41,7 @@ export default function PrivacySettingsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Privacy</Text>

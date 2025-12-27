@@ -5,9 +5,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '../components/ui/Screen';
 import { colors, radius, spacing } from '../lib/theme';
 import { useNotificationPrefs } from '../hooks/useNotificationPrefs';
+import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { prefs, loading, saving, updatePref } = useNotificationPrefs();
 
   if (loading) {
@@ -26,7 +28,7 @@ export default function NotificationSettingsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Notification Settings</Text>

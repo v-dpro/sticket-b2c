@@ -6,9 +6,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '../../components/ui/Screen';
 import { useAccountActions } from '../../hooks/useAccountActions';
 import { colors, radius, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { deleteAccount, loading } = useAccountActions();
   const [password, setPassword] = useState('');
   const [reason, setReason] = useState('');
@@ -46,7 +48,7 @@ export default function DeleteAccountScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Delete Account</Text>

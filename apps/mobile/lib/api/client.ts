@@ -33,30 +33,38 @@ function getDevHostFromExpo(): string | null {
 
 function resolveApiUrl(): string {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  const fallback = envUrl || 'http://localhost:3001';
-
-  // If env explicitly points somewhere non-local, trust it.
+  
+  // In production builds, ALWAYS use the env URL
+  if (!__DEV__ && envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  
+  // In development with explicit non-localhost URL, use it
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
     return envUrl.replace(/\/+$/, '');
   }
-
-  // Simulators/emulators can reach the host API via special loopback mapping.
-  // - iOS simulator: localhost works
-  // - Android emulator: use 10.0.2.2 to reach host machine
-  if (!Device.isDevice) {
-    const localPort = envUrl ? new URL(envUrl).port || '3001' : '3001';
-    if (Platform.OS === 'android') return `http://10.0.2.2:${localPort}`;
-    return `http://localhost:${localPort}`;
+  
+  // Development fallbacks
+  const fallback = envUrl || 'http://localhost:3001';
+  
+  // Android emulator needs special IP
+  if (!Device.isDevice && Platform.OS === 'android') {
+    const port = envUrl ? new URL(envUrl).port || '3001' : '3001';
+    return `http://10.0.2.2:${port}`;
   }
-
-  // In Expo dev, prefer the LAN host IP so it works on simulator + device.
+  
+  // iOS simulator can use localhost
+  if (!Device.isDevice && Platform.OS === 'ios') {
+    return fallback.replace(/\/+$/, '');
+  }
+  
+  // Physical device in dev - try to get Expo host
   const devHost = getDevHostFromExpo();
   if (devHost) {
-    // Default to 3001 to avoid collisions with other local services.
     const port = envUrl ? new URL(envUrl).port || '3001' : '3001';
     return `http://${devHost}:${port}`;
   }
-
+  
   return fallback.replace(/\/+$/, '');
 }
 

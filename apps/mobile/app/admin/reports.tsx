@@ -8,6 +8,7 @@ import { apiClient } from '../../lib/api/client';
 import { isAdminUser } from '../../lib/admin/isAdmin';
 import { colors, radius, spacing } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 type ReportRow = {
   id: string;
@@ -20,6 +21,7 @@ type ReportRow = {
 
 export default function AdminReportsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { user } = useSession();
   const allowed = isAdminUser(user);
 
@@ -57,7 +59,7 @@ export default function AdminReportsScreen() {
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+          <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </Pressable>
           <Text style={styles.title}>Reports</Text>
@@ -73,7 +75,7 @@ export default function AdminReportsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Reports</Text>

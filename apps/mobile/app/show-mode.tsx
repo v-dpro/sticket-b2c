@@ -12,6 +12,7 @@ import Animated, { useAnimatedStyle, withSpring, useSharedValue } from 'react-na
 import { colors, gradients } from '../lib/theme';
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { uploadShowPhoto, getShowPhotos } from '../lib/api/showMedia';
+import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 type MediaItem = {
   id: string;
@@ -24,6 +25,7 @@ export default function ShowModeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { ticketId, eventId } = useLocalSearchParams<{ ticketId?: string; eventId?: string }>();
+  const goBack = useSafeBack();
 
   const cameraRef = useRef<any>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -105,7 +107,7 @@ export default function ShowModeScreen() {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
-  const handleClose = () => router.back();
+  const handleClose = goBack;
 
   const handleLogShow = () => {
     router.push({

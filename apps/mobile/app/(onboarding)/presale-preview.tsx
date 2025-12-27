@@ -11,6 +11,7 @@ import { apiClient } from '../../lib/api/client';
 import { StatusPill } from '../../components/shared/StatusPill';
 import { CodeDisplay } from '../../components/shared/CodeDisplay';
 import { SignupWarning } from '../../components/shared/SignupWarning';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 interface PresalePreview {
   id: string;
@@ -27,6 +28,7 @@ interface PresalePreview {
 
 export default function PresalePreviewScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const selectedArtists = useOnboardingStore((s) => s.selectedArtists);
   const markPresalePreviewShown = useOnboardingStore((s) => s.markPresalePreviewShown);
   const setNotificationPermissionAsked = useOnboardingStore((s) => s.setNotificationPermissionAsked);
@@ -121,7 +123,7 @@ export default function PresalePreviewScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.stepText}>Step 4 of 6</Text>

@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { getFollowing, type FollowUserListItem } from '../lib/api/profile';
 import { useSession } from '../hooks/useSession';
+import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 function UserRow({ item, onPress }: { item: FollowUserListItem; onPress: () => void }) {
   return (
@@ -32,6 +33,7 @@ function UserRow({ item, onPress }: { item: FollowUserListItem; onPress: () => v
 
 export default function FollowingScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { user } = useSession();
   const { userId } = useLocalSearchParams<{ userId?: string }>();
 
@@ -72,7 +74,7 @@ export default function FollowingScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={goBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
         <Text style={styles.headerTitle}>Following</Text>

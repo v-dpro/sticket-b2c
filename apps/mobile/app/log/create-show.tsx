@@ -7,6 +7,7 @@ import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
 import { createOrGetArtistByName, createOrGetEvent, createOrGetVenue } from '../../lib/local/repo/eventsRepo';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function toIsoDate(dateStr: string) {
   // Accept YYYY-MM-DD and convert to an ISO timestamp (no timezone surprises for MVP)
@@ -19,6 +20,7 @@ function toIsoDate(dateStr: string) {
 
 export default function CreateShow() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { q, artistName } = useLocalSearchParams<{ q?: string; artistName?: string }>();
 
   const initialArtist = typeof artistName === 'string' ? artistName : typeof q === 'string' ? q : '';
@@ -88,7 +90,7 @@ export default function CreateShow() {
 
         <View style={{ marginTop: spacing.md, gap: 12 }}>
           <Button label={isSaving ? 'Creating…' : 'Create & log'} disabled={!canSave || isSaving} onPress={onCreate} />
-          <Button label="Cancel" variant="secondary" disabled={isSaving} onPress={() => router.back()} />
+          <Button label="Cancel" variant="secondary" disabled={isSaving} onPress={goBack} />
         </View>
       </View>
     </Screen>

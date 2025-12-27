@@ -21,13 +21,16 @@ import { FriendsWhoSaw } from '../../components/artist/FriendsWhoSaw';
 import { useArtist } from '../../hooks/useArtist';
 import { useArtistShows } from '../../hooks/useArtistShows';
 import { useArtistFollow } from '../../hooks/useArtistFollow';
+import { useSession } from '../../hooks/useSession';
 
 import { markInterested, removeInterested } from '../../lib/api/events';
 import type { ArtistShow } from '../../types/artist';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ArtistScreen() {
   const router = useRouter();
   const { artistId } = useLocalSearchParams<{ artistId: string }>();
+  const { user } = useSession();
 
   const id = artistId ? String(artistId) : '';
 
@@ -38,6 +41,7 @@ export default function ArtistScreen() {
   const past = useArtistShows(id, false);
 
   const [refreshing, setRefreshing] = useState(false);
+  const goBack = useSafeBack();
 
   useEffect(() => {
     if (artist) {
@@ -54,9 +58,7 @@ export default function ArtistScreen() {
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = goBack;
 
   const handleShare = async () => {
     if (!artist) return;
@@ -103,7 +105,11 @@ export default function ArtistScreen() {
   };
 
   const handleSeeAllHistory = () => {
-    // TODO: Navigate to a full history screen
+    // Navigate to user's own profile where they can see all their shows for this artist
+    // The profile timeline view shows all logged shows
+    if (user?.id) {
+      router.push({ pathname: '/profile/[id]', params: { id: user.id } });
+    }
   };
 
   if (loading && !artist) {

@@ -7,10 +7,12 @@ import { SettingsSection } from '../../components/settings';
 import { Screen } from '../../components/ui/Screen';
 import { useSettings } from '../../hooks/useSettings';
 import { colors, radius, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function PreferencesScreen() {
   const router = useRouter();
   const { settings, updateSetting, saving } = useSettings();
+  const goBack = useSafeBack();
 
   const [homeCity, setHomeCity] = useState(settings.homeCity ?? '');
   const [distanceUnit, setDistanceUnit] = useState(settings.distanceUnit);
@@ -30,7 +32,7 @@ export default function PreferencesScreen() {
         homeCity.trim() !== (settings.homeCity ?? '') ? updateSetting('homeCity', homeCity.trim()) : Promise.resolve(),
         distanceUnit !== settings.distanceUnit ? updateSetting('distanceUnit', distanceUnit) : Promise.resolve(),
       ]);
-      Alert.alert('Saved', 'Your preferences have been updated.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Saved', 'Your preferences have been updated.', [{ text: 'OK', onPress: goBack }]);
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.error || e?.message || 'Failed to save preferences');
     }
@@ -41,7 +43,7 @@ export default function PreferencesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Preferences</Text>

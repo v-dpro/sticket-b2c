@@ -4,12 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Screen } from '../../components/ui/Screen';
 import { colors, spacing } from '../../lib/theme';
-import { useSafeNavigation } from '../../lib/navigation/safeNavigation';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function PresaleDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { safeBack } = useSafeNavigation('/(tabs)/feed');
 
   return (
     <Screen padded={false}>

@@ -6,9 +6,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '../../components/ui/Screen';
 import { exportUserData } from '../../lib/api/settings';
 import { colors, radius, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ExportDataScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const [loading, setLoading] = useState(false);
 
   const onExport = async () => {
@@ -47,7 +49,7 @@ export default function ExportDataScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Export Data</Text>

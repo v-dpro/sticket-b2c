@@ -18,12 +18,14 @@ import { TicketStatusBadge } from '../../components/wallet/TicketStatusBadge';
 import { useTicketDetail } from '../../hooks/useTicketDetail';
 import { deleteTicket } from '../../lib/api/tickets';
 import { ensureTicketRemindersScheduled } from '../../lib/notifications/ticketReminders';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function TicketDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { ticket, loading, error } = useTicketDetail(id || '');
   const [deleting, setDeleting] = useState(false);
+  const goBack = useSafeBack();
 
   useEffect(() => {
     if (ticket) {
@@ -31,9 +33,7 @@ export default function TicketDetailScreen() {
     }
   }, [ticket]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = goBack;
 
   const handleViewEvent = () => {
     if (ticket) {
@@ -55,7 +55,7 @@ export default function TicketDetailScreen() {
     setDeleting(true);
     try {
       await deleteTicket(ticket.id);
-      router.back();
+      goBack();
     } catch (err) {
       Alert.alert('Error', 'Failed to delete ticket.');
     } finally {

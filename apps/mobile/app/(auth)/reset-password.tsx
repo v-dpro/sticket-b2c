@@ -7,9 +7,11 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
 import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -31,7 +33,7 @@ export default function ResetPasswordScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <Pressable onPress={() => router.back()} style={styles.back} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>

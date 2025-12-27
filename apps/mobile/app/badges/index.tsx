@@ -8,6 +8,7 @@ import { colors, spacing } from '../../lib/theme';
 import { useBadges } from '../../hooks/useBadges';
 import type { Badge, BadgeCategory } from '../../types/badge';
 import { BadgeCategory as BadgeCategorySection } from '../../components/badges/BadgeCategory';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 const CATEGORY_LABELS: Record<BadgeCategory, string> = {
   milestone: 'Milestones',
@@ -24,6 +25,7 @@ const CATEGORY_ORDER: BadgeCategory[] = ['milestone', 'streak', 'loyalty', 'expl
 
 export default function BadgesScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { earnedBadges, progress, badgesByCategory, loading, error, totalPoints, earnedCount, totalCount, refresh } = useBadges();
 
   const onBadgePress = (badge: Badge) => {
@@ -33,7 +35,7 @@ export default function BadgesScreen() {
   return (
     <Screen padded={false}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={goBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Badges</Text>

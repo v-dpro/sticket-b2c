@@ -5,16 +5,18 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
 import { colors, spacing } from '../../lib/theme';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
 
   return (
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Privacy Policy</Text>

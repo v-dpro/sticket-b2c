@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Avatar } from '../components/ui/Avatar';
 import { Screen } from '../components/ui/Screen';
 import { colors, fonts, radius, spacing, gradients } from '../lib/theme';
+import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 type Comment = {
   id: string;
@@ -18,6 +19,7 @@ type Comment = {
 
 export default function CommentsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>(() => [
     {
@@ -67,7 +69,7 @@ export default function CommentsScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>

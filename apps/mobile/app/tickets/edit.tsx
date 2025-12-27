@@ -7,12 +7,14 @@ import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
 import { deleteTicket, getTicketById, updateTicket, type TicketStatus } from '../../lib/local/repo/ticketsRepo';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 const statuses: TicketStatus[] = ['KEEPING', 'SELLING', 'SOLD'];
 
 export default function EditTicket() {
   const router = useRouter();
   const { ticketId } = useLocalSearchParams<{ ticketId: string }>();
+  const goBack = useSafeBack();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,7 +64,7 @@ export default function EditTicket() {
         seat: seat.trim() || null,
         barcode: barcode.trim() || null,
       });
-      router.back();
+      goBack();
     } finally {
       setIsSaving(false);
     }

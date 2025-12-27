@@ -16,7 +16,8 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.sticket.app",
-      "buildNumber": "1",
+      "buildNumber": "4",
+      "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:sticket.in",
         "applinks:sticket.in"

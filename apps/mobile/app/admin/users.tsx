@@ -8,6 +8,7 @@ import { apiClient } from '../../lib/api/client';
 import { isAdminUser } from '../../lib/admin/isAdmin';
 import { colors, radius, spacing } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 type AdminUserRow = {
   id: string;
@@ -18,6 +19,7 @@ type AdminUserRow = {
 
 export default function AdminUsersScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { user } = useSession();
 
   const [query, setQuery] = useState('');
@@ -77,7 +79,7 @@ export default function AdminUsersScreen() {
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+          <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </Pressable>
           <Text style={styles.title}>Users</Text>
@@ -93,7 +95,7 @@ export default function AdminUsersScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Users</Text>

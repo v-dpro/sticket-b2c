@@ -16,6 +16,7 @@ import { useProfile } from '../../hooks/useProfile';
 import { useUserLogs } from '../../hooks/useUserLogs';
 import { useFollow } from '../../hooks/useFollow';
 import type { LogEntry } from '../../types/profile';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function UserProfileScreen() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function UserProfileScreen() {
   const { logs, years, loading: logsLoading, hasMore, loadMore, refresh } = useUserLogs(id || '', selectedYear || undefined);
 
   const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useFollow();
+  const goBack = useSafeBack();
 
   // Sync follow state when profile loads
   useEffect(() => {
@@ -36,9 +38,7 @@ export default function UserProfileScreen() {
     }
   }, [profile, setIsFollowing]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = goBack;
 
   const handleFollowPress = () => {
     if (id) {

@@ -8,6 +8,7 @@ import { apiClient } from '../../lib/api/client';
 import { isAdminUser } from '../../lib/admin/isAdmin';
 import { colors, radius, spacing } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 type PhotoRow = {
   id: string;
@@ -19,6 +20,7 @@ type PhotoRow = {
 
 export default function AdminPhotosScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { user } = useSession();
   const allowed = isAdminUser(user);
 
@@ -56,7 +58,7 @@ export default function AdminPhotosScreen() {
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+          <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </Pressable>
           <Text style={styles.title}>Photos</Text>
@@ -72,7 +74,7 @@ export default function AdminPhotosScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Photos</Text>

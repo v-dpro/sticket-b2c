@@ -4,6 +4,7 @@ import type { DiscoveryData } from '../types/event';
 import { getDiscoveryFeed } from '../lib/api/discovery';
 import { useAuthStore } from '../stores/authStore';
 import { useSession } from './useSession';
+import { getErrorMessage } from '../lib/api/errorUtils';
 
 export function useDiscovery() {
   const [data, setData] = useState<DiscoveryData | null>(null);
@@ -27,7 +28,7 @@ export function useDiscovery() {
         const result = await getDiscoveryFeed(city);
         setData(result);
       } catch (err) {
-        setError('Failed to load discovery feed');
+        setError(getErrorMessage(err));
         // Include baseURL when available (Axios puts it on err.config.baseURL)
         const anyErr = err as any;
         const baseURL = anyErr?.config?.baseURL;

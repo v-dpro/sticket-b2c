@@ -43,6 +43,10 @@ if (__DEV__) {
       }
       if (arg && typeof arg === 'object') {
         const message = (arg as any).message || (arg as any).toString?.() || '';
+        // Don't suppress API errors or other important errors
+        if (typeof message === 'string' && (message.includes('[api]') || message.includes('request failed'))) {
+          return false;
+        }
         return typeof message === 'string' && message.includes('GO_BACK');
       }
       return false;

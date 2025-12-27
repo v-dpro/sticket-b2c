@@ -9,6 +9,7 @@ import { radius, spacing, colors, gradients } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
 import { searchArtists } from '../../lib/api/artists';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 interface ArtistOption {
   spotifyId?: string;
@@ -19,6 +20,7 @@ interface ArtistOption {
 
 export default function SelectArtistsScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const spotifyConnected = useOnboardingStore((s) => s.spotifyConnected);
   const selectedArtists = useOnboardingStore((s) => s.selectedArtists);
   const toggleArtistSelection = useOnboardingStore((s) => s.toggleArtistSelection);
@@ -140,7 +142,7 @@ export default function SelectArtistsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.stepText}>Step 3 of 6</Text>
@@ -235,6 +237,15 @@ export default function SelectArtistsScreen() {
             </View>
           )}
         </Pressable>
+
+        {/* Skip Button - allows users to proceed without selecting */}
+        <Pressable
+          style={styles.skipButton}
+          onPress={() => router.push('/(onboarding)/log-first-show')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.skipButtonText}>Skip for now</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -314,9 +325,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     gap: 12,
     marginBottom: 12,
-  },
-  grid: {
-    paddingBottom: spacing.xl,
   },
   artistCard: {
     width: '31%',
@@ -440,6 +448,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.textTertiary,
+  },
+  skipButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  skipButtonText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

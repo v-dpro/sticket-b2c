@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
 import type { BarcodeFormat } from '../../types/ticket';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function mapCameraTypeToBarcodeFormat(type: string | undefined): BarcodeFormat {
   const t = String(type || '').toLowerCase();
@@ -17,6 +18,7 @@ function mapCameraTypeToBarcodeFormat(type: string | undefined): BarcodeFormat {
 
 export default function ScanTicketScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
@@ -62,7 +64,7 @@ export default function ScanTicketScreen() {
         barcodeScannerSettings={{ barcodeTypes: supportedTypes as any }}
         onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
       >
-        <Pressable style={styles.closeButton} onPress={() => router.back()} hitSlop={10}>
+        <Pressable style={styles.closeButton} onPress={goBack} hitSlop={10}>
           <Ionicons name="close" size={28} color="#FFFFFF" />
         </Pressable>
 

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { getFeed } from '../lib/api/feed';
 import * as SecureStore from '../lib/storage/secureStore';
 import type { FeedComment, FeedItem } from '../types/feed';
+import { getErrorMessage } from '../lib/api/errorUtils';
+import { useSession } from './useSession';
 
 export function useFeed() {
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -14,6 +16,9 @@ export function useFeed() {
   const [hasNoFriends, setHasNoFriends] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [requiresAuth, setRequiresAuth] = useState(false);
+
+  // Check if we have a valid session
+  const { user, loading: sessionLoading } = useSession();
 
   const LIMIT = 20;
 
@@ -27,7 +32,22 @@ export function useFeed() {
     else setLoading(true);
 
     setError(null);
-    setRequiresAuth(false);
+    
+    // Only show auth required if we're not loading AND there's no user
+    const authRequired = !sessionLoading && !user;
+    setRequiresAuth(authRequired);
+
+    // Don't fetch if no user (will show auth required message)
+    if (authRequired) {
+      setItems([]);
+      setHasMore(false);
+      setNextCursor(null);
+      setHasNoFriends(false);
+      setError('Sign in to view your friends feed.');
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     try {
       // Feed is API-backed. If there is no token (local/offline session), don't call the endpoint.
@@ -46,19 +66,20 @@ export function useFeed() {
       setNextCursor(data.nextCursor);
       setHasMore(Boolean(data.nextCursor));
       setHasNoFriends(Boolean(data.hasNoFriends));
+      setRequiresAuth(false);
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401) {
         setRequiresAuth(true);
         setError('Sign in to view your friends feed.');
       } else {
-        setError(err?.response?.data?.error || 'Failed to load feed');
+        setError(getErrorMessage(err));
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [hasToken]);
+  }, [hasToken, user, sessionLoading]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !nextCursor) return;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { search } from '../lib/api/search';
+import { searchArtistsSpotify } from '../lib/api/logShow';
 import type { SearchResults, SearchTab } from '../types/search';
 
 const EMPTY_RESULTS: SearchResults = {
@@ -50,6 +51,25 @@ export function useSearch() {
 
       // Ignore stale responses
       if (reqId !== requestIdRef.current) return;
+
+      // Spotify fallback: if no artists found, search Spotify
+      if (data.artists.length === 0) {
+        try {
+          const spotifyArtists = await searchArtistsSpotify(trimmed);
+          data.artists = spotifyArtists.map((a) => ({
+            id: a.id,
+            name: a.name,
+            imageUrl: a.imageUrl ?? undefined,
+            genres: a.genres ?? [],
+            upcomingEventCount: 0,
+          }));
+          data.totalCount += spotifyArtists.length;
+        } catch (spotifyError) {
+          // eslint-disable-next-line no-console
+          console.error('Spotify fallback search failed:', spotifyError);
+        }
+      }
+
       setAllResults(data);
     } catch (err: any) {
       // Abort is expected during fast typing / tab changes

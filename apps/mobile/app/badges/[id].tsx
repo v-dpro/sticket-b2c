@@ -8,6 +8,7 @@ import { colors, spacing } from '../../lib/theme';
 import { useBadges } from '../../hooks/useBadges';
 import { BadgeIcon, RARITY_COLORS } from '../../components/badges/BadgeIcon';
 import { BadgeProgress } from '../../components/badges/BadgeProgress';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -17,6 +18,7 @@ function formatDate(iso: string) {
 
 export default function BadgeDetailScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { allBadges, earnedBadges, getProgress, loading, error } = useBadges();
@@ -30,7 +32,7 @@ export default function BadgeDetailScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.iconButton}>
+        <Pressable onPress={goBack} style={styles.iconButton}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Badge</Text>

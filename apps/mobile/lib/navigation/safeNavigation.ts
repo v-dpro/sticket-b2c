@@ -4,20 +4,24 @@ import { useCallback } from 'react';
 /**
  * Safely navigate back. If there's no history to go back to,
  * it will navigate to the fallback route instead.
- * 
- * Simple implementation: Always navigate to fallback route.
- * This ensures the back button always works.
  */
-export function useSafeNavigation(fallbackRoute: string = '/(tabs)/feed') {
+export function useSafeBack(fallbackRoute: string = '/(tabs)/discover') {
   const router = useRouter();
-
-  const safeBack = useCallback(() => {
-    // Simple: Just navigate to fallback route
-    // This ensures the button always works
-    router.replace(fallbackRoute as any);
+  return useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(fallbackRoute as any);
+    }
   }, [router, fallbackRoute]);
+}
 
-  return { safeBack };
+/**
+ * Legacy hook name for backward compatibility
+ * @deprecated Use useSafeBack instead
+ */
+export function useSafeNavigation(fallbackRoute: string = '/(tabs)/discover') {
+  return useSafeBack(fallbackRoute);
 }
 
 /**

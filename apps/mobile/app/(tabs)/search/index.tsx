@@ -20,9 +20,11 @@ import { useRecentSearches } from '../../../hooks/useRecentSearches';
 import { useTrending } from '../../../hooks/useTrending';
 import { logSearch } from '../../../lib/api/search';
 import { NotificationBellButton } from '../../../components/notifications/NotificationBellButton';
+import { useSafeBack } from '../../../lib/navigation/safeNavigation';
 
 export default function SearchTab() {
   const router = useRouter();
+  const goBack = useSafeBack();
 
   const { query, setQuery, activeTab, changeTab, results, allResults, loading, searched, clear } = useSearch();
 
@@ -43,9 +45,7 @@ export default function SearchTab() {
     setQuery(trendingQuery);
   };
 
-  const handleCancel = () => {
-    router.back();
-  };
+  const handleCancel = goBack;
 
   const showResults = searched && !loading;
   const showEmpty = searched && !loading && results.totalCount === 0;

@@ -8,6 +8,7 @@ import { Screen } from '../../components/ui/Screen';
 import { colors, radius, spacing } from '../../lib/theme';
 import { searchArtistsSpotify, type SearchArtist } from '../../lib/api/logShow';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const q = query.trim();
@@ -34,6 +35,7 @@ export default function LogSearchArtist() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const goBack = useSafeBack();
 
   // Get user's Spotify top artists for suggestions
   const { artists: spotifyArtists, loading: spotifyLoading } = useSpotifyArtists();
@@ -108,7 +110,7 @@ export default function LogSearchArtist() {
     <Screen padded={false}>
       {/* Header */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' })}>
+        <Pressable accessibilityRole="button" onPress={goBack} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' })}>
           <Ionicons name="close" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>Log a Show</Text>

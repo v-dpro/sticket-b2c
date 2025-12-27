@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getEvent } from '../lib/api/events';
 import type { EventDetails } from '../types/event';
 import { getEventById as getLocalEventById, type Event as LocalEvent } from '../lib/local/repo/eventsRepo';
+import { getErrorMessage } from '../lib/api/errorUtils';
 
 function localEventToDetails(e: LocalEvent): EventDetails {
   return {
@@ -60,7 +61,7 @@ export function useEvent(eventId: string) {
         // ignore
       }
 
-      setError(err.response?.data?.error || 'Failed to load event');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

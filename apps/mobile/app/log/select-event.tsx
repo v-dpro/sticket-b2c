@@ -7,9 +7,11 @@ import { format } from 'date-fns';
 import { Screen } from '../../components/ui/Screen';
 import { colors, radius, spacing } from '../../lib/theme';
 import { getArtistEventsBandsintown, searchEventsByArtist, type SearchEvent } from '../../lib/api/logShow';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function SelectEventScreen() {
   const router = useRouter();
+  const goBack = useSafeBack();
   const params = useLocalSearchParams<{
     artistId?: string;
     artistName?: string;
@@ -86,7 +88,7 @@ export default function SelectEventScreen() {
           gap: 12,
         }}
       >
-        <Pressable accessibilityRole="button" onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" onPress={goBack}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
 
