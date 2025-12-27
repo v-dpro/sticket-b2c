@@ -32,7 +32,9 @@ export function useFeed() {
     else setLoading(true);
 
     setError(null);
-    setRequiresAuth(false);
+    // IMPORTANT: If user exists, never set requiresAuth to true
+    // requiresAuth should only be true when there's no user at all
+    setRequiresAuth(!user);
 
     // Wait for session to finish loading before making decisions
     if (sessionLoading) {
