@@ -63,17 +63,22 @@ export function useFeed() {
     const refreshToken = await SecureStore.getItemAsync('refresh_token');
     const hasToken = Boolean(accessToken) || Boolean(refreshToken);
     
-    // Enhanced logging for debugging (only in dev)
+    // Enhanced logging for debugging (only in dev, and only log once per unique state)
     if (__DEV__) {
-      console.log('[useFeed] User state:', {
-        userId: user.id,
-        isLocalOnly: user.id.startsWith('user_'),
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
-        hasToken: hasToken,
-        accessTokenLength: accessToken?.length || 0,
-        refreshTokenLength: refreshToken?.length || 0,
-      });
+      const logKey = `${user.id}_${!!accessToken}_${!!refreshToken}`;
+      const lastLogKey = (globalThis as any).__useFeedLastLogKey;
+      if (lastLogKey !== logKey) {
+        (globalThis as any).__useFeedLastLogKey = logKey;
+        console.log('[useFeed] User state:', {
+          userId: user.id,
+          isLocalOnly: user.id.startsWith('user_'),
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasToken: hasToken,
+          accessTokenLength: accessToken?.length || 0,
+          refreshTokenLength: refreshToken?.length || 0,
+        });
+      }
     }
     
     if (!hasToken) {
