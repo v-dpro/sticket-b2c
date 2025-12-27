@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 import { colors } from '../lib/theme';
 import { useSession } from '../hooks/useSession';
@@ -18,14 +19,25 @@ export default function Index() {
   const markArtistsStepCompleted = useOnboardingStore((s) => s.markArtistsStepCompleted);
   const checkOnboardingStatus = useOnboardingStore((s) => s.checkOnboardingStatus);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [secureStoreOnboardingComplete, setSecureStoreOnboardingComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    checkOnboardingStatus()
-      .catch(() => {})
-      .finally(() => {
+    const loadAll = async () => {
+      try {
+        // Check both AsyncStorage (onboarding store) and SecureStore
+        await checkOnboardingStatus();
+        const secureComplete = await SecureStore.getItemAsync('onboarding_complete');
+        if (mounted) {
+          setSecureStoreOnboardingComplete(secureComplete === 'true');
+        }
+      } catch {
+        // Ignore errors
+      } finally {
         if (mounted) setCheckingOnboarding(false);
-      });
+      }
+    };
+    void loadAll();
     return () => {
       mounted = false;
     };
@@ -34,11 +46,11 @@ export default function Index() {
   // Auto-complete artists step if user has progressed past it
   useEffect(() => {
     if (!checkingOnboarding && !artistsStepCompleted && currentStep > 3) {
-      markArtistsStepCompleted();
+      void markArtistsStepCompleted();
     }
   }, [checkingOnboarding, artistsStepCompleted, currentStep, markArtistsStepCompleted]);
 
-  if (isLoading || checkingOnboarding) {
+  if (isLoading || checkingOnboarding || secureStoreOnboardingComplete === null) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator color={colors.primary} />
@@ -66,8 +78,8 @@ export default function Index() {
     return <Redirect href="/(tabs)/feed" />;
   }
 
-  // If onboarding is marked as complete, go to app (even without first show logged)
-  const onboardingComplete = Boolean(profile?.onboardingCompleted) || hasCompletedOnboarding;
+  // If onboarding is marked as complete (from any source), go to app
+  const onboardingComplete = Boolean(profile?.onboardingCompleted) || hasCompletedOnboarding || secureStoreOnboardingComplete;
   if (onboardingComplete) {
     return <Redirect href="/(tabs)/feed" />;
   }
@@ -83,9 +95,16 @@ export default function Index() {
   if (!spotifyStepCompleted) return <Redirect href="/(onboarding)/connect-spotify" />;
 
   // Select at least 3 artists to follow (or skip)
-  // If user has seen presale preview or logged a show, they've passed this step
-  if (!artistsStepCompleted && !presalePreviewShown && !hasLoggedFirstShow) {
+  // If user has seen presale preview, logged a show, or progressed past step 3, they've passed this step
+  // Also check if they've completed other steps after this one
+  const hasProgressedPastArtists = presalePreviewShown || hasLoggedFirstShow || currentStep > 3;
+  if (!artistsStepCompleted && !hasProgressedPastArtists) {
     return <Redirect href="/(onboarding)/select-artists" />;
+  }
+  
+  // Auto-fix: if user has progressed past but state wasn't saved, fix it now
+  if (!artistsStepCompleted && hasProgressedPastArtists) {
+    void markArtistsStepCompleted();
   }
 
   // Presale preview "aha" moment (even if it returns empty)

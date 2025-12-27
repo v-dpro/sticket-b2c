@@ -241,10 +241,10 @@ export default function SelectArtistsScreen() {
         {/* Skip Button - allows users to proceed without selecting */}
         <Pressable
           style={styles.skipButton}
-          onPress={() => {
+          onPress={async () => {
             // Mark artists step as completed even if no artists selected
             const markArtistsStepCompleted = useOnboardingStore.getState().markArtistsStepCompleted;
-            markArtistsStepCompleted();
+            await markArtistsStepCompleted();
             router.push('/(onboarding)/presale-preview');
           }}
           accessibilityRole="button"
