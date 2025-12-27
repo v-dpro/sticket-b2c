@@ -120,15 +120,28 @@ export default function FeedScreen() {
           <Ionicons name={user ? "refresh-outline" : "lock-closed-outline"} size={48} color={colors.textSecondary} />
           <Text style={styles.errorText}>{emptyMessage}</Text>
           {user ? (
-            // User is signed in but feed failed - show retry option
-            <>
-              <Pressable onPress={refresh} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
-                <Text style={[styles.retryText, styles.primaryButtonText]}>Try Again</Text>
-              </Pressable>
-              <Pressable onPress={() => router.replace('/(tabs)/discover')} style={styles.retryButton} accessibilityRole="button">
-                <Text style={styles.retryText}>Go to Discover</Text>
-              </Pressable>
-            </>
+            // User is signed in but feed failed - check if they need to sign in online
+            error?.includes('online account') || error?.includes('session expired') ? (
+              // User needs to sign in with email/password to get API token
+              <>
+                <Pressable onPress={() => router.replace('/(auth)/sign-in')} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
+                  <Text style={[styles.retryText, styles.primaryButtonText]}>Sign In Online</Text>
+                </Pressable>
+                <Pressable onPress={() => router.replace('/(tabs)/discover')} style={styles.retryButton} accessibilityRole="button">
+                  <Text style={styles.retryText}>Go to Discover</Text>
+                </Pressable>
+              </>
+            ) : (
+              // Other error - show retry
+              <>
+                <Pressable onPress={refresh} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
+                  <Text style={[styles.retryText, styles.primaryButtonText]}>Try Again</Text>
+                </Pressable>
+                <Pressable onPress={() => router.replace('/(tabs)/discover')} style={styles.retryButton} accessibilityRole="button">
+                  <Text style={styles.retryText}>Go to Discover</Text>
+                </Pressable>
+              </>
+            )
           ) : (
             // No user - show sign in option
             <>
