@@ -5413,6 +5413,11 @@ app.get('/presales', async (req, reply) => {
       take: limit,
     });
 
+    // Handle empty presales array
+    if (presales.length === 0) {
+      return [];
+    }
+
     const base = presales.map((p) => ({
       id: p.id,
       artistName: p.artistName,
@@ -5437,16 +5442,21 @@ app.get('/presales', async (req, reply) => {
 
     if (!userId) return base;
 
-    const follows = await prisma.userArtistFollow.findMany({
-      where: { userId },
-      select: { artist: { select: { name: true } } },
-    });
-    const followedNames = new Set(follows.map((f) => f.artist.name));
+    // Fetch user's followed artists and alerts
+    const [follows, alerts] = await Promise.all([
+      prisma.userArtistFollow.findMany({
+        where: { userId },
+        select: { artist: { select: { name: true } } },
+      }).catch(() => []),
+      presales.length > 0
+        ? prisma.presaleAlert.findMany({
+            where: { userId, presaleId: { in: presales.map((p) => p.id) } },
+            select: { presaleId: true },
+          }).catch(() => [])
+        : Promise.resolve([]),
+    ]);
 
-    const alerts = await prisma.presaleAlert.findMany({
-      where: { userId, presaleId: { in: presales.map((p) => p.id) } },
-      select: { presaleId: true },
-    });
+    const followedNames = new Set(follows.map((f) => f.artist.name));
     const alertedIds = new Set(alerts.map((a) => a.presaleId));
 
     const enriched = base.map((p) => ({
@@ -5462,8 +5472,15 @@ app.get('/presales', async (req, reply) => {
     });
 
     return enriched;
-  } catch (error) {
-    req.log.error({ error }, 'Get presales error');
+  } catch (error: any) {
+    // Log detailed error information for debugging
+    req.log.error({ 
+      error: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+      meta: error?.meta,
+    }, 'Get presales error');
     reply.status(500);
     return { error: 'Failed to load presales' };
   }
