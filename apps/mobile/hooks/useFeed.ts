@@ -55,18 +55,40 @@ export function useFeed() {
       return;
     }
 
-    // User exists, try to fetch feed
-    try {
-      // Check for token first
-      const hasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
-      if (!hasToken) {
-        // No token at all - user needs to sign in
-        setRequiresAuth(true);
-        setError('Sign in to view your friends feed.');
+    // User exists, check for token
+    const hasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
+    if (!hasToken) {
+      // User exists in local DB but no API token
+      // Check if this is a local-only user (ID starts with "user_")
+      const isLocalOnlyUser = user.id.startsWith('user_');
+      if (isLocalOnlyUser) {
+        // Local-only user - friends feed requires API account
+        setItems([]);
+        setHasMore(false);
+        setNextCursor(null);
+        setHasNoFriends(false);
+        setRequiresAuth(false); // Don't show "sign in" - user IS signed in
+        setError('Friends feed requires an online account. Please sign in with your email and password to connect to the server.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      } else {
+        // API user but token missing - might have expired or been cleared
+        // Try to refresh session or show helpful message
+        setItems([]);
+        setHasMore(false);
+        setNextCursor(null);
+        setHasNoFriends(false);
+        setRequiresAuth(false); // Don't show "sign in" - user IS signed in
+        setError('Your session expired. Please sign in again to refresh your connection.');
         setLoading(false);
         setRefreshing(false);
         return;
       }
+    }
+
+    // User exists and has token, try to fetch feed
+    try {
 
       // Token exists, try to fetch feed
       // The token refresh interceptor will handle 401s automatically

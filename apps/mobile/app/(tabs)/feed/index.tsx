@@ -74,14 +74,18 @@ export default function FeedScreen() {
 
   const emptyMessage = useMemo(() => {
     if (activeTab !== 'friends') return null;
-    if (!requiresAuth) return null;
-    // If user exists but requiresAuth is true, it means token expired or API error
-    // If no user, they need to sign in
-    if (user) {
-      // User is signed in but API call failed - likely token issue
-      return error || 'Unable to load feed. Please try again.';
+    // Show message if there's an error OR if requiresAuth is true
+    if (error) {
+      return error;
     }
-    return error || 'Sign in to view your friends feed.';
+    if (requiresAuth && !user) {
+      return 'Sign in to view your friends feed.';
+    }
+    // If user exists but there's an error, show the error
+    if (user && error) {
+      return error;
+    }
+    return null;
   }, [activeTab, error, requiresAuth, user]);
 
   return (
