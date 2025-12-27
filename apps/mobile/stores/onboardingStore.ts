@@ -27,6 +27,7 @@ interface OnboardingState {
   setCity: (city: string) => void;
   setSpotifyConnected: (connected: boolean) => void;
   setSelectedArtists: (artists: SelectedArtist[]) => void;
+  markArtistsStepCompleted: () => void;
   toggleArtistSelection: (artist: Omit<SelectedArtist, 'tier'>, isTopTier?: boolean) => void;
   markPresalePreviewShown: () => void;
   setFirstShowLogged: (logged: boolean) => void;
@@ -87,6 +88,11 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => {
 
     setSelectedArtists: (artists) => {
       set({ selectedArtists: artists, artistsStepCompleted: artists.length >= 3, currentStep: 3 });
+      void persistNow();
+    },
+
+    markArtistsStepCompleted: () => {
+      set({ artistsStepCompleted: true, currentStep: 3 });
       void persistNow();
     },
 

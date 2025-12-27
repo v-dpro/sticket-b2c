@@ -51,6 +51,12 @@ export default function Index() {
 
   if (!user) return <Redirect href="/(auth)/welcome" />;
 
+  // If user has already logged their first show, they've completed onboarding
+  // Skip all onboarding checks and go straight to the app
+  if (hasLoggedFirstShow) {
+    return <Redirect href="/(tabs)/feed" />;
+  }
+
   const onboardingComplete = Boolean(profile?.onboardingCompleted) || hasCompletedOnboarding;
 
   // Gate: onboarding (welcome -> city -> spotify -> artists -> presale preview -> first log -> friends -> done)
@@ -64,7 +70,7 @@ export default function Index() {
     // Spotify step is optional, but the screen must be visited (connect OR skip) to proceed.
     if (!spotifyStepCompleted) return <Redirect href="/(onboarding)/connect-spotify" />;
 
-    // Select at least 3 artists to follow
+    // Select at least 3 artists to follow (or skip)
     if (!artistsStepCompleted) return <Redirect href="/(onboarding)/select-artists" />;
 
     // Presale preview "aha" moment (even if it returns empty)
