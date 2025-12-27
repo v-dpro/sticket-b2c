@@ -10,13 +10,13 @@ export const colors = {
   pink: '#EC4899',
   gold: '#FFD700',
 
-  // Surfaces
+  // Surfaces - UPDATED TO MATCH FIGMA
   background: '#0A0B1E',
   // Back-compat alias (some legacy screens use this)
-  backgroundAlt: '#1A1A2E',
+  backgroundAlt: '#12132D',
   // Figma reference uses these exact values for cards/tab bar/inputs.
-  surface: '#1A1A2E',
-  surfaceElevated: '#252542',
+  surface: '#12132D',           // Changed from #1A1A2E
+  surfaceElevated: '#1A1B3D',   // Changed from #252542
 
   // Semantic
   primary: '#8B5CF6',
@@ -26,12 +26,12 @@ export const colors = {
 
   // Text
   textPrimary: '#FFFFFF',
-  textSecondary: '#A0A0B8',
+  textSecondary: '#A1A1C7',     // Changed from #A0A0B8
   textTertiary: '#6B6B8D',
   textMuted: '#4A4A6A',
 
   // Border
-  border: '#2D2D4A',
+  border: '#2A2B4D',            // Changed from #2D2D4A
   borderLight: '#3A3B5D',
 } as const;
 

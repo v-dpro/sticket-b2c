@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 
-import { radius, spacing } from '../../lib/theme';
+import { radius, spacing, colors } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { apiClient } from '../../lib/api/client';
 import { StatusPill } from '../../components/shared/StatusPill';
@@ -100,7 +100,7 @@ export default function PresalePreviewScreen() {
         </View>
 
         <View style={styles.presaleVenue}>
-          <Ionicons name="location-outline" size={14} color="#6B6B8D" />
+          <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
           <Text style={styles.presaleVenueText}>
             {item.venueName}, {item.venueCity}
           </Text>
@@ -122,7 +122,7 @@ export default function PresalePreviewScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.stepText}>Step 4 of 6</Text>
       </View>
@@ -130,7 +130,7 @@ export default function PresalePreviewScreen() {
       <View style={styles.content}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8B5CF6" />
+            <ActivityIndicator size="large" color={colors.brandPurple} />
             <Text style={styles.loadingText}>Finding presales for your artists...</Text>
           </View>
         ) : presales.length > 0 ? (
@@ -153,26 +153,26 @@ export default function PresalePreviewScreen() {
           </>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons name="ticket-outline" size={64} color="#6B6B8D" />
+            <Ionicons name="ticket-outline" size={64} color={colors.textTertiary} />
             <Text style={styles.emptyTitle}>No presales right now</Text>
-            <Text style={styles.emptyText}>We’ll notify you when your artists announce shows</Text>
+            <Text style={styles.emptyText}>We'll notify you when your artists announce shows</Text>
           </View>
         )}
 
-        {error ? <Text style={{ color: '#6B6B8D', marginTop: 8 }}>{error}</Text> : null}
+        {error ? <Text style={{ color: colors.textTertiary, marginTop: 8 }}>{error}</Text> : null}
       </View>
 
       <View style={styles.footer}>
         {presales.length > 0 ? (
           <Pressable style={[styles.notifyButton, saving && { opacity: 0.6 }]} onPress={handleEnableNotifications} disabled={saving} accessibilityRole="button">
-            <Ionicons name="notifications" size={20} color="#FFFFFF" />
+            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
             <Text style={styles.notifyButtonText}>{saving ? 'Saving…' : 'Notify me for these presales'}</Text>
           </Pressable>
         ) : null}
 
         <Pressable style={styles.skipButton} onPress={handleContinue} disabled={saving} accessibilityRole="button">
           <Text style={styles.skipButtonText}>{presales.length > 0 ? 'Skip for now' : saving ? 'Saving…' : 'Continue'}</Text>
-          <Ionicons name="arrow-forward" size={20} color="#A0A0B8" />
+          <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -182,7 +182,7 @@ export default function PresalePreviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -194,8 +194,9 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   stepText: {
-    fontSize: 14,
-    color: '#6B6B8D',
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textTertiary,
   },
   content: {
     flex: 1,
@@ -212,24 +213,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: 15,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   list: {
     paddingBottom: spacing.xl,
   },
   presaleCard: {
-    backgroundColor: '#1A1A2E',
-    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   presaleHeader: {
     marginBottom: spacing.sm,
@@ -237,11 +238,11 @@ const styles = StyleSheet.create({
   presaleArtist: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   presaleTour: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   presaleVenue: {
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   presaleVenueText: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   presaleDetails: {
     flexDirection: 'row',
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   presaleTime: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
   loadingContainer: {
     flex: 1,
@@ -272,7 +273,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -283,27 +284,27 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   emptyText: {
     fontSize: 15,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#2D2D4A',
+    borderTopColor: colors.border,
     gap: spacing.sm,
   },
   notifyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     paddingVertical: 16,
     borderRadius: radius.lg,
     gap: spacing.sm,
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
   notifyButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   skipButton: {
     flexDirection: 'row',
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
 });
 

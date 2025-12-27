@@ -3,8 +3,9 @@ import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, TextIn
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { radius, spacing } from '../../lib/theme';
+import { radius, spacing, colors, gradients } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
 import { searchArtists } from '../../lib/api/artists';
@@ -106,23 +107,30 @@ export default function SelectArtistsScreen() {
         delayLongPress={300}
         accessibilityRole="button"
       >
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.artistImage} />
-        ) : (
-          <View style={[styles.artistImage, styles.artistImagePlaceholder]}>
-            <Ionicons name="person" size={24} color="#6B6B8D" />
-          </View>
-        )}
-
-        <Text style={styles.artistName} numberOfLines={1}>
-          {item.name}
-        </Text>
-
         {selected ? (
           <View style={[styles.checkBadge, tier === 'top-tier' && styles.checkBadgeTopTier]}>
-            <Ionicons name={tier === 'top-tier' ? 'star' : 'checkmark'} size={14} color="#FFFFFF" />
+            <Ionicons name={tier === 'top-tier' ? 'star' : 'checkmark'} size={14} color={colors.textPrimary} />
           </View>
         ) : null}
+
+        <View style={styles.avatarContainer}>
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.artistImage} />
+          ) : (
+            <View style={[styles.artistImage, styles.artistImagePlaceholder]}>
+              <Text style={styles.avatarText}>
+                {item.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={[
+          styles.artistName,
+          (selected || tier === 'top-tier') && styles.artistNameSelected
+        ]} numberOfLines={1}>
+          {item.name}
+        </Text>
       </Pressable>
     );
   };
@@ -133,7 +141,7 @@ export default function SelectArtistsScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.stepText}>Step 3 of 6</Text>
       </View>
@@ -147,24 +155,24 @@ export default function SelectArtistsScreen() {
         </Text>
 
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#6B6B8D" />
+          <Ionicons name="search" size={20} color={colors.textTertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search artists..."
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
             autoCorrect={false}
           />
-          {searching ? <ActivityIndicator size="small" color="#8B5CF6" /> : (
+          {searching ? <ActivityIndicator size="small" color={colors.brandPurple} /> : (
             <Pressable
               onPress={() => setSearchQuery('')}
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel="Clear search"
             >
-              <Ionicons name="refresh" size={18} color="#6B6B8D" />
+              <Ionicons name="refresh" size={20} color={colors.textTertiary} />
             </Pressable>
           )}
         </View>
@@ -178,7 +186,7 @@ export default function SelectArtistsScreen() {
 
         {spotifyLoading && !searchQuery.trim() ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8B5CF6" />
+            <ActivityIndicator size="large" color={colors.brandPurple} />
             <Text style={styles.loadingText}>Loading your artists from Spotify...</Text>
           </View>
         ) : (
@@ -192,7 +200,7 @@ export default function SelectArtistsScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
-                <Ionicons name="search" size={48} color="#6B6B8D" />
+                <Ionicons name="search" size={48} color={colors.textTertiary} />
                 <Text style={styles.emptyText}>{searchQuery ? 'No artists found' : 'Search for artists to follow'}</Text>
               </View>
             )}
@@ -202,13 +210,30 @@ export default function SelectArtistsScreen() {
 
       <View style={styles.footer}>
         <Pressable
-          style={[styles.continueButton, !artistsStepCompleted && styles.continueButtonDisabled]}
           onPress={handleContinue}
           disabled={!artistsStepCompleted}
+          style={({ pressed }) => [
+            styles.continueButton,
+            !artistsStepCompleted && styles.continueButtonDisabled,
+            pressed && { opacity: 0.9 }
+          ]}
           accessibilityRole="button"
         >
-          <Text style={styles.continueButtonText}>Continue with {selectedArtists.length} artists</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          {artistsStepCompleted ? (
+            <LinearGradient
+              colors={gradients.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.continueGradient}
+            >
+              <Text style={styles.continueButtonText}>Continue with {selectedArtists.length} artists</Text>
+              <Ionicons name="arrow-forward" size={20} color={colors.textPrimary} />
+            </LinearGradient>
+          ) : (
+            <View style={styles.continueDisabledInner}>
+              <Text style={styles.continueButtonTextDisabled}>Select at least 3 artists</Text>
+            </View>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -218,7 +243,7 @@ export default function SelectArtistsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -230,8 +255,9 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   stepText: {
-    fontSize: 14,
-    color: '#6B6B8D',
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textTertiary,
   },
   content: {
     flex: 1,
@@ -240,31 +266,31 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 15,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     lineHeight: 22,
     marginBottom: spacing.lg,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   searchInput: {
     flex: 1,
-    marginLeft: spacing.sm,
-    fontSize: 16,
-    color: '#FFFFFF',
+    fontSize: 15,
+    color: colors.textPrimary,
   },
   selectionInfo: {
     flexDirection: 'row',
@@ -274,69 +300,91 @@ const styles = StyleSheet.create({
   },
   selectionText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#00D4FF',
+    fontWeight: '600',
+    color: colors.brandCyan,
   },
   minText: {
-    fontSize: 12,
-    color: '#6B6B8D',
+    fontSize: 14,
+    color: colors.textTertiary,
   },
   grid: {
     paddingBottom: spacing.xl,
   },
   row: {
     justifyContent: 'flex-start',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: 12,
+    marginBottom: 12,
+  },
+  grid: {
+    paddingBottom: spacing.xl,
   },
   artistCard: {
     width: '31%',
     aspectRatio: 0.85,
-    backgroundColor: '#1A1A2E',
-    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
     alignItems: 'center',
-    padding: spacing.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    justifyContent: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   artistCardSelected: {
-    borderColor: '#00D4FF',
+    borderWidth: 2,
+    borderColor: colors.brandCyan,
     backgroundColor: 'rgba(0, 212, 255, 0.1)',
   },
   artistCardTopTier: {
-    borderColor: '#FFD700',
+    borderWidth: 2,
+    borderColor: colors.gold,
     backgroundColor: 'rgba(255, 215, 0, 0.1)',
+  },
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    overflow: 'hidden',
+    marginBottom: 8,
   },
   artistImage: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    marginBottom: spacing.xs,
   },
   artistImagePlaceholder: {
-    backgroundColor: '#252542',
+    backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    width: 64,
+    height: 64,
+  },
+  avatarText: {
+    color: colors.textTertiary,
+    fontSize: 24,
+    fontWeight: '900',
   },
   artistName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
+  },
+  artistNameSelected: {
+    color: colors.textPrimary,
   },
   checkBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 8,
+    right: 8,
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#00D4FF',
+    backgroundColor: colors.brandCyan,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkBadgeTopTier: {
-    backgroundColor: '#FFD700',
+    backgroundColor: colors.gold,
   },
   loadingContainer: {
     flex: 1,
@@ -346,7 +394,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -357,30 +405,41 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: spacing.md,
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#2D2D4A',
+    borderTopColor: colors.border,
   },
   continueButton: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
+  },
+  continueGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
+    gap: 8,
     paddingVertical: 16,
-    borderRadius: radius.lg,
-    gap: spacing.sm,
   },
-  continueButtonDisabled: {
-    backgroundColor: '#252542',
-    opacity: 0.5,
+  continueDisabledInner: {
+    backgroundColor: colors.surfaceElevated,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   continueButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
+  },
+  continueButtonTextDisabled: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textTertiary,
   },
 });
 

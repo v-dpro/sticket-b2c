@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { colors } from '../../lib/theme';
+import { colors, gradients } from '../../lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export type YearHeaderCardData = {
   year: number;
@@ -22,32 +24,33 @@ export function YearHeaderCard({ data }: YearHeaderCardProps) {
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <Text style={styles.year}>{data.year}</Text>
-        {data.isTopYear ? (
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>Top year</Text>
+        <View style={styles.yearHeaderLeft}>
+          <Text style={styles.year}>{data.year}</Text>
+          {data.isTopYear && (
+            <View style={styles.topYearBadge}>
+              <Text style={styles.topYearText}>🏆 Top Year</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <Text style={styles.yearStats}>
+        <Text style={styles.statValue}>{data.showCount}</Text> shows • <Text style={styles.statValue}>{data.artistCount}</Text> artists • <Text style={styles.statValue}>{data.venueCount}</Text> venues
+      </Text>
+
+      {data.isTopYear && (
+        <View style={styles.progressSection}>
+          <View style={styles.progressTrack}>
+            <LinearGradient
+              colors={gradients.rainbow}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressFill, { width: `${Math.round(pct * 100)}%` }]}
+            />
           </View>
-        ) : null}
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{data.showCount}</Text>
-          <Text style={styles.statLabel}>Shows</Text>
+          <Text style={styles.progressText}>Your biggest year!</Text>
         </View>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{data.artistCount}</Text>
-          <Text style={styles.statLabel}>Artists</Text>
-        </View>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{data.venueCount}</Text>
-          <Text style={styles.statLabel}>Venues</Text>
-        </View>
-      </View>
-
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${Math.round(pct * 100)}%` }]} />
-      </View>
+      )}
     </View>
   );
 }
@@ -57,55 +60,51 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 18,
     marginBottom: 12,
-    padding: 14,
-    backgroundColor: colors.surfaceElevated,
+    padding: 16,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
   },
   topRow: {
+    marginBottom: 8,
+  },
+  yearHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    gap: 12,
   },
   year: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  topYearBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 212, 255, 0.14)',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.35)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
   },
-  pillText: {
+  topYearText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.brandCyan,
+    color: colors.warning,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  stat: {
-    alignItems: 'center',
-    flex: 1,
+  yearStats: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.brandCyan,
+    fontWeight: '700',
   },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textTertiary,
-    marginTop: 2,
+  progressSection: {
+    marginTop: 12,
   },
   progressTrack: {
     height: 8,
@@ -116,7 +115,11 @@ const styles = StyleSheet.create({
   progressFill: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: colors.brandPurple,
+  },
+  progressText: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: 4,
   },
 });
 

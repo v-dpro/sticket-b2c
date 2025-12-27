@@ -1,7 +1,7 @@
--- AlterTable
-ALTER TABLE "Badge" ALTER COLUMN "category" DROP DEFAULT,
-ALTER COLUMN "rarity" DROP DEFAULT,
-ALTER COLUMN "icon" DROP DEFAULT;
+-- AlterTable (commented out - these columns are added in a later migration)
+-- ALTER TABLE "Badge" ALTER COLUMN "category" DROP DEFAULT,
+-- ALTER COLUMN "rarity" DROP DEFAULT,
+-- ALTER COLUMN "icon" DROP DEFAULT;
 
 -- CreateIndex
 CREATE INDEX "UserTicket_userId_idx" ON "UserTicket"("userId");
