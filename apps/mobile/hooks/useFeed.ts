@@ -110,19 +110,24 @@ export function useFeed() {
         // 401 after token refresh attempt failed - check if we still have a user
         // If user exists, it's a token issue, not an auth issue
         const stillHasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
-        if (stillHasToken) {
-          // Token exists but invalid - might be a temporary issue
+        if (user) {
+          // User exists - don't show "sign in", show helpful error
           setRequiresAuth(false);
-          setError('Unable to load feed. Please try again.');
+          if (stillHasToken) {
+            setError('Unable to load feed. Your session may have expired. Please try again.');
+          } else {
+            setError('Your session expired. Please sign in again to refresh your connection.');
+          }
         } else {
-          // No token after refresh attempt - user needs to sign in
+          // No user - they need to sign in
           setRequiresAuth(true);
-          setError('Your session expired. Please sign in again.');
+          setError('Sign in to view your friends feed.');
         }
       } else {
         // Other errors (network, server, etc.)
         setError(getErrorMessage(err));
-        setRequiresAuth(false);
+        // Only set requiresAuth if there's no user
+        setRequiresAuth(!user);
       }
     } finally {
       setLoading(false);
