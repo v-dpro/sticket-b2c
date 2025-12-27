@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiClient } from '../lib/api/client';
+import { useSession } from './useSession';
 
 export type PresaleItem = {
   id: string;
@@ -29,11 +30,20 @@ export function usePresales() {
   const [myAlerts, setMyAlerts] = useState<PresaleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { user } = useSession();
 
   const fetchAll = useCallback(async () => {
+    // Always fetch public presales
+    const presalesPromise = apiClient.get('/presales', { params: { limit: 100 } });
+    
+    // Only fetch user alerts if authenticated
+    const alertsPromise = user 
+      ? apiClient.get('/presales/my-alerts')
+      : Promise.resolve({ data: [] });
+
     const [presalesResp, alertsResp] = await Promise.allSettled([
-      apiClient.get('/presales', { params: { limit: 100 } }),
-      apiClient.get('/presales/my-alerts'),
+      presalesPromise,
+      alertsPromise,
     ]);
 
     if (presalesResp.status === 'fulfilled') {

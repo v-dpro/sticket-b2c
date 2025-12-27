@@ -142,7 +142,11 @@ apiClient.interceptors.response.use(
         (url === '/auth/me' ||
           url?.startsWith('/auth/me?') ||
           url === '/auth/refresh' ||
-          url?.startsWith('/auth/refresh?'));
+          url?.startsWith('/auth/refresh?') ||
+          url === '/presales/my-alerts' ||
+          url?.startsWith('/presales/my-alerts') ||
+          url === '/feed' ||
+          url?.startsWith('/feed?'));
 
       const payload = {
         baseURL: error?.config?.baseURL,
