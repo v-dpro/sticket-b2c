@@ -55,6 +55,12 @@ export function useFeed() {
       return;
     }
 
+    // User exists - log for debugging (only in dev)
+    if (__DEV__) {
+      const tokenCheck = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
+      console.log('[useFeed] User exists:', user.id, 'Token exists:', !!tokenCheck);
+    }
+
     // User exists, check for token
     const hasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
     if (!hasToken) {
@@ -89,7 +95,6 @@ export function useFeed() {
 
     // User exists and has token, try to fetch feed
     try {
-
       // Token exists, try to fetch feed
       // The token refresh interceptor will handle 401s automatically
       const data = await getFeed({ limit: LIMIT });
