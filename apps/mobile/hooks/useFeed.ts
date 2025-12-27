@@ -57,17 +57,24 @@ export function useFeed() {
       return;
     }
 
-    // User exists - log for debugging (only in dev)
-    if (__DEV__) {
-      const tokenCheck = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
-      console.log('[useFeed] User exists:', user.id, 'Token exists:', !!tokenCheck);
-    }
-
     // User exists, check for token
     // IMPORTANT: Check for refresh token too - if refresh token exists, we can refresh the access token
     const accessToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
     const refreshToken = await SecureStore.getItemAsync('refresh_token');
     const hasToken = Boolean(accessToken) || Boolean(refreshToken);
+    
+    // Enhanced logging for debugging (only in dev)
+    if (__DEV__) {
+      console.log('[useFeed] User state:', {
+        userId: user.id,
+        isLocalOnly: user.id.startsWith('user_'),
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        hasToken: hasToken,
+        accessTokenLength: accessToken?.length || 0,
+        refreshTokenLength: refreshToken?.length || 0,
+      });
+    }
     
     if (!hasToken) {
       // User exists in local DB but no API token
@@ -101,6 +108,9 @@ export function useFeed() {
     
     // If we have a refresh token but no access token, try to refresh it first
     if (refreshToken && !accessToken) {
+      if (__DEV__) {
+        console.log('[useFeed] Attempting to refresh access token using refresh token');
+      }
       try {
         const { apiClient } = await import('../lib/api/client');
         const response = await apiClient.post('/auth/refresh', { refreshToken });
@@ -111,8 +121,18 @@ export function useFeed() {
           if (newRefreshToken) {
             await SecureStore.setItemAsync('refresh_token', newRefreshToken);
           }
+          if (__DEV__) {
+            console.log('[useFeed] Successfully refreshed access token');
+          }
         }
-      } catch (refreshError) {
+      } catch (refreshError: any) {
+        if (__DEV__) {
+          console.error('[useFeed] Token refresh failed:', {
+            error: refreshError?.message,
+            status: refreshError?.response?.status,
+            data: refreshError?.response?.data,
+          });
+        }
         // Refresh failed - tokens are invalid, clear them
         await SecureStore.deleteItemAsync('access_token');
         await SecureStore.deleteItemAsync('refresh_token');
@@ -133,7 +153,17 @@ export function useFeed() {
     try {
       // Token exists, try to fetch feed
       // The token refresh interceptor will handle 401s automatically
+      if (__DEV__) {
+        console.log('[useFeed] Fetching feed with token...');
+      }
       const data = await getFeed({ limit: LIMIT });
+      if (__DEV__) {
+        console.log('[useFeed] Feed fetched successfully:', {
+          itemCount: data.items?.length || 0,
+          hasNextCursor: !!data.nextCursor,
+          hasNoFriends: data.hasNoFriends,
+        });
+      }
       setItems(data.items ?? []);
       setNextCursor(data.nextCursor);
       setHasMore(Boolean(data.nextCursor));
@@ -141,6 +171,15 @@ export function useFeed() {
       setRequiresAuth(false);
       setError(null);
     } catch (err: any) {
+      if (__DEV__) {
+        console.error('[useFeed] Feed fetch failed:', {
+          error: err?.message,
+          status: err?.response?.status,
+          statusText: err?.response?.statusText,
+          data: err?.response?.data,
+          url: err?.config?.url,
+        });
+      }
       const status = err?.response?.status;
       if (status === 401) {
         // 401 after token refresh attempt failed - check if we still have a user
