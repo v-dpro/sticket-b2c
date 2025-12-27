@@ -64,7 +64,11 @@ export function useFeed() {
     }
 
     // User exists, check for token
-    const hasToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
+    // IMPORTANT: Check for refresh token too - if refresh token exists, we can refresh the access token
+    const accessToken = await SecureStore.getItemAsync('access_token') ?? await SecureStore.getItemAsync('auth_token');
+    const refreshToken = await SecureStore.getItemAsync('refresh_token');
+    const hasToken = Boolean(accessToken) || Boolean(refreshToken);
+    
     if (!hasToken) {
       // User exists in local DB but no API token
       // Check if this is a local-only user (ID starts with "user_")
@@ -88,6 +92,36 @@ export function useFeed() {
         setNextCursor(null);
         setHasNoFriends(false);
         setRequiresAuth(false); // Don't show "sign in" - user IS signed in
+        setError('Your session expired. Please sign in again to refresh your connection.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+    }
+    
+    // If we have a refresh token but no access token, try to refresh it first
+    if (refreshToken && !accessToken) {
+      try {
+        const { apiClient } = await import('../lib/api/client');
+        const response = await apiClient.post('/auth/refresh', { refreshToken });
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+        if (newAccessToken) {
+          await SecureStore.setItemAsync('access_token', newAccessToken);
+          await SecureStore.setItemAsync('auth_token', newAccessToken);
+          if (newRefreshToken) {
+            await SecureStore.setItemAsync('refresh_token', newRefreshToken);
+          }
+        }
+      } catch (refreshError) {
+        // Refresh failed - tokens are invalid, clear them
+        await SecureStore.deleteItemAsync('access_token');
+        await SecureStore.deleteItemAsync('refresh_token');
+        await SecureStore.deleteItemAsync('auth_token');
+        setItems([]);
+        setHasMore(false);
+        setNextCursor(null);
+        setHasNoFriends(false);
+        setRequiresAuth(false);
         setError('Your session expired. Please sign in again to refresh your connection.');
         setLoading(false);
         setRefreshing(false);
