@@ -5,6 +5,8 @@ import { mkdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -316,6 +318,122 @@ app.post('/auth/refresh', async (req) => {
   return generateTokens(user.id, user.email);
 });
 
+// Apple Sign In callback
+app.post('/auth/apple/callback', async (req, reply) => {
+  try {
+    const body = req.body as {
+      identityToken?: string;
+      authorizationCode?: string;
+      fullName?: { givenName?: string; familyName?: string } | null;
+      email?: string | null;
+    };
+
+    if (!body.identityToken) {
+      throw new AppError('Identity token required', 400);
+    }
+
+    // Decode the identity token (Apple JWT)
+    const decoded = jwt.decode(body.identityToken, { complete: true }) as {
+      header: { kid: string; alg: string };
+      payload: {
+        iss: string;
+        sub: string; // Apple user ID
+        aud: string;
+        email?: string;
+        email_verified?: string;
+      };
+    } | null;
+
+    if (!decoded) {
+      throw new AppError('Invalid identity token', 400);
+    }
+
+    // Verify issuer
+    if (decoded.payload.iss !== 'https://appleid.apple.com') {
+      throw new AppError('Invalid token issuer', 400);
+    }
+
+    // Verify audience matches our client ID
+    const expectedAudience = process.env.APPLE_CLIENT_ID || 'com.sticket.app';
+    if (decoded.payload.aud !== expectedAudience) {
+      throw new AppError('Invalid token audience', 400);
+    }
+
+    const appleUserId = decoded.payload.sub;
+    const appleEmail = decoded.payload.email || body.email;
+
+    // Check if user exists with this Apple ID
+    let user = await prisma.user.findFirst({
+      where: { appleId: appleUserId },
+    });
+
+    if (!user && appleEmail) {
+      // Check if user exists with this email
+      user = await prisma.user.findUnique({
+        where: { email: appleEmail.toLowerCase() },
+      });
+
+      if (user) {
+        // Link Apple ID to existing account
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { appleId: appleUserId },
+        });
+      }
+    }
+
+    if (!user) {
+      // Create new user
+      const displayName = body.fullName
+        ? [body.fullName.givenName, body.fullName.familyName].filter(Boolean).join(' ')
+        : undefined;
+
+      // Generate unique username
+      const baseUsername = appleEmail
+        ? appleEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+        : `user${Date.now()}`;
+      
+      let username = baseUsername;
+      let counter = 1;
+      while (await prisma.user.findUnique({ where: { username } })) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+      }
+
+      user = await prisma.user.create({
+        data: {
+          email: appleEmail?.toLowerCase() || `${appleUserId}@privaterelay.appleid.com`,
+          username,
+          displayName: displayName || username,
+          appleId: appleUserId,
+          emailVerified: true, // Apple verifies email
+          passwordHash: '', // No password for social auth
+        },
+      });
+    }
+
+    // Generate tokens using the existing token generation function
+    const tokens = generateTokens(user.id, user.email);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    req.log.error({ error }, 'Apple Sign In error');
+    throw new AppError('Apple Sign In failed', 500);
+  }
+});
+
+// Keep old endpoint for backward compatibility
 app.post('/auth/apple', async (req) => {
   const body = (req.body ?? {}) as { identityToken?: string; fullName?: { givenName?: string; familyName?: string } };
   if (!body.identityToken) throw new AppError('Identity token required', 400);
@@ -323,6 +441,115 @@ app.post('/auth/apple', async (req) => {
   return { user: result.user, ...result.tokens };
 });
 
+// Google Sign In callback
+app.post('/auth/google/callback', async (req, reply) => {
+  try {
+    const body = req.body as { idToken?: string };
+
+    if (!body.idToken) {
+      throw new AppError('ID token required', 400);
+    }
+
+    // Verify the token with Google
+    const { OAuth2Client } = await import('google-auth-library');
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    if (!googleClientId) {
+      throw new AppError('Google Sign In is not configured', 500);
+    }
+    const googleClient = new OAuth2Client(googleClientId);
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: body.idToken,
+      audience: [
+        process.env.GOOGLE_CLIENT_ID!,
+        process.env.GOOGLE_IOS_CLIENT_ID!,
+      ].filter(Boolean),
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new AppError('Invalid token payload', 400);
+    }
+
+    const googleId = payload.sub;
+    const email = payload.email;
+    const emailVerified = payload.email_verified;
+    const name = payload.name;
+    const picture = payload.picture;
+
+    if (!email) {
+      throw new AppError('Email not provided by Google', 400);
+    }
+
+    // Check if user exists with this Google ID
+    let user = await prisma.user.findFirst({
+      where: { googleId },
+    });
+
+    if (!user) {
+      // Check if user exists with this email
+      user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (user) {
+        // Link Google ID to existing account
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            googleId,
+            avatarUrl: user.avatarUrl || picture,
+          },
+        });
+      }
+    }
+
+    if (!user) {
+      // Create new user
+      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      
+      let username = baseUsername;
+      let counter = 1;
+      while (await prisma.user.findUnique({ where: { username } })) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+      }
+
+      user = await prisma.user.create({
+        data: {
+          email: email.toLowerCase(),
+          username,
+          displayName: name || username,
+          avatarUrl: picture,
+          googleId,
+          emailVerified: emailVerified || false,
+          passwordHash: '', // No password for social auth
+        },
+      });
+    }
+
+    // Generate tokens using the existing token generation function
+    const tokens = generateTokens(user.id, user.email);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    req.log.error({ error }, 'Google Sign In error');
+    throw new AppError('Google Sign In failed', 500);
+  }
+});
+
+// Keep old endpoint for backward compatibility
 app.post('/auth/google', async (req) => {
   const body = (req.body ?? {}) as { idToken?: string };
   if (!body.idToken) throw new AppError('ID token required', 400);
@@ -2016,7 +2243,24 @@ async function buildDiscoverData(userId: string | null, city: string) {
       })
     : null;
 
-  const artistNames = user?.artistFollows.map((f) => f.artist.name) ?? [];
+  let artistNames = user?.artistFollows.map((f) => f.artist.name) ?? [];
+
+  // COLD START: If user has no followed artists, use popular defaults
+  if (artistNames.length === 0) {
+    artistNames = [
+      'Taylor Swift',
+      'Drake', 
+      'Bad Bunny',
+      'The Weeknd',
+      'Morgan Wallen',
+      'Billie Eilish',
+      'Travis Scott',
+      'Beyoncé',
+      'Ed Sheeran',
+      'Dua Lipa',
+    ];
+    console.log('[buildDiscoverData] Cold start: using default artists');
+  }
 
   const bandsintownEvents = artistNames.length ? await getEventsForMultipleArtists(artistNames, 30) : [];
 
@@ -5145,78 +5389,84 @@ app.post('/onboarding/presale-preview', async (req) => {
 });
 
 // GET /presales - Upcoming presales
-app.get('/presales', async (req) => {
-  const userId = getUserIdFromRequest(req);
-  const q = (req.query ?? {}) as { artistId?: string; limit?: string };
-  const limit = Math.max(1, Math.min(200, Number(q.limit ?? 50)));
+app.get('/presales', async (req, reply) => {
+  try {
+    const userId = getUserIdFromRequest(req);
+    const q = (req.query ?? {}) as { artistId?: string; limit?: string };
+    const limit = Math.max(1, Math.min(200, Number(q.limit ?? 50)));
 
-  const where: any = {
-    presaleStart: { gte: new Date() },
-  };
+    const where: any = {
+      presaleStart: { gte: new Date() },
+    };
 
-  if (q.artistId) {
-    const artist = await prisma.artist.findUnique({
-      where: { id: q.artistId },
-      select: { name: true },
+    if (q.artistId) {
+      const artist = await prisma.artist.findUnique({
+        where: { id: q.artistId },
+        select: { name: true },
+      });
+      if (artist) where.artistName = artist.name;
+    }
+
+    const presales = await prisma.presale.findMany({
+      where,
+      orderBy: { presaleStart: 'asc' },
+      take: limit,
     });
-    if (artist) where.artistName = artist.name;
+
+    const base = presales.map((p) => ({
+      id: p.id,
+      artistName: p.artistName,
+      tourName: p.tourName ?? null,
+      venueName: p.venueName,
+      venueCity: p.venueCity,
+      venueState: p.venueState ?? null,
+      eventDate: p.eventDate.toISOString(),
+      presaleType: p.presaleType,
+      presaleStart: p.presaleStart.toISOString(),
+      presaleEnd: p.presaleEnd ? p.presaleEnd.toISOString() : null,
+      onsaleStart: p.onsaleStart ? p.onsaleStart.toISOString() : null,
+      code: p.code ?? null,
+      signupUrl: p.signupUrl ?? null,
+      signupDeadline: p.signupDeadline ? p.signupDeadline.toISOString() : null,
+      ticketUrl: p.ticketUrl ?? null,
+      source: p.source,
+      notes: p.notes ?? null,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    }));
+
+    if (!userId) return base;
+
+    const follows = await prisma.userArtistFollow.findMany({
+      where: { userId },
+      select: { artist: { select: { name: true } } },
+    });
+    const followedNames = new Set(follows.map((f) => f.artist.name));
+
+    const alerts = await prisma.presaleAlert.findMany({
+      where: { userId, presaleId: { in: presales.map((p) => p.id) } },
+      select: { presaleId: true },
+    });
+    const alertedIds = new Set(alerts.map((a) => a.presaleId));
+
+    const enriched = base.map((p) => ({
+      ...p,
+      hasAlert: alertedIds.has(p.id),
+      isFollowed: followedNames.has(p.artistName),
+    }));
+
+    enriched.sort((a, b) => {
+      const followedDelta = Number(b.isFollowed) - Number(a.isFollowed);
+      if (followedDelta !== 0) return followedDelta;
+      return new Date(a.presaleStart).getTime() - new Date(b.presaleStart).getTime();
+    });
+
+    return enriched;
+  } catch (error) {
+    req.log.error({ error }, 'Get presales error');
+    reply.status(500);
+    return { error: 'Failed to load presales' };
   }
-
-  const presales = await prisma.presale.findMany({
-    where,
-    orderBy: { presaleStart: 'asc' },
-    take: limit,
-  });
-
-  const base = presales.map((p) => ({
-    id: p.id,
-    artistName: p.artistName,
-    tourName: p.tourName ?? null,
-    venueName: p.venueName,
-    venueCity: p.venueCity,
-    venueState: p.venueState ?? null,
-    eventDate: p.eventDate.toISOString(),
-    presaleType: p.presaleType,
-    presaleStart: p.presaleStart.toISOString(),
-    presaleEnd: p.presaleEnd ? p.presaleEnd.toISOString() : null,
-    onsaleStart: p.onsaleStart ? p.onsaleStart.toISOString() : null,
-    code: p.code ?? null,
-    signupUrl: p.signupUrl ?? null,
-    signupDeadline: p.signupDeadline ? p.signupDeadline.toISOString() : null,
-    ticketUrl: p.ticketUrl ?? null,
-    source: p.source,
-    notes: p.notes ?? null,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }));
-
-  if (!userId) return base;
-
-  const follows = await prisma.userArtistFollow.findMany({
-    where: { userId },
-    select: { artist: { select: { name: true } } },
-  });
-  const followedNames = new Set(follows.map((f) => f.artist.name));
-
-  const alerts = await prisma.presaleAlert.findMany({
-    where: { userId, presaleId: { in: presales.map((p) => p.id) } },
-    select: { presaleId: true },
-  });
-  const alertedIds = new Set(alerts.map((a) => a.presaleId));
-
-  const enriched = base.map((p) => ({
-    ...p,
-    hasAlert: alertedIds.has(p.id),
-    isFollowed: followedNames.has(p.artistName),
-  }));
-
-  enriched.sort((a, b) => {
-    const followedDelta = Number(b.isFollowed) - Number(a.isFollowed);
-    if (followedDelta !== 0) return followedDelta;
-    return new Date(a.presaleStart).getTime() - new Date(b.presaleStart).getTime();
-  });
-
-  return enriched;
 });
 
 // GET /presales/my-artists - Presales for artists user follows

@@ -39,12 +39,20 @@ export function usePresales() {
     if (presalesResp.status === 'fulfilled') {
       setPresales(presalesResp.value.data ?? []);
     } else {
+      // Log error but don't crash - gracefully handle API failures
+      if (__DEV__) {
+        console.warn('[usePresales] Failed to fetch presales:', presalesResp.reason?.message);
+      }
       setPresales([]);
     }
 
     if (alertsResp.status === 'fulfilled') {
       setMyAlerts(alertsResp.value.data ?? []);
     } else {
+      // Log error but don't crash
+      if (__DEV__) {
+        console.warn('[usePresales] Failed to fetch alerts:', alertsResp.reason?.message);
+      }
       setMyAlerts([]);
     }
   }, []);
