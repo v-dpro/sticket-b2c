@@ -14,6 +14,8 @@ export default function Index() {
   const spotifyStepCompleted = useOnboardingStore((s) => s.spotifyStepCompleted);
   const artistsStepCompleted = useOnboardingStore((s) => s.artistsStepCompleted);
   const presalePreviewShown = useOnboardingStore((s) => s.presalePreviewShown);
+  const currentStep = useOnboardingStore((s) => s.currentStep);
+  const markArtistsStepCompleted = useOnboardingStore((s) => s.markArtistsStepCompleted);
   const checkOnboardingStatus = useOnboardingStore((s) => s.checkOnboardingStatus);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
@@ -28,6 +30,13 @@ export default function Index() {
       mounted = false;
     };
   }, [checkOnboardingStatus]);
+
+  // Auto-complete artists step if user has progressed past it
+  useEffect(() => {
+    if (!checkingOnboarding && !artistsStepCompleted && currentStep > 3) {
+      markArtistsStepCompleted();
+    }
+  }, [checkingOnboarding, artistsStepCompleted, currentStep, markArtistsStepCompleted]);
 
   if (isLoading || checkingOnboarding) {
     return (
@@ -57,35 +66,35 @@ export default function Index() {
     return <Redirect href="/(tabs)/feed" />;
   }
 
+  // If onboarding is marked as complete, go to app (even without first show logged)
   const onboardingComplete = Boolean(profile?.onboardingCompleted) || hasCompletedOnboarding;
+  if (onboardingComplete) {
+    return <Redirect href="/(tabs)/feed" />;
+  }
 
   // Gate: onboarding (welcome -> city -> spotify -> artists -> presale preview -> first log -> friends -> done)
-  if (!onboardingComplete) {
-    // First screen: onboarding welcome (only once).
-    if (!hasSeenWelcome) return <Redirect href="/(onboarding)/welcome" />;
+  // First screen: onboarding welcome (only once).
+  if (!hasSeenWelcome) return <Redirect href="/(onboarding)/welcome" />;
 
-    const city = onboardingCity ?? profile?.city ?? null;
-    if (!city) return <Redirect href="/(onboarding)/set-city" />;
+  const city = onboardingCity ?? profile?.city ?? null;
+  if (!city) return <Redirect href="/(onboarding)/set-city" />;
 
-    // Spotify step is optional, but the screen must be visited (connect OR skip) to proceed.
-    if (!spotifyStepCompleted) return <Redirect href="/(onboarding)/connect-spotify" />;
+  // Spotify step is optional, but the screen must be visited (connect OR skip) to proceed.
+  if (!spotifyStepCompleted) return <Redirect href="/(onboarding)/connect-spotify" />;
 
-    // Select at least 3 artists to follow (or skip)
-    if (!artistsStepCompleted) return <Redirect href="/(onboarding)/select-artists" />;
-
-    // Presale preview "aha" moment (even if it returns empty)
-    if (!presalePreviewShown) return <Redirect href="/(onboarding)/presale-preview" />;
-
-    // Required gate before entering the app
-    if (!hasLoggedFirstShow) return <Redirect href="/(onboarding)/log-first-show" />;
-
-    return <Redirect href="/(onboarding)/find-friends" />;
+  // Select at least 3 artists to follow (or skip)
+  // If user has seen presale preview or logged a show, they've passed this step
+  if (!artistsStepCompleted && !presalePreviewShown && !hasLoggedFirstShow) {
+    return <Redirect href="/(onboarding)/select-artists" />;
   }
+
+  // Presale preview "aha" moment (even if it returns empty)
+  if (!presalePreviewShown) return <Redirect href="/(onboarding)/presale-preview" />;
 
   // Required gate before entering the app
   if (!hasLoggedFirstShow) return <Redirect href="/(onboarding)/log-first-show" />;
 
-  return <Redirect href="/(tabs)/feed" />;
+  return <Redirect href="/(onboarding)/find-friends" />;
 }
 
 
