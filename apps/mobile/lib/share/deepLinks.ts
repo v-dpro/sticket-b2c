@@ -80,12 +80,16 @@ export function setupDeepLinkHandler(navigate: (path: string) => void) {
   });
 
   // Handle links that opened the app
+  // Use a small delay to ensure the app is fully initialized
   Linking.getInitialURL().then((url) => {
     if (url) {
-      const link = parseDeepLink(url);
-      if (link) {
-        navigateToDeepLink(link, navigate);
-      }
+      // Small delay to ensure navigation stack is ready
+      setTimeout(() => {
+        const link = parseDeepLink(url);
+        if (link) {
+          navigateToDeepLink(link, navigate);
+        }
+      }, 100);
     }
   });
 

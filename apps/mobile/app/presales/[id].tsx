@@ -4,17 +4,26 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Screen } from '../../components/ui/Screen';
 import { colors, spacing } from '../../lib/theme';
+import { useSafeNavigation } from '../../lib/navigation/safeNavigation';
 
 export default function PresaleDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { safeBack } = useSafeNavigation('/(tabs)/feed');
 
   return (
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back} accessibilityRole="button">
+        <Pressable 
+          onPress={() => {
+            // Direct navigation - this should always work
+            router.replace('/(tabs)/feed' as any);
+          }} 
+          style={styles.back} 
+          accessibilityRole="button"
+        >
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Presale</Text>
