@@ -32,54 +32,56 @@ export function useFeed() {
     else setLoading(true);
 
     setError(null);
-    
-    // Only show auth required if we're not loading AND there's no user
-    const authRequired = !sessionLoading && !user;
-    setRequiresAuth(authRequired);
+    setRequiresAuth(false);
 
-    // Don't fetch if no user (will show auth required message)
-    if (authRequired) {
+    // Wait for session to finish loading before making decisions
+    if (sessionLoading) {
+      // Still loading, wait
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    // If no user after loading is complete, show auth required
+    if (!user) {
       setItems([]);
       setHasMore(false);
       setNextCursor(null);
       setHasNoFriends(false);
+      setRequiresAuth(true);
       setError('Sign in to view your friends feed.');
       setLoading(false);
       setRefreshing(false);
       return;
     }
 
+    // User exists, try to fetch feed
     try {
-      // Feed is API-backed. If there is no token (local/offline session), don't call the endpoint.
-      if (!(await hasToken())) {
-        setItems([]);
-        setHasMore(false);
-        setNextCursor(null);
-        setHasNoFriends(false);
-        setRequiresAuth(true);
-        setError('Sign in to view your friends feed.');
-        return;
-      }
-
+      // Check for token, but don't fail if it's missing - let the API call handle it
+      // The API will return 401 if token is invalid/missing, and we'll handle that
       const data = await getFeed({ limit: LIMIT });
       setItems(data.items ?? []);
       setNextCursor(data.nextCursor);
       setHasMore(Boolean(data.nextCursor));
       setHasNoFriends(Boolean(data.hasNoFriends));
       setRequiresAuth(false);
+      setError(null);
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401) {
+        // Token expired or invalid - user needs to sign in again
         setRequiresAuth(true);
-        setError('Sign in to view your friends feed.');
+        setError('Your session expired. Please sign in again.');
       } else {
+        // Other errors (network, server, etc.)
         setError(getErrorMessage(err));
+        setRequiresAuth(false);
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [hasToken, user, sessionLoading]);
+  }, [user, sessionLoading]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !nextCursor) return;

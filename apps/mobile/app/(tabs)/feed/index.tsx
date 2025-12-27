@@ -75,10 +75,10 @@ export default function FeedScreen() {
   const emptyMessage = useMemo(() => {
     if (activeTab !== 'friends') return null;
     if (!requiresAuth) return null;
-    return user
-      ? 'Friends feed requires an online account. You’re signed in locally — connect online to view your friends feed.'
-      : error || 'Sign in to view your friends feed.';
-  }, [activeTab, error, requiresAuth, user]);
+    // If user exists but requiresAuth is true, it means token expired
+    // If no user, they need to sign in
+    return error || 'Sign in to view your friends feed.';
+  }, [activeTab, error, requiresAuth]);
 
   return (
     <Screen padded={false}>
