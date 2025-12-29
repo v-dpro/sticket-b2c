@@ -16,6 +16,7 @@ export function useFeed() {
   const [hasNoFriends, setHasNoFriends] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [requiresAuth, setRequiresAuth] = useState(false);
+  const [hasCheckedTokens, setHasCheckedTokens] = useState(false);
 
   // Check if we have a valid session
   const { user, loading: sessionLoading } = useSession();
@@ -39,6 +40,14 @@ export function useFeed() {
     // Wait for session to finish loading before making decisions
     if (sessionLoading) {
       // Still loading, wait
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    
+    // If we've already checked and determined user is local-only with no tokens, don't check again
+    // (unless refreshing)
+    if (!refresh && hasCheckedTokens && !user) {
       setLoading(false);
       setRefreshing(false);
       return;
@@ -93,6 +102,7 @@ export function useFeed() {
         setHasNoFriends(false);
         setRequiresAuth(false); // Don't show "sign in" - user IS signed in
         setError('Friends feed requires an online account. Please sign in with your email and password to connect to the server.');
+        setHasCheckedTokens(true);
         setLoading(false);
         setRefreshing(false);
         return;
@@ -105,6 +115,7 @@ export function useFeed() {
         setHasNoFriends(false);
         setRequiresAuth(false); // Don't show "sign in" - user IS signed in
         setError('Your session expired. Please sign in again to refresh your connection.');
+        setHasCheckedTokens(true);
         setLoading(false);
         setRefreshing(false);
         return;
@@ -158,9 +169,6 @@ export function useFeed() {
     try {
       // Token exists, try to fetch feed
       // The token refresh interceptor will handle 401s automatically
-      if (__DEV__) {
-        console.log('[useFeed] Fetching feed with token...');
-      }
       const data = await getFeed({ limit: LIMIT });
       if (__DEV__) {
         console.log('[useFeed] Feed fetched successfully:', {
