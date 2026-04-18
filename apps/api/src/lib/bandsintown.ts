@@ -28,6 +28,7 @@ export async function getArtistEvents(artistName: string): Promise<BandsintownEv
 
     const res = await fetch(url);
     if (!res.ok) {
+      console.warn(`[Bandsintown] ${artistName}: HTTP ${res.status}`);
       return [];
     }
     const data = (await res.json()) as unknown;
@@ -36,6 +37,28 @@ export async function getArtistEvents(artistName: string): Promise<BandsintownEv
   } catch (error) {
     console.error(`Failed to fetch events for ${artistName}:`, error);
     return [];
+  }
+}
+
+export interface BandsintownArtist {
+  id: string;
+  name: string;
+  url: string;
+  image_url: string;
+  thumb_url: string;
+  upcoming_event_count: number;
+}
+
+export async function searchArtistBandsintown(artistName: string): Promise<BandsintownArtist | null> {
+  try {
+    const url = `${BANDSINTOWN_API}/artists/${encodeURIComponent(artistName)}?app_id=${APP_ID}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json() as BandsintownArtist;
+    if (!data || !data.name) return null;
+    return data;
+  } catch {
+    return null;
   }
 }
 

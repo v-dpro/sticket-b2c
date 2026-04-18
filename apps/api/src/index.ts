@@ -2263,6 +2263,11 @@ async function buildDiscoverData(userId: string | null, city: string) {
   }
 
   const bandsintownEvents = artistNames.length ? await getEventsForMultipleArtists(artistNames, 30) : [];
+  if (bandsintownEvents.length > 0) {
+    console.log(`[buildDiscoverData] Bandsintown returned ${bandsintownEvents.length} events`);
+  } else {
+    console.warn('[buildDiscoverData] Bandsintown returned 0 events — will fall back to DB or mock data');
+  }
 
   const upsertedEvents = await Promise.all(
     bandsintownEvents.map(async (be) => {
@@ -2317,9 +2322,29 @@ async function buildDiscoverData(userId: string | null, city: string) {
     })
   );
 
-  const events = upsertedEvents
+  let events = upsertedEvents
     .filter((e) => e.date > now)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Fallback: if Bandsintown returned nothing, check DB for any upcoming events
+  if (events.length === 0) {
+    const dbEvents = await prisma.event.findMany({
+      where: { date: { gte: now } },
+      include: { artist: true, venue: true },
+      orderBy: { date: 'asc' },
+      take: 30,
+    });
+    if (dbEvents.length > 0) {
+      console.log(`[buildDiscoverData] Using ${dbEvents.length} events from DB fallback`);
+      events = dbEvents;
+    }
+  }
+
+  // If still empty (fresh DB + Bandsintown blocked), return mock data directly
+  if (events.length === 0) {
+    console.log('[buildDiscoverData] No events found — returning mock data');
+    return mockDiscovery(city);
+  }
 
   const interestedIds = new Set<string>();
   if (userId && events.length) {
@@ -2415,12 +2440,14 @@ app.get('/discover/coming-up', async (req, reply) => {
 
     if (!userId) return [];
 
-    const data = await buildDiscoverData(userId, 'New York');
+    const city = ((req.query ?? {}) as { city?: string }).city || 'New York';
+    const data = await buildDiscoverData(userId, city);
     return data.comingUp.slice(0, limit);
   } catch (error) {
     if (isDbUnavailable(error)) {
+      const city = ((req.query ?? {}) as { city?: string }).city || 'New York';
       req.log.warn({ error }, 'DB unavailable; returning mock coming-up feed');
-      return mockDiscovery('New York').comingUp.slice(0, Math.max(1, Math.min(50, Number(((req.query ?? {}) as { limit?: string }).limit ?? 20))));
+      return mockDiscovery(city).comingUp.slice(0, Math.max(1, Math.min(50, Number(((req.query ?? {}) as { limit?: string }).limit ?? 20))));
     }
     req.log.error({ error }, 'Coming up error');
     reply.status(500);
@@ -2436,12 +2463,14 @@ app.get('/discover/friends-going', async (req, reply) => {
 
     if (!userId) return [];
 
-    const data = await buildDiscoverData(userId, 'New York');
+    const city = ((req.query ?? {}) as { city?: string }).city || 'New York';
+    const data = await buildDiscoverData(userId, city);
     return data.friendsGoing.slice(0, limit);
   } catch (error) {
     if (isDbUnavailable(error)) {
+      const city = ((req.query ?? {}) as { city?: string }).city || 'New York';
       req.log.warn({ error }, 'DB unavailable; returning mock friends-going feed');
-      return mockDiscovery('New York').friendsGoing.slice(0, Math.max(1, Math.min(50, Number(((req.query ?? {}) as { limit?: string }).limit ?? 20))));
+      return mockDiscovery(city).friendsGoing.slice(0, Math.max(1, Math.min(50, Number(((req.query ?? {}) as { limit?: string }).limit ?? 20))));
     }
     req.log.error({ error }, 'Friends going error');
     reply.status(500);
@@ -2915,6 +2944,40 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
 
 // GET /events/search - Search events for ticket entry, logging, etc.
 // NOTE: Must be defined BEFORE `/events/:id` so it doesn't get treated as an event id.
+app.get('/events/browse', async (req, reply) => {
+  try {
+    const query = (req.query ?? {}) as { city?: string; limit?: string };
+    const city = query.city?.trim() || null;
+    const limit = Math.max(1, Math.min(50, Number(query.limit ?? 20)));
+    const now = new Date();
+
+    const where: any = { date: { gte: now } };
+    if (city) {
+      where.venue = { city: { contains: city, mode: 'insensitive' } };
+    }
+
+    const rows = await prisma.event.findMany({
+      where,
+      include: { artist: true, venue: true },
+      orderBy: { date: 'asc' },
+      take: limit,
+    });
+
+    if (rows.length === 0) {
+      return mockDiscovery(city || 'New York').comingUp.slice(0, limit);
+    }
+
+    return rows.map((e) => eventToPayload(e));
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      return mockDiscovery(((req.query ?? {}) as { city?: string }).city || 'New York').comingUp;
+    }
+    req.log.error({ error }, 'Events browse error');
+    reply.status(500);
+    return { error: 'Failed to browse events' };
+  }
+});
+
 app.get('/events/search', async (req, reply) => {
   try {
     // Wallet search is behind auth in the app, so require auth here.

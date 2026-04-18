@@ -24,7 +24,7 @@ function requireEnv(name: string): string {
     if (name === 'JWT_SECRET' && process.env.NODE_ENV !== 'production') {
       return 'sticket-dev-jwt-secret';
     }
-    throw new AppError(`${name} is required`, 500);
+    throw new AppError(`Server configuration error: ${name} is not set. Contact the app administrator.`, 503);
   }
   return v;
 }
