@@ -17,6 +17,7 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 import { prisma } from './lib/prisma.js';
 import { getEventsForMultipleArtists } from './lib/bandsintown.js';
+import { searchEvents as tmSearchEvents, searchEventsByArtists as tmSearchByArtists, searchAttractions as tmSearchAttractions } from './lib/ticketmaster.js';
 import { getUserIdFromRequest } from './lib/auth.js';
 import { AppError } from './lib/errors.js';
 import { BADGES } from './lib/badges/badgeDefinitions.js';
@@ -2262,65 +2263,137 @@ async function buildDiscoverData(userId: string | null, city: string) {
     console.log('[buildDiscoverData] Cold start: using default artists');
   }
 
-  const bandsintownEvents = artistNames.length ? await getEventsForMultipleArtists(artistNames, 30) : [];
-  if (bandsintownEvents.length > 0) {
-    console.log(`[buildDiscoverData] Bandsintown returned ${bandsintownEvents.length} events`);
-  } else {
-    console.warn('[buildDiscoverData] Bandsintown returned 0 events — will fall back to DB or mock data');
+  // Try Ticketmaster first, then Bandsintown as fallback
+  let tmEvents = await tmSearchByArtists(artistNames, 30);
+  if (tmEvents.length === 0 && city) {
+    tmEvents = await tmSearchEvents({ city, size: 30 });
   }
 
-  const upsertedEvents = await Promise.all(
-    bandsintownEvents.map(async (be) => {
-      const headliner = be.lineup?.[0] || be.title || 'Unknown Artist';
+  let upsertedEvents: any[] = [];
 
-      const artist =
-        (await prisma.artist.findFirst({ where: { name: headliner } })) ??
-        (await prisma.artist.create({
-          data: { name: headliner, genres: [] },
-        }));
+  if (tmEvents.length > 0) {
+    console.log(`[buildDiscoverData] Ticketmaster returned ${tmEvents.length} events`);
+    upsertedEvents = await Promise.all(
+      tmEvents.map(async (te) => {
+        const artist =
+          (await prisma.artist.findFirst({ where: { name: te.artist.name } })) ??
+          (await prisma.artist.create({
+            data: {
+              name: te.artist.name,
+              imageUrl: te.artist.imageUrl,
+              genres: te.artist.genres,
+            },
+          }));
 
-      const venue =
-        (await prisma.venue.findFirst({
-          where: { name: be.venue.name, city: be.venue.city },
-        })) ??
-        (await prisma.venue.create({
-          data: {
-            name: be.venue.name,
-            city: be.venue.city,
-            state: be.venue.region || null,
-            country: be.venue.country,
-            lat: Number.isFinite(Number(be.venue.latitude)) ? Number(be.venue.latitude) : null,
-            lng: Number.isFinite(Number(be.venue.longitude)) ? Number(be.venue.longitude) : null,
+        if (te.artist.imageUrl && !artist.imageUrl) {
+          await prisma.artist.update({ where: { id: artist.id }, data: { imageUrl: te.artist.imageUrl } });
+        }
+
+        const venue =
+          (await prisma.venue.findFirst({
+            where: { name: te.venue.name, city: te.venue.city },
+          })) ??
+          (await prisma.venue.create({
+            data: {
+              name: te.venue.name,
+              city: te.venue.city,
+              state: te.venue.region || null,
+              country: te.venue.country,
+              lat: Number.isFinite(Number(te.venue.latitude)) ? Number(te.venue.latitude) : null,
+              lng: Number.isFinite(Number(te.venue.longitude)) ? Number(te.venue.longitude) : null,
+            },
+          }));
+
+        const date = new Date(te.datetime);
+
+        return await prisma.event.upsert({
+          where: {
+            artistId_venueId_date: {
+              artistId: artist.id,
+              venueId: venue.id,
+              date,
+            },
           },
-        }));
-
-      const date = new Date(be.datetime);
-
-      return await prisma.event.upsert({
-        where: {
-          artistId_venueId_date: {
+          update: {
+            name: te.name,
+            source: 'ticketmaster',
+            externalId: te.externalId,
+            imageUrl: te.imageUrl,
+          },
+          create: {
+            name: te.name,
+            date,
             artistId: artist.id,
             venueId: venue.id,
-            date,
+            source: 'ticketmaster',
+            externalId: te.externalId,
+            imageUrl: te.imageUrl,
           },
-        },
-        update: {
-          name: be.title || `${artist.name} at ${venue.name}`,
-          source: 'bandsintown',
-          externalId: be.id,
-        },
-        create: {
-          name: be.title || `${artist.name} at ${venue.name}`,
-          date,
-          artistId: artist.id,
-          venueId: venue.id,
-          source: 'bandsintown',
-          externalId: be.id,
-        },
-        include: { artist: true, venue: true },
-      });
-    })
-  );
+          include: { artist: true, venue: true },
+        });
+      })
+    );
+  } else {
+    // Fallback to Bandsintown
+    const bandsintownEvents = artistNames.length ? await getEventsForMultipleArtists(artistNames, 30) : [];
+    if (bandsintownEvents.length > 0) {
+      console.log(`[buildDiscoverData] Bandsintown returned ${bandsintownEvents.length} events`);
+      upsertedEvents = await Promise.all(
+        bandsintownEvents.map(async (be) => {
+          const headliner = be.lineup?.[0] || be.title || 'Unknown Artist';
+
+          const artist =
+            (await prisma.artist.findFirst({ where: { name: headliner } })) ??
+            (await prisma.artist.create({
+              data: { name: headliner, genres: [] },
+            }));
+
+          const venue =
+            (await prisma.venue.findFirst({
+              where: { name: be.venue.name, city: be.venue.city },
+            })) ??
+            (await prisma.venue.create({
+              data: {
+                name: be.venue.name,
+                city: be.venue.city,
+                state: be.venue.region || null,
+                country: be.venue.country,
+                lat: Number.isFinite(Number(be.venue.latitude)) ? Number(be.venue.latitude) : null,
+                lng: Number.isFinite(Number(be.venue.longitude)) ? Number(be.venue.longitude) : null,
+              },
+            }));
+
+          const date = new Date(be.datetime);
+
+          return await prisma.event.upsert({
+            where: {
+              artistId_venueId_date: {
+                artistId: artist.id,
+                venueId: venue.id,
+                date,
+              },
+            },
+            update: {
+              name: be.title || `${artist.name} at ${venue.name}`,
+              source: 'bandsintown',
+              externalId: be.id,
+            },
+            create: {
+              name: be.title || `${artist.name} at ${venue.name}`,
+              date,
+              artistId: artist.id,
+              venueId: venue.id,
+              source: 'bandsintown',
+              externalId: be.id,
+            },
+            include: { artist: true, venue: true },
+          });
+        })
+      );
+    } else {
+      console.warn('[buildDiscoverData] Both Ticketmaster and Bandsintown returned 0 events');
+    }
+  }
 
   let events = upsertedEvents
     .filter((e) => e.date > now)
@@ -2946,22 +3019,54 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
 // NOTE: Must be defined BEFORE `/events/:id` so it doesn't get treated as an event id.
 app.get('/events/browse', async (req, reply) => {
   try {
-    const query = (req.query ?? {}) as { city?: string; limit?: string };
+    const query = (req.query ?? {}) as { city?: string; limit?: string; keyword?: string };
     const city = query.city?.trim() || null;
+    const keyword = query.keyword?.trim() || null;
     const limit = Math.max(1, Math.min(50, Number(query.limit ?? 20)));
     const now = new Date();
 
+    // Try DB first
     const where: any = { date: { gte: now } };
     if (city) {
       where.venue = { city: { contains: city, mode: 'insensitive' } };
     }
 
-    const rows = await prisma.event.findMany({
+    let rows = await prisma.event.findMany({
       where,
       include: { artist: true, venue: true },
       orderBy: { date: 'asc' },
       take: limit,
     });
+
+    // If DB is sparse, supplement with Ticketmaster
+    if (rows.length < 5) {
+      const tmEvents = await tmSearchEvents({ city: city ?? undefined, keyword: keyword ?? undefined, size: limit });
+      for (const te of tmEvents) {
+        const artist =
+          (await prisma.artist.findFirst({ where: { name: te.artist.name } })) ??
+          (await prisma.artist.create({ data: { name: te.artist.name, imageUrl: te.artist.imageUrl, genres: te.artist.genres } }));
+
+        const venue =
+          (await prisma.venue.findFirst({ where: { name: te.venue.name, city: te.venue.city } })) ??
+          (await prisma.venue.create({
+            data: {
+              name: te.venue.name, city: te.venue.city, state: te.venue.region || null, country: te.venue.country,
+              lat: Number.isFinite(Number(te.venue.latitude)) ? Number(te.venue.latitude) : null,
+              lng: Number.isFinite(Number(te.venue.longitude)) ? Number(te.venue.longitude) : null,
+            },
+          }));
+
+        const date = new Date(te.datetime);
+        await prisma.event.upsert({
+          where: { artistId_venueId_date: { artistId: artist.id, venueId: venue.id, date } },
+          update: { name: te.name, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl },
+          create: { name: te.name, date, artistId: artist.id, venueId: venue.id, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl },
+        });
+      }
+
+      // Re-query with the new data
+      rows = await prisma.event.findMany({ where, include: { artist: true, venue: true }, orderBy: { date: 'asc' }, take: limit });
+    }
 
     if (rows.length === 0) {
       return mockDiscovery(city || 'New York').comingUp.slice(0, limit);
@@ -4075,6 +4180,21 @@ app.get('/artists/search', async (req, reply) => {
       orderBy: { name: 'asc' },
       take: limit,
     });
+
+    // If DB has few results, supplement with Ticketmaster attractions
+    if (rows.length < 3) {
+      const tmAttractions = await tmSearchAttractions(q, limit - rows.length);
+      const existingNames = new Set(rows.map((r) => r.name.toLowerCase()));
+      for (const ta of tmAttractions) {
+        if (existingNames.has(ta.name.toLowerCase())) continue;
+        let artist = await prisma.artist.findFirst({ where: { name: ta.name } });
+        if (!artist) {
+          artist = await prisma.artist.create({ data: { name: ta.name, imageUrl: ta.imageUrl, genres: ta.genres } });
+        }
+        rows.push(artist);
+        existingNames.add(ta.name.toLowerCase());
+      }
+    }
 
     return rows.map((a) => ({
       id: a.id,
