@@ -23,6 +23,7 @@ import type { ShareCardData } from '../../types/share';
 import { createEventLink } from '../../lib/share/deepLinks';
 import { ShareButton } from '../../components/share/ShareButton';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { colors } from '../../lib/theme';
 
 export default function EventScreen() {
   const router = useRouter();
@@ -121,7 +122,7 @@ export default function EventScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.brandPurple} />
       </View>
     );
   }
@@ -140,7 +141,7 @@ export default function EventScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#8B5CF6" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brandPurple} />}
       >
         <EventHeader
           imageUrl={event.imageUrl}
@@ -158,7 +159,7 @@ export default function EventScreen() {
                 renderTrigger={(open) => (
                   <Pressable onPress={open} style={styles.headerIconButton} accessibilityRole="button">
                     <BlurView intensity={50} style={styles.headerBlurButton}>
-                      <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+                      <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
                     </BlurView>
                   </Pressable>
                 )}
@@ -202,7 +203,7 @@ export default function EventScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -223,19 +224,19 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
   },
   errorText: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
   },

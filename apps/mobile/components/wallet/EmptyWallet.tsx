@@ -4,13 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 
+import { colors } from '../../lib/theme';
+
 export function EmptyWallet() {
   const router = useRouter();
 
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
-        <Ionicons name="ticket-outline" size={48} color="#8B5CF6" />
+        <Ionicons name="ticket-outline" size={48} color={colors.brandPurple} />
       </View>
 
       <Text style={styles.title}>No Tickets Yet</Text>
@@ -21,12 +23,12 @@ export function EmptyWallet() {
 
       <Pressable style={styles.button} onPress={() => router.push('/wallet/add-ticket')}>
         <LinearGradient
-          colors={['#8B5CF6', '#E879F9']}
+          colors={[colors.brandPurple, colors.brandPink]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradient}
         >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
+          <Ionicons name="add" size={20} color={colors.textPrimary} />
           <Text style={styles.buttonText}>Add Ticket</Text>
         </LinearGradient>
       </Pressable>
@@ -54,12 +56,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

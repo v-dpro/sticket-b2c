@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   list: {
     padding: spacing.lg,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   codeText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontFamily: 'monospace',
   },
   signupWarning: {

@@ -127,6 +127,9 @@ apiClient.interceptors.response.use(
         await SecureStore.deleteItemAsync('access_token');
         await SecureStore.deleteItemAsync('refresh_token');
         await SecureStore.deleteItemAsync('auth_token');
+        // Notify session store so UI reflects logged-out state immediately
+        const { useSessionStore } = await import('../../stores/sessionStore');
+        useSessionStore.setState({ user: null, profile: null, hasLoggedFirstShow: false });
       }
     }
 

@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   sectionHeader: {
     paddingHorizontal: spacing.md,

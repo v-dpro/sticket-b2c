@@ -30,7 +30,7 @@ export function FeaturedLogCard({ log, onPress }: FeaturedLogCardProps) {
 
         {photos?.length > 1 ? (
           <View style={styles.photoBadge}>
-            <Ionicons name="images" size={12} color="#FFFFFF" />
+            <Ionicons name="images" size={12} color={colors.textPrimary} />
             <Text style={styles.photoBadgeText}>{photos.length}</Text>
           </View>
         ) : null}
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   photoBadgeText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '700',
   },

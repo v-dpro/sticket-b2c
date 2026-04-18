@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 export type FeedTab = 'friends' | 'discover';
 
@@ -18,7 +19,7 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
           onPress={() => onTabChange('friends')}
           activeOpacity={0.85}
         >
-          <Ionicons name="people" size={18} color={activeTab === 'friends' ? '#FFFFFF' : '#6B6B8D'} />
+          <Ionicons name="people" size={18} color={activeTab === 'friends' ? colors.textPrimary : colors.textTertiary} />
           <Text style={[styles.tabText, activeTab === 'friends' && styles.tabTextActive]}>Friends</Text>
         </TouchableOpacity>
 
@@ -27,7 +28,7 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
           onPress={() => onTabChange('discover')}
           activeOpacity={0.85}
         >
-          <Ionicons name="globe" size={18} color={activeTab === 'discover' ? '#FFFFFF' : '#6B6B8D'} />
+          <Ionicons name="globe" size={18} color={activeTab === 'discover' ? colors.textPrimary : colors.textTertiary} />
           <Text style={[styles.tabText, activeTab === 'discover' && styles.tabTextActive]}>Discover</Text>
         </TouchableOpacity>
       </View>
@@ -38,7 +39,7 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
 const styles = StyleSheet.create({
   container: {
     padding: 4,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   tabRow: {
@@ -55,15 +56,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: '#252542',
+    backgroundColor: colors.surfaceElevated,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

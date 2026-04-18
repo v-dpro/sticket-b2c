@@ -21,6 +21,7 @@ import { useSession } from '../hooks/useSession';
 import { useSessionStore } from '../stores/sessionStore';
 import { updateProfile as updateLocalProfile } from '../lib/local/repo/profileRepo';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
+import { colors } from '../lib/theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -123,7 +124,7 @@ export default function EditProfileScreen() {
   if (profileLoading || !profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.brandPurple} />
       </View>
     );
   }
@@ -137,7 +138,7 @@ export default function EditProfileScreen() {
         </Pressable>
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <Pressable onPress={handleSave} disabled={!canSave}>
-          {saving ? <ActivityIndicator size="small" color="#8B5CF6" /> : <Text style={styles.saveText}>Save</Text>}
+          {saving ? <ActivityIndicator size="small" color={colors.brandPurple} /> : <Text style={styles.saveText}>Save</Text>}
         </Pressable>
       </View>
 
@@ -152,7 +153,7 @@ export default function EditProfileScreen() {
             </View>
           )}
           <View style={styles.avatarEditBadge}>
-            <Ionicons name="camera" size={16} color="#FFFFFF" />
+            <Ionicons name="camera" size={16} color={colors.textPrimary} />
           </View>
         </Pressable>
         <Text style={styles.changePhotoText}>Change photo</Text>
@@ -166,7 +167,7 @@ export default function EditProfileScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Your name"
-              placeholderTextColor="#6B6B8D"
+              placeholderTextColor={colors.textTertiary}
               maxLength={50}
             />
           </View>
@@ -178,7 +179,7 @@ export default function EditProfileScreen() {
               value={username}
               onChangeText={(text) => setUsername(text.toLowerCase())}
               placeholder="username"
-              placeholderTextColor="#6B6B8D"
+              placeholderTextColor={colors.textTertiary}
               autoCapitalize="none"
               maxLength={20}
             />
@@ -191,7 +192,7 @@ export default function EditProfileScreen() {
               value={bio}
               onChangeText={setBio}
               placeholder="Tell us about yourself..."
-              placeholderTextColor="#6B6B8D"
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={3}
               maxLength={160}
@@ -206,7 +207,7 @@ export default function EditProfileScreen() {
               value={city}
               onChangeText={setCity}
               placeholder="Where are you based?"
-              placeholderTextColor="#6B6B8D"
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
         </View>
@@ -218,11 +219,11 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -233,21 +234,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   cancelText: {
     fontSize: 16,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   content: {
     flex: 1,
@@ -265,17 +266,17 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
   },
   avatarPlaceholder: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -284,15 +285,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#0A0B1E',
+    borderColor: colors.background,
   },
   changePhotoText: {
     textAlign: 'center',
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontSize: 14,
     marginBottom: 32,
   },
@@ -305,18 +306,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   bioInput: {
     minHeight: 80,
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     textAlign: 'right',
     marginTop: 4,
   },

@@ -17,6 +17,7 @@ import { useUserLogs } from '../../hooks/useUserLogs';
 import { useFollow } from '../../hooks/useFollow';
 import type { LogEntry } from '../../types/profile';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { colors } from '../../lib/theme';
 
 export default function UserProfileScreen() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function UserProfileScreen() {
   if (profileLoading || !profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.brandPurple} />
       </View>
     );
   }
@@ -76,11 +77,11 @@ export default function UserProfileScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </Pressable>
         </View>
         <View style={styles.privateContainer}>
-          <Ionicons name="lock-closed" size={64} color="#6B6B8D" />
+          <Ionicons name="lock-closed" size={64} color={colors.textTertiary} />
           <Text style={styles.privateTitle}>This account is private</Text>
           <Text style={styles.privateText}>Follow to see their shows</Text>
         </View>
@@ -116,7 +117,7 @@ export default function UserProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>@{profile.username}</Text>
         <View style={{ width: 40 }} />
@@ -172,11 +173,11 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   privateContainer: {
     flex: 1,
@@ -204,12 +205,12 @@ const styles = StyleSheet.create({
   privateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 16,
   },
   privateText: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
   },
   mapScrollContent: {

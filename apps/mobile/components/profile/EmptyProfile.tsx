@@ -2,6 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { colors } from '../../lib/theme';
+
 interface EmptyProfileProps {
   title?: string;
   subtitle?: string;
@@ -12,7 +14,7 @@ interface EmptyProfileProps {
 export function EmptyProfile({ title = 'No shows yet', subtitle = 'Start logging your concert experiences!', ctaText, onCtaPress }: EmptyProfileProps) {
   return (
     <View style={styles.container}>
-      <Ionicons name="musical-notes-outline" size={64} color="#6B6B8D" />
+      <Ionicons name="musical-notes-outline" size={64} color={colors.textTertiary} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
       {ctaText && onCtaPress ? (
@@ -35,12 +37,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 16,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -49,10 +51,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
 });

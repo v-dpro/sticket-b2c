@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
+import { colors } from '../../lib/theme';
+
 function SkeletonRow() {
   return (
     <View style={styles.card}>
@@ -17,7 +19,7 @@ function SkeletonRow() {
 export function WalletSkeleton() {
   return (
     <View style={{ paddingTop: 12 }}>
-      <View style={{ marginHorizontal: 16, marginBottom: 16, height: 120, borderRadius: 16, backgroundColor: '#1A1A2E', borderWidth: 1, borderColor: '#2D2D4A' }} />
+      <View style={{ marginHorizontal: 16, marginBottom: 16, height: 120, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }} />
       <SkeletonRow />
       <SkeletonRow />
       <SkeletonRow />
@@ -30,19 +32,19 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   avatar: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   info: {
     flex: 1,
@@ -51,7 +53,7 @@ const styles = StyleSheet.create({
   line: {
     height: 10,
     borderRadius: 6,
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
   },
 });
 

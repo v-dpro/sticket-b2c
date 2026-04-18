@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
 import type { UserShowSummary } from '../../types/artist';
+import { colors } from '../../lib/theme';
 
 interface YourHistoryProps {
   showCount: number;
@@ -22,7 +23,7 @@ export function YourHistory({ showCount, firstShow, lastShow, onSeeAllPress }: Y
           end={{ x: 1, y: 0 }}
           style={styles.emptyCard}
         >
-          <Ionicons name="musical-notes-outline" size={32} color="#8B5CF6" />
+          <Ionicons name="musical-notes-outline" size={32} color={colors.brandPurple} />
           <Text style={styles.emptyTitle}>You haven't seen them yet</Text>
           <Text style={styles.emptySubtitle}>Check out their upcoming shows below!</Text>
         </LinearGradient>
@@ -67,7 +68,7 @@ export function YourHistory({ showCount, firstShow, lastShow, onSeeAllPress }: Y
             )}
           </View>
 
-          <Ionicons name="chevron-forward" size={20} color="#8B5CF6" />
+          <Ionicons name="chevron-forward" size={20} color={colors.brandPurple} />
         </LinearGradient>
       </Pressable>
     </View>
@@ -89,12 +90,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   historyCard: {
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
   countNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   historyContent: {
     flex: 1,
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   showRow: {
@@ -134,12 +135,12 @@ const styles = StyleSheet.create({
   },
   showLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     width: 36,
   },
   showInfo: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     flex: 1,
   },
 });

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 const CATEGORIES = ['general', 'parking', 'food', 'seating', 'entry'] as const;
 
@@ -66,7 +67,7 @@ export function AddTipModal({ visible, onClose, onSubmit }: AddTipModalProps) {
             value={text}
             onChangeText={setText}
             placeholder="Parking, best bars, entrances, best sections…"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             multiline
             style={styles.input}
           />
@@ -77,16 +78,16 @@ export function AddTipModal({ visible, onClose, onSubmit }: AddTipModalProps) {
         <View style={styles.footer}>
           <Pressable style={[styles.submitButton, !canSubmit && styles.submitDisabled]} onPress={handleSubmit} disabled={!canSubmit}>
             <LinearGradient
-              colors={canSubmit ? ['#8B5CF6', '#E879F9'] : ['#2D2D4A', '#2D2D4A']}
+              colors={canSubmit ? [colors.brandPurple, colors.brandPink] : [colors.border, colors.border]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
               {submitting ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.textPrimary} />
               ) : (
                 <View style={styles.submitRow}>
-                  <Ionicons name="send" size={18} color="#FFFFFF" />
+                  <Ionicons name="send" size={18} color={colors.textPrimary} />
                   <Text style={styles.submitText}>Post Tip</Text>
                 </View>
               )}
@@ -101,7 +102,7 @@ export function AddTipModal({ visible, onClose, onSubmit }: AddTipModalProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -110,23 +111,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   cancelText: {
     fontSize: 16,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   content: {
     flex: 1,
     padding: 24,
   },
   label: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -141,36 +142,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   chipActive: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
+    borderColor: colors.brandPurple,
   },
   chipText: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '500',
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   input: {
     minHeight: 120,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
-    backgroundColor: '#1A1A2E',
-    color: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
     padding: 12,
     textAlignVertical: 'top',
   },
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   footer: {
     padding: 24,
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

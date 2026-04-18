@@ -37,7 +37,7 @@ function CenterDiscoveryButton() {
         accessibilityLabel={hasShowToday ? 'Open Show Mode' : 'Discover shows'}
       >
         <LinearGradient
-          colors={hasShowToday ? ['#22C55E', '#00D4FF'] : ['#8B5CF6', '#00D4FF']}
+          colors={hasShowToday ? [colors.success, colors.brandCyan] : [colors.brandPurple, colors.brandCyan]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.centerButton}
@@ -68,14 +68,14 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: '#1A1A2E',
-            borderTopColor: '#2D2D4A',
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
             borderTopWidth: 1,
             height: tabBarHeight,
             paddingBottom: insets.bottom,
           },
-          tabBarActiveTintColor: '#00D4FF',
-          tabBarInactiveTintColor: '#6B6B8D',
+          tabBarActiveTintColor: colors.brandCyan,
+          tabBarInactiveTintColor: colors.textTertiary,
           tabBarShowLabel: true,
           tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
           tabBarItemStyle: { paddingVertical: 4, minWidth: 60 },
@@ -184,8 +184,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#0A0B1E',
-    shadowColor: '#8B5CF6',
+    borderColor: colors.background,
+    shadowColor: colors.brandPurple,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -198,9 +198,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.success,
     borderWidth: 2,
-    borderColor: '#0A0B1E',
+    borderColor: colors.background,
   },
 });
 

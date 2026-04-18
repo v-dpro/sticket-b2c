@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 import * as ImagePicker from 'expo-image-picker';
 
 interface AddSeatViewModalProps {
@@ -68,7 +69,7 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
             value={section}
             onChangeText={setSection}
             placeholder="e.g. 102, GA Floor, Balcony"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             style={styles.input}
           />
 
@@ -77,12 +78,12 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
             value={row}
             onChangeText={setRow}
             placeholder="e.g. 12"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             style={styles.input}
           />
 
           <Pressable style={styles.pickButton} onPress={handlePick}>
-            <Ionicons name={photoUri ? 'checkmark-circle' : 'image-outline'} size={18} color={photoUri ? '#22C55E' : '#00D4FF'} />
+            <Ionicons name={photoUri ? 'checkmark-circle' : 'image-outline'} size={18} color={photoUri ? colors.success : colors.brandCyan} />
             <Text style={styles.pickText}>{photoUri ? 'Photo selected' : 'Pick a photo'}</Text>
           </Pressable>
 
@@ -92,12 +93,12 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
         <View style={styles.footer}>
           <Pressable style={[styles.submitButton, !canSubmit && styles.submitDisabled]} onPress={handleSubmit} disabled={!canSubmit}>
             <LinearGradient
-              colors={canSubmit ? ['#8B5CF6', '#E879F9'] : ['#2D2D4A', '#2D2D4A']}
+              colors={canSubmit ? [colors.brandPurple, colors.brandPink] : [colors.border, colors.border]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
-              {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitText}>Upload</Text>}
+              {submitting ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Upload</Text>}
             </LinearGradient>
           </Pressable>
         </View>
@@ -109,7 +110,7 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -118,23 +119,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   cancelText: {
     fontSize: 16,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   content: {
     flex: 1,
     padding: 24,
   },
   label: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -143,30 +144,30 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
-    backgroundColor: '#1A1A2E',
-    color: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
     padding: 12,
   },
   pickButton: {
     marginTop: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
-    backgroundColor: '#1A1A2E',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   pickText: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontWeight: '600',
   },
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   footer: {
     padding: 24,
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

@@ -167,13 +167,13 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#00D4FF',
+    borderColor: colors.brandCyan,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(17, 10, 58, 0.35)',
   },
   syncButtonText: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   followingButton: {
     backgroundColor: 'transparent',
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   followText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '700',
     fontSize: 13,
   },

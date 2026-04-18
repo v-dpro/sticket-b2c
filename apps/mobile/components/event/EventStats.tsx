@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { colors } from '../../lib/theme';
 
 interface EventStatsProps {
   logCount: number;
@@ -12,21 +13,21 @@ export function EventStats({ logCount, avgRating, interestedCount }: EventStatsP
   return (
     <View style={styles.container}>
       <View style={styles.stat}>
-        <Ionicons name="people" size={20} color="#8B5CF6" />
+        <Ionicons name="people" size={20} color={colors.brandPurple} />
         <Text style={styles.statValue}>{logCount}</Text>
         <Text style={styles.statLabel}>were there</Text>
       </View>
 
       {typeof avgRating === 'number' ? (
         <View style={styles.stat}>
-          <Ionicons name="star" size={20} color="#F59E0B" />
+          <Ionicons name="star" size={20} color={colors.warning} />
           <Text style={styles.statValue}>{avgRating.toFixed(1)}</Text>
           <Text style={styles.statLabel}>avg rating</Text>
         </View>
       ) : null}
 
       <View style={styles.stat}>
-        <Ionicons name="heart" size={20} color="#EF4444" />
+        <Ionicons name="heart" size={20} color={colors.error} />
         <Text style={styles.statValue}>{interestedCount}</Text>
         <Text style={styles.statLabel}>interested</Text>
       </View>
@@ -38,13 +39,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: -40,
     paddingVertical: 20,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   stat: {
     alignItems: 'center',
@@ -52,12 +53,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
 });

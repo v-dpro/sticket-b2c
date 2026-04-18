@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

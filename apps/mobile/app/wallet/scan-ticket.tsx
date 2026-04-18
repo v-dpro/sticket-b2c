@@ -6,6 +6,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 
 import type { BarcodeFormat } from '../../types/ticket';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { colors } from '../../lib/theme';
 
 function mapCameraTypeToBarcodeFormat(type: string | undefined): BarcodeFormat {
   const t = String(type || '').toLowerCase();
@@ -45,7 +46,7 @@ export default function ScanTicketScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={64} color="#8B5CF6" />
+          <Ionicons name="camera-outline" size={64} color={colors.brandPurple} />
           <Text style={styles.permissionTitle}>Camera Access</Text>
           <Text style={styles.permissionText}>We need camera access to scan barcodes</Text>
           <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
@@ -65,7 +66,7 @@ export default function ScanTicketScreen() {
         onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
       >
         <Pressable style={styles.closeButton} onPress={goBack} hitSlop={10}>
-          <Ionicons name="close" size={28} color="#FFFFFF" />
+          <Ionicons name="close" size={28} color={colors.textPrimary} />
         </Pressable>
 
         <View style={styles.scanFrame}>
@@ -86,7 +87,7 @@ export default function ScanTicketScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   camera: {
     flex: 1,
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
     borderTopWidth: 4,
     borderLeftWidth: 4,
     top: 0,
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   instructionText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -163,18 +164,18 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   permissionText: {
     fontSize: 16,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   permissionButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 999,
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventPhoto } from '../../types/event';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -15,7 +16,7 @@ export function PhotoLightbox({ photo, onClose }: PhotoLightboxProps) {
     <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.lightbox}>
         <Pressable style={styles.closeButton} onPress={onClose}>
-          <Ionicons name="close" size={28} color="#FFFFFF" />
+          <Ionicons name="close" size={28} color={colors.textPrimary} />
         </Pressable>
 
         {photo ? (
@@ -76,22 +77,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   avatarPlaceholder: {
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   userName: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   sectionText: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
 });

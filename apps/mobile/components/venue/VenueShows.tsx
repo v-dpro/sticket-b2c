@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, V
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import type { VenueShow } from '../../types/venue';
+import { colors } from '../../lib/theme';
 
 interface VenueShowsProps {
   upcoming: VenueShow[];
@@ -53,7 +54,7 @@ export function VenueShows({ upcoming, past, pastLoading, pastHasMore, onLoadMor
             contentContainerStyle={{ paddingHorizontal: 16 }}
             onEndReached={onLoadMorePast}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={pastLoading ? <View style={styles.footer}><ActivityIndicator size="small" color="#8B5CF6" /></View> : null}
+            ListFooterComponent={pastLoading ? <View style={styles.footer}><ActivityIndicator size="small" color={colors.brandPurple} /></View> : null}
             renderItem={({ item }) => (
               <Pressable style={styles.showRow} onPress={() => onShowPress(item.id)}>
                 <View style={styles.dateColumn}>
@@ -67,14 +68,14 @@ export function VenueShows({ upcoming, past, pastLoading, pastHasMore, onLoadMor
                     {item.artist.name}
                   </Text>
                   <View style={styles.statsRow}>
-                    <Ionicons name="people" size={12} color="#6B6B8D" />
+                    <Ionicons name="people" size={12} color={colors.textTertiary} />
                     <Text style={styles.secondaryText}>{item.logCount} logged</Text>
                   </View>
                 </View>
 
                 {item.userLogged ? (
                   <View style={styles.loggedBadge}>
-                    <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
+                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                   </View>
                 ) : (
                   <Pressable
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -118,15 +119,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   upcomingCard: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     width: 220,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   dateBadge: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   dateDay: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   showInfo: {
@@ -151,22 +152,22 @@ const styles = StyleSheet.create({
   primaryName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   secondaryText: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   showRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   dateColumn: {
     width: 48,
@@ -176,17 +177,17 @@ const styles = StyleSheet.create({
   dateMonthSmall: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     textTransform: 'uppercase',
   },
   dateDaySmall: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   dateYearSmall: {
     fontSize: 10,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   rowInfo: {
     flex: 1,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   logButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   footer: {
     paddingVertical: 16,
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
 });
 

@@ -12,7 +12,7 @@ import { BadgeGrid } from '../../../components/profile/BadgeGrid';
 import { StatsRow } from '../../../components/profile/StatsRow';
 import { ProfileGridView } from '../../../components/profile/ProfileGridView';
 import { ProfileStatsView } from '../../../components/profile/ProfileStatsView';
-import { colors } from '../../../lib/theme';
+import { colors, spacing, fonts, radius } from '../../../lib/theme';
 import { useProfile } from '../../../hooks/useProfile';
 import { useUserLogs } from '../../../hooks/useUserLogs';
 import { useSession } from '../../../hooks/useSession';
@@ -115,7 +115,7 @@ export default function ProfileScreen() {
   if (sessionLoading || profileLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.brandPurple} />
       </View>
     );
   }
@@ -153,10 +153,10 @@ export default function ProfileScreen() {
       <TicketPreview />
 
       <Pressable onPress={handleFindFriends} style={styles.findFriendsButton}>
-        <Ionicons name="people-outline" size={18} color="#00D4FF" style={styles.leftIcon} />
+        <Ionicons name="people-outline" size={18} color={colors.brandCyan} style={styles.leftIcon} />
         <Text style={styles.findFriendsText}>Find Friends</Text>
         <View style={{ flex: 1 }} />
-        <Ionicons name="chevron-forward" size={18} color="#6B6B8D" />
+        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
       </Pressable>
 
       {/* Badges */}
@@ -165,7 +165,7 @@ export default function ProfileScreen() {
         <Ionicons name="ribbon-outline" size={18} color={colors.brandPurple} style={styles.leftIcon} />
         <Text style={styles.badgesText}>View all badges</Text>
         <View style={{ flex: 1 }} />
-        <Ionicons name="chevron-forward" size={18} color="#6B6B8D" />
+        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
       </Pressable>
 
       {/* View Toggle */}
@@ -180,9 +180,9 @@ export default function ProfileScreen() {
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.headerActions}>
           <ShareButton data={statsShareData} link={createUserLink(profile.username)} />
-          <NotificationBellButton color="#FFFFFF" badgeSize="medium" />
+          <NotificationBellButton color={colors.textPrimary} badgeSize="medium" />
           <Pressable onPress={handleSettings} style={styles.settingsButton} accessibilityRole="button">
-            <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
+            <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
           </Pressable>
         </View>
       </View>
@@ -239,62 +239,62 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 12,
+    fontSize: fonts.body,
+    fontWeight: fonts.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   primaryButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontSize: fonts.bodySmall,
+    fontWeight: fonts.semibold,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: fonts.black,
+    color: colors.textPrimary,
     letterSpacing: -0.2,
   },
   content: {
     flex: 1,
   },
   settingsButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   findFriendsButton: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: radius.md,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(0, 212, 255, 0.35)',
@@ -303,16 +303,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   findFriendsText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fonts.bodySmall,
+    fontWeight: fonts.bold,
   },
   badgesButton: {
-    marginHorizontal: 16,
+    marginHorizontal: spacing.md,
     marginTop: 0,
-    marginBottom: 12,
+    marginBottom: spacing.md,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: radius.md,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.35)',
@@ -324,26 +324,26 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   badgesText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fonts.bodySmall,
+    fontWeight: fonts.bold,
   },
   ticketPreview: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
   },
   ticketPreviewLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: radius.md,
   },
   ticketPreviewTitle: {
     fontSize: 15,
@@ -358,21 +358,21 @@ const styles = StyleSheet.create({
   ticketPreviewRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   ticketBadge: {
     backgroundColor: colors.brandPurple,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   ticketBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    color: colors.textPrimary,
+    fontSize: fonts.caption,
+    fontWeight: fonts.bold,
   },
   mapScrollContent: {
-    paddingBottom: 32,
+    paddingBottom: spacing.xl,
   },
 });
 

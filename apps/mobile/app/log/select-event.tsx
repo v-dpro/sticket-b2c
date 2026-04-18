@@ -126,7 +126,7 @@ export default function SelectEventScreen() {
               borderRadius: radius.md,
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600' }}>Add Manually</Text>
+            <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>Add Manually</Text>
           </Pressable>
         </View>
       ) : (

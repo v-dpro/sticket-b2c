@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 
 import type { Ticket } from '../../types/ticket';
 import { TicketStatusBadge } from './TicketStatusBadge';
+import { colors } from '../../lib/theme';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -29,7 +30,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
           <Image source={{ uri: ticket.event.artist.imageUrl }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="musical-notes" size={24} color="#8B5CF6" />
+            <Ionicons name="musical-notes" size={24} color={colors.brandPurple} />
           </View>
         )}
 
@@ -55,7 +56,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
 
         {/* Seat Info */}
         <View style={styles.seatRow}>
-          <Ionicons name="location" size={12} color="#6B6B8D" />
+          <Ionicons name="location" size={12} color={colors.textTertiary} />
           <Text style={styles.seatText} numberOfLines={1}>
             {ticket.isGeneralAdmission
               ? 'General Admission'
@@ -67,7 +68,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       {/* Right: Status & Arrow */}
       <View style={styles.right}>
         {ticket.status !== 'KEEPING' && <TicketStatusBadge status={ticket.status} />}
-        <Ionicons name="chevron-forward" size={20} color="#6B6B8D" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       </View>
     </Pressable>
   );
@@ -77,13 +78,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   imageContainer: {
     position: 'relative',
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   imagePlaceholder: {
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
     bottom: -4,
     left: -4,
     right: -4,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
     borderRadius: 4,
     paddingVertical: 2,
     alignItems: 'center',
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   countdownText: {
     fontSize: 8,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   info: {
     flex: 1,
@@ -121,16 +122,16 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   venue: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   date: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   seatRow: {
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   },
   seatText: {
     fontSize: 11,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     flex: 1,
   },
   right: {

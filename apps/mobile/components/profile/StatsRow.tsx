@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors } from '../../lib/theme';
+
 interface StatsRowProps {
   shows: number;
   artists: number;
@@ -32,10 +34,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
     marginBottom: 16,
   },
   statItem: {
@@ -44,11 +46,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   label: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
 });

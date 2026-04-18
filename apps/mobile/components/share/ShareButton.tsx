@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { colors } from '../../lib/theme';
 
 import type { ShareCardData } from '../../types/share';
 
@@ -48,7 +49,7 @@ export function ShareButton({ data, link, message, renderTrigger }: ShareButtonP
         renderTrigger(openSheet)
       ) : (
         <Pressable style={styles.button} onPress={openSheet} accessibilityRole="button">
-          <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+          <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
         </Pressable>
       )}
 
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },

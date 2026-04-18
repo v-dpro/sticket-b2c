@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   overlayPillText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '700',
   },

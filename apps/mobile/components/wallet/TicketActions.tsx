@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
 
 import type { Ticket } from '../../types/ticket';
+import { colors } from '../../lib/theme';
 
 interface TicketActionsProps {
   ticket: Ticket;
@@ -66,7 +67,7 @@ export function TicketActions({ ticket, onSell, onDelete }: TicketActionsProps) 
     <View style={styles.container}>
       <Pressable style={styles.action} onPress={handleAddToCalendar}>
         <View style={styles.iconCircle}>
-          <Ionicons name="calendar" size={20} color="#8B5CF6" />
+          <Ionicons name="calendar" size={20} color={colors.brandPurple} />
         </View>
         <Text style={styles.actionText}>Add to Calendar</Text>
       </Pressable>
@@ -74,7 +75,7 @@ export function TicketActions({ ticket, onSell, onDelete }: TicketActionsProps) 
       {ticket.status === 'KEEPING' && (
         <Pressable style={styles.action} onPress={onSell}>
           <View style={styles.iconCircle}>
-            <Ionicons name="pricetag" size={20} color="#F59E0B" />
+            <Ionicons name="pricetag" size={20} color={colors.warning} />
           </View>
           <Text style={styles.actionText}>Sell Ticket</Text>
         </Pressable>
@@ -82,7 +83,7 @@ export function TicketActions({ ticket, onSell, onDelete }: TicketActionsProps) 
 
       <Pressable style={styles.action} onPress={handleDelete}>
         <View style={[styles.iconCircle, styles.deleteIcon]}>
-          <Ionicons name="trash" size={20} color="#EF4444" />
+          <Ionicons name="trash" size={20} color={colors.error} />
         </View>
         <Text style={[styles.actionText, styles.deleteText]}>Remove</Text>
       </Pressable>
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 16,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     marginTop: 16,
   },
@@ -118,11 +119,11 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   deleteText: {
-    color: '#EF4444',
+    color: colors.error,
   },
 });
 

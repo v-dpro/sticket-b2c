@@ -3,6 +3,7 @@ import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 280;
@@ -36,43 +37,43 @@ export function VenueHeader({
         <Image source={{ uri: imageUrl }} style={styles.backgroundImage} />
       ) : (
         <View style={[styles.backgroundImage, styles.placeholderBg]}>
-          <Ionicons name="business" size={64} color="#2D2D4A" />
+          <Ionicons name="business" size={64} color={colors.border} />
         </View>
       )}
 
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', '#0A0B1E']}
+        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.background]}
         style={styles.gradient}
       />
 
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </BlurView>
         </Pressable>
         <Pressable onPress={onSharePress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
           </BlurView>
         </Pressable>
       </View>
 
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Ionicons name="business" size={32} color="#8B5CF6" />
+          <Ionicons name="business" size={32} color={colors.brandPurple} />
         </View>
 
         <Text style={styles.name}>{name}</Text>
 
         <View style={styles.locationRow}>
-          <Ionicons name="location" size={16} color="#00D4FF" />
+          <Ionicons name="location" size={16} color={colors.brandCyan} />
           <Text style={styles.location}>{location}</Text>
         </View>
 
         {capacity ? (
           <View style={styles.capacityBadge}>
-            <Ionicons name="people" size={14} color="#A0A0B8" />
+            <Ionicons name="people" size={14} color={colors.textSecondary} />
             <Text style={styles.capacityText}>{capacity.toLocaleString()} capacity</Text>
           </View>
         ) : null}
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   placeholderBg: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -135,12 +136,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
     paddingHorizontal: 16,
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginLeft: 6,
   },
   capacityBadge: {
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
   },
   capacityText: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
 });
 

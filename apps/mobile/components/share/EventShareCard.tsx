@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../../lib/theme';
 
 interface EventShareCardProps {
   artistName: string;
@@ -22,14 +23,14 @@ export function EventShareCard({ artistName, artistImage, venueName, venueCity, 
 
   return (
     <View style={styles.card}>
-      {artistImage ? <Image source={{ uri: artistImage }} style={styles.backgroundImage} /> : <LinearGradient colors={['#00D4FF', '#6366F1', '#0A0B1E']} style={styles.backgroundGradient} />}
+      {artistImage ? <Image source={{ uri: artistImage }} style={styles.backgroundImage} /> : <LinearGradient colors={[colors.brandCyan, '#6366F1', colors.background]} style={styles.backgroundGradient} />}
 
       <LinearGradient colors={['transparent', 'rgba(10, 11, 30, 0.8)', 'rgba(10, 11, 30, 0.95)']} style={styles.overlay} />
 
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Ionicons name="ticket" size={16} color="#8B5CF6" />
+            <Ionicons name="ticket" size={16} color={colors.brandPurple} />
             <Text style={styles.logoText}>sticket</Text>
           </View>
         </View>
@@ -44,7 +45,7 @@ export function EventShareCard({ artistName, artistImage, venueName, venueCity, 
 
           {typeof friendsGoing === 'number' ? (
             <View style={styles.friendsRow}>
-              <Ionicons name="people" size={16} color="#00D4FF" />
+              <Ionicons name="people" size={16} color={colors.brandCyan} />
               <Text style={styles.friendsText}>{friendsGoing} friends going</Text>
             </View>
           ) : null}
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   info: {
     gap: 4,
@@ -107,22 +108,22 @@ const styles = StyleSheet.create({
   kicker: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#00D4FF',
+    color: colors.brandCyan,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   artistName: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   venue: {
     fontSize: 18,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   location: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   friendsRow: {
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   friendsText: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   footer: {
@@ -144,11 +145,11 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   wasHere: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
 });
 

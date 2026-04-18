@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 interface SignupWarningProps {
   deadline: string;
@@ -9,7 +10,7 @@ interface SignupWarningProps {
 export function SignupWarning({ deadline }: SignupWarningProps) {
   return (
     <View style={styles.container}>
-      <Ionicons name="alert-circle" size={16} color="#F59E0B" />
+      <Ionicons name="alert-circle" size={16} color={colors.warning} />
       <Text style={styles.text}>Signup required by {deadline}</Text>
     </View>
   );
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: colors.warning,
   },
 });
 

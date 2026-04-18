@@ -19,6 +19,7 @@ import { useTicketDetail } from '../../hooks/useTicketDetail';
 import { deleteTicket } from '../../lib/api/tickets';
 import { ensureTicketRemindersScheduled } from '../../lib/notifications/ticketReminders';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { colors } from '../../lib/theme';
 
 export default function TicketDetailScreen() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function TicketDetailScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.brandPurple} />
       </View>
     );
   }
@@ -89,7 +90,7 @@ export default function TicketDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Ticket</Text>
         <TicketStatusBadge status={ticket.status} size="medium" />
@@ -197,7 +198,7 @@ export default function TicketDetailScreen() {
 
       {deleting && (
         <View style={styles.deletingOverlay}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
+          <ActivityIndicator size="large" color={colors.textPrimary} />
         </View>
       )}
     </View>
@@ -207,28 +208,28 @@ export default function TicketDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
+    color: colors.error,
     marginBottom: 16,
   },
   backLink: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   header: {
     flexDirection: 'row',
@@ -246,13 +247,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   scrollView: {
     flex: 1,
   },
   eventCard: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 16,
@@ -262,32 +263,32 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   venueName: {
     fontSize: 16,
-    color: '#00D4FF',
+    color: colors.brandCyan,
     marginTop: 8,
     textAlign: 'center',
   },
   venueCity: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   eventDate: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 12,
   },
   eventTime: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   seatCard: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 16,
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
   seatGA: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   seatGrid: {
     flexDirection: 'row',
@@ -315,27 +316,27 @@ const styles = StyleSheet.create({
   },
   seatItemLabel: {
     fontSize: 11,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginBottom: 4,
   },
   seatItemValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   barcodeSection: {
     marginTop: 16,
   },
   barcodeLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 12,
   },
   detailsCard: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 16,
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   detailsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   detailRow: {
@@ -352,22 +353,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   detailLabel: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   detailValue: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   notesContainer: {
     marginTop: 12,
   },
   notesText: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 4,
     lineHeight: 20,
   },

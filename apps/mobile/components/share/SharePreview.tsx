@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { colors } from '../../lib/theme';
 
 import type { ShareCardData } from '../../types/share';
 
@@ -33,7 +34,7 @@ export function SharePreview({ data, link }: SharePreviewProps) {
       </View>
 
       <Pressable style={styles.shareCta} onPress={() => setSheetVisible(true)} accessibilityRole="button">
-        {sharing ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="share-outline" size={18} color="#FFFFFF" />}
+        {sharing ? <ActivityIndicator color={colors.textPrimary} /> : <Ionicons name="share-outline" size={18} color={colors.textPrimary} />}
         <Text style={styles.shareCtaText}>{sharing ? 'Preparing…' : 'Share'}</Text>
       </Pressable>
 
@@ -77,7 +78,7 @@ export function SharePreview({ data, link }: SharePreviewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
@@ -91,14 +92,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 999,
     minWidth: 160,
   },
   shareCtaText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '800',
   },
 });

@@ -1,13 +1,15 @@
 import { memo } from 'react';
 import { Image, Text, View, type StyleProp } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors } from '../../lib/theme';
+import { colors, gradients } from '../../lib/theme';
 
 type AvatarProps = {
   uri?: string | null;
   size?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   name?: string | null;
-  // Intentionally loose: View + Image style props differ across RN versions.
+  /** Show gradient border (cyan→purple→pink) */
+  gradientBorder?: boolean;
   style?: StyleProp<any>;
 };
 
@@ -29,24 +31,26 @@ const FONT_SIZES: Record<Exclude<AvatarProps['size'], number | undefined>, numbe
   '2xl': 40,
 };
 
-export const Avatar = memo(function Avatar({ uri, size = 'md', name, style }: AvatarProps) {
+export const Avatar = memo(function Avatar({ uri, size = 'md', name, gradientBorder, style }: AvatarProps) {
   const dimension = typeof size === 'number' ? size : SIZES[size];
   const fontSize = typeof size === 'number' ? Math.max(10, Math.round(size * 0.35)) : FONT_SIZES[size];
   const initial = (name?.trim()?.[0] ?? 'U').toUpperCase();
+  const borderWidth = gradientBorder ? 2 : 0;
 
-  if (uri) {
-    return (
-      <Image
-        source={{ uri }}
-        style={[
-          { width: dimension, height: dimension, borderRadius: dimension / 2, backgroundColor: colors.surfaceElevated },
-          style,
-        ]}
-      />
-    );
-  }
-
-  return (
+  const inner = uri ? (
+    <Image
+      source={{ uri }}
+      style={[
+        {
+          width: dimension,
+          height: dimension,
+          borderRadius: dimension / 2,
+          backgroundColor: colors.surfaceElevated,
+        },
+        !gradientBorder && style,
+      ]}
+    />
+  ) : (
     <View
       style={[
         {
@@ -56,17 +60,37 @@ export const Avatar = memo(function Avatar({ uri, size = 'md', name, style }: Av
           backgroundColor: colors.surfaceElevated,
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: 1,
+          borderWidth: gradientBorder ? 0 : 1,
           borderColor: colors.border,
         },
-        style,
+        !gradientBorder && style,
       ]}
     >
       <Text style={{ color: colors.textMuted, fontWeight: '600', fontSize }}>{initial}</Text>
     </View>
   );
+
+  if (gradientBorder) {
+    const outer = dimension + borderWidth * 2;
+    return (
+      <LinearGradient
+        colors={gradients.rainbow}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          {
+            width: outer,
+            height: outer,
+            borderRadius: outer / 2,
+            padding: borderWidth,
+          },
+          style,
+        ]}
+      >
+        {inner}
+      </LinearGradient>
+    );
+  }
+
+  return inner;
 });
-
-
-
-

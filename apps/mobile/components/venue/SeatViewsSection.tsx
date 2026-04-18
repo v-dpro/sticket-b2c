@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SeatView } from '../../types/venue';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48 - 16) / 3;
@@ -26,12 +27,12 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
         <View style={styles.header}>
           <Text style={styles.title}>Seat Views</Text>
           <Pressable style={styles.addButton} onPress={onAddPress}>
-            <Ionicons name="camera" size={18} color="#8B5CF6" />
+            <Ionicons name="camera" size={18} color={colors.brandPurple} />
             <Text style={styles.addText}>Add View</Text>
           </Pressable>
         </View>
         <View style={styles.emptyContainer}>
-          <Ionicons name="camera-outline" size={40} color="#6B6B8D" />
+          <Ionicons name="camera-outline" size={40} color={colors.textTertiary} />
           <Text style={styles.emptyText}>No seat views yet</Text>
           <Text style={styles.emptySubtext}>Share photos from your seat to help others!</Text>
         </View>
@@ -44,7 +45,7 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
       <View style={styles.header}>
         <Text style={styles.title}>Seat Views</Text>
         <Pressable style={styles.addButton} onPress={onAddPress}>
-          <Ionicons name="camera" size={18} color="#8B5CF6" />
+          <Ionicons name="camera" size={18} color={colors.brandPurple} />
           <Text style={styles.addText}>Add View</Text>
         </Pressable>
       </View>
@@ -88,7 +89,7 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
       <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <View style={styles.lightbox}>
           <Pressable style={styles.closeButton} onPress={() => setSelectedImage(null)}>
-            <Ionicons name="close" size={28} color="#FFFFFF" />
+            <Ionicons name="close" size={28} color={colors.textPrimary} />
           </Pressable>
 
           {selectedImage ? (
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   addButton: {
     flexDirection: 'row',
@@ -132,25 +133,25 @@ const styles = StyleSheet.create({
   },
   addText: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 32,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   sectionFilter: {
@@ -162,20 +163,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   sectionChipActive: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
+    borderColor: colors.brandPurple,
   },
   sectionText: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   sectionTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   photoGrid: {
@@ -205,12 +206,12 @@ const styles = StyleSheet.create({
   photoSection: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   photoRow: {
     fontSize: 9,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   seeAllButton: {
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
   lightbox: {
     flex: 1,
@@ -247,11 +248,11 @@ const styles = StyleSheet.create({
   lightboxSection: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   lightboxUser: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 4,
   },
 });

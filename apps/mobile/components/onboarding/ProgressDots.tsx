@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { colors } from '../../lib/theme';
 
 interface ProgressDotsProps {
   total: number;
@@ -31,10 +32,10 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotActive: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   dotInactive: {
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
   },
 });
 

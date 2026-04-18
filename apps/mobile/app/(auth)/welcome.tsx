@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { colors, fonts, gradients, radius, spacing } from '../../lib/theme';
+import { GradientText } from '../../components/ui/GradientText';
+
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
@@ -12,17 +15,35 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
+        {/* Ambient glow */}
+        <View style={styles.glowContainer}>
+          <View style={[styles.glow, { backgroundColor: colors.brandCyan }]} />
+          <View style={[styles.glow, styles.glowPurple, { backgroundColor: colors.brandPurple }]} />
+          <View style={[styles.glow, styles.glowPink, { backgroundColor: colors.brandPink }]} />
+        </View>
+
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Image
-              source={require('../../assets/brand-logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-              accessibilityLabel="Sticket logo"
-            />
-          </View>
-          <Text style={styles.appName}>STICKET</Text>
+          <LinearGradient
+            colors={gradients.rainbow}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoBorder}
+          >
+            <View style={styles.logoInner}>
+              <Image
+                source={require('../../assets/brand-logo.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+                accessibilityLabel="Sticket logo"
+              />
+            </View>
+          </LinearGradient>
+          <GradientText
+            style={styles.appName}
+          >
+            STICKET
+          </GradientText>
         </View>
 
         {/* Tagline */}
@@ -31,7 +52,7 @@ export default function WelcomeScreen() {
 
         {/* Features */}
         <View style={styles.features}>
-          <FeatureItem icon="🎵" text="Discover shows you’ll love" />
+          <FeatureItem icon="🎵" text="Discover shows you'll love" />
           <FeatureItem icon="🎫" text="Manage all your tickets" />
           <FeatureItem icon="📸" text="Log and share your experiences" />
         </View>
@@ -40,11 +61,14 @@ export default function WelcomeScreen() {
       {/* Bottom Buttons */}
       <View style={styles.bottomContainer}>
         <Pressable
-          style={({ pressed }) => [styles.getStartedButton, pressed && styles.buttonPressed]}
+          style={({ pressed }) => [
+            styles.getStartedButton,
+            pressed && styles.buttonPressed,
+          ]}
           onPress={() => router.push('/(auth)/sign-up')}
         >
           <LinearGradient
-            colors={['#8B5CF6', '#E879F9']}
+            colors={gradients.accent}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.gradient}
@@ -75,86 +99,114 @@ function FeatureItem({ icon, text }: { icon: string; text: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
+  },
+  glowContainer: {
+    position: 'absolute',
+    top: '20%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    opacity: 0.15,
+  },
+  glowPurple: {
+    left: -40,
+    top: -20,
+  },
+  glowPink: {
+    right: -40,
+    top: 20,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
-  logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
-    backgroundColor: '#1A1A2E',
+  logoBorder: {
+    width: 120,
+    height: 120,
+    borderRadius: 30,
+    padding: 3,
+    marginBottom: spacing.md,
+    shadowColor: colors.brandPurple,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoInner: {
+    flex: 1,
+    borderRadius: 27,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
   },
   logoImage: {
     width: 70,
     height: 70,
   },
   appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    letterSpacing: 4,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 6,
   },
   tagline: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    fontSize: fonts.h3,
+    fontWeight: fonts.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#A0A0B8',
+    fontSize: fonts.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 48,
     maxWidth: Math.min(width - 48, 360),
   },
   features: {
     width: '100%',
-    gap: 16,
+    gap: spacing.md,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   featureIcon: {
     fontSize: 24,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   featureText: {
-    fontSize: 16,
-    color: '#FFFFFF',
+    fontSize: fonts.body,
+    color: colors.textPrimary,
   },
   bottomContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   getStartedButton: {
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   buttonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.85,
+    transform: [{ scale: 0.95 }],
   },
   gradient: {
     height: 52,
@@ -162,24 +214,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   getStartedText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: fonts.body,
+    fontWeight: fonts.semibold,
+    color: colors.textPrimary,
   },
   loginLink: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   loginLinkText: {
-    fontSize: 14,
-    color: '#A0A0B8',
+    fontSize: fonts.bodySmall,
+    color: colors.textSecondary,
   },
   loginLinkHighlight: {
-    color: '#00D4FF',
-    fontWeight: '600',
+    color: colors.brandCyan,
+    fontWeight: fonts.semibold,
   },
 });
-
-
-
-

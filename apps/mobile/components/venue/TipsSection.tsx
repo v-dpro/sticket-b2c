@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { colors } from '../../lib/theme';
 import type { VenueTip } from '../../types/venue';
 
 interface TipsSectionProps {
@@ -19,11 +20,11 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  parking: '#00D4FF',
-  food: '#F59E0B',
-  seating: '#8B5CF6',
-  entry: '#22C55E',
-  general: '#6B6B8D',
+  parking: colors.brandCyan,
+  food: colors.warning,
+  seating: colors.brandPurple,
+  entry: colors.success,
+  general: colors.textTertiary,
 };
 
 export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps) {
@@ -38,7 +39,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
       <View style={styles.header}>
         <Text style={styles.title}>Tips</Text>
         <Pressable style={styles.addButton} onPress={onAddTipPress}>
-          <Ionicons name="add" size={20} color="#8B5CF6" />
+          <Ionicons name="add" size={20} color={colors.brandPurple} />
           <Text style={styles.addText}>Add Tip</Text>
         </Pressable>
       </View>
@@ -57,7 +58,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
               <Ionicons
                 name={(CATEGORY_ICONS[cat] || 'information-circle') as any}
                 size={14}
-                color={filter === cat ? '#FFFFFF' : CATEGORY_COLORS[cat] || '#6B6B8D'}
+                color={filter === cat ? colors.textPrimary : CATEGORY_COLORS[cat] || colors.textTertiary}
               />
               <Text style={[styles.filterText, filter === cat && styles.filterTextActive]}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -69,7 +70,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
 
       {filteredTips.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="bulb-outline" size={40} color="#6B6B8D" />
+          <Ionicons name="bulb-outline" size={40} color={colors.textTertiary} />
           <Text style={styles.emptyText}>No tips yet. Be the first!</Text>
         </View>
       ) : (
@@ -92,7 +93,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
                   <Ionicons
                     name={tip.userUpvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
                     size={20}
-                    color={tip.userUpvoted ? '#8B5CF6' : '#6B6B8D'}
+                    color={tip.userUpvoted ? colors.brandPurple : colors.textTertiary}
                   />
                   <Text style={[styles.upvoteCount, tip.userUpvoted && styles.upvoteCountActive]}>{tip.upvotes}</Text>
                 </Pressable>
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   addButton: {
     flexDirection: 'row',
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   },
   addText: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   filterRow: {
     flexDirection: 'row',
@@ -143,29 +144,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     gap: 4,
   },
   filterChipActive: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   filterText: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 32,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
   },
   tipsList: {
@@ -173,11 +174,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tipCard: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   tipHeader: {
     flexDirection: 'row',
@@ -200,11 +201,11 @@ const styles = StyleSheet.create({
   },
   tipTime: {
     fontSize: 11,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   tipText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     lineHeight: 20,
   },
   tipFooter: {
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
   },
   tipAuthor: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   upvoteButton: {
     flexDirection: 'row',
@@ -224,10 +225,10 @@ const styles = StyleSheet.create({
   },
   upvoteCount: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   upvoteCountActive: {
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
 });
 

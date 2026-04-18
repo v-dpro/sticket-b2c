@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 interface StreamingLinksProps {
   spotifyUrl?: string;
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   row: {
@@ -52,13 +53,13 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
     borderRadius: 14,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
 });

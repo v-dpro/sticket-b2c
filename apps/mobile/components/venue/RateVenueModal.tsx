@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../../lib/theme';
 import type { VenueRatingsSubmission } from '../../types/venue';
 
 interface RateVenueModalProps {
@@ -58,7 +59,7 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
           {RATING_CATEGORIES.map(({ key, label, icon }) => (
             <View key={key} style={styles.categoryRow}>
               <View style={styles.categoryHeader}>
-                <Ionicons name={icon as any} size={20} color="#8B5CF6" />
+                <Ionicons name={icon as any} size={20} color={colors.brandPurple} />
                 <Text style={styles.categoryLabel}>{label}</Text>
               </View>
 
@@ -72,7 +73,7 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
                       <Ionicons
                         name={active ? 'star' : 'star-outline'}
                         size={28}
-                        color={active ? '#F59E0B' : '#6B6B8D'}
+                        color={active ? colors.warning : colors.textTertiary}
                       />
                     </Pressable>
                   );
@@ -91,12 +92,12 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
             disabled={!hasRatings || submitting}
           >
             <LinearGradient
-              colors={hasRatings ? ['#8B5CF6', '#E879F9'] : ['#2D2D4A', '#2D2D4A']}
+              colors={hasRatings ? [colors.brandPurple, colors.brandPink] : [colors.border, colors.border]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
-              {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitText}>Submit Ratings</Text>}
+              {submitting ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Submit Ratings</Text>}
             </LinearGradient>
           </Pressable>
         </View>
@@ -108,7 +109,7 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -117,16 +118,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   cancelText: {
     fontSize: 16,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   content: {
     flex: 1,
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   starsRow: {
     flexDirection: 'row',
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 16,
   },
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

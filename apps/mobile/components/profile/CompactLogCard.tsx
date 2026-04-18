@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   dateText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '700',
   },

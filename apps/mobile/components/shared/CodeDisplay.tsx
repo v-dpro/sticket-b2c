@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 interface CodeDisplayProps {
   code: string;
@@ -19,7 +20,7 @@ export function CodeDisplay({ code, onCopy }: CodeDisplayProps) {
       <Text style={styles.label}>Code:</Text>
       <TouchableOpacity onPress={handleCopy} style={styles.codeContainer} activeOpacity={0.8}>
         <Text style={styles.code}>{code}</Text>
-        <Ionicons name="copy-outline" size={14} color="#FFFFFF" />
+        <Ionicons name="copy-outline" size={14} color={colors.textPrimary} />
       </TouchableOpacity>
     </View>
   );
@@ -31,7 +32,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   codeContainer: {
     flexDirection: 'row',
@@ -41,13 +42,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   code: {
     fontSize: 14,
     fontWeight: '700',
     fontFamily: 'monospace',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

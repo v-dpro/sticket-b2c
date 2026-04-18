@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
+import { colors } from '../../lib/theme';
+
 interface YearFilterProps {
   years: number[];
   selectedYear: number | null;
@@ -35,20 +37,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   chipSelected: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
+    borderColor: colors.brandPurple,
   },
   chipText: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
 });

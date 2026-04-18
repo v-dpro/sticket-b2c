@@ -212,10 +212,10 @@ export default function MyConcertLifeScreen() {
         <Text style={styles.title}>My Concert Life</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/wallet')} activeOpacity={0.8}>
-            <Ionicons name="ticket-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="ticket-outline" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/notifications')} activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -242,12 +242,12 @@ export default function MyConcertLifeScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#00D4FF" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandCyan} />}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8B5CF6" />
+            <ActivityIndicator size="large" color={colors.brandPurple} />
             <Text style={styles.loadingText}>Loading…</Text>
           </View>
         ) : error ? (
@@ -261,7 +261,7 @@ export default function MyConcertLifeScreen() {
           </View>
         ) : Object.keys(groupedAllTimelineItems).length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="musical-notes-outline" size={64} color="#6B6B8D" />
+            <Ionicons name="musical-notes-outline" size={64} color={colors.textTertiary} />
             <Text style={styles.emptyTitle}>No concert activity yet</Text>
             <Text style={styles.emptyText}>Log a show, add a ticket, or track an event</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(tabs)/discover')} activeOpacity={0.85}>
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   headerActions: {
     flexDirection: 'row',
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   statLabel: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -418,16 +418,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dotSuccess: {
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.success,
   },
   dotCyan: {
-    backgroundColor: '#00D4FF',
+    backgroundColor: colors.brandCyan,
   },
   dotWarning: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.warning,
   },
   dotPurple: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   monthHeader: {
     flexDirection: 'row',
@@ -462,13 +462,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
@@ -477,12 +477,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
   },
   emptyButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

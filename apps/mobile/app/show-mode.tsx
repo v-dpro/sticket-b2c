@@ -160,7 +160,7 @@ export default function ShowModeScreen() {
         <View style={[styles.topControls, { paddingTop: insets.top + 8 }]}>
           <Pressable onPress={handleClose} style={styles.controlButton} accessibilityRole="button">
             <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="close" size={24} color="#FFFFFF" />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </BlurView>
           </Pressable>
 
@@ -171,7 +171,7 @@ export default function ShowModeScreen() {
 
           <Pressable onPress={handleToggleFlash} style={styles.controlButton} accessibilityRole="button">
             <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color="#FFFFFF" />
+              <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color={colors.textPrimary} />
             </BlurView>
           </Pressable>
         </View>
@@ -195,7 +195,7 @@ export default function ShowModeScreen() {
               <Image source={{ uri: mediaItems[0].uri }} style={styles.galleryPreview} />
             ) : (
               <View style={styles.galleryPlaceholder}>
-                <Ionicons name="images" size={24} color="#FFFFFF" />
+                <Ionicons name="images" size={24} color={colors.textPrimary} />
               </View>
             )}
             {mediaItems.length > 0 ? (
@@ -213,7 +213,7 @@ export default function ShowModeScreen() {
 
           <Pressable onPress={handleFlipCamera} style={styles.flipButton} accessibilityRole="button">
             <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
+              <Ionicons name="camera-reverse" size={24} color={colors.textPrimary} />
             </BlurView>
           </Pressable>
         </View>
@@ -275,10 +275,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.textPrimary,
   },
   liveText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   showInfoArtist: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '800',
   },
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   galleryCountText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -356,13 +356,13 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: colors.textPrimary,
     padding: 4,
   },
   captureButtonInner: {
     flex: 1,
     borderRadius: 36,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.textPrimary,
   },
   flipButton: {
     width: 56,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logPromptText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   permissionText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     textAlign: 'center',
     padding: 32,
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   permissionButtonText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

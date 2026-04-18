@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import type { FeedPhoto } from '../../types/feed';
+import { colors } from '../../lib/theme';
 
 interface FeedCardPhotosProps {
   photos: FeedPhoto[];
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   image: {
-    backgroundColor: '#252542',
+    backgroundColor: colors.surfaceElevated,
   },
 });
 

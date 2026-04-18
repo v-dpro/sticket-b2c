@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import type { UserProfile } from '../../types/profile';
-import { gradients } from '../../lib/theme';
+import { colors, gradients } from '../../lib/theme';
 
 interface ProfileHeaderProps {
   profile: UserProfile;
@@ -40,7 +40,7 @@ export function ProfileHeader({
         </LinearGradient>
         {profile.isOwnProfile && (
           <Pressable style={styles.editAvatarButton} onPress={onEditPress}>
-            <Ionicons name="camera" size={16} color="#FFFFFF" />
+            <Ionicons name="camera" size={16} color={colors.textPrimary} />
           </Pressable>
         )}
       </View>
@@ -55,7 +55,7 @@ export function ProfileHeader({
       {/* Location */}
       {profile.city ? (
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color="#6B6B8D" />
+          <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
           <Text style={styles.location}>{profile.city}</Text>
         </View>
       ) : null}
@@ -86,7 +86,7 @@ export function ProfileHeader({
           {isFollowing ? (
             <Text style={styles.followingButtonText}>Following</Text>
           ) : (
-            <LinearGradient colors={['#8B5CF6', '#E879F9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.followGradient}>
+            <LinearGradient colors={[colors.brandPurple, colors.brandPink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.followGradient}>
               <Text style={styles.followButtonText}>Follow</Text>
             </LinearGradient>
           )}
@@ -122,14 +122,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 45,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   editAvatarButton: {
     position: 'absolute',
@@ -138,26 +138,26 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#0A0B1E',
+    borderColor: colors.background,
   },
   displayName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   username: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginBottom: 8,
   },
   bio: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 20,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginLeft: 4,
   },
   statsRow: {
@@ -184,11 +184,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   editButton: {
@@ -196,15 +196,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
-    backgroundColor: '#1A1A2E',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   editButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   followButton: {
     borderRadius: 20,
@@ -221,12 +221,12 @@ const styles = StyleSheet.create({
   followButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   followingButton: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
     paddingHorizontal: 32,
     paddingVertical: 10,
     alignItems: 'center',
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   followingButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
 });

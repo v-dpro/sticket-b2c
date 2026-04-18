@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusPill } from '../shared/StatusPill';
 import { CodeDisplay } from '../shared/CodeDisplay';
 import { SignupWarning } from '../shared/SignupWarning';
+import { colors } from '../../lib/theme';
 
 export type TimelineCardType = 'log' | 'ticket' | 'tracking' | 'presale';
 
@@ -29,22 +30,22 @@ interface TimelineCardProps {
 
 const typeConfig = {
   log: {
-    color: '#22C55E',
+    color: colors.success,
     badgeLabel: 'Attended',
     badgeType: 'upcoming' as const,
   },
   ticket: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
     badgeLabel: 'Ticket',
     badgeType: 'ticket' as const,
   },
   tracking: {
-    color: '#F59E0B',
+    color: colors.warning,
     badgeLabel: 'Watching',
     badgeType: 'tracking' as const,
   },
   presale: {
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     badgeLabel: 'Presale',
     badgeType: 'presale' as const,
   },
@@ -96,7 +97,7 @@ export function TimelineCard({
           {type === 'log' && typeof rating === 'number' ? (
             <View style={styles.ratingRow}>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Ionicons key={i} name="star" size={16} color={i < Math.round(rating) ? '#FFD700' : '#3D3D5C'} />
+                <Ionicons key={i} name="star" size={16} color={i < Math.round(rating) ? colors.gold : '#3D3D5C'} />
               ))}
             </View>
           ) : null}
@@ -134,7 +135,7 @@ export function TimelineCard({
           ) : null}
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color="#6B6B8D" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -142,10 +143,10 @@ export function TimelineCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
     padding: 16,
   },
   content: {
@@ -172,20 +173,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   venue: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   date: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   today: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontWeight: '700',
   },
   ratingRow: {
@@ -195,20 +196,20 @@ const styles = StyleSheet.create({
   },
   note: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   seatInfo: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
   maxPrice: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   maxPriceValue: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   codeWrapper: {

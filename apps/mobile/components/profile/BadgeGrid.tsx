@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { UserBadge } from '../../types/profile';
+import { colors } from '../../lib/theme';
 
 interface BadgeGridProps {
   badges: UserBadge[];
@@ -21,7 +22,7 @@ export function BadgeGrid({ badges }: BadgeGridProps) {
               <Image source={{ uri: badge.iconUrl }} style={styles.badgeIcon} />
             ) : (
               <View style={styles.badgeIconPlaceholder}>
-                <Ionicons name="ribbon-outline" size={18} color="#8B5CF6" />
+                <Ionicons name="ribbon-outline" size={18} color={colors.brandPurple} />
               </View>
             )}
             <Text style={styles.badgeName} numberOfLines={1}>
@@ -38,14 +39,14 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
     padding: 12,
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
@@ -69,14 +70,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeName: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,

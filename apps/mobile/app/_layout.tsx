@@ -76,11 +76,10 @@ void initAnalytics();
 export default function RootLayout() {
   usePushNotifications();
   const router = useRouter();
-  const { user, profile } = useSession();
+  const { user, profile, isLoading } = useSession();
 
   useEffect(() => {
     return setupDeepLinkHandler((path) => {
-      // Expo Router accepts a string route; we keep it simple here.
       router.push(path as any);
     });
   }, [router]);
@@ -96,18 +95,11 @@ export default function RootLayout() {
     }
   }, [profile?.username, user]);
 
-  // Hide splash screen once app is ready
   useEffect(() => {
-    // Small delay to ensure everything is rendered
-    const timer = setTimeout(() => {
-      SplashScreen.hideAsync().catch((error) => {
-        // eslint-disable-next-line no-console
-        console.warn('Failed to hide splash screen:', error);
-      });
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isLoading]);
 
   return (
     <View style={styles.container}>

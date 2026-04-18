@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../../lib/theme';
 
 interface StatsShareCardProps {
   username: string;
@@ -15,11 +16,11 @@ interface StatsShareCardProps {
 export function StatsShareCard({ username, avatar, showCount, artistCount, venueCount, topArtist }: StatsShareCardProps) {
   return (
     <View style={styles.card}>
-      <LinearGradient colors={['#1a1b3d', '#0A0B1E']} style={styles.background} />
+      <LinearGradient colors={[colors.surfaceElevated, colors.background]} style={styles.background} />
 
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Ionicons name="ticket" size={16} color="#8B5CF6" />
+          <Ionicons name="ticket" size={16} color={colors.brandPurple} />
           <Text style={styles.logoText}>sticket</Text>
         </View>
       </View>
@@ -29,7 +30,7 @@ export function StatsShareCard({ username, avatar, showCount, artistCount, venue
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={32} color="#6B6B8D" />
+            <Ionicons name="person" size={32} color={colors.textTertiary} />
           </View>
         )}
         <Text style={styles.username}>@{username}</Text>
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     padding: 24,
   },
   background: {
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   userSection: {
     alignItems: 'center',
@@ -103,25 +104,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarPlaceholder: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   username: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingVertical: 20,
     marginBottom: 24,
@@ -133,17 +134,17 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
   },
   topArtist: {
     alignItems: 'center',
@@ -151,18 +152,18 @@ const styles = StyleSheet.create({
   },
   topLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginBottom: 4,
   },
   topValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   footer: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
 });
 

@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   qrContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.textPrimary,
     padding: 16,
     borderRadius: radius.lg,
     marginBottom: 16,

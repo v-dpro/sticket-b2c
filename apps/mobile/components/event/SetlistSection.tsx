@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import type { SetlistSong } from '../../types/event';
+import { colors } from '../../lib/theme';
 
 interface SetlistSectionProps {
   songs: SetlistSong[];
@@ -17,7 +18,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       <View style={styles.container}>
         <Text style={styles.title}>Setlist</Text>
         <View style={styles.emptyContainer}>
-          <Ionicons name="musical-notes-outline" size={40} color="#6B6B8D" />
+          <Ionicons name="musical-notes-outline" size={40} color={colors.textTertiary} />
           <Text style={styles.emptyText}>No setlist available</Text>
         </View>
       </View>
@@ -32,7 +33,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       <View style={styles.container}>
         <Text style={styles.title}>Setlist</Text>
         <Pressable style={styles.spoilerButton} onPress={() => setRevealed(true)}>
-          <Ionicons name="eye-off" size={24} color="#8B5CF6" />
+          <Ionicons name="eye-off" size={24} color={colors.brandPurple} />
           <Text style={styles.spoilerText}>Reveal Setlist</Text>
           <Text style={styles.spoilerHint}>Tap to see {songs.length} songs</Text>
         </Pressable>
@@ -83,7 +84,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       {songs.length > 5 ? (
         <Pressable style={styles.expandButton} onPress={() => setExpanded(!expanded)}>
           <Text style={styles.expandText}>{expanded ? 'Show less' : `Show all ${songs.length} songs`}</Text>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#00D4FF" />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.brandCyan} />
         </Pressable>
       ) : null}
     </View>
@@ -103,49 +104,49 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   count: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 32,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
   },
   spoilerButton: {
     alignItems: 'center',
     paddingVertical: 32,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
     borderStyle: 'dashed',
   },
   spoilerText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     marginTop: 8,
   },
   spoilerHint: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 4,
   },
   listContainer: {
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -155,23 +156,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   songNumber: {
     width: 24,
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   songInfo: {
     flex: 1,
   },
   songName: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   songNote: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   encoreDivider: {
@@ -183,12 +184,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
   },
   encoreLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     marginHorizontal: 12,
   },
   expandButton: {
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   },
   expandText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
 });
 

@@ -3,6 +3,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
+import { colors } from '../../lib/theme';
+
 const EMAIL_ADDRESS = 'tickets@sticket.in';
 
 export function EmailInstructions() {
@@ -13,7 +15,7 @@ export function EmailInstructions() {
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons name="mail" size={32} color="#8B5CF6" />
+        <Ionicons name="mail" size={32} color={colors.brandPurple} />
       </View>
 
       <Text style={styles.title}>Forward Your Tickets</Text>
@@ -22,7 +24,7 @@ export function EmailInstructions() {
 
       <Pressable style={styles.emailContainer} onPress={handleCopyEmail}>
         <Text style={styles.email}>{EMAIL_ADDRESS}</Text>
-        <Ionicons name="copy-outline" size={18} color="#8B5CF6" />
+        <Ionicons name="copy-outline" size={18} color={colors.brandPurple} />
       </Pressable>
 
       <Text style={styles.hint}>
@@ -56,13 +58,13 @@ function SupportedBadge({ name }: { name: string }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   iconContainer: {
     width: 64,
@@ -76,19 +78,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   description: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 12,
   },
   emailContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -97,11 +99,11 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   hint: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 18,
@@ -112,7 +114,7 @@ const styles = StyleSheet.create({
   },
   supportedTitle: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginBottom: 8,
   },
   supportedRow: {
@@ -121,14 +123,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   badge: {
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   badgeText: {
     fontSize: 11,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
 });
 

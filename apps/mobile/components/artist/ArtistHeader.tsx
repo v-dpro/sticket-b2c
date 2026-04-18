@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 320;
@@ -59,7 +60,7 @@ export function ArtistHeader({
 
       {/* Gradient Overlay */}
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.2)', 'rgba(10, 11, 30, 0.8)', '#0A0B1E']}
+        colors={['rgba(10, 11, 30, 0.2)', 'rgba(10, 11, 30, 0.8)', colors.background]}
         style={styles.gradient}
       />
 
@@ -67,12 +68,12 @@ export function ArtistHeader({
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </BlurView>
         </Pressable>
         <Pressable onPress={onSharePress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
           </BlurView>
         </Pressable>
       </View>
@@ -100,12 +101,12 @@ export function ArtistHeader({
           >
             {isFollowing ? (
               <>
-                <Ionicons name="notifications" size={18} color="#8B5CF6" />
+                <Ionicons name="notifications" size={18} color={colors.brandPurple} />
                 <Text style={styles.followingText}>Following</Text>
               </>
             ) : (
               <LinearGradient
-                colors={['#8B5CF6', '#E879F9']}
+                colors={[colors.brandPurple, colors.brandPink]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.followGradient}
@@ -113,7 +114,7 @@ export function ArtistHeader({
                 <Ionicons
                   name="notifications-outline"
                   size={18}
-                  color="#FFFFFF"
+                  color={colors.textPrimary}
                 />
                 <Text style={styles.followText}>Follow</Text>
               </LinearGradient>
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   placeholderBg: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
@@ -193,19 +194,19 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
     marginBottom: 16,
   },
   name: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
   genres: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   actions: {
@@ -227,14 +228,14 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   followingButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderWidth: 1,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 24,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   followingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   streamingLinks: {
     flexDirection: 'row',
@@ -253,11 +254,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
 });
 

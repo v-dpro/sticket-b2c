@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventMoment } from '../../types/event';
+import { colors } from '../../lib/theme';
 
 interface MomentsSectionProps {
   moments?: EventMoment[];
@@ -31,14 +32,14 @@ export function MomentsSection({ moments = [], onAddMoment }: MomentsSectionProp
 
       {moments.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="sparkles-outline" size={32} color="#6B6B8D" />
+          <Ionicons name="sparkles-outline" size={32} color={colors.textTertiary} />
           <Text style={styles.emptyText}>No moments yet</Text>
         </View>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {moments.map((m) => (
             <View key={m.id} style={styles.chip}>
-              <Ionicons name={iconByType[m.type]} size={14} color="#00D4FF" />
+              <Ionicons name={iconByType[m.type]} size={14} color={colors.brandCyan} />
               <Text style={styles.chipText}>{m.label}</Text>
               <Text style={styles.chipCount}>{m.count}</Text>
             </View>
@@ -63,23 +64,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   addText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 24,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   emptyText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   chips: {
     paddingHorizontal: 16,
@@ -93,16 +94,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
-    backgroundColor: '#1A1A2E',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   chipText: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
   },
   chipCount: {
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     fontSize: 12,
     fontWeight: '700',
   },

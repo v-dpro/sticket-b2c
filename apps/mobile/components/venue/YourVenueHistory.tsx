@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
+import { colors } from '../../lib/theme';
 import type { UserVenueShow } from '../../types/venue';
 
 interface YourVenueHistoryProps {
@@ -22,7 +23,7 @@ export function YourVenueHistory({ showCount, firstShow, lastShow, onSeeAllPress
           end={{ x: 1, y: 0 }}
           style={styles.emptyCard}
         >
-          <Ionicons name="ticket-outline" size={32} color="#00D4FF" />
+          <Ionicons name="ticket-outline" size={32} color={colors.brandCyan} />
           <Text style={styles.emptyTitle}>You haven't been here yet</Text>
           <Text style={styles.emptySubtitle}>Check out upcoming shows below!</Text>
         </LinearGradient>
@@ -67,7 +68,7 @@ export function YourVenueHistory({ showCount, firstShow, lastShow, onSeeAllPress
             ) : null}
           </View>
 
-          <Ionicons name="chevron-forward" size={20} color="#00D4FF" />
+          <Ionicons name="chevron-forward" size={20} color={colors.brandCyan} />
         </LinearGradient>
       </Pressable>
     </View>
@@ -89,12 +90,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   historyCard: {
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#00D4FF',
+    backgroundColor: colors.brandCyan,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
   countNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#0A0B1E',
+    color: colors.background,
   },
   historyContent: {
     flex: 1,
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   showRow: {
@@ -134,12 +135,12 @@ const styles = StyleSheet.create({
   },
   showLabel: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     width: 36,
   },
   showInfo: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     flex: 1,
   },
 });

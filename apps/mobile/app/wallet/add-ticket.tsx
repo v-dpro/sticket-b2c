@@ -19,6 +19,7 @@ import { useAddTicket } from '../../hooks/useAddTicket';
 import type { BarcodeFormat } from '../../types/ticket';
 import { ensureTicketRemindersScheduled } from '../../lib/notifications/ticketReminders';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { colors } from '../../lib/theme';
 
 export default function AddTicketScreen() {
   const router = useRouter();
@@ -119,11 +120,11 @@ export default function AddTicketScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="close" size={24} color="#FFFFFF" />
+          <Ionicons name="close" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>Add Ticket</Text>
         <Pressable onPress={() => router.push('/wallet/scan-ticket')}>
-          <Ionicons name="scan" size={24} color="#8B5CF6" />
+          <Ionicons name="scan" size={24} color={colors.brandPurple} />
         </Pressable>
       </View>
 
@@ -140,7 +141,7 @@ export default function AddTicketScreen() {
                 <Text style={styles.selectedDate}>{new Date(selectedEvent.date).toLocaleDateString()}</Text>
               </View>
               <Pressable onPress={() => setSelectedEvent(null)}>
-                <Ionicons name="close-circle" size={24} color="#6B6B8D" />
+                <Ionicons name="close-circle" size={24} color={colors.textTertiary} />
               </Pressable>
             </View>
           ) : showManualEntry ? (
@@ -148,20 +149,20 @@ export default function AddTicketScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Artist name"
-                placeholderTextColor="#6B6B8D"
+                placeholderTextColor={colors.textTertiary}
                 value={artistName}
                 onChangeText={setArtistName}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Venue name"
-                placeholderTextColor="#6B6B8D"
+                placeholderTextColor={colors.textTertiary}
                 value={venueName}
                 onChangeText={setVenueName}
               />
               <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
                 <Text style={styles.dateButtonText}>{eventDate.toLocaleDateString()}</Text>
-                <Ionicons name="calendar" size={20} color="#8B5CF6" />
+                <Ionicons name="calendar" size={20} color={colors.brandPurple} />
               </Pressable>
               {showDatePicker && (
                 <DateTimePicker
@@ -182,7 +183,7 @@ export default function AddTicketScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Search for event..."
-                placeholderTextColor="#6B6B8D"
+                placeholderTextColor={colors.textTertiary}
                 value={eventSearch}
                 onChangeText={handleEventSearch}
               />
@@ -215,8 +216,8 @@ export default function AddTicketScreen() {
             <Switch
               value={isGA}
               onValueChange={setIsGA}
-              trackColor={{ false: '#2D2D4A', true: '#8B5CF6' }}
-              thumbColor="#FFFFFF"
+              trackColor={{ false: colors.border, true: colors.brandPurple }}
+              thumbColor={colors.textPrimary}
             />
           </View>
 
@@ -225,21 +226,21 @@ export default function AddTicketScreen() {
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Section"
-                placeholderTextColor="#6B6B8D"
+                placeholderTextColor={colors.textTertiary}
                 value={section}
                 onChangeText={setSection}
               />
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Row"
-                placeholderTextColor="#6B6B8D"
+                placeholderTextColor={colors.textTertiary}
                 value={row}
                 onChangeText={setRow}
               />
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Seat"
-                placeholderTextColor="#6B6B8D"
+                placeholderTextColor={colors.textTertiary}
                 value={seat}
                 onChangeText={setSeat}
                 keyboardType="numeric"
@@ -254,7 +255,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Enter barcode number"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             value={barcode}
             onChangeText={setBarcode}
           />
@@ -268,7 +269,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Confirmation number"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             value={confirmationNumber}
             onChangeText={setConfirmationNumber}
           />
@@ -276,7 +277,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Purchase price"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             value={purchasePrice}
             onChangeText={setPurchasePrice}
             keyboardType="decimal-pad"
@@ -285,7 +286,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder="Notes"
-            placeholderTextColor="#6B6B8D"
+            placeholderTextColor={colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -300,16 +301,16 @@ export default function AddTicketScreen() {
       <View style={styles.footer}>
         <Pressable style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
           <LinearGradient
-            colors={['#8B5CF6', '#E879F9']}
+            colors={[colors.brandPurple, colors.brandPink]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.gradient}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <>
-                <Ionicons name="ticket" size={20} color="#FFFFFF" />
+                <Ionicons name="ticket" size={20} color={colors.textPrimary} />
                 <Text style={styles.submitText}>Add Ticket</Text>
               </>
             )}
@@ -323,7 +324,7 @@ export default function AddTicketScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   scrollView: {
     flex: 1,
@@ -353,28 +354,28 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   input: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   selectedEvent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
   },
   selectedEventInfo: {
     flex: 1,
@@ -382,23 +383,23 @@ const styles = StyleSheet.create({
   selectedArtist: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   selectedVenue: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   selectedDate: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   searchingIndicator: {
     marginVertical: 12,
   },
   searchResults: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 12,
@@ -406,21 +407,21 @@ const styles = StyleSheet.create({
   searchResult: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   resultArtist: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   resultDetails: {
     fontSize: 13,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   manualLink: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     textAlign: 'center',
   },
   manualEntry: {},
@@ -428,28 +429,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   dateButtonText: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   searchInstead: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     textAlign: 'center',
   },
   gaToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
   },
   gaLabel: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   seatInputs: {
     flexDirection: 'row',
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: -4,
   },
   notesInput: {
@@ -482,7 +483,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     paddingBottom: 34,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   submitButton: {
     borderRadius: 12,
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

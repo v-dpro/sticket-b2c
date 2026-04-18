@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import type { TicketStatus } from '../../types/ticket';
+import { colors } from '../../lib/theme';
 
 interface TicketStatusBadgeProps {
   status: TicketStatus;
@@ -9,10 +10,10 @@ interface TicketStatusBadgeProps {
 }
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string; bg: string }> = {
-  KEEPING: { label: 'Keeping', color: '#22C55E', bg: 'rgba(34, 197, 94, 0.1)' },
-  SELLING: { label: 'For Sale', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.1)' },
-  SOLD: { label: 'Sold', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.1)' },
-  TRANSFERRED: { label: 'Transferred', color: '#6B6B8D', bg: 'rgba(107, 107, 141, 0.1)' },
+  KEEPING: { label: 'Keeping', color: colors.success, bg: 'rgba(34, 197, 94, 0.1)' },
+  SELLING: { label: 'For Sale', color: colors.warning, bg: 'rgba(245, 158, 11, 0.1)' },
+  SOLD: { label: 'Sold', color: colors.brandPurple, bg: 'rgba(139, 92, 246, 0.1)' },
+  TRANSFERRED: { label: 'Transferred', color: colors.textTertiary, bg: 'rgba(107, 107, 141, 0.1)' },
 };
 
 export function TicketStatusBadge({ status, size = 'small' }: TicketStatusBadgeProps) {

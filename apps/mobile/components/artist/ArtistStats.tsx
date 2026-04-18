@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 interface ArtistStatsProps {
   followerCount: number;
@@ -12,7 +13,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
   return (
     <View style={styles.container}>
       <View style={styles.stat}>
-        <Ionicons name="people" size={20} color="#8B5CF6" />
+        <Ionicons name="people" size={20} color={colors.brandPurple} />
         <Text style={styles.statValue}>{formatNumber(followerCount)}</Text>
         <Text style={styles.statLabel}>followers</Text>
       </View>
@@ -20,7 +21,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
       <View style={styles.divider} />
 
       <View style={styles.stat}>
-        <Ionicons name="musical-notes" size={20} color="#00D4FF" />
+        <Ionicons name="musical-notes" size={20} color={colors.brandCyan} />
         <Text style={styles.statValue}>{formatNumber(totalLogs)}</Text>
         <Text style={styles.statLabel}>times logged</Text>
       </View>
@@ -29,7 +30,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
         <>
           <View style={styles.divider} />
           <View style={styles.stat}>
-            <Ionicons name="star" size={20} color="#F59E0B" />
+            <Ionicons name="star" size={20} color={colors.warning} />
             <Text style={styles.statValue}>{avgRating.toFixed(1)}</Text>
             <Text style={styles.statLabel}>avg rating</Text>
           </View>
@@ -50,13 +51,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
     paddingVertical: 16,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   stat: {
     alignItems: 'center',
@@ -65,18 +66,18 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 11,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 2,
   },
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
   },
 });
 

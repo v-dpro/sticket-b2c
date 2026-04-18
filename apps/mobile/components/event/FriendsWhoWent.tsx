@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { FriendAttendee } from '../../types/event';
+import { colors } from '../../lib/theme';
 
 interface FriendsWhoWentProps {
   friends: FriendAttendee[];
@@ -38,7 +39,7 @@ export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: Friend
             </Text>
             {typeof friend.rating === 'number' ? (
               <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={10} color="#F59E0B" />
+                <Ionicons name="star" size={10} color={colors.warning} />
                 <Text style={styles.ratingText}>{friend.rating}</Text>
               </View>
             ) : null}
@@ -63,11 +64,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   seeAll: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -83,21 +84,21 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     marginBottom: 6,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
   },
   avatarPlaceholder: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   username: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   ratingBadge: {
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 10,
-    color: '#F59E0B',
+    color: colors.warning,
     fontWeight: '600',
   },
 });

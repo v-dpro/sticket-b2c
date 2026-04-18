@@ -32,6 +32,7 @@ import { useSession } from '../../hooks/useSession';
 import { submitSeatView, submitVenueRatings } from '../../lib/api/venues';
 import type { VenueRatingsSubmission, VenueShow } from '../../types/venue';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { colors } from '../../lib/theme';
 
 export default function VenueScreen() {
   const router = useRouter();
@@ -121,7 +122,7 @@ export default function VenueScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.brandPurple} />
       </View>
     );
   }
@@ -148,7 +149,7 @@ export default function VenueScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#8B5CF6" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brandPurple} />}
       >
         <VenueHeader
           name={venue.name}
@@ -227,45 +228,45 @@ export default function VenueScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   errorTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
   errorSubtitle: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 18,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   backButton: {
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   backButtonText: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontWeight: '700',
   },
 });

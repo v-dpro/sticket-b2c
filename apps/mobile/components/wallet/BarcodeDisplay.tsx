@@ -5,6 +5,7 @@ import Barcode from 'react-native-barcode-svg';
 import QRCode from 'react-native-qrcode-svg';
 
 import type { BarcodeFormat } from '../../types/ticket';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -38,7 +39,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
   const renderBarcode = () => {
     switch (normalized) {
       case 'QR':
-        return <QRCode value={barcode} size={200} backgroundColor="#FFFFFF" color="#000000" />;
+        return <QRCode value={barcode} size={200} backgroundColor={colors.textPrimary} color="#000000" />;
       case 'CODE128':
         return (
           <Barcode
@@ -53,7 +54,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
         // react-native-barcode-svg doesn't support these formats; fall back.
         return (
           <View style={styles.fallback}>
-            <Ionicons name="barcode" size={48} color="#6B6B8D" />
+            <Ionicons name="barcode" size={48} color={colors.textTertiary} />
             <Text style={styles.fallbackCode}>{barcode}</Text>
             <Text style={styles.fallbackHint}>Unsupported barcode format</Text>
           </View>
@@ -61,7 +62,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
       default:
         return (
           <View style={styles.fallback}>
-            <Ionicons name="barcode" size={48} color="#6B6B8D" />
+            <Ionicons name="barcode" size={48} color={colors.textTertiary} />
             <Text style={styles.fallbackCode}>{barcode}</Text>
           </View>
         );
@@ -79,15 +80,15 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.textPrimary,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 16,
     alignItems: 'center',
   },
   bright: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#FFFFFF',
+    backgroundColor: colors.textPrimary,
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 20,
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   fallback: {
     alignItems: 'center',
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   fallbackHint: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
 });
 

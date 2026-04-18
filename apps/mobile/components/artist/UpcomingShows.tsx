@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import type { ArtistShow } from '../../types/artist';
+import { colors } from '../../lib/theme';
 
 interface UpcomingShowsProps {
   shows: ArtistShow[];
@@ -39,7 +40,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
 
               {show.friendsGoing > 0 && (
                 <View style={styles.friendsBadge}>
-                  <Ionicons name="people" size={12} color="#00D4FF" />
+                  <Ionicons name="people" size={12} color={colors.brandCyan} />
                   <Text style={styles.friendsText}>
                     {show.friendsGoing} friend{show.friendsGoing !== 1 ? 's' : ''} going
                   </Text>
@@ -58,7 +59,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
               <Ionicons
                 name={show.isInterested ? 'heart' : 'heart-outline'}
                 size={18}
-                color={show.isInterested ? '#EF4444' : '#6B6B8D'}
+                color={show.isInterested ? colors.error : colors.textTertiary}
               />
             </Pressable>
           </Pressable>
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -84,15 +85,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   showCard: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     width: 200,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   dateBadge: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   dateDay: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   showInfo: {
@@ -117,12 +118,12 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   venueCity: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   friendsBadge: {
     flexDirection: 'row',
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   },
   friendsText: {
     fontSize: 11,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
   interestedButton: {
     position: 'absolute',
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

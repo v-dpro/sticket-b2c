@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 export type StatusType = 'ticket' | 'presale' | 'upcoming' | 'tracking';
 
@@ -12,22 +13,22 @@ interface StatusPillProps {
 const config = {
   ticket: {
     bg: 'rgba(0, 212, 255, 0.15)',
-    color: '#00D4FF',
+    color: colors.brandCyan,
     icon: 'ticket-outline' as const,
   },
   presale: {
     bg: 'rgba(139, 92, 246, 0.15)',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     icon: 'notifications-outline' as const,
   },
   upcoming: {
-    bg: '#252542',
-    color: '#A0A0B8',
+    bg: colors.surfaceElevated,
+    color: colors.textSecondary,
     icon: 'calendar-outline' as const,
   },
   tracking: {
     bg: 'rgba(245, 158, 11, 0.15)',
-    color: '#F59E0B',
+    color: colors.warning,
     icon: 'eye-outline' as const,
   },
 };

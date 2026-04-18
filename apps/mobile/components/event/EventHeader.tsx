@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns';
 import { BlurView } from 'expo-blur';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 300;
@@ -51,7 +52,7 @@ export function EventHeader({
 
       {/* Gradient Overlay */}
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', '#0A0B1E']}
+        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.background]}
         style={styles.gradient}
       />
 
@@ -59,7 +60,7 @@ export function EventHeader({
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </BlurView>
         </Pressable>
         {shareButton ? (
@@ -67,7 +68,7 @@ export function EventHeader({
         ) : (
           <Pressable onPress={onSharePress} style={styles.iconButton} accessibilityRole="button">
             <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+              <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
             </BlurView>
           </Pressable>
         )}
@@ -86,7 +87,7 @@ export function EventHeader({
 
         {/* Venue */}
         <View style={styles.venueRow}>
-          <Ionicons name="location" size={16} color="#A0A0B8" />
+          <Ionicons name="location" size={16} color={colors.textSecondary} />
           <Text style={styles.venueName}>{venueName}</Text>
           <Text style={styles.venueCity}> • {venueCity}</Text>
         </View>
@@ -94,12 +95,12 @@ export function EventHeader({
         {/* Status Badge */}
         {isPast ? (
           <View style={styles.statusBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
+            <Ionicons name="checkmark-circle" size={14} color={colors.success} />
             <Text style={styles.statusText}>Past Event</Text>
           </View>
         ) : (
           <View style={[styles.statusBadge, styles.upcomingBadge]}>
-            <Ionicons name="calendar" size={14} color="#00D4FF" />
+            <Ionicons name="calendar" size={14} color={colors.brandCyan} />
             <Text style={[styles.statusText, styles.upcomingText]}>Upcoming</Text>
           </View>
         )}
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   placeholderBg: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
@@ -157,18 +158,18 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontWeight: '500',
   },
   timeText: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginLeft: 8,
   },
   artistName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   venueRow: {
@@ -178,12 +179,12 @@ const styles = StyleSheet.create({
   },
   venueName: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginLeft: 6,
   },
   venueCity: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -200,11 +201,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#22C55E',
+    color: colors.success,
     fontWeight: '500',
   },
   upcomingText: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
 });
 

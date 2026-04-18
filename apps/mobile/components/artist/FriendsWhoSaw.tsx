@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { FriendSaw } from '../../types/artist';
+import { colors } from '../../lib/theme';
 
 interface FriendsWhoSawProps {
   friends: FriendSaw[];
@@ -33,7 +34,7 @@ export function FriendsWhoSaw({ friends, onFriendPress }: FriendsWhoSawProps) {
             </Text>
 
             <View style={styles.countBadge}>
-              <Ionicons name="musical-note" size={10} color="#8B5CF6" />
+              <Ionicons name="musical-note" size={10} color={colors.brandPurple} />
               <Text style={styles.countText}>{friend.showCount}x</Text>
             </View>
           </Pressable>
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -68,21 +69,21 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     marginBottom: 8,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
   },
   avatarPlaceholder: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   friendName: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   countBadge: {
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 11,
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     fontWeight: '600',
   },
 });

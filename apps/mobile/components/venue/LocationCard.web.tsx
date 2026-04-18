@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 
 interface LocationCardProps {
   name: string;
@@ -40,12 +41,12 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
   return (
     <View style={styles.container}>
       <Pressable style={styles.mapPlaceholder} onPress={handleOpenMap}>
-        <Ionicons name="map-outline" size={22} color="#8B5CF6" />
+        <Ionicons name="map-outline" size={22} color={colors.brandPurple} />
         <Text style={styles.mapPlaceholderText}>Open in Google Maps</Text>
       </Pressable>
 
       <View style={styles.addressContainer}>
-        <Ionicons name="location-outline" size={20} color="#8B5CF6" />
+        <Ionicons name="location-outline" size={20} color={colors.brandPurple} />
         <View style={styles.addressText}>
           {address ? <Text style={styles.address}>{address}</Text> : null}
           <Text style={styles.cityState}>
@@ -56,7 +57,7 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
       </View>
 
       <Pressable style={styles.directionsButton} onPress={handleGetDirections}>
-        <Ionicons name="navigate" size={18} color="#00D4FF" />
+        <Ionicons name="navigate" size={18} color={colors.brandCyan} />
         <Text style={styles.directionsText}>Get Directions</Text>
       </Pressable>
     </View>
@@ -65,13 +66,13 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   mapPlaceholder: {
     height: 120,
@@ -81,18 +82,18 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(10, 11, 30, 0.4)',
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   mapPlaceholderText: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   addressContainer: {
     flexDirection: 'row',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D4A',
+    borderBottomColor: colors.border,
   },
   addressText: {
     flex: 1,
@@ -100,12 +101,12 @@ const styles = StyleSheet.create({
   },
   address: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   cityState: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   directionsButton: {
     flexDirection: 'row',
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   },
   directionsText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontWeight: '500',
   },
 });

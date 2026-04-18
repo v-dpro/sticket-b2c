@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../lib/theme';
 import type { VenueRatingsSummary } from '../../types/venue';
 
 interface VenueRatingsProps {
@@ -22,7 +23,7 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
     if (value === null) return null;
 
     const percentage = (value / 5) * 100;
-    const color = value >= 4 ? '#22C55E' : value >= 3 ? '#F59E0B' : '#EF4444';
+    const color = value >= 4 ? colors.success : value >= 3 ? colors.warning : colors.error;
 
     return (
       <View style={styles.ratingBar}>
@@ -45,7 +46,7 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
           return (
             <View key={key} style={styles.ratingItem}>
               <View style={styles.ratingHeader}>
-                <Ionicons name={icon as any} size={16} color="#8B5CF6" />
+                <Ionicons name={icon as any} size={16} color={colors.brandPurple} />
                 <Text style={styles.ratingLabel}>{label}</Text>
               </View>
 
@@ -63,7 +64,7 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
       </View>
 
       <Pressable style={styles.rateButton} onPress={onRatePress}>
-        <Ionicons name={userHasRated ? 'create-outline' : 'star-outline'} size={18} color="#8B5CF6" />
+        <Ionicons name={userHasRated ? 'create-outline' : 'star-outline'} size={18} color={colors.brandPurple} />
         <Text style={styles.rateButtonText}>{userHasRated ? 'Update Your Ratings' : 'Rate This Venue'}</Text>
       </Pressable>
     </View>
@@ -72,13 +73,13 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   header: {
     flexDirection: 'row',
@@ -89,11 +90,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   count: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   ratingsGrid: {
     gap: 12,
@@ -110,12 +111,12 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 13,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   ratingBar: {
     flex: 1,
     height: 8,
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
     borderRadius: 4,
     marginHorizontal: 12,
     overflow: 'hidden',
@@ -127,14 +128,14 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     width: 32,
     textAlign: 'right',
   },
   noRating: {
     flex: 1,
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     fontStyle: 'italic',
     marginLeft: 12,
   },
@@ -146,13 +147,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#8B5CF6',
+    borderColor: colors.brandPurple,
     gap: 8,
   },
   rateButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
 });
 

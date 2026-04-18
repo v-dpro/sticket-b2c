@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import type { ArtistShow } from '../../types/artist';
+import { colors } from '../../lib/theme';
 
 interface PastShowsProps {
   shows: ArtistShow[];
@@ -44,7 +45,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
         </Text>
 
         <View style={styles.statsRow}>
-          <Ionicons name="people" size={12} color="#6B6B8D" />
+          <Ionicons name="people" size={12} color={colors.textTertiary} />
           <Text style={styles.statsText}>{item.logCount} logged</Text>
         </View>
       </View>
@@ -52,7 +53,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
       {/* Action */}
       {item.userLogged ? (
         <View style={styles.loggedBadge}>
-          <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
         </View>
       ) : (
         <Pressable
@@ -72,7 +73,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
     if (!loading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#8B5CF6" />
+        <ActivityIndicator size="small" color={colors.brandPurple} />
       </View>
     );
   };
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   showRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -131,17 +132,17 @@ const styles = StyleSheet.create({
   dateMonth: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     textTransform: 'uppercase',
   },
   dateDay: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   dateYear: {
     fontSize: 10,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   showInfo: {
     flex: 1,
@@ -149,12 +150,12 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   venueCity: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginBottom: 4,
   },
   statsRow: {
@@ -164,13 +165,13 @@ const styles = StyleSheet.create({
   },
   statsText: {
     fontSize: 11,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
   loggedBadge: {
     padding: 8,
   },
   logButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   footer: {
     paddingVertical: 16,
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontSize: 14,
-    color: '#00D4FF',
+    color: colors.brandCyan,
   },
 });
 

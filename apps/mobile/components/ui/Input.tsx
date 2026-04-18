@@ -106,7 +106,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   inputFocused: {
-    borderColor: colors.brandPurple,
+    borderColor: colors.brandCyan,
+    shadowColor: colors.brandCyan,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   inputError: {
     borderColor: colors.error,

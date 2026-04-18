@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns';
 
 import type { LogEntry } from '../../types/profile';
+import { colors } from '../../lib/theme';
 
 interface LogCardProps {
   log: LogEntry;
@@ -24,14 +25,14 @@ export function LogCard({ log, onPress }: LogCardProps) {
           <Image source={{ uri: event.artist.imageUrl }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="musical-notes" size={24} color="#6B6B8D" />
+            <Ionicons name="musical-notes" size={24} color={colors.textTertiary} />
           </View>
         )}
 
         {/* Photo count badge */}
         {photos.length > 1 ? (
           <View style={styles.photoBadge}>
-            <Ionicons name="images" size={12} color="#FFFFFF" />
+            <Ionicons name="images" size={12} color={colors.textPrimary} />
             <Text style={styles.photoCount}>{photos.length}</Text>
           </View>
         ) : null}
@@ -47,21 +48,21 @@ export function LogCard({ log, onPress }: LogCardProps) {
         <View style={styles.bottomRow}>
           {rating ? (
             <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={14} color="#F59E0B" />
+              <Ionicons name="star" size={14} color={colors.warning} />
               <Text style={styles.rating}>{rating}</Text>
             </View>
           ) : null}
 
           {_count && _count.comments > 0 ? (
             <View style={styles.commentContainer}>
-              <Ionicons name="chatbubble-outline" size={14} color="#6B6B8D" />
+              <Ionicons name="chatbubble-outline" size={14} color={colors.textTertiary} />
               <Text style={styles.commentCount}>{_count.comments}</Text>
             </View>
           ) : null}
         </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={20} color="#6B6B8D" />
+      <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
     </Pressable>
   );
 }
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 16,
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   imagePlaceholder: {
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   },
   photoCount: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   content: {
@@ -113,17 +114,17 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   venueName: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   date: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginBottom: 4,
   },
   bottomRow: {
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: colors.warning,
     fontWeight: '600',
   },
   commentContainer: {
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   },
   commentCount: {
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
 });
 

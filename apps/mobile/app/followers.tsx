@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { getFollowers, type FollowUserListItem } from '../lib/api/profile';
 import { useSession } from '../hooks/useSession';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
+import { colors } from '../lib/theme';
 
 function UserRow({ item, onPress }: { item: FollowUserListItem; onPress: () => void }) {
   return (
@@ -26,7 +27,7 @@ function UserRow({ item, onPress }: { item: FollowUserListItem; onPress: () => v
           @{item.username}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#6B6B8D" />
+      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
     </Pressable>
   );
 }
@@ -75,7 +76,7 @@ export default function FollowersScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Followers</Text>
         <View style={{ width: 40 }} />
@@ -83,7 +84,7 @@ export default function FollowersScreen() {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.brandPurple} />
         </View>
       ) : (
         <FlatList
@@ -92,10 +93,10 @@ export default function FollowersScreen() {
           renderItem={({ item }) => <UserRow item={item} onPress={() => onPressUser(item.id)} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={{ paddingBottom: 24 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brandPurple} />}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="people-outline" size={48} color="#6B6B8D" />
+              <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyText}>No followers yet</Text>
             </View>
           }
@@ -108,7 +109,7 @@ export default function FollowersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   loading: {
     flex: 1,
@@ -142,30 +143,30 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   avatarPlaceholder: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     fontWeight: '700',
   },
   displayName: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
   username: {
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     fontSize: 12,
     marginTop: 2,
   },
   separator: {
     height: 1,
-    backgroundColor: '#2D2D4A',
+    backgroundColor: colors.border,
     marginLeft: 16 + 44 + 12,
   },
   empty: {
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
 });
 

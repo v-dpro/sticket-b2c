@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../../lib/theme';
 
 interface MilestoneShareCardProps {
   badgeName: string;
@@ -14,11 +15,11 @@ interface MilestoneShareCardProps {
 export function MilestoneShareCard({ badgeName, badgeIcon, badgeColor, description, username }: MilestoneShareCardProps) {
   return (
     <View style={styles.card}>
-      <LinearGradient colors={[`${badgeColor}40`, '#0A0B1E']} style={styles.background} />
+      <LinearGradient colors={[`${badgeColor}40`, colors.background]} style={styles.background} />
 
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Ionicons name="ticket" size={16} color="#8B5CF6" />
+          <Ionicons name="ticket" size={16} color={colors.brandPurple} />
           <Text style={styles.logoText}>sticket</Text>
         </View>
       </View>
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     padding: 24,
     justifyContent: 'space-between',
   },
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   badgeSection: {
     alignItems: 'center',
@@ -78,14 +79,14 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   unlocked: {
     fontSize: 14,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   badgeName: {
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     textAlign: 'center',
   },
   userSection: {
@@ -105,12 +106,12 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: colors.brandPurple,
   },
   footer: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
   },
 });
 

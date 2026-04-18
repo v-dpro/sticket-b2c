@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
+import { colors } from '../../lib/theme';
 
 interface ShareSheetProps {
   visible: boolean;
@@ -50,21 +51,21 @@ export function ShareSheet({
 
           <Pressable style={styles.option} onPress={onCopyLink} accessibilityRole="button">
             <View style={[styles.iconContainer, { backgroundColor: '#8B5CF620' }]}>
-              <Ionicons name="link" size={24} color="#8B5CF6" />
+              <Ionicons name="link" size={24} color={colors.brandPurple} />
             </View>
             <Text style={styles.optionLabel}>Copy Link</Text>
           </Pressable>
 
           <Pressable style={styles.option} onPress={onSaveImage} accessibilityRole="button">
             <View style={[styles.iconContainer, { backgroundColor: '#22C55E20' }]}>
-              <Ionicons name="download" size={24} color="#22C55E" />
+              <Ionicons name="download" size={24} color={colors.success} />
             </View>
             <Text style={styles.optionLabel}>Save</Text>
           </Pressable>
 
           <Pressable style={styles.option} onPress={onShareMore} accessibilityRole="button">
             <View style={[styles.iconContainer, { backgroundColor: '#6B6B8D20' }]}>
-              <Ionicons name="ellipsis-horizontal" size={24} color="#6B6B8D" />
+              <Ionicons name="ellipsis-horizontal" size={24} color={colors.textTertiary} />
             </View>
             <Text style={styles.optionLabel}>More</Text>
           </Pressable>
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheet: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#3A3B5D',
+    backgroundColor: colors.borderLight,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 20,
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -124,10 +125,10 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 12,
-    color: '#A0A0B8',
+    color: colors.textSecondary,
   },
   cancelButton: {
-    backgroundColor: '#0A0B1E',
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

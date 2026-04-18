@@ -32,7 +32,7 @@ export function EmptyState(props: LegacyProps | NewProps) {
     <View style={styles.container}>
       <View style={styles.iconContainer}>
         <LinearGradient colors={gradients.accent} style={styles.iconGradient}>
-          <Ionicons name={icon} size={40} color="#FFFFFF" />
+          <Ionicons name={icon} size={40} color={colors.textPrimary} />
         </LinearGradient>
       </View>
 
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 });
 

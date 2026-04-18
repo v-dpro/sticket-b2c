@@ -5,6 +5,7 @@ import MapView, { Callout, Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 
 import type { VenueMarker } from '../../types/profile';
 import { getUserVenueMarkers } from '../../lib/api/profile';
+import { colors } from '../../lib/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,23 +16,23 @@ interface ProfileMapViewProps {
 
 // Custom map style for dark theme
 const mapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#0A0B1E' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#6B6B8D' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0A0B1E' }] },
+  { elementType: 'geometry', stylers: [{ color: colors.background }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: colors.textTertiary }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: colors.background }] },
   {
     featureType: 'administrative',
     elementType: 'geometry.stroke',
-    stylers: [{ color: '#2D2D4A' }],
+    stylers: [{ color: colors.border }],
   },
   {
     featureType: 'road',
     elementType: 'geometry',
-    stylers: [{ color: '#1A1A2E' }],
+    stylers: [{ color: colors.surface }],
   },
   {
     featureType: 'road',
     elementType: 'geometry.stroke',
-    stylers: [{ color: '#2D2D4A' }],
+    stylers: [{ color: colors.border }],
   },
   {
     featureType: 'water',
@@ -110,7 +111,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   if (markers.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="map-outline" size={64} color="#6B6B8D" />
+        <Ionicons name="map-outline" size={64} color={colors.textTertiary} />
         <Text style={styles.emptyTitle}>No venues to show</Text>
         <Text style={styles.emptyText}>Log some shows to see them on the map!</Text>
       </View>
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     fontSize: 16,
   },
   emptyContainer: {
@@ -187,12 +188,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   marker: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.brandPurple,
     borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerCount: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -220,35 +221,35 @@ const styles = StyleSheet.create({
     borderTopWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#8B5CF6',
+    borderTopColor: colors.brandPurple,
     marginTop: -1,
   },
   callout: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     minWidth: 150,
     borderWidth: 1,
-    borderColor: '#2D2D4A',
+    borderColor: colors.border,
   },
   calloutTitle: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 2,
   },
   calloutCity: {
-    color: '#A0A0B8',
+    color: colors.textSecondary,
     fontSize: 12,
     marginBottom: 4,
   },
   calloutCount: {
-    color: '#8B5CF6',
+    color: colors.brandPurple,
     fontSize: 12,
     fontWeight: '500',
   },
   calloutLast: {
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     fontSize: 11,
     marginTop: 4,
   },
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   statsText: {
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '500',
   },

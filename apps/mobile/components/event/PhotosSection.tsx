@@ -3,6 +3,7 @@ import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-nati
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventPhoto } from '../../types/event';
 import { PhotoLightbox } from './PhotoLightbox';
+import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48) / 3;
@@ -21,7 +22,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       <View style={styles.container}>
         <Text style={styles.title}>Photos</Text>
         <View style={styles.emptyContainer}>
-          <Ionicons name="camera-outline" size={40} color="#6B6B8D" />
+          <Ionicons name="camera-outline" size={40} color={colors.textTertiary} />
           <Text style={styles.emptyText}>No photos yet</Text>
         </View>
       </View>
@@ -51,7 +52,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       {hasMore ? (
         <Pressable style={styles.loadMoreButton} onPress={onLoadMore}>
           <Text style={styles.loadMoreText}>Load more photos</Text>
-          <Ionicons name="chevron-forward" size={16} color="#00D4FF" />
+          <Ionicons name="chevron-forward" size={16} color={colors.brandCyan} />
         </Pressable>
       ) : null}
 
@@ -73,23 +74,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   count: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 32,
     marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B6B8D',
+    color: colors.textTertiary,
     marginTop: 8,
   },
   grid: {
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
   moreText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   loadMoreButton: {
     flexDirection: 'row',
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   loadMoreText: {
-    color: '#00D4FF',
+    color: colors.brandCyan,
     fontSize: 14,
   },
 });
