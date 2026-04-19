@@ -52,7 +52,7 @@ export function EventHeader({
 
       {/* Gradient Overlay */}
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.background]}
+        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.ink]}
         style={styles.gradient}
       />
 
@@ -60,7 +60,7 @@ export function EventHeader({
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
           </BlurView>
         </Pressable>
         {shareButton ? (
@@ -68,7 +68,7 @@ export function EventHeader({
         ) : (
           <Pressable onPress={onSharePress} style={styles.iconButton} accessibilityRole="button">
             <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+              <Ionicons name="share-outline" size={22} color={colors.textHi} />
             </BlurView>
           </Pressable>
         )}
@@ -87,7 +87,7 @@ export function EventHeader({
 
         {/* Venue */}
         <View style={styles.venueRow}>
-          <Ionicons name="location" size={16} color={colors.textSecondary} />
+          <Ionicons name="location" size={16} color={colors.textMid} />
           <Text style={styles.venueName}>{venueName}</Text>
           <Text style={styles.venueCity}> • {venueCity}</Text>
         </View>
@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginLeft: 8,
   },
   artistName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
   },
   venueRow: {
@@ -179,12 +179,12 @@ const styles = StyleSheet.create({
   },
   venueName: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginLeft: 6,
   },
   venueCity: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   statusBadge: {
     flexDirection: 'row',

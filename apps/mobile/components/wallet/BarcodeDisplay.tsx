@@ -39,7 +39,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
   const renderBarcode = () => {
     switch (normalized) {
       case 'QR':
-        return <QRCode value={barcode} size={200} backgroundColor={colors.textPrimary} color="#000000" />;
+        return <QRCode value={barcode} size={200} backgroundColor={colors.textHi} color="#000000" />;
       case 'CODE128':
         return (
           <Barcode
@@ -54,7 +54,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
         // react-native-barcode-svg doesn't support these formats; fall back.
         return (
           <View style={styles.fallback}>
-            <Ionicons name="barcode" size={48} color={colors.textTertiary} />
+            <Ionicons name="barcode" size={48} color={colors.textLo} />
             <Text style={styles.fallbackCode}>{barcode}</Text>
             <Text style={styles.fallbackHint}>Unsupported barcode format</Text>
           </View>
@@ -62,7 +62,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
       default:
         return (
           <View style={styles.fallback}>
-            <Ionicons name="barcode" size={48} color={colors.textTertiary} />
+            <Ionicons name="barcode" size={48} color={colors.textLo} />
             <Text style={styles.fallbackCode}>{barcode}</Text>
           </View>
         );
@@ -80,15 +80,15 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.textHi,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 16,
     alignItems: 'center',
   },
   bright: {
-    backgroundColor: colors.textPrimary,
-    shadowColor: colors.textPrimary,
+    backgroundColor: colors.textHi,
+    shadowColor: colors.textHi,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 20,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   fallback: {
     alignItems: 'center',
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   fallbackHint: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

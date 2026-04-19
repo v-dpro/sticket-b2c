@@ -37,8 +37,8 @@ export default function LogFirstShowOnboarding() {
         </View>
 
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '800' }}>Log your first show</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Log your first show</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>
             What's a show you've been to? This unlocks the app.
           </Text>
         </View>
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   skipButtonText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     fontWeight: '500',
   },

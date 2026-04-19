@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   image: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
 });
 

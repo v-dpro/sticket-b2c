@@ -32,7 +32,7 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
           </Pressable>
         </View>
         <View style={styles.emptyContainer}>
-          <Ionicons name="camera-outline" size={40} color={colors.textTertiary} />
+          <Ionicons name="camera-outline" size={40} color={colors.textLo} />
           <Text style={styles.emptyText}>No seat views yet</Text>
           <Text style={styles.emptySubtext}>Share photos from your seat to help others!</Text>
         </View>
@@ -89,7 +89,7 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
       <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <View style={styles.lightbox}>
           <Pressable style={styles.closeButton} onPress={() => setSelectedImage(null)}>
-            <Ionicons name="close" size={28} color={colors.textPrimary} />
+            <Ionicons name="close" size={28} color={colors.textHi} />
           </Pressable>
 
           {selectedImage ? (
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   addButton: {
     flexDirection: 'row',
@@ -142,16 +142,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
   },
   emptySubtext: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   sectionFilter: {
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   sectionChipActive: {
     backgroundColor: colors.brandPurple,
@@ -173,10 +173,10 @@ const styles = StyleSheet.create({
   },
   sectionText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   sectionTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '500',
   },
   photoGrid: {
@@ -206,12 +206,12 @@ const styles = StyleSheet.create({
   photoSection: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   photoRow: {
     fontSize: 9,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   seeAllButton: {
@@ -248,11 +248,11 @@ const styles = StyleSheet.create({
   lightboxSection: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   lightboxUser: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 4,
   },
 });

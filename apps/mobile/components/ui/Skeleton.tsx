@@ -43,7 +43,7 @@ export function FeedCardSkeleton() {
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   feedCard: {
     padding: 16,

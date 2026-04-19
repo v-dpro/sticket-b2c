@@ -80,7 +80,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
         }}
         hitSlop={10}
       >
-        <Ionicons name="close" size={16} color={colors.textTertiary} />
+        <Ionicons name="close" size={16} color={colors.textLo} />
       </Pressable>
 
       <Avatar uri={suggestion.avatarUrl} size={64} name={suggestion.displayName || suggestion.username} style={{ marginBottom: 12 }} />
@@ -108,7 +108,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={suggestion.isFollowing ? colors.brandPurple : colors.textPrimary} />
+          <ActivityIndicator size="small" color={suggestion.isFollowing ? colors.brandPurple : colors.textHi} />
         ) : (
           <Text style={[styles.followText, suggestion.isFollowing && styles.followingText]}>
             {suggestion.isFollowing ? 'Following' : 'Follow'}
@@ -122,13 +122,13 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
 const styles = StyleSheet.create({
   container: {
     width: 160,
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: radius.lg,
     padding: 16,
     alignItems: 'center',
     marginRight: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   dismissButton: {
     position: 'absolute',
@@ -139,12 +139,12 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   username: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followingText: {
     color: colors.brandPurple,

@@ -19,7 +19,7 @@ function SkeletonRow() {
 export function WalletSkeleton() {
   return (
     <View style={{ paddingTop: 12 }}>
-      <View style={{ marginHorizontal: 16, marginBottom: 16, height: 120, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }} />
+      <View style={{ marginHorizontal: 16, marginBottom: 16, height: 120, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.hairline }} />
       <SkeletonRow />
       <SkeletonRow />
       <SkeletonRow />
@@ -38,13 +38,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   avatar: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   info: {
     flex: 1,
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   line: {
     height: 10,
     borderRadius: 6,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
 });
 

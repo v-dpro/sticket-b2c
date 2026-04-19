@@ -1,9 +1,10 @@
 import { Stack, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../../../components/ui/Screen';
-import { EmptyState } from '../../../components/ui/EmptyState';
+import { SectionHead } from '../../../components/ui/SectionHead';
+import { Eyebrow } from '../../../components/ui/Eyebrow';
 import { colors, spacing, fonts, radius } from '../../../lib/theme';
 import { useDiscovery } from '../../../hooks/useDiscovery';
 import { usePresales } from '../../../hooks/usePresales';
@@ -22,12 +23,12 @@ function PresalesPreview() {
 
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>🎟️ Upcoming Presales</Text>
-        <Pressable onPress={() => router.push('/presales')} accessibilityRole="button">
-          <Text style={styles.seeAll}>See all</Text>
-        </Pressable>
-      </View>
+      <SectionHead
+        eyebrow="PRESALES"
+        title="Upcoming Presales"
+        accentColor={colors.brandCyan}
+        action={{ label: 'See all', onPress: () => router.push('/presales') }}
+      />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presalesRow}>
         {upcoming.map((p) => (
@@ -98,21 +99,33 @@ export default function DiscoverScreen() {
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.ink }}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Discover</Text>
+          <View>
+            <Eyebrow text={`FOR YOU · ${city ?? 'NYC'}`} color={colors.brandCyan} />
+            <Text style={styles.headerTitle}>Shows worth{'\n'}crossing town for</Text>
+          </View>
           <View style={styles.headerIcons}>
-            <Pressable onPress={() => router.push('/search')} style={styles.iconButton} accessibilityRole="button">
-              <Ionicons name="search-outline" size={24} color={colors.textPrimary} />
-            </Pressable>
             <NotificationBellButton />
           </View>
+        </View>
+
+        {/* Search bar */}
+        <View style={styles.searchContainer}>
+          <Pressable
+            style={styles.searchBar}
+            onPress={() => router.push('/search')}
+            accessibilityRole="button"
+          >
+            <Ionicons name="search-outline" size={18} color={colors.textLo} />
+            <Text style={styles.searchPlaceholder}>Artists, venues, cities…</Text>
+          </Pressable>
         </View>
 
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandPurple} colors={[colors.brandPurple]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandCyan} colors={[colors.brandCyan]} />}
         >
           <ComingUpSection events={comingUp} />
           <PresalesPreview />
@@ -128,7 +141,7 @@ export default function DiscoverScreen() {
               <Text style={styles.emptyText}>
                 Start following artists (or connect Spotify) and we'll surface upcoming concerts here.
               </Text>
-              
+
               <Pressable
                 style={styles.emptyButton}
                 onPress={() => router.push('/(tabs)/search')}
@@ -136,7 +149,7 @@ export default function DiscoverScreen() {
               >
                 <Text style={styles.emptyButtonText}>Find Artists</Text>
               </Pressable>
-              
+
               <Pressable
                 style={styles.emptyButtonSecondary}
                 onPress={() => router.push('/settings/connected-services')}
@@ -158,34 +171,53 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
     paddingBottom: 12,
   },
   headerTitle: {
-    fontSize: fonts.h2,
-    fontWeight: fonts.black,
-    color: colors.textPrimary,
+    fontSize: 34,
+    fontWeight: '400',
+    letterSpacing: -0.8,
+    color: colors.textHi,
+    marginTop: 6,
   },
   headerIcons: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 4,
   },
-  iconButton: {
-    padding: spacing.sm,
-    position: 'relative',
+  searchContainer: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: spacing.md,
+    height: 42,
+    gap: 10,
+  },
+  searchPlaceholder: {
+    fontSize: fonts.body,
+    color: colors.textLo,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    backgroundColor: colors.ink,
   },
   mutedText: {
     marginTop: 12,
     fontSize: fonts.body,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   retryButton: {
     marginTop: spacing.md,
@@ -195,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.body,
     fontWeight: '800',
   },
@@ -211,13 +243,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     marginTop: spacing.md,
     fontSize: fonts.h4,
-    fontWeight: fonts.black,
-    color: colors.textPrimary,
+    fontWeight: '900',
+    color: colors.textHi,
   },
   emptyText: {
     marginTop: 10,
     fontSize: fonts.bodySmall,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: spacing.lg,
@@ -232,9 +264,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyButtonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.body,
-    fontWeight: fonts.bold,
+    fontWeight: '700',
   },
   emptyButtonSecondary: {
     marginTop: 12,
@@ -244,49 +276,20 @@ const styles = StyleSheet.create({
     minWidth: 160,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   emptyButtonSecondaryText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
-    fontWeight: fonts.semibold,
-  },
-  primaryButton: {
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
-    backgroundColor: colors.brandCyan,
-    borderRadius: 10,
-  },
-  primaryButtonText: {
-    color: colors.background,
-    fontSize: fonts.body,
-    fontWeight: fonts.black,
+    fontWeight: '600',
   },
   section: {
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
-  },
-  sectionHeader: {
     paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: fonts.body,
-    fontWeight: fonts.black,
-    color: colors.textPrimary,
-  },
-  seeAll: {
-    fontSize: 13,
-    fontWeight: fonts.bold,
-    color: colors.brandCyan,
   },
   presalesRow: {
-    paddingHorizontal: spacing.md,
     gap: 12,
   },
   presalePreviewCard: {
@@ -295,16 +298,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   presaleArtist: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '800',
   },
   presaleMeta: {
     marginTop: spacing.xs,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.caption,
   },
   presaleBadge: {
@@ -313,17 +316,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   presaleBadgeText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 11,
-    fontWeight: fonts.bold,
+    fontWeight: '700',
   },
   presaleCode: {
     marginTop: 10,
     color: colors.brandCyan,
     fontSize: fonts.caption,
-    fontWeight: fonts.bold,
+    fontWeight: '700',
   },
 });

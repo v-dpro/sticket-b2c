@@ -244,7 +244,7 @@ export default function SignUpScreen() {
           {/* Logo */}
           <View style={styles.logoWrap}>
             <View style={styles.logoCircle}>
-              <Ionicons name="musical-notes" size={40} color={colors.textPrimary} />
+              <Ionicons name="musical-notes" size={40} color={colors.textHi} />
             </View>
           </View>
 
@@ -313,7 +313,7 @@ export default function SignUpScreen() {
                       {requirements.map((req) => (
                         <View key={req.text} style={styles.reqRow}>
                           <View style={[styles.reqDot, req.met && styles.reqDotMet]}>
-                            {req.met ? <Ionicons name="checkmark" size={10} color={colors.textPrimary} /> : null}
+                            {req.met ? <Ionicons name="checkmark" size={10} color={colors.textHi} /> : null}
                           </View>
                           <Text style={[styles.reqText, req.met ? styles.reqTextMet : styles.reqTextUnmet]}>{req.text}</Text>
                         </View>
@@ -347,7 +347,7 @@ export default function SignUpScreen() {
               style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
             >
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                {agreedToTerms ? <Ionicons name="checkmark" size={14} color={colors.textPrimary} /> : null}
+                {agreedToTerms ? <Ionicons name="checkmark" size={14} color={colors.textHi} /> : null}
               </View>
               <Text style={styles.termsText}>
                 I agree to the <Text style={styles.termsLink}>Terms</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
@@ -379,10 +379,10 @@ export default function SignUpScreen() {
                   style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, appleLoading && { opacity: 0.6 }]}
                 >
                   {appleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                    <ActivityIndicator size="small" color={colors.textHi} />
                   ) : (
                     <>
-                      <Ionicons name="logo-apple" size={20} color={colors.textPrimary} />
+                      <Ionicons name="logo-apple" size={20} color={colors.textHi} />
                       <Text style={styles.socialText}>Continue with Apple</Text>
                     </>
                   )}
@@ -397,10 +397,10 @@ export default function SignUpScreen() {
                   style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
                 >
                   {googleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                    <ActivityIndicator size="small" color={colors.textHi} />
                   ) : (
                     <>
-                      <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
+                      <Ionicons name="logo-google" size={20} color={colors.textHi} />
                       <Text style={styles.socialText}>Continue with Google</Text>
                     </>
                   )}
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   header: {
     alignItems: 'center',
@@ -448,13 +448,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h1,
     fontWeight: fonts.bold,
     textAlign: 'center',
   },
   subhead: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
     textAlign: 'center',
   },
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   },
   termsText: {
     flex: 1,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     lineHeight: 20,
   },
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   dividerText: {
     color: colors.textMuted,
@@ -556,19 +556,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
   socialText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.body,
     fontWeight: fonts.semibold,
   },
   footer: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     textAlign: 'center',
     marginTop: spacing.lg,

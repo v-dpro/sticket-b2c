@@ -153,7 +153,7 @@ export default function EditProfileScreen() {
             </View>
           )}
           <View style={styles.avatarEditBadge}>
-            <Ionicons name="camera" size={16} color={colors.textPrimary} />
+            <Ionicons name="camera" size={16} color={colors.textHi} />
           </View>
         </Pressable>
         <Text style={styles.changePhotoText}>Change photo</Text>
@@ -167,7 +167,7 @@ export default function EditProfileScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Your name"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               maxLength={50}
             />
           </View>
@@ -179,7 +179,7 @@ export default function EditProfileScreen() {
               value={username}
               onChangeText={(text) => setUsername(text.toLowerCase())}
               placeholder="username"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               autoCapitalize="none"
               maxLength={20}
             />
@@ -192,7 +192,7 @@ export default function EditProfileScreen() {
               value={bio}
               onChangeText={setBio}
               placeholder="Tell us about yourself..."
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               multiline
               numberOfLines={3}
               maxLength={160}
@@ -207,7 +207,7 @@ export default function EditProfileScreen() {
               value={city}
               onChangeText={setCity}
               placeholder="Where are you based?"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
             />
           </View>
         </View>
@@ -219,11 +219,11 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -234,16 +234,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   cancelText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   saveText: {
     fontSize: 16,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: colors.background,
+    borderColor: colors.ink,
   },
   changePhotoText: {
     textAlign: 'center',
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 8,
   },
   input: {
@@ -314,10 +314,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   bioInput: {
     minHeight: 80,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textAlign: 'right',
     marginTop: 4,
   },

@@ -50,7 +50,7 @@ export default function ExportDataScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Export Data</Text>
         <View style={{ width: 40 }} />
@@ -64,7 +64,7 @@ export default function ExportDataScreen() {
           </Text>
 
           <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={() => void onExport()} disabled={loading} accessibilityRole="button">
-            {loading ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.buttonText}>Export My Data</Text>}
+            {loading ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.buttonText}>Export My Data</Text>}
           </Pressable>
         </View>
 
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -102,17 +102,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: 16,
     gap: 10,
   },
   cardTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     fontWeight: '900',
   },
   cardBody: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '900',
   },

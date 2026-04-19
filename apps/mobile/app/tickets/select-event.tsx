@@ -37,8 +37,8 @@ export default function TicketsSelectEvent() {
     <Screen>
       <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800' }}>Select the event</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>{isLoading ? 'Loading…' : 'Choose your ticket event.'}</Text>
+          <Text style={{ color: colors.textHi, fontSize: 24, fontWeight: '800' }}>Select the event</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>{isLoading ? 'Loading…' : 'Choose your ticket event.'}</Text>
         </View>
 
         <View style={{ gap: 8 }}>
@@ -50,13 +50,13 @@ export default function TicketsSelectEvent() {
                 padding: 14,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: colors.hairline,
                 backgroundColor: colors.surface,
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700' }}>{e.venue.name}</Text>
-              <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+              <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '700' }}>{e.venue.name}</Text>
+              <Text style={{ color: colors.textMid, marginTop: 2 }}>
                 {e.venue.city}{e.venue.state ? `, ${e.venue.state}` : ''} • {new Date(e.date).toLocaleDateString()}
               </Text>
             </Pressable>

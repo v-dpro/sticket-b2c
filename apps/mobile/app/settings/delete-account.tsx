@@ -49,7 +49,7 @@ export default function DeleteAccountScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Delete Account</Text>
         <View style={{ width: 40 }} />
@@ -79,7 +79,7 @@ export default function DeleteAccountScreen() {
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Help us improve…"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={reason}
             onChangeText={setReason}
             multiline
@@ -92,7 +92,7 @@ export default function DeleteAccountScreen() {
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -104,7 +104,7 @@ export default function DeleteAccountScreen() {
           <TextInput
             style={styles.input}
             placeholder="DELETE"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={confirmText}
             onChangeText={setConfirmText}
             autoCapitalize="characters"
@@ -118,10 +118,10 @@ export default function DeleteAccountScreen() {
           accessibilityRole="button"
         >
           {loading ? (
-            <ActivityIndicator color={colors.textPrimary} />
+            <ActivityIndicator color={colors.textHi} />
           ) : (
             <>
-              <Ionicons name="trash" size={18} color={colors.textPrimary} />
+              <Ionicons name="trash" size={18} color={colors.textHi} />
               <Text style={styles.deleteText}>Delete My Account</Text>
             </>
           )}
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.sm,
   },
   deleteList: {
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   deleteItem: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: '600',
   },
   inputGroup: {
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
   },
   input: {
@@ -206,11 +206,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '700',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   textArea: {
     height: 80,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   finalWarning: {
     fontSize: 12,

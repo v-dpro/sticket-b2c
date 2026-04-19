@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   stat: {
     alignItems: 'center',
@@ -66,18 +66,18 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
 });
 

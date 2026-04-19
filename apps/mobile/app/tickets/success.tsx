@@ -13,8 +13,8 @@ export default function TicketSuccess() {
     <Screen>
       <View style={{ flex: 1, paddingTop: spacing['2xl'], gap: spacing.lg, justifyContent: 'space-between' }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '900' }}>Saved</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Your ticket is in Wallet.</Text>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '900' }}>Saved</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>Your ticket is in Wallet.</Text>
         </View>
 
         <View style={{ gap: spacing.md }}>

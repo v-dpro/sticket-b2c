@@ -59,7 +59,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   if (markers.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="map-outline" size={64} color={colors.textTertiary} />
+        <Ionicons name="map-outline" size={64} color={colors.textLo} />
         <Text style={styles.emptyTitle}>No venues to show</Text>
         <Text style={styles.emptyText}>Log some shows to see them here!</Text>
       </View>
@@ -69,7 +69,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   return (
     <View style={styles.container}>
       <View style={styles.webNotice}>
-        <Ionicons name="globe-outline" size={18} color={colors.textSecondary} />
+        <Ionicons name="globe-outline" size={18} color={colors.textMid} />
         <Text style={styles.webNoticeText}>Map view isn’t available on web yet — showing a venue list instead.</Text>
       </View>
 
@@ -89,7 +89,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
           </Pressable>
         ))}
       </ScrollView>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 16,
   },
   emptyContainer: {
@@ -125,12 +125,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(18, 19, 45, 0.9)',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   webNoticeText: {
     flex: 1,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
   },
   listContent: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   itemLeft: {
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -189,12 +189,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     fontWeight: '600',
   },
   itemSubtitle: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     marginTop: 2,
   },
@@ -207,10 +207,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   statsText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 12,
     fontWeight: '500',
   },

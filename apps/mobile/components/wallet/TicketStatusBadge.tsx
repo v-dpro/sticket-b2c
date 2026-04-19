@@ -13,7 +13,7 @@ const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string; bg: st
   KEEPING: { label: 'Keeping', color: colors.success, bg: 'rgba(34, 197, 94, 0.1)' },
   SELLING: { label: 'For Sale', color: colors.warning, bg: 'rgba(245, 158, 11, 0.1)' },
   SOLD: { label: 'Sold', color: colors.brandPurple, bg: 'rgba(139, 92, 246, 0.1)' },
-  TRANSFERRED: { label: 'Transferred', color: colors.textTertiary, bg: 'rgba(107, 107, 141, 0.1)' },
+  TRANSFERRED: { label: 'Transferred', color: colors.textLo, bg: 'rgba(107, 107, 141, 0.1)' },
 };
 
 export function TicketStatusBadge({ status, size = 'small' }: TicketStatusBadgeProps) {

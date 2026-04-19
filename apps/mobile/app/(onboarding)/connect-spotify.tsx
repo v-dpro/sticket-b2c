@@ -79,8 +79,8 @@ export default function ConnectSpotifyOnboarding() {
         </View>
 
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '800' }}>Connect Spotify</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>We’ll use your top artists to personalize Discover.</Text>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Connect Spotify</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>We’ll use your top artists to personalize Discover.</Text>
         </View>
 
         <View style={{ gap: spacing.md }}>

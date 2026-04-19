@@ -35,7 +35,7 @@ export function SettingsRow({
 
       {value ? <Text style={styles.value}>{value}</Text> : null}
 
-      {showChevron && onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} /> : null}
+      {showChevron && onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textLo} /> : null}
     </View>
   );
 
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   },
   border: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   iconContainer: {
     width: 32,
@@ -72,12 +72,12 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
   },
   value: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginRight: 8,
     fontWeight: '700',
   },

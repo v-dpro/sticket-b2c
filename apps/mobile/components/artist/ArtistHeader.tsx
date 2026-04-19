@@ -60,7 +60,7 @@ export function ArtistHeader({
 
       {/* Gradient Overlay */}
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.2)', 'rgba(10, 11, 30, 0.8)', colors.background]}
+        colors={['rgba(10, 11, 30, 0.2)', 'rgba(10, 11, 30, 0.8)', colors.ink]}
         style={styles.gradient}
       />
 
@@ -68,12 +68,12 @@ export function ArtistHeader({
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
           </BlurView>
         </Pressable>
         <Pressable onPress={onSharePress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+            <Ionicons name="share-outline" size={22} color={colors.textHi} />
           </BlurView>
         </Pressable>
       </View>
@@ -114,7 +114,7 @@ export function ArtistHeader({
                 <Ionicons
                   name="notifications-outline"
                   size={18}
-                  color={colors.textPrimary}
+                  color={colors.textHi}
                 />
                 <Text style={styles.followText}>Follow</Text>
               </LinearGradient>
@@ -200,13 +200,13 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
     marginBottom: 4,
   },
   genres: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 16,
   },
   actions: {
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followingButton: {
     flexDirection: 'row',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
 });
 

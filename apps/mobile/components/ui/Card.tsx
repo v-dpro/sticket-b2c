@@ -31,7 +31,7 @@ export function Card({ children, style, onPress, elevated = false, heroImage, he
         <View style={[styles.heroContainer, { height: heroHeight }]}>
           <Image source={{ uri: heroImage }} style={styles.heroImage} />
           <LinearGradient
-            colors={['transparent', `${colors.background}80`, colors.background]}
+            colors={['transparent', `${colors.ink}80`, colors.ink]}
             style={styles.heroOverlay}
           />
         </View>
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   noBorder: {

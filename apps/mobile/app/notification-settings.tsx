@@ -29,7 +29,7 @@ export default function NotificationSettingsScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Notification Settings</Text>
         {saving ? <ActivityIndicator size="small" color={colors.brandPurple} /> : <View style={{ width: 20 }} />}
@@ -45,8 +45,8 @@ export default function NotificationSettingsScreen() {
             <Switch
               value={prefs.pushEnabled}
               onValueChange={(value) => void updatePref('pushEnabled', value)}
-              trackColor={{ false: colors.border, true: colors.brandPurple }}
-              thumbColor={colors.textPrimary}
+              trackColor={{ false: colors.hairline, true: colors.brandPurple }}
+              thumbColor={colors.textHi}
             />
           </View>
         </View>
@@ -162,8 +162,8 @@ function SettingRow({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: colors.border, true: colors.brandPurple }}
-        thumbColor={colors.textPrimary}
+        trackColor={{ false: colors.hairline, true: colors.brandPurple }}
+        thumbColor={colors.textHi}
         disabled={disabled}
       />
     </View>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: spacing.md,
@@ -234,16 +234,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   masterLabel: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   masterDescription: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   settingRow: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   settingDisabled: {
     opacity: 0.5,
@@ -263,16 +263,16 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
   },
   settingDescription: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   textDisabled: {
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   emailOptions: {
     flexDirection: 'row',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   emailOptionSelected: {
     backgroundColor: 'rgba(139, 92, 246, 0.12)',
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   },
   emailOptionText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: '700',
   },
   emailOptionTextSelected: {

@@ -43,7 +43,7 @@ export function EventActions({
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
-              <Ionicons name="add-circle" size={20} color={colors.textPrimary} />
+              <Ionicons name="add-circle" size={20} color={colors.textHi} />
               <Text style={styles.buttonText}>I was there</Text>
             </LinearGradient>
           )}
@@ -58,7 +58,7 @@ export function EventActions({
                 end={{ x: 1, y: 0 }}
                 style={styles.gradient}
               >
-                <Ionicons name="ticket" size={20} color={colors.textPrimary} />
+                <Ionicons name="ticket" size={20} color={colors.textHi} />
                 <Text style={styles.buttonText}>Get Tickets</Text>
               </LinearGradient>
             </Pressable>
@@ -71,7 +71,7 @@ export function EventActions({
             <Ionicons
               name={isInterested ? 'heart' : 'heart-outline'}
               size={20}
-              color={isInterested ? colors.error : colors.textSecondary}
+              color={isInterested ? colors.error : colors.textMid}
             />
             <Text style={[styles.secondaryText, isInterested && styles.interestedText]}>
               {isInterested ? 'Interested' : 'Mark Interested'}
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   loggedButton: {
     backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   interestedActive: {
     borderColor: colors.error,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   secondaryText: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   interestedText: {
     color: colors.error,

@@ -21,7 +21,7 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
     <View style={styles.wrap}>
       <LinearGradient colors={[...gradients.rainbow]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.card}>
         <View style={styles.iconCircle}>
-          <Ionicons name={milestone.icon || 'sparkles'} size={18} color={colors.textPrimary} />
+          <Ionicons name={milestone.icon || 'sparkles'} size={18} color={colors.textHi} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{milestone.title}</Text>
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   subtitle: {
     fontSize: 12,

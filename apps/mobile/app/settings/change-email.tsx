@@ -39,7 +39,7 @@ export default function ChangeEmailScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Change Email</Text>
         <View style={{ width: 40 }} />
@@ -54,7 +54,7 @@ export default function ChangeEmailScreen() {
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={newEmail}
               onChangeText={setNewEmail}
               autoCapitalize="none"
@@ -69,7 +69,7 @@ export default function ChangeEmailScreen() {
             <TextInput
               style={styles.input}
               placeholder="Password"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -78,7 +78,7 @@ export default function ChangeEmailScreen() {
         </View>
 
         <Pressable style={[styles.submitButton, loading && styles.submitButtonDisabled]} onPress={() => void handleSubmit()} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Change Email</Text>}
+          {loading ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Change Email</Text>}
         </Pressable>
 
         <View style={{ height: 80 }} />
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: spacing.lg,
     fontWeight: '600',
   },
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
   },
   inputContainer: {
@@ -130,11 +130,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   input: {
     height: 48,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

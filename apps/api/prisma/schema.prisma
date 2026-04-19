@@ -9,37 +9,37 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(cuid())
-  email            String          @unique
-  phoneNumber      String?         @unique
-  passwordHash     String?
-  username         String          @unique
-  displayName      String?
-  bio              String?
-  avatarUrl        String?
-  city             String?
+  id           String  @id @default(cuid())
+  email        String  @unique
+  phoneNumber  String? @unique
+  passwordHash String?
+  username     String  @unique
+  displayName  String?
+  bio          String?
+  avatarUrl    String?
+  city         String?
 
   // OAuth providers
-  appleId          String?         @unique
-  googleId         String?         @unique
-  spotifyId        String?         @unique
-  spotifyUsername  String?
-  spotifyToken     String?
-  spotifyRefresh   String?
+  appleId            String?   @unique
+  googleId           String?   @unique
+  spotifyId          String?   @unique
+  spotifyUsername    String?
+  spotifyToken       String?
+  spotifyRefresh     String?
   spotifyTokenExpiry DateTime?
 
   // Legacy / optional
-  appleMusicId     String?
+  appleMusicId String?
 
   // Password reset
   resetToken       String?
   resetTokenExpiry DateTime?
 
   // Email verification (optional MVP)
-  emailVerified    Boolean         @default(false)
-  verifyToken      String?
+  emailVerified Boolean @default(false)
+  verifyToken   String?
 
-  privacySetting   PrivacySetting  @default(PUBLIC)
+  privacySetting PrivacySetting @default(PUBLIC)
 
   // Settings (mobile)
   activityVisibility PrivacySetting @default(FRIENDS)
@@ -47,15 +47,25 @@ model User {
   allowTagging       Boolean        @default(true)
   homeCity           String?
   distanceUnit       String         @default("miles") // miles, km
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+
+  // Redesign additions
+  xpTotal    Int       @default(0)
+  birthday   DateTime?
+  ethnicity  String?
+  pronouns   String?
+  education  String?
+  occupation String?
+  languages  String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   logs             UserLog[]
   tickets          UserTicket[]
   photos           LogPhoto[]
   showMedia        ShowMedia[]
-  following        Follow[]        @relation("Following")
-  followers        Follow[]        @relation("Followers")
+  following        Follow[]            @relation("Following")
+  followers        Follow[]            @relation("Followers")
   artistFollows    UserArtistFollow[]
   interestedEvents UserInterested[]
   badges           UserBadge[]
@@ -64,12 +74,16 @@ model User {
   tipUpvotes       TipUpvote[]
   seatViews        SeatView[]
   comments         Comment[]
-  logTagsGiven     LogTag[]        @relation("LogTagger")
-  logTagsReceived  LogTag[]        @relation("LogTagged")
+  logTagsGiven     LogTag[]            @relation("LogTagger")
+  logTagsReceived  LogTag[]            @relation("LogTagged")
   wasThere         WasThere[]
   presaleAlerts    PresaleAlert[]
   fanclubs         UserFanclub[]
   eventTracking    UserEventTracking[]
+  logLikes         LogLike[]
+  xpEntries        XpEntry[]
+  checkins         UserCheckin[]
+  hangMessages     HangMessage[]
 }
 
 enum PrivacySetting {
@@ -84,8 +98,8 @@ model Follow {
   followingId String
   createdAt   DateTime @default(now())
 
-  follower    User     @relation("Following", fields: [followerId], references: [id])
-  following   User     @relation("Followers", fields: [followingId], references: [id])
+  follower  User @relation("Following", fields: [followerId], references: [id])
+  following User @relation("Followers", fields: [followingId], references: [id])
 
   @@unique([followerId, followingId])
 }
@@ -134,10 +148,10 @@ model Event {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  artistId   String
-  artist     Artist   @relation(fields: [artistId], references: [id])
-  venueId    String
-  venue      Venue    @relation(fields: [venueId], references: [id])
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id])
+  venueId  String
+  venue    Venue  @relation(fields: [venueId], references: [id])
 
   logs       UserLog[]
   tickets    UserTicket[]
@@ -146,6 +160,8 @@ model Event {
   seatViews  SeatView[]
   userBadges UserBadge[]
   showMedia  ShowMedia[]
+  checkins   UserCheckin[]
+  hangThread HangThread?
 
   @@unique([artistId, venueId, date])
 }
@@ -161,31 +177,33 @@ model UserLog {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  userId     String
-  user       User           @relation(fields: [userId], references: [id])
-  eventId    String
-  event      Event          @relation(fields: [eventId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
 
-  photos     LogPhoto[]
-  comments   Comment[]
-  tags       LogTag[]
-  wasThere   WasThere[]
+  photos    LogPhoto[]
+  comments  Comment[]
+  tags      LogTag[]
+  wasThere  WasThere[]
+  likes     LogLike[]
+  xpEntries XpEntry[]
 
   @@unique([userId, eventId])
 }
 
 model LogTag {
-  id           String   @id @default(cuid())
-  createdAt    DateTime @default(now())
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
 
-  logId        String
-  log          UserLog  @relation(fields: [logId], references: [id], onDelete: Cascade)
+  logId String
+  log   UserLog @relation(fields: [logId], references: [id], onDelete: Cascade)
 
-  userId       String
-  user         User     @relation("LogTagger", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("LogTagger", fields: [userId], references: [id], onDelete: Cascade)
 
   taggedUserId String
-  taggedUser   User     @relation("LogTagged", fields: [taggedUserId], references: [id], onDelete: Cascade)
+  taggedUser   User   @relation("LogTagged", fields: [taggedUserId], references: [id], onDelete: Cascade)
 
   @@unique([logId, taggedUserId])
   @@index([taggedUserId])
@@ -194,27 +212,30 @@ model LogTag {
 model LogPhoto {
   id         String         @id @default(cuid())
   photoUrl   String
+  mediaKind  String         @default("image") // "image" | "video"
+  duration   Int? // video duration in seconds
+  thumbUrl   String? // video thumbnail URL
   visibility PrivacySetting @default(PUBLIC)
   isFlagged  Boolean        @default(false)
   createdAt  DateTime       @default(now())
 
-  logId      String
-  log        UserLog        @relation(fields: [logId], references: [id])
-  userId     String
-  user       User           @relation(fields: [userId], references: [id])
+  logId  String
+  log    UserLog @relation(fields: [logId], references: [id])
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
 }
 
 model ShowMedia {
   id          String   @id @default(cuid())
   uri         String
-  type        String   // "photo" | "video"
+  type        String // "photo" | "video"
   uploadedAt  DateTime @default(now())
   storagePath String?
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([eventId])
@@ -226,21 +247,21 @@ model ShowMedia {
 // ============================================
 
 model Presale {
-  id             String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Event info
-  artistName     String
-  tourName       String?
-  venueName      String
-  venueCity      String
-  venueState     String?
-  eventDate      DateTime
+  artistName String
+  tourName   String?
+  venueName  String
+  venueCity  String
+  venueState String?
+  eventDate  DateTime
 
   // Presale details
-  presaleType    String   // "Verified Fan", "Amex", "Fan Club", etc.
-  presaleStart   DateTime
-  presaleEnd     DateTime?
-  onsaleStart    DateTime?
+  presaleType  String // "Verified Fan", "Amex", "Fan Club", etc.
+  presaleStart DateTime
+  presaleEnd   DateTime?
+  onsaleStart  DateTime?
 
   // Access
   code           String?
@@ -249,13 +270,13 @@ model Presale {
   ticketUrl      String?
 
   // Metadata
-  source         String   // "ERP", "Manual", "Community"
-  notes          String?
+  source String // "ERP", "Manual", "Community"
+  notes  String?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  alerts         PresaleAlert[]
+  alerts PresaleAlert[]
 
   @@unique([artistName, venueName, eventDate, presaleType])
   @@index([artistName])
@@ -264,17 +285,17 @@ model Presale {
 }
 
 model PresaleAlert {
-  id          String   @id @default(cuid())
-  userId      String
-  presaleId   String
+  id        String @id @default(cuid())
+  userId    String
+  presaleId String
 
-  notifyStart Boolean  @default(true)
-  notifyCode  Boolean  @default(true)
+  notifyStart Boolean @default(true)
+  notifyCode  Boolean @default(true)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  presale     Presale  @relation(fields: [presaleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  presale Presale @relation(fields: [presaleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, presaleId])
   @@index([userId])
@@ -282,39 +303,39 @@ model PresaleAlert {
 }
 
 model UserTicket {
-  id                 String       @id @default(cuid())
+  id String @id @default(cuid())
 
   section            String?
   row                String?
   seat               String?
-  isGeneralAdmission Boolean      @default(false)
+  isGeneralAdmission Boolean @default(false)
 
-  barcode            String?
-  barcodeFormat      String       @default("UNKNOWN")
-  barcodeImageUrl    String?
+  barcode         String?
+  barcodeFormat   String  @default("UNKNOWN")
+  barcodeImageUrl String?
 
-  status             TicketStatus @default(KEEPING)
-  source             TicketSource @default(MANUAL)
+  status TicketStatus @default(KEEPING)
+  source TicketSource @default(MANUAL)
 
   // Phase 2 prep
-  askingPrice        Float?
+  askingPrice Float?
 
   purchasePrice      Float?
   purchaseDate       DateTime?
   confirmationNumber String?
   notes              String?
 
-  sourceEmail        String?
-  rawEmailId         String?
-  pdfUrl             String?
+  sourceEmail String?
+  rawEmailId  String?
+  pdfUrl      String?
 
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId             String
-  user               User         @relation(fields: [userId], references: [id])
-  eventId            String
-  event              Event        @relation(fields: [eventId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
 
   @@unique([userId, eventId, barcode])
   @@index([userId])
@@ -341,10 +362,10 @@ model UserInterested {
   notifyOnSale Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  eventId      String
-  event        Event    @relation(fields: [eventId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
 
   @@unique([userId, eventId])
 }
@@ -355,10 +376,10 @@ model UserArtistFollow {
   tier      String   @default("following") // "top-tier", "following", "casual"
   createdAt DateTime @default(now())
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  artistId  String
-  artist    Artist   @relation(fields: [artistId], references: [id])
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id])
 
   @@unique([userId, artistId])
   @@index([userId])
@@ -367,25 +388,25 @@ model UserArtistFollow {
 
 // NEW: Fanclub membership tracking (user self-reported)
 model UserFanclub {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   artistId    String
-  artistName  String   // Denormalized for display
-  fanclubName String   // "Taylor Nation", "BeyHive", etc.
+  artistName  String // Denormalized for display
+  fanclubName String // "Taylor Nation", "BeyHive", etc.
 
-  isMember    Boolean  @default(false)
+  isMember    Boolean   @default(false)
   memberSince DateTime?
   renewalDate DateTime?
-  cost        Float?   // Annual cost if known
-  signupUrl   String?  // Link to official signup
+  cost        Float? // Annual cost if known
+  signupUrl   String? // Link to official signup
 
-  notes       String?
+  notes String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, artistId])
   @@index([userId])
@@ -394,19 +415,19 @@ model UserFanclub {
 
 // NEW: User event tracking status (beyond just "interested")
 model UserEventTracking {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  status    String   // "interested", "watching-secondary", "presale-alert", "bought"
-  maxPrice  Float?   // For secondary market alerts
-  notes     String?
+  status   String // "interested", "watching-secondary", "presale-alert", "bought"
+  maxPrice Float? // For secondary market alerts
+  notes    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@index([userId])
@@ -419,10 +440,14 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  logId     String
-  log       UserLog  @relation(fields: [logId], references: [id])
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
+  logId  String
+  log    UserLog @relation(fields: [logId], references: [id])
+
+  parentId String?
+  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentThread")
 }
 
 model WasThere {
@@ -449,19 +474,19 @@ model Badge {
   criteria    Json
   createdAt   DateTime @default(now())
 
-  users       UserBadge[]
+  users UserBadge[]
 }
 
 model UserBadge {
-  id      String   @id @default(cuid())
+  id       String   @id @default(cuid())
   earnedAt DateTime @default(now())
 
   userId  String
-  user    User     @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
   badgeId String
-  badge   Badge    @relation(fields: [badgeId], references: [id])
+  badge   Badge   @relation(fields: [badgeId], references: [id])
   eventId String?
-  event   Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@unique([userId, badgeId])
   @@index([userId])
@@ -478,10 +503,10 @@ model VenueRating {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  venueId    String
-  venue      Venue    @relation(fields: [venueId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
 
   @@unique([userId, venueId])
 }
@@ -493,12 +518,12 @@ model VenueTip {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  venueId   String
-  venue     Venue    @relation(fields: [venueId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
 
-  upvotes   TipUpvote[]
+  upvotes TipUpvote[]
 
   @@index([venueId])
 }
@@ -515,20 +540,74 @@ model TipUpvote {
 }
 
 model SeatView {
-  id        String   @id @default(cuid())
-  section   String
-  row       String?
-  photoUrl  String
+  id           String   @id @default(cuid())
+  section      String
+  row          String?
+  photoUrl     String
   thumbnailUrl String?
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  venueId   String
-  venue     Venue    @relation(fields: [venueId], references: [id])
-  eventId   String?
-  event     Event?   @relation(fields: [eventId], references: [id])
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+  venueId String
+  venue   Venue   @relation(fields: [venueId], references: [id])
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id])
 }
 
+// ==================== REDESIGN MODELS ====================
 
+model LogLike {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logId     String
+  log       UserLog  @relation(fields: [logId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
+  @@unique([userId, logId])
+  @@index([logId])
+}
+
+model XpEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logId     String?
+  log       UserLog? @relation(fields: [logId], references: [id], onDelete: SetNull)
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model UserCheckin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+}
+
+model HangThread {
+  id        String        @id @default(cuid())
+  eventId   String        @unique
+  event     Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  messages  HangMessage[]
+  createdAt DateTime      @default(now())
+}
+
+model HangMessage {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    HangThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  pinned    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+}

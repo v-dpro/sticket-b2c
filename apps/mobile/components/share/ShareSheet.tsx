@@ -65,7 +65,7 @@ export function ShareSheet({
 
           <Pressable style={styles.option} onPress={onShareMore} accessibilityRole="button">
             <View style={[styles.iconContainer, { backgroundColor: '#6B6B8D20' }]}>
-              <Ionicons name="ellipsis-horizontal" size={24} color={colors.textTertiary} />
+              <Ionicons name="ellipsis-horizontal" size={24} color={colors.textLo} />
             </View>
             <Text style={styles.optionLabel}>More</Text>
           </Pressable>
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: colors.borderLight,
+    backgroundColor: colors.line,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 20,
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -125,10 +125,10 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   cancelButton: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../../../components/ui/Screen';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { SectionHead } from '../../../components/ui/SectionHead';
 import { colors, spacing } from '../../../lib/theme';
 import { useFeed } from '../../../hooks/useFeed';
 import { usePublicFeed } from '../../../hooks/usePublicFeed';
@@ -69,7 +70,7 @@ export default function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: FeedItem }) => (
-      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+      <View style={styles.cardWrapper}>
         <FeedCard item={item} onWasThere={handleWasThere} onComment={handleComment} onCommentAdded={addCommentToItem} />
       </View>
     ),
@@ -82,30 +83,39 @@ export default function FeedScreen() {
     if (!loadingMore) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={colors.brandPurple} />
+        <ActivityIndicator size="small" color={colors.brandCyan} />
       </View>
     );
   };
 
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.sectionHeadWrapper}>
+        <SectionHead eyebrow="LATEST LOGS" title="Tonight's dispatches" />
+      </View>
+    ),
+    []
+  );
+
   const emptyMessage = useMemo(() => {
     if (activeTab !== 'friends') return null;
-    
+
     // If there's an error, always show it
     if (error) {
       return error;
     }
-    
+
     // Only show "Sign in" if requiresAuth is true AND there's no user
     // If user exists, we should never show "Sign in" - show error instead
     if (requiresAuth && !user) {
       return 'Sign in to view your friends feed.';
     }
-    
+
     // If user exists but requiresAuth is true (shouldn't happen, but safety check)
     if (user && requiresAuth) {
       return 'Unable to load feed. Please try again.';
     }
-    
+
     return null;
   }, [activeTab, error, requiresAuth, user]);
 
@@ -113,8 +123,9 @@ export default function FeedScreen() {
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* Header — 64px, sticky */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Feed</Text>
+        <Text style={styles.wordmark}>sticket</Text>
         <View style={styles.headerActions}>
           <NotificationBellButton />
         </View>
@@ -132,7 +143,7 @@ export default function FeedScreen() {
         <FeedSkeleton />
       ) : emptyMessage ? (
         <View style={styles.center}>
-          <Ionicons name={user ? "refresh-outline" : "lock-closed-outline"} size={48} color={colors.textSecondary} />
+          <Ionicons name={user ? "refresh-outline" : "lock-closed-outline"} size={48} color={colors.textLo} />
           <Text style={styles.errorText}>{emptyMessage}</Text>
           {user ? (
             // User is signed in but feed failed - check if they need to sign in online
@@ -197,7 +208,8 @@ export default function FeedScreen() {
         data={items}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandPurple} colors={[colors.brandPurple]} />}
+        ListHeaderComponent={listHeader}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandCyan} colors={[colors.brandCyan]} />}
         onEndReached={() => {
           if (hasMore) loadMore();
         }}
@@ -213,17 +225,18 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   header: {
+    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
+    backgroundColor: colors.ink,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.textPrimary,
+  wordmark: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textHi,
+    letterSpacing: 1,
   },
   headerActions: {
     flexDirection: 'row',
@@ -231,10 +244,18 @@ const styles = StyleSheet.create({
   },
   tabBarContainer: {
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  sectionHeadWrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  cardWrapper: {
+    paddingHorizontal: 0,
+    paddingBottom: 14,
   },
   listContent: {
-    paddingTop: 4,
     paddingBottom: 110,
   },
   footer: {
@@ -248,7 +269,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   errorText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   retryButton: {
@@ -257,11 +278,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '800',
   },
   primaryButton: {
@@ -269,10 +290,6 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
-
-
-
-

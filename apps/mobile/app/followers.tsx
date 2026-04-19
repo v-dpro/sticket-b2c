@@ -27,7 +27,7 @@ function UserRow({ item, onPress }: { item: FollowUserListItem; onPress: () => v
           @{item.username}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+      <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
     </Pressable>
   );
 }
@@ -76,7 +76,7 @@ export default function FollowersScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.headerTitle}>Followers</Text>
         <View style={{ width: 40 }} />
@@ -96,7 +96,7 @@ export default function FollowersScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brandPurple} />}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
+              <Ionicons name="people-outline" size={48} color={colors.textLo} />
               <Text style={styles.emptyText}>No followers yet</Text>
             </View>
           }
@@ -109,7 +109,7 @@ export default function FollowersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   loading: {
     flex: 1,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   avatarPlaceholder: {
     backgroundColor: colors.surface,
@@ -155,18 +155,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   displayName: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     fontWeight: '600',
   },
   username: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     marginTop: 2,
   },
   separator: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     marginLeft: 16 + 44 + 12,
   },
   empty: {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

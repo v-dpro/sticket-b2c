@@ -44,7 +44,7 @@ export default function PreferencesScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Preferences</Text>
         <View style={{ width: 40 }} />
@@ -57,7 +57,7 @@ export default function PreferencesScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. New York"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={homeCity}
               onChangeText={setHomeCity}
               autoCapitalize="words"
@@ -91,7 +91,7 @@ export default function PreferencesScreen() {
           disabled={!canSave || saving}
           accessibilityRole="button"
         >
-          {saving ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.saveText}>Save</Text>}
+          {saving ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.saveText}>Save</Text>}
         </Pressable>
 
         <View style={{ height: 80 }} />
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 44,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -147,15 +147,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.hairline,
+    backgroundColor: colors.inkAlt,
   },
   segmentSelected: {
     backgroundColor: 'rgba(139, 92, 246, 0.12)',
     borderColor: colors.brandPurple,
   },
   segmentText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: '800',
     fontSize: 13,
   },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '800',
   },

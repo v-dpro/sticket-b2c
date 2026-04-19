@@ -18,7 +18,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       <View style={styles.container}>
         <Text style={styles.title}>Setlist</Text>
         <View style={styles.emptyContainer}>
-          <Ionicons name="musical-notes-outline" size={40} color={colors.textTertiary} />
+          <Ionicons name="musical-notes-outline" size={40} color={colors.textLo} />
           <Text style={styles.emptyText}>No setlist available</Text>
         </View>
       </View>
@@ -104,11 +104,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   count: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginLeft: 8,
   },
   emptyContainer: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
   },
   spoilerButton: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   spoilerHint: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   listContainer: {
@@ -156,23 +156,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   songNumber: {
     width: 24,
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   songInfo: {
     flex: 1,
   },
   songName: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   songNote: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   encoreDivider: {
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   encoreLabel: {
     fontSize: 12,

@@ -16,7 +16,7 @@ export function PhotoLightbox({ photo, onClose }: PhotoLightboxProps) {
     <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.lightbox}>
         <Pressable style={styles.closeButton} onPress={onClose}>
-          <Ionicons name="close" size={28} color={colors.textPrimary} />
+          <Ionicons name="close" size={28} color={colors.textHi} />
         </Pressable>
 
         {photo ? (
@@ -77,22 +77,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   userName: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   sectionText: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
 });

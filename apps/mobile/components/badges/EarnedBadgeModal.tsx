@@ -77,7 +77,7 @@ export function EarnedBadgeModal({
           origin={{ x: 0, y: 0 }}
           autoStart={false}
           fadeOut
-          colors={[rarityColor, colors.brandCyan, colors.brandPurple, colors.textPrimary]}
+          colors={[rarityColor, colors.brandCyan, colors.brandPurple, colors.textHi]}
         />
       </BlurView>
     </Modal>
@@ -93,11 +93,11 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     alignItems: 'center',
   },
   iconContainer: {
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 6,
     fontWeight: '700',
   },
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -138,12 +138,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   pillText: {
     fontSize: 11,
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     fontWeight: '900',
   },

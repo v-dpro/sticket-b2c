@@ -24,7 +24,7 @@ export function CompactLogCard({ log, onPress, style }: CompactLogCardProps) {
           <Image source={{ uri: imageUrl }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="musical-notes" size={18} color={colors.textTertiary} />
+            <Ionicons name="musical-notes" size={18} color={colors.textLo} />
           </View>
         )}
         <View style={styles.datePill}>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   imageWrap: {
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     height: 120,
   },
   imagePlaceholder: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   dateText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -93,13 +93,13 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   venue: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 6,
   },
   ratingRow: {

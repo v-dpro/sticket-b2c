@@ -77,11 +77,11 @@ export default function UserProfileScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={colors.textHi} />
           </Pressable>
         </View>
         <View style={styles.privateContainer}>
-          <Ionicons name="lock-closed" size={64} color={colors.textTertiary} />
+          <Ionicons name="lock-closed" size={64} color={colors.textLo} />
           <Text style={styles.privateTitle}>This account is private</Text>
           <Text style={styles.privateText}>Follow to see their shows</Text>
         </View>
@@ -117,7 +117,7 @@ export default function UserProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.headerTitle}>@{profile.username}</Text>
         <View style={{ width: 40 }} />
@@ -173,11 +173,11 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   privateContainer: {
     flex: 1,
@@ -205,12 +205,12 @@ const styles = StyleSheet.create({
   privateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
   },
   privateText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
   },
   mapScrollContent: {

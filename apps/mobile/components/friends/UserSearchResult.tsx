@@ -54,13 +54,13 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
         <View style={styles.meta}>
           {user.mutualFriends > 0 ? (
             <View style={styles.metaItem}>
-              <Ionicons name="people" size={12} color={colors.textTertiary} />
+              <Ionicons name="people" size={12} color={colors.textLo} />
               <Text style={styles.metaText}>{user.mutualFriends} mutual</Text>
             </View>
           ) : null}
           {user.showCount > 0 ? (
             <View style={styles.metaItem}>
-              <Ionicons name="musical-notes" size={12} color={colors.textTertiary} />
+              <Ionicons name="musical-notes" size={12} color={colors.textLo} />
               <Text style={styles.metaText}>{user.showCount} shows</Text>
             </View>
           ) : null}
@@ -82,7 +82,7 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
         hitSlop={6}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={user.isFollowing ? colors.brandPurple : colors.textPrimary} />
+          <ActivityIndicator size="small" color={user.isFollowing ? colors.brandPurple : colors.textHi} />
         ) : (
           <Text style={[styles.followText, user.isFollowing && styles.followingText]}>
             {user.isFollowing ? 'Following' : 'Follow'}
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   info: {
     flex: 1,
@@ -108,11 +108,11 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   username: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 1,
   },
   meta: {
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   followsYouBadge: {
     backgroundColor: 'rgba(139, 92, 246, 0.12)',
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followingText: {
     color: colors.brandPurple,

@@ -70,7 +70,7 @@ export function FeedbackModal({ visible, onClose, defaultType = 'bug', context }
           <View style={styles.header}>
             <Text style={styles.title}>Send Feedback</Text>
             <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
-              <Ionicons name="close" size={22} color={colors.textTertiary} />
+              <Ionicons name="close" size={22} color={colors.textLo} />
             </Pressable>
           </View>
 
@@ -87,7 +87,7 @@ export function FeedbackModal({ visible, onClose, defaultType = 'bug', context }
                   <Ionicons
                     name={t === 'bug' ? 'bug' : t === 'feature' ? 'bulb' : 'chatbubble'}
                     size={15}
-                    color={active ? colors.brandPurple : colors.textTertiary}
+                    color={active ? colors.brandPurple : colors.textLo}
                   />
                   <Text style={[styles.typeText, active && styles.typeTextActive]}>
                     {t === 'bug' ? 'Bug' : t === 'feature' ? 'Feature' : 'Other'}
@@ -100,7 +100,7 @@ export function FeedbackModal({ visible, onClose, defaultType = 'bug', context }
           <TextInput
             style={styles.input}
             placeholder={placeholder}
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={message}
             onChangeText={setMessage}
             multiline
@@ -113,7 +113,7 @@ export function FeedbackModal({ visible, onClose, defaultType = 'bug', context }
             disabled={sending}
             accessibilityRole="button"
           >
-            {sending ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Submit</Text>}
+            {sending ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Submit</Text>}
           </Pressable>
         </View>
       </BlurView>
@@ -131,11 +131,11 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   header: {
     flexDirection: 'row',
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   typeRow: {
     flexDirection: 'row',
@@ -161,9 +161,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: radius.sm,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   typeChipActive: {
     backgroundColor: 'rgba(139, 92, 246, 0.18)',
@@ -172,20 +172,20 @@ const styles = StyleSheet.create({
   typeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   typeTextActive: {
     color: colors.brandPurple,
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderRadius: radius.md,
     padding: spacing.md,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     height: 140,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     marginBottom: spacing.md,
   },
   submit: {
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

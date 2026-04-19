@@ -6,7 +6,7 @@ import type { BadgeRarity } from '../../types/badge';
 import { colors } from '../../lib/theme';
 
 export const RARITY_COLORS: Record<BadgeRarity, string> = {
-  common: colors.textTertiary,
+  common: colors.textLo,
   uncommon: colors.success,
   rare: colors.brandBlue,
   epic: colors.brandPurple,
@@ -34,12 +34,12 @@ export function BadgeIcon({
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderColor: earned ? c : colors.border,
-          backgroundColor: earned ? `${c}20` : colors.backgroundAlt,
+          borderColor: earned ? c : colors.hairline,
+          backgroundColor: earned ? `${c}20` : colors.inkAlt,
         },
       ]}
     >
-      <Ionicons name={icon as any} size={Math.round(size * 0.45)} color={earned ? c : colors.textTertiary} />
+      <Ionicons name={icon as any} size={Math.round(size * 0.45)} color={earned ? c : colors.textLo} />
     </View>
   );
 }

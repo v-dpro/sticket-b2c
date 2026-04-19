@@ -11,9 +11,9 @@ type TextFieldProps = ComponentProps<typeof TextInput> & {
 export function TextField({ label, errorText, style, ...props }: TextFieldProps) {
   return (
     <View style={{ gap: 6 }}>
-      {label ? <Text style={{ color: colors.textSecondary, fontSize: 14 }}>{label}</Text> : null}
+      {label ? <Text style={{ color: colors.textMid, fontSize: 14 }}>{label}</Text> : null}
       <TextInput
-        placeholderTextColor={colors.textTertiary}
+        placeholderTextColor={colors.textLo}
         selectionColor={colors.brandCyan}
         style={[
           {
@@ -21,9 +21,9 @@ export function TextField({ label, errorText, style, ...props }: TextFieldProps)
             borderRadius: radius.sm,
             backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: errorText ? colors.error : colors.border,
+            borderColor: errorText ? colors.error : colors.hairline,
             paddingHorizontal: 12,
-            color: colors.textPrimary,
+            color: colors.textHi,
             fontSize: 16,
           },
           style,

@@ -189,23 +189,23 @@ export default function LogSuccess() {
               shadowOffset: { width: 0, height: 14 },
             }}
           >
-            <Ionicons name="checkmark" size={52} color={colors.textPrimary} />
+            <Ionicons name="checkmark" size={52} color={colors.textHi} />
           </LinearGradient>
         </Animated.View>
 
         {/* Text stack */}
         <View style={{ alignItems: 'center', marginBottom: 32 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '900', marginBottom: 12 }}>You were there!</Text>
-          <Text style={{ color: colors.textPrimary, fontSize: 20, fontWeight: '900', marginBottom: 6 }}>{show.artist}</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 18, marginBottom: 4 }}>at {show.venue}</Text>
-          <Text style={{ color: colors.textTertiary, fontSize: 16 }}>{show.date}</Text>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '900', marginBottom: 12 }}>You were there!</Text>
+          <Text style={{ color: colors.textHi, fontSize: 20, fontWeight: '900', marginBottom: 6 }}>{show.artist}</Text>
+          <Text style={{ color: colors.textMid, fontSize: 18, marginBottom: 4 }}>at {show.venue}</Text>
+          <Text style={{ color: colors.textLo, fontSize: 16 }}>{show.date}</Text>
         </View>
 
         {/* Artist image ring */}
         {show.artistImage ? (
           <LinearGradient colors={gradients.rainbow} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 104, height: 104, borderRadius: 999, padding: 2 }}>
-            <View style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: colors.background, padding: 2 }}>
-              <View style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', backgroundColor: colors.surfaceElevated }}>
+            <View style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: colors.ink, padding: 2 }}>
+              <View style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', backgroundColor: colors.elevated }}>
                 <Image source={{ uri: show.artistImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
               </View>
             </View>
@@ -222,7 +222,7 @@ export default function LogSuccess() {
           style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
         >
           <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '900' }}>Add Details</Text>
+            <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '900' }}>Add Details</Text>
           </LinearGradient>
         </Pressable>
 
@@ -233,8 +233,8 @@ export default function LogSuccess() {
           }}
           style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
         >
-          <View style={{ height: 56, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
-            <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '900' }}>Done</Text>
+          <View style={{ height: 56, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.hairline, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+            <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '900' }}>Done</Text>
           </View>
         </Pressable>
       </View>

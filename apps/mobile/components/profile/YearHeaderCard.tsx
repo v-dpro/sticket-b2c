@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   topRow: {
     marginBottom: 8,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   year: {
     fontSize: 32,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     letterSpacing: -0.5,
   },
   topYearBadge: {
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   yearStats: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 20,
   },
   statValue: {
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     overflow: 'hidden',
   },
   progressFill: {
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
 });

@@ -144,10 +144,10 @@ export default function LogDetails() {
     <Screen>
       <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800' }}>
+          <Text style={{ color: colors.textHi, fontSize: 24, fontWeight: '800' }}>
             {existingLogId ? 'Edit log' : 'Add details'}
           </Text>
-          {eventName ? <Text style={{ color: colors.textSecondary }}>{eventName}</Text> : null}
+          {eventName ? <Text style={{ color: colors.textMid }}>{eventName}</Text> : null}
         </View>
 
         <TextField label="Rating (1-10)" keyboardType="numeric" placeholder="9" value={rating} onChangeText={setRating} />

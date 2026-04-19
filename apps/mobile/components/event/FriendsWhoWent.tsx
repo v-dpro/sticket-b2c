@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   seeAll: {
     fontSize: 14,
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   ratingBadge: {

@@ -14,7 +14,7 @@ export function EmptySearch({ query, searched }: EmptySearchProps) {
 
   return (
     <View style={styles.container}>
-      <Ionicons name="search-outline" size={48} color={colors.border} />
+      <Ionicons name="search-outline" size={48} color={colors.hairline} />
       <Text style={styles.title}>No results for "{query}"</Text>
       <Text style={styles.subtitle}>Try different keywords or check the spelling</Text>
     </View>
@@ -32,13 +32,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: spacing.md,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: spacing.sm,
     textAlign: 'center',
   },

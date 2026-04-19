@@ -106,8 +106,8 @@ export default function FindFriendsOnboarding() {
 
       <View style={{ flex: 1, paddingTop: spacing.xl, gap: spacing.lg }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '800' }}>Find friends</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>See what shows your friends are going to.</Text>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Find friends</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>See what shows your friends are going to.</Text>
         </View>
 
         <Pressable style={styles.syncButton} onPress={syncContacts} disabled={isSyncing}>
@@ -119,15 +119,15 @@ export default function FindFriendsOnboarding() {
         </Pressable>
 
         <View style={{ flex: 1, gap: 8 }}>
-          {listEmptyText ? <Text style={{ color: colors.textTertiary }}>{listEmptyText}</Text> : null}
+          {listEmptyText ? <Text style={{ color: colors.textLo }}>{listEmptyText}</Text> : null}
 
           {suggestions.map((u) => {
             const isFollowing = followedIds.has(u.id);
             return (
               <View key={u.id} style={styles.card}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700' }}>{u.name}</Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{u.subtitle}</Text>
+                  <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '700' }}>{u.name}</Text>
+                  <Text style={{ color: colors.textMid, fontSize: 13 }}>{u.subtitle}</Text>
                 </View>
 
                 <Pressable
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   skipText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   followText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
     fontSize: 13,
   },
   followingText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
 });
 

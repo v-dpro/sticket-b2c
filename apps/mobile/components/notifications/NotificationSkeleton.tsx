@@ -39,13 +39,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     marginRight: spacing.md,
   },
   content: {
@@ -55,14 +55,14 @@ const styles = StyleSheet.create({
   line1: {
     width: '80%',
     height: 14,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     borderRadius: 4,
     marginBottom: spacing.sm,
   },
   line2: {
     width: '40%',
     height: 12,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     borderRadius: 4,
   },
 });

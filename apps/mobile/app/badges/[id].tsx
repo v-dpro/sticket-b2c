@@ -33,7 +33,7 @@ export default function BadgeDetailScreen() {
     <Screen>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.iconButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.headerTitle}>Badge</Text>
         <View style={styles.iconButton} />
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 18,
     fontWeight: '900',
   },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   muted: {
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   content: {
     paddingTop: spacing.lg,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   title: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   description: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -190,8 +190,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
+    borderColor: colors.hairline,
+    backgroundColor: colors.ink,
   },
   pillText: {
     fontSize: 11,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   earnedAt: {
     marginTop: 6,
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -207,17 +207,17 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   sectionTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     fontWeight: '900',
     marginBottom: 8,
   },
   sectionText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     lineHeight: 18,
   },

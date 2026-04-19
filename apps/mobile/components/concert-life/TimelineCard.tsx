@@ -135,7 +135,7 @@ export function TimelineCard({
           ) : null}
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
       </View>
     </TouchableOpacity>
   );
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: 16,
   },
   content: {
@@ -173,16 +173,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   venue: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 4,
   },
   date: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 8,
   },
   today: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   note: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontStyle: 'italic',
   },
   seatInfo: {
@@ -206,10 +206,10 @@ const styles = StyleSheet.create({
   },
   maxPrice: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   maxPriceValue: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
   },
   codeWrapper: {

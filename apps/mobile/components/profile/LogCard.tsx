@@ -25,14 +25,14 @@ export function LogCard({ log, onPress }: LogCardProps) {
           <Image source={{ uri: event.artist.imageUrl }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="musical-notes" size={24} color={colors.textTertiary} />
+            <Ionicons name="musical-notes" size={24} color={colors.textLo} />
           </View>
         )}
 
         {/* Photo count badge */}
         {photos.length > 1 ? (
           <View style={styles.photoBadge}>
-            <Ionicons name="images" size={12} color={colors.textPrimary} />
+            <Ionicons name="images" size={12} color={colors.textHi} />
             <Text style={styles.photoCount}>{photos.length}</Text>
           </View>
         ) : null}
@@ -55,14 +55,14 @@ export function LogCard({ log, onPress }: LogCardProps) {
 
           {_count && _count.comments > 0 ? (
             <View style={styles.commentContainer}>
-              <Ionicons name="chatbubble-outline" size={14} color={colors.textTertiary} />
+              <Ionicons name="chatbubble-outline" size={14} color={colors.textLo} />
               <Text style={styles.commentCount}>{_count.comments}</Text>
             </View>
           ) : null}
         </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+      <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
     </Pressable>
   );
 }
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   imagePlaceholder: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   photoCount: {
     fontSize: 10,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '600',
   },
   content: {
@@ -114,17 +114,17 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   venueName: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 2,
   },
   date: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 4,
   },
   bottomRow: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   commentCount: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

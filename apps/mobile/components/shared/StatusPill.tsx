@@ -22,8 +22,8 @@ const config = {
     icon: 'notifications-outline' as const,
   },
   upcoming: {
-    bg: colors.surfaceElevated,
-    color: colors.textSecondary,
+    bg: colors.elevated,
+    color: colors.textMid,
     icon: 'calendar-outline' as const,
   },
   tracking: {

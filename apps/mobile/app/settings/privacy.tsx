@@ -42,7 +42,7 @@ export default function PrivacySettingsScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Privacy</Text>
         {saving ? <Ionicons name="sync" size={18} color={colors.brandPurple} /> : <View style={{ width: 20 }} />}
@@ -122,14 +122,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
   },
   description: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     lineHeight: 18,
     paddingHorizontal: 16,
     marginTop: spacing.lg,

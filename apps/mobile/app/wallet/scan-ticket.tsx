@@ -66,7 +66,7 @@ export default function ScanTicketScreen() {
         onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
       >
         <Pressable style={styles.closeButton} onPress={goBack} hitSlop={10}>
-          <Ionicons name="close" size={28} color={colors.textPrimary} />
+          <Ionicons name="close" size={28} color={colors.textHi} />
         </Pressable>
 
         <View style={styles.scanFrame}>
@@ -87,7 +87,7 @@ export default function ScanTicketScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   camera: {
     flex: 1,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   instructionText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -164,13 +164,13 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
     marginBottom: 8,
   },
   permissionText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

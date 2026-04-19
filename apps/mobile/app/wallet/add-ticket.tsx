@@ -120,7 +120,7 @@ export default function AddTicketScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="close" size={24} color={colors.textPrimary} />
+          <Ionicons name="close" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Add Ticket</Text>
         <Pressable onPress={() => router.push('/wallet/scan-ticket')}>
@@ -141,7 +141,7 @@ export default function AddTicketScreen() {
                 <Text style={styles.selectedDate}>{new Date(selectedEvent.date).toLocaleDateString()}</Text>
               </View>
               <Pressable onPress={() => setSelectedEvent(null)}>
-                <Ionicons name="close-circle" size={24} color={colors.textTertiary} />
+                <Ionicons name="close-circle" size={24} color={colors.textLo} />
               </Pressable>
             </View>
           ) : showManualEntry ? (
@@ -149,14 +149,14 @@ export default function AddTicketScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Artist name"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textLo}
                 value={artistName}
                 onChangeText={setArtistName}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Venue name"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textLo}
                 value={venueName}
                 onChangeText={setVenueName}
               />
@@ -183,7 +183,7 @@ export default function AddTicketScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Search for event..."
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textLo}
                 value={eventSearch}
                 onChangeText={handleEventSearch}
               />
@@ -216,8 +216,8 @@ export default function AddTicketScreen() {
             <Switch
               value={isGA}
               onValueChange={setIsGA}
-              trackColor={{ false: colors.border, true: colors.brandPurple }}
-              thumbColor={colors.textPrimary}
+              trackColor={{ false: colors.hairline, true: colors.brandPurple }}
+              thumbColor={colors.textHi}
             />
           </View>
 
@@ -226,21 +226,21 @@ export default function AddTicketScreen() {
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Section"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textLo}
                 value={section}
                 onChangeText={setSection}
               />
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Row"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textLo}
                 value={row}
                 onChangeText={setRow}
               />
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Seat"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textLo}
                 value={seat}
                 onChangeText={setSeat}
                 keyboardType="numeric"
@@ -255,7 +255,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Enter barcode number"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={barcode}
             onChangeText={setBarcode}
           />
@@ -269,7 +269,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Confirmation number"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={confirmationNumber}
             onChangeText={setConfirmationNumber}
           />
@@ -277,7 +277,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Purchase price"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={purchasePrice}
             onChangeText={setPurchasePrice}
             keyboardType="decimal-pad"
@@ -286,7 +286,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder="Notes"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -307,10 +307,10 @@ export default function AddTicketScreen() {
             style={styles.gradient}
           >
             {loading ? (
-              <ActivityIndicator color={colors.textPrimary} />
+              <ActivityIndicator color={colors.textHi} />
             ) : (
               <>
-                <Ionicons name="ticket" size={20} color={colors.textPrimary} />
+                <Ionicons name="ticket" size={20} color={colors.textHi} />
                 <Text style={styles.submitText}>Add Ticket</Text>
               </>
             )}
@@ -324,7 +324,7 @@ export default function AddTicketScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 12,
   },
   input: {
@@ -362,11 +362,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   selectedEvent: {
     flexDirection: 'row',
@@ -383,16 +383,16 @@ const styles = StyleSheet.create({
   selectedArtist: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   selectedVenue: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   selectedDate: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   searchingIndicator: {
@@ -407,16 +407,16 @@ const styles = StyleSheet.create({
   searchResult: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   resultArtist: {
     fontSize: 15,
     fontWeight: '500',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   resultDetails: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   manualLink: {
@@ -435,11 +435,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   dateButtonText: {
     fontSize: 16,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   searchInstead: {
     fontSize: 14,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   },
   gaLabel: {
     fontSize: 16,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   seatInputs: {
     flexDirection: 'row',
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: -4,
   },
   notesInput: {
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     paddingBottom: 34,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   submitButton: {
     borderRadius: 12,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

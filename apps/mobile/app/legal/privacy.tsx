@@ -17,7 +17,7 @@ export default function PrivacyPolicyScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Privacy Policy</Text>
         <View style={{ width: 40 }} />
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   content: {
     flex: 1,
@@ -113,27 +113,27 @@ const styles = StyleSheet.create({
   lastUpdated: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   paragraph: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 22,
     marginBottom: spacing.sm,
   },
   bullet: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 22,
     marginLeft: 8,
     marginBottom: 4,

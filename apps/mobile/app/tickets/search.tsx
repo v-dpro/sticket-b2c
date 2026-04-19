@@ -42,13 +42,13 @@ export default function TicketsSearchArtist() {
     <Screen>
       <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '800' }}>Add a ticket</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Search an artist to find the event.</Text>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Add a ticket</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>Search an artist to find the event.</Text>
         </View>
 
         <TextField placeholder="Search artists" value={query} onChangeText={setQuery} />
 
-        <Text style={{ color: colors.textTertiary, fontSize: 12 }}>{isLoading ? 'Searching…' : ' '}</Text>
+        <Text style={{ color: colors.textLo, fontSize: 12 }}>{isLoading ? 'Searching…' : ' '}</Text>
 
         <View style={{ gap: 8 }}>
           {results.map((a) => (
@@ -59,14 +59,14 @@ export default function TicketsSearchArtist() {
                 padding: 14,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: colors.hairline,
                 backgroundColor: colors.surface,
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '600' }}>{a.name}</Text>
+              <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '600' }}>{a.name}</Text>
               {a.genres.length ? (
-                <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 4 }}>{a.genres.join(' • ')}</Text>
+                <Text style={{ color: colors.textLo, fontSize: 12, marginTop: 4 }}>{a.genres.join(' • ')}</Text>
               ) : null}
             </Pressable>
           ))}

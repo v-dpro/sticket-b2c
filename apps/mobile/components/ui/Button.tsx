@@ -44,10 +44,10 @@ const variantStyles: Record<
   NewButtonVariant,
   { bg: string; border?: string; text: string; useGradient?: boolean; spinner: string }
 > = {
-  primary: { bg: colors.primary, text: colors.textPrimary, useGradient: true, spinner: colors.textPrimary },
+  primary: { bg: colors.primary, text: colors.textHi, useGradient: true, spinner: colors.textHi },
   secondary: { bg: 'transparent', border: colors.brandPurple, text: colors.brandPurple, spinner: colors.brandPurple },
-  ghost: { bg: 'transparent', text: colors.textPrimary, spinner: colors.brandPurple },
-  destructive: { bg: colors.error, text: colors.textPrimary, spinner: colors.textPrimary },
+  ghost: { bg: 'transparent', text: colors.textHi, spinner: colors.brandPurple },
+  destructive: { bg: colors.error, text: colors.textHi, spinner: colors.textHi },
 };
 
 const sizeStyles: Record<ButtonSize, { height?: number; paddingV: number; paddingH: number; fontSize: number }> = {

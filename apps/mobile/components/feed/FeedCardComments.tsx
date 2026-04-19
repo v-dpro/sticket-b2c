@@ -50,16 +50,16 @@ const styles = StyleSheet.create({
   },
   commentText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 18,
   },
   username: {
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   viewAll: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 10,
   },
 });

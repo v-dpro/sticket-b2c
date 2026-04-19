@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandPurple,
   },
   dotInactive: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
 });
 

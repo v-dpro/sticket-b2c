@@ -32,7 +32,7 @@ export function EmptyState(props: LegacyProps | NewProps) {
     <View style={styles.container}>
       <View style={styles.iconContainer}>
         <LinearGradient colors={gradients.accent} style={styles.iconGradient}>
-          <Ionicons name={icon} size={40} color={colors.textPrimary} />
+          <Ionicons name={icon} size={40} color={colors.textHi} />
         </LinearGradient>
       </View>
 
@@ -57,12 +57,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   legacyTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     fontWeight: '700',
   },
   legacyMessage: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   container: {
@@ -83,13 +83,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   description: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 280,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

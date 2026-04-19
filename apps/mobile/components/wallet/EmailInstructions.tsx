@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   iconContainer: {
     width: 64,
@@ -78,19 +78,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
   },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     marginBottom: 12,
   },
   emailContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 18,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   supportedTitle: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 8,
   },
   supportedRow: {
@@ -123,14 +123,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   badge: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   badgeText: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
 });
 

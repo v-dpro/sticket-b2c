@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: 16,
   },
   header: {
@@ -62,12 +62,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '900',
     fontSize: 16,
   },
   body: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 20,
   },
   actions: {
@@ -83,19 +83,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondary: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   secondaryText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
   },
   primary: {
     backgroundColor: colors.brandPurple,
   },
   primaryText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '800',
   },
 });

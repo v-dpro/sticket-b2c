@@ -32,8 +32,8 @@ export default function DoneOnboarding() {
     <Screen>
       <View style={{ flex: 1, paddingTop: spacing.xl, gap: spacing.lg, justifyContent: 'space-between' }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '800' }}>You’re all set</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>You’re all set</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>
             Let’s discover your next show.
           </Text>
         </View>

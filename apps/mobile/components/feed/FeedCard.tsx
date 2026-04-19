@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   commentInputWrap: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
   },
 });
 

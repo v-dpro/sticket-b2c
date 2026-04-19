@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     bottom: 8,
     height: 5,
     borderRadius: 999,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     overflow: 'hidden',
   },
   progressFill: {
@@ -73,11 +73,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   nameUnearned: {
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   rarityPill: {
     marginTop: 6,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 6,
   },
 });

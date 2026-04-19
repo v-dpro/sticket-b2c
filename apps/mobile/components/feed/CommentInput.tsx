@@ -30,7 +30,7 @@ export function CommentInput({ onSubmit, onCancel }: CommentInputProps) {
       <TextInput
         style={styles.input}
         placeholder="Add a comment..."
-        placeholderTextColor={colors.textTertiary}
+        placeholderTextColor={colors.textLo}
         value={text}
         onChangeText={setText}
         multiline
@@ -40,7 +40,7 @@ export function CommentInput({ onSubmit, onCancel }: CommentInputProps) {
 
       <View style={styles.actions}>
         <Pressable style={styles.iconButton} onPress={onCancel} accessibilityRole="button">
-          <Ionicons name="close" size={20} color={colors.textTertiary} />
+          <Ionicons name="close" size={20} color={colors.textLo} />
         </Pressable>
 
         <Pressable
@@ -49,7 +49,7 @@ export function CommentInput({ onSubmit, onCancel }: CommentInputProps) {
           disabled={!text.trim() || submitting}
           accessibilityRole="button"
         >
-          {submitting ? <ActivityIndicator size="small" color={colors.textPrimary} /> : <Ionicons name="send" size={18} color={colors.textPrimary} />}
+          {submitting ? <ActivityIndicator size="small" color={colors.textHi} /> : <Ionicons name="send" size={18} color={colors.textHi} />}
         </Pressable>
       </View>
     </View>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   input: {
     flex: 1,
@@ -69,11 +69,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     maxHeight: 110,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   actions: {
     flexDirection: 'row',
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   submitButton: {
     width: 36,

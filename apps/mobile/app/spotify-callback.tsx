@@ -11,8 +11,8 @@ export default function SpotifyCallback() {
     <Screen>
       <Stack.Screen options={{ title: 'Spotify' }} />
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg, gap: spacing.sm }}>
-        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '800' }}>Spotify callback</Text>
-        <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>
+        <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '800' }}>Spotify callback</Text>
+        <Text style={{ color: colors.textMid, textAlign: 'center' }}>
           You can close this screen and return to the app.
         </Text>
       </View>

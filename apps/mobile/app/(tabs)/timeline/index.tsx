@@ -7,8 +7,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useConcertLife } from '../../../hooks/useConcertLife';
 import { TimelineCard } from '../../../components/concert-life/TimelineCard';
-import { colors, gradients } from '../../../lib/theme';
+import { colors, radius } from '../../../lib/theme';
 import { HeroTimelineCard } from '../../../components/concert-life/HeroTimelineCard';
+import { Eyebrow } from '../../../components/ui/Eyebrow';
+import { StatPill } from '../../../components/ui/StatPill';
 
 type UpcomingItem = any & { itemType: 'ticket' | 'tracking' | 'presale' };
 
@@ -26,23 +28,13 @@ function startOfTodayLocal() {
 
 function TimelineRail() {
   return (
-    <LinearGradient
-      colors={gradients.rainbow}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.timelineLine}
-    />
+    <View style={styles.timelineLine} />
   );
 }
 
 function MonthDot() {
   return (
-    <LinearGradient
-      colors={gradients.primary}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.monthDot}
-    />
+    <View style={styles.monthDot} />
   );
 }
 
@@ -116,6 +108,14 @@ export default function MyConcertLifeScreen() {
     return new Set(keys).size;
   }, [allForwardItems, pastLogs]);
 
+  const venuesCount = useMemo(() => {
+    const all = [...pastLogs, ...allForwardItems];
+    const keys = all
+      .map((x: any) => x?.event?.venue?.id ?? x?.event?.venue?.name ?? x?.venueName)
+      .filter(Boolean) as string[];
+    return new Set(keys).size;
+  }, [allForwardItems, pastLogs]);
+
   const upcomingCount = useMemo(() => {
     // Count unique upcoming events (tickets/logs/tracking) excluding presales.
     const start = startOfTodayLocal().getTime();
@@ -126,6 +126,8 @@ export default function MyConcertLifeScreen() {
       .filter(Boolean) as string[];
     return new Set(ids).size;
   }, [allForwardItems]);
+
+  const totalShows = (stats?.totalShows || 0) + upcomingCount;
 
   const renderHeroForItem = (item: any) => {
     const event = item.event;
@@ -209,40 +211,26 @@ export default function MyConcertLifeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Concert Life</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/wallet')} activeOpacity={0.8}>
-            <Ionicons name="ticket-outline" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/notifications')} activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
+        <View>
+          <Eyebrow text="UPCOMING" color={colors.brandPurple} />
+          <Text style={styles.title}>Plans</Text>
         </View>
+        <Text style={styles.showCount}>{totalShows} SHOWS</Text>
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{stats?.totalShows || 0}</Text>
-            <Text style={styles.statLabel}>Shows</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{upcomingCount}</Text>
-            <Text style={styles.statLabel}>Upcoming</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{artistsCount}</Text>
-            <Text style={styles.statLabel}>Artists</Text>
-          </View>
+          <StatPill value={stats?.totalShows || 0} label="Shows" color={colors.textHi} style={styles.statPill} />
+          <StatPill value={upcomingCount} label="Upcoming" color={colors.lime} style={styles.statPill} />
+          <StatPill value={artistsCount} label="Artists" color={colors.brandPink} style={styles.statPill} />
+          <StatPill value={venuesCount} label="Venues" color={colors.brandCyan} style={styles.statPill} />
         </View>
       </View>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandCyan} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandPurple} />}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
@@ -252,8 +240,8 @@ export default function MyConcertLifeScreen() {
           </View>
         ) : error ? (
           <View style={styles.emptyState}>
-            <Ionicons name="alert-circle-outline" size={64} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>Couldn’t load your timeline</Text>
+            <Ionicons name="alert-circle-outline" size={64} color={colors.textLo} />
+            <Text style={styles.emptyTitle}>Couldn't load your timeline</Text>
             <Text style={styles.emptyText}>{error}</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={refresh} activeOpacity={0.85}>
               <Text style={styles.emptyButtonText}>Retry</Text>
@@ -261,7 +249,7 @@ export default function MyConcertLifeScreen() {
           </View>
         ) : Object.keys(groupedAllTimelineItems).length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="musical-notes-outline" size={64} color={colors.textTertiary} />
+            <Ionicons name="musical-notes-outline" size={64} color={colors.textLo} />
             <Text style={styles.emptyTitle}>No concert activity yet</Text>
             <Text style={styles.emptyText}>Log a show, add a ticket, or track an event</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(tabs)/discover')} activeOpacity={0.85}>
@@ -272,35 +260,46 @@ export default function MyConcertLifeScreen() {
           <View style={styles.timeline}>
             <TimelineRail />
 
-            {Object.entries(groupedAllTimelineItems).map(([monthYear, items]) => (
-              <View key={monthYear}>
-                <View style={styles.monthHeader}>
-                  <View style={styles.dotColumn}>
-                    <MonthDot />
-                  </View>
-                  <View style={styles.monthLine} />
-                  <Text style={styles.monthText}>{monthYear}</Text>
-                  <View style={styles.monthLine} />
-                </View>
+            {Object.entries(groupedAllTimelineItems).map(([monthYear, items]) => {
+              const parts = monthYear.split(' ');
+              const month = parts[0];
+              const year = parts[1];
 
-                {(items as any[]).map((item) => {
-                  const itemDate = new Date(item.date).getTime();
-                  const isUpcoming = itemDate >= startOfTodayLocal().getTime();
-                  const dotStyle = isUpcoming ? styles.dotCyan : styles.dotPurple;
+              return (
+                <View key={monthYear}>
+                  {/* Year marker */}
+                  <Text style={styles.yearMarker}>{year}</Text>
 
-                  return (
-                    <View key={`${item.itemType}-${item.id}`} style={styles.timelineRow}>
+                  <View style={styles.monthHeader}>
                     <View style={styles.dotColumn}>
-                        <View style={[styles.timelineDot, dotStyle]} />
+                      <MonthDot />
                     </View>
-                    <View style={styles.rowContent}>
-                        {renderHeroForItem(item)}
-                    </View>
+                    <Text style={styles.monthText}>{month.toUpperCase()}</Text>
                   </View>
-                  );
-                })}
-              </View>
-            ))}
+
+                  {(items as any[]).map((item) => {
+                    const itemDate = new Date(item.date).getTime();
+                    const isUpcoming = itemDate >= startOfTodayLocal().getTime();
+
+                    return (
+                      <View key={`${item.itemType}-${item.id}`} style={styles.timelineRow}>
+                        <View style={styles.dotColumn}>
+                          <View style={[styles.timelineDot, isUpcoming ? styles.dotPurple : styles.dotMuted]} />
+                        </View>
+                        <View style={styles.rowContent}>
+                          {isUpcoming && (
+                            <View style={styles.upcomingBadge}>
+                              <Text style={styles.upcomingBadgeText}>UPCOMING</Text>
+                            </View>
+                          )}
+                          {renderHeroForItem(item)}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -311,64 +310,43 @@ export default function MyConcertLifeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
+    fontSize: 34,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    color: colors.textHi,
+    marginTop: 4,
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+  showCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMid,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   statsContainer: {
     marginHorizontal: 24,
     marginBottom: 16,
     padding: 16,
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: radius.lg,
   },
   statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 8,
   },
-  statItem: {
+  statPill: {
     flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: colors.border,
   },
   content: {
     flex: 1,
@@ -383,7 +361,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -396,6 +374,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
+    backgroundColor: colors.hairline,
   },
   dotColumn: {
     width: 40,
@@ -411,48 +390,62 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.ink,
     zIndex: 1,
   },
   rowContent: {
     flex: 1,
   },
-  dotSuccess: {
-    backgroundColor: colors.success,
-  },
-  dotCyan: {
-    backgroundColor: colors.brandCyan,
-  },
-  dotWarning: {
-    backgroundColor: colors.warning,
-  },
   dotPurple: {
     backgroundColor: colors.brandPurple,
+  },
+  dotMuted: {
+    backgroundColor: colors.textLo,
+  },
+  yearMarker: {
+    fontSize: 56,
+    fontWeight: '400',
+    color: colors.textLo,
+    marginTop: 24,
+    marginBottom: 4,
+    paddingLeft: 56,
   },
   monthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginBottom: 16,
-    marginTop: 10,
+    marginTop: 4,
   },
   monthDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
+    backgroundColor: colors.brandPurple,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.ink,
     zIndex: 1,
   },
-  monthLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
   monthText: {
-    fontSize: 13,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'monospace',
+    color: colors.brandPurple,
+    letterSpacing: 2,
+  },
+  upcomingBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(139,92,246,0.14)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  upcomingBadgeText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: colors.brandCyan,
+    color: colors.brandPurple,
+    letterSpacing: 1,
   },
   emptyState: {
     alignItems: 'center',
@@ -462,13 +455,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
@@ -476,14 +469,12 @@ const styles = StyleSheet.create({
   emptyButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: radius.md,
     backgroundColor: colors.brandPurple,
   },
   emptyButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
-
-

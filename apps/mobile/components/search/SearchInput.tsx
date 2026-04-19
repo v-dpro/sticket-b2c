@@ -43,12 +43,12 @@ export function SearchInput({
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={colors.textLo} style={styles.searchIcon} />
         <TextInput
           ref={inputRef}
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor={colors.textTertiary}
+          placeholderTextColor={colors.textLo}
           value={value}
           onChangeText={onChangeText}
           autoCapitalize="none"
@@ -58,7 +58,7 @@ export function SearchInput({
         />
         {value.length > 0 && (
           <Pressable onPress={onClear} style={styles.clearButton} hitSlop={8} accessibilityRole="button">
-            <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            <Ionicons name="close-circle" size={18} color={colors.textLo} />
           </Pressable>
         )}
       </View>
@@ -67,7 +67,7 @@ export function SearchInput({
         <View style={styles.actions}>
           {rightAccessory}
           <Pressable onPress={handleCancel} style={styles.cancelButton} hitSlop={8} accessibilityRole="button">
-            <Ionicons name="close" size={22} color={colors.textSecondary} />
+            <Ionicons name="close" size={22} color={colors.textMid} />
           </Pressable>
         </View>
       )}
@@ -86,11 +86,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm + 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 44,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
   },
   clearButton: {

@@ -102,7 +102,7 @@ export default function PresalePreviewScreen() {
         </View>
 
         <View style={styles.presaleVenue}>
-          <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
+          <Ionicons name="location-outline" size={14} color={colors.textLo} />
           <Text style={styles.presaleVenueText}>
             {item.venueName}, {item.venueCity}
           </Text>
@@ -124,7 +124,7 @@ export default function PresalePreviewScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.stepText}>Step 4 of 6</Text>
       </View>
@@ -155,26 +155,26 @@ export default function PresalePreviewScreen() {
           </>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons name="ticket-outline" size={64} color={colors.textTertiary} />
+            <Ionicons name="ticket-outline" size={64} color={colors.textLo} />
             <Text style={styles.emptyTitle}>No presales right now</Text>
             <Text style={styles.emptyText}>We'll notify you when your artists announce shows</Text>
           </View>
         )}
 
-        {error ? <Text style={{ color: colors.textTertiary, marginTop: 8 }}>{error}</Text> : null}
+        {error ? <Text style={{ color: colors.textLo, marginTop: 8 }}>{error}</Text> : null}
       </View>
 
       <View style={styles.footer}>
         {presales.length > 0 ? (
           <Pressable style={[styles.notifyButton, saving && { opacity: 0.6 }]} onPress={handleEnableNotifications} disabled={saving} accessibilityRole="button">
-            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+            <Ionicons name="notifications" size={20} color={colors.textHi} />
             <Text style={styles.notifyButtonText}>{saving ? 'Saving…' : 'Notify me for these presales'}</Text>
           </Pressable>
         ) : null}
 
         <Pressable style={styles.skipButton} onPress={handleContinue} disabled={saving} accessibilityRole="button">
           <Text style={styles.skipButtonText}>{presales.length > 0 ? 'Skip for now' : saving ? 'Saving…' : 'Continue'}</Text>
-          <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} />
+          <Ionicons name="arrow-forward" size={20} color={colors.textMid} />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -184,7 +184,7 @@ export default function PresalePreviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   content: {
     flex: 1,
@@ -215,12 +215,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   list: {
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   presaleHeader: {
     marginBottom: spacing.sm,
@@ -240,11 +240,11 @@ const styles = StyleSheet.create({
   presaleArtist: {
     fontSize: 17,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   presaleTour: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   presaleVenue: {
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   presaleVenueText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   presaleDetails: {
     flexDirection: 'row',
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   emptyContainer: {
     flex: 1,
@@ -286,20 +286,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   emptyText: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     lineHeight: 22,
   },
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
     gap: spacing.sm,
   },
   notifyButton: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   notifyButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   skipButton: {
     flexDirection: 'row',
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
 });
 

@@ -37,24 +37,24 @@ export function VenueHeader({
         <Image source={{ uri: imageUrl }} style={styles.backgroundImage} />
       ) : (
         <View style={[styles.backgroundImage, styles.placeholderBg]}>
-          <Ionicons name="business" size={64} color={colors.border} />
+          <Ionicons name="business" size={64} color={colors.hairline} />
         </View>
       )}
 
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.background]}
+        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.ink]}
         style={styles.gradient}
       />
 
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
           </BlurView>
         </Pressable>
         <Pressable onPress={onSharePress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+            <Ionicons name="share-outline" size={22} color={colors.textHi} />
           </BlurView>
         </Pressable>
       </View>
@@ -73,7 +73,7 @@ export function VenueHeader({
 
         {capacity ? (
           <View style={styles.capacityBadge}>
-            <Ionicons name="people" size={14} color={colors.textSecondary} />
+            <Ionicons name="people" size={14} color={colors.textMid} />
             <Text style={styles.capacityText}>{capacity.toLocaleString()} capacity</Text>
           </View>
         ) : null}
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
     marginBottom: 8,
     paddingHorizontal: 16,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginLeft: 6,
   },
   capacityBadge: {
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   capacityText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
 });
 

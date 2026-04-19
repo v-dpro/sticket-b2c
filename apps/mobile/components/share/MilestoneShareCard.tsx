@@ -15,7 +15,7 @@ interface MilestoneShareCardProps {
 export function MilestoneShareCard({ badgeName, badgeIcon, badgeColor, description, username }: MilestoneShareCardProps) {
   return (
     <View style={styles.card}>
-      <LinearGradient colors={[`${badgeColor}40`, colors.background]} style={styles.background} />
+      <LinearGradient colors={[`${badgeColor}40`, colors.ink]} style={styles.background} />
 
       <View style={styles.header}>
         <View style={styles.logo}>
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     padding: 24,
     justifyContent: 'space-between',
   },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   badgeSection: {
     alignItems: 'center',
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   unlocked: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 8,
   },
   badgeName: {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textAlign: 'center',
   },
   userSection: {
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   footer: {
     textAlign: 'center',
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

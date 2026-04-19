@@ -23,7 +23,7 @@ export default function PresaleDetailScreen() {
           style={styles.back} 
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Presale</Text>
         <View style={{ width: 38 }} />
@@ -54,19 +54,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   body: {
     padding: spacing.lg,
     gap: spacing.sm,
   },
   muted: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
   },
 });

@@ -234,7 +234,7 @@ export default function SignInScreen() {
           {/* Logo */}
           <View style={styles.logoWrap}>
             <View style={styles.logoCircle}>
-              <Ionicons name="musical-notes" size={40} color={colors.textPrimary} />
+              <Ionicons name="musical-notes" size={40} color={colors.textHi} />
             </View>
           </View>
 
@@ -311,10 +311,10 @@ export default function SignInScreen() {
                   style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, appleLoading && { opacity: 0.6 }]}
                 >
                   {appleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                    <ActivityIndicator size="small" color={colors.textHi} />
                   ) : (
                     <>
-                      <Ionicons name="logo-apple" size={20} color={colors.textPrimary} />
+                      <Ionicons name="logo-apple" size={20} color={colors.textHi} />
                       <Text style={styles.socialText}>Continue with Apple</Text>
                     </>
                   )}
@@ -329,10 +329,10 @@ export default function SignInScreen() {
                   style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
                 >
                   {googleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                    <ActivityIndicator size="small" color={colors.textHi} />
                   ) : (
                     <>
-                      <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
+                      <Ionicons name="logo-google" size={20} color={colors.textHi} />
                       <Text style={styles.socialText}>Continue with Google</Text>
                     </>
                   )}
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   header: {
     alignItems: 'center',
@@ -381,13 +381,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h1,
     fontWeight: fonts.bold,
     textAlign: 'center',
   },
   subhead: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
     textAlign: 'center',
   },
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   dividerText: {
     color: colors.textMuted,
@@ -434,14 +434,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
   socialText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.body,
     fontWeight: fonts.semibold,
   },
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   footer: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     textAlign: 'center',
   },

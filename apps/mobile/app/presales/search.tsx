@@ -16,7 +16,7 @@ export default function PresalesSearchScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Search Presales</Text>
         <View style={{ width: 38 }} />
@@ -46,18 +46,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   body: {
     padding: spacing.lg,
   },
   muted: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
   },
 });

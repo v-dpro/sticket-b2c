@@ -16,7 +16,7 @@ interface StatsShareCardProps {
 export function StatsShareCard({ username, avatar, showCount, artistCount, venueCount, topArtist }: StatsShareCardProps) {
   return (
     <View style={styles.card}>
-      <LinearGradient colors={[colors.surfaceElevated, colors.background]} style={styles.background} />
+      <LinearGradient colors={[colors.elevated, colors.ink]} style={styles.background} />
 
       <View style={styles.header}>
         <View style={styles.logo}>
@@ -30,7 +30,7 @@ export function StatsShareCard({ username, avatar, showCount, artistCount, venue
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={32} color={colors.textTertiary} />
+            <Ionicons name="person" size={32} color={colors.textLo} />
           </View>
         )}
         <Text style={styles.username}>@{username}</Text>
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     padding: 24,
   },
   background: {
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   userSection: {
     alignItems: 'center',
@@ -111,11 +111,11 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   subtitle: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   statsGrid: {
@@ -138,13 +138,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   topArtist: {
     alignItems: 'center',
@@ -152,18 +152,18 @@ const styles = StyleSheet.create({
   },
   topLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 4,
   },
   topValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   footer: {
     textAlign: 'center',
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

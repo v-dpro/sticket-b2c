@@ -29,14 +29,14 @@ export default function AdminDashboard() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
           <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
           </Pressable>
           <Text style={styles.title}>Admin</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.denied}>
-          <Ionicons name="lock-closed" size={32} color={colors.textTertiary} />
+          <Ionicons name="lock-closed" size={32} color={colors.textLo} />
           <Text style={styles.deniedTitle}>Not authorized</Text>
           <Text style={styles.deniedSubtitle}>This area is restricted.</Text>
         </View>
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Admin</Text>
         <View style={{ width: 40 }} />
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
             <Text style={styles.rowTitle}>Reports</Text>
             <Text style={styles.rowSubtitle}>Review user reports</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
         </Pressable>
 
         <Pressable style={styles.row} onPress={() => router.push('/admin/photos')} accessibilityRole="button">
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
             <Text style={styles.rowTitle}>Photo Moderation</Text>
             <Text style={styles.rowSubtitle}>Approve / reject photos</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
         </Pressable>
 
         <Pressable style={styles.row} onPress={() => router.push('/admin/users')} accessibilityRole="button">
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             <Text style={styles.rowTitle}>User Management</Text>
             <Text style={styles.rowSubtitle}>Search and manage users</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
         </Pressable>
 
         <Pressable style={styles.row} onPress={() => router.push('/admin/feedback')} accessibilityRole="button">
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
             <Text style={styles.rowTitle}>Feedback</Text>
             <Text style={styles.rowSubtitle}>Review beta feedback</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
         </Pressable>
 
         <View style={{ height: spacing.xl }} />
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   denied: {
     flex: 1,
@@ -145,12 +145,12 @@ const styles = StyleSheet.create({
   deniedTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   deniedSubtitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   scroll: {
     flex: 1,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   statValue: {
     fontSize: 24,
@@ -181,13 +181,13 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.md,
   },
   row: {
@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   rowIconWrap: {
     width: 40,
     height: 40,
     borderRadius: radius.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
@@ -215,12 +215,12 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   rowSubtitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
 });

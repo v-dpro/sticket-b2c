@@ -21,10 +21,10 @@ export function DangerButton({ icon, label, onPress, loading = false, isDestruct
       accessibilityRole="button"
     >
       {loading ? (
-        <ActivityIndicator size="small" color={isDestructive ? colors.error : colors.textPrimary} />
+        <ActivityIndicator size="small" color={isDestructive ? colors.error : colors.textHi} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon as any} size={18} color={isDestructive ? colors.error : colors.textPrimary} /> : null}
+          {icon ? <Ionicons name={icon as any} size={18} color={isDestructive ? colors.error : colors.textHi} /> : null}
           <Text style={[styles.label, isDestructive && styles.labelDestructive]}>{label}</Text>
         </>
       )}
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     gap: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   destructive: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   labelDestructive: {
     color: colors.error,

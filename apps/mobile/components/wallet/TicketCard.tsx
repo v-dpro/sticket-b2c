@@ -56,7 +56,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
 
         {/* Seat Info */}
         <View style={styles.seatRow}>
-          <Ionicons name="location" size={12} color={colors.textTertiary} />
+          <Ionicons name="location" size={12} color={colors.textLo} />
           <Text style={styles.seatText} numberOfLines={1}>
             {ticket.isGeneralAdmission
               ? 'General Admission'
@@ -68,7 +68,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       {/* Right: Status & Arrow */}
       <View style={styles.right}>
         {ticket.status !== 'KEEPING' && <TicketStatusBadge status={ticket.status} />}
-        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
       </View>
     </Pressable>
   );
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   imageContainer: {
     position: 'relative',
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   imagePlaceholder: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   countdownText: {
     fontSize: 8,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   info: {
     flex: 1,
@@ -122,16 +122,16 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   venue: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   date: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   seatRow: {
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   seatText: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
     flex: 1,
   },
   right: {

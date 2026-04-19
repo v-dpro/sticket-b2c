@@ -70,12 +70,12 @@ export default function CommentsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+          <Ionicons name="arrow-back" size={20} color={colors.textMid} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
         <View style={styles.headerTitleRow}>
-          <Ionicons name="chatbubble-ellipses" size={18} color={colors.textSecondary} />
+          <Ionicons name="chatbubble-ellipses" size={18} color={colors.textMid} />
           <Text style={styles.headerTitle}>Comments ({comments.length})</Text>
         </View>
 
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   back: {
     flexDirection: 'row',
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   backText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.medium,
   },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   headerTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h3,
     fontWeight: fonts.bold,
   },
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   commentName: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.semibold,
   },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     fontWeight: fonts.medium,
   },
   commentText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     lineHeight: 20,
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     paddingTop: 80,
   },
   emptyTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h4,
     fontWeight: fonts.semibold,
     marginTop: spacing.lg,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   inputBar: {
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
     padding: spacing.lg,
   },
   inputRow: {
@@ -255,21 +255,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   youChipText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.bold,
   },
   textAreaWrap: {
     flex: 1,
     borderRadius: radius.lg,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   textArea: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.bodySmall,
     minHeight: 24,
     maxHeight: 120,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.semibold,
   },

@@ -90,7 +90,7 @@ export default function TicketDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.headerTitle}>Ticket</Text>
         <TicketStatusBadge status={ticket.status} size="medium" />
@@ -198,7 +198,7 @@ export default function TicketDetailScreen() {
 
       {deleting && (
         <View style={styles.deletingOverlay}>
-          <ActivityIndicator size="large" color={colors.textPrimary} />
+          <ActivityIndicator size="large" color={colors.textHi} />
         </View>
       )}
     </View>
@@ -208,17 +208,17 @@ export default function TicketDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   venueName: {
@@ -274,17 +274,17 @@ const styles = StyleSheet.create({
   },
   venueCity: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   eventDate: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 12,
   },
   eventTime: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   seatCard: {
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   seatGA: {
     fontSize: 20,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   seatGrid: {
     flexDirection: 'row',
@@ -316,20 +316,20 @@ const styles = StyleSheet.create({
   },
   seatItemLabel: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 4,
   },
   seatItemValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   barcodeSection: {
     marginTop: 16,
   },
   barcodeLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 1,
     textAlign: 'center',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   detailsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 16,
   },
   detailRow: {
@@ -353,22 +353,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   detailLabel: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   detailValue: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   notesContainer: {
     marginTop: 12,
   },
   notesText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 4,
     lineHeight: 20,
   },

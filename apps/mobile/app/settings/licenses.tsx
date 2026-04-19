@@ -17,7 +17,7 @@ export default function LicensesScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Licenses</Text>
         <View style={{ width: 40 }} />
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   body: {
     marginTop: spacing.lg,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20,

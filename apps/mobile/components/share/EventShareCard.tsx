@@ -23,7 +23,7 @@ export function EventShareCard({ artistName, artistImage, venueName, venueCity, 
 
   return (
     <View style={styles.card}>
-      {artistImage ? <Image source={{ uri: artistImage }} style={styles.backgroundImage} /> : <LinearGradient colors={[colors.brandCyan, '#6366F1', colors.background]} style={styles.backgroundGradient} />}
+      {artistImage ? <Image source={{ uri: artistImage }} style={styles.backgroundImage} /> : <LinearGradient colors={[colors.brandCyan, '#6366F1', colors.ink]} style={styles.backgroundGradient} />}
 
       <LinearGradient colors={['transparent', 'rgba(10, 11, 30, 0.8)', 'rgba(10, 11, 30, 0.95)']} style={styles.overlay} />
 
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   info: {
     gap: 4,
@@ -115,15 +115,15 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   venue: {
     fontSize: 18,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   location: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   friendsRow: {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   friendsText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: '600',
   },
   footer: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   wasHere: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

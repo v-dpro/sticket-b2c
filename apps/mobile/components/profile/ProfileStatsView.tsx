@@ -31,7 +31,7 @@ function StatCard({
     <View style={styles.card}>
       <View style={styles.cardTop}>
         <View style={styles.iconCircle}>
-          <Ionicons name={icon} size={16} color={colors.textPrimary} />
+          <Ionicons name={icon} size={16} color={colors.textHi} />
         </View>
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: 12,
   },
   cardTop: {
@@ -141,25 +141,25 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   cardTitle: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
     fontWeight: '700',
   },
   cardValue: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 22,
     fontWeight: '900',
     letterSpacing: -0.4,
   },
   cardSubtitle: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
@@ -171,10 +171,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   sectionTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 10,
@@ -187,17 +187,17 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(42, 43, 77, 0.6)',
   },
   rowYear: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 13,
     fontWeight: '800',
   },
   rowCount: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     fontWeight: '700',
   },
   emptyText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 13,
     fontWeight: '600',
   },

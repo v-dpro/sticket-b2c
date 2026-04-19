@@ -41,8 +41,8 @@ export function SettingsToggle({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: colors.border, true: colors.brandPurple }}
-        thumbColor={colors.textPrimary}
+        trackColor={{ false: colors.hairline, true: colors.brandPurple }}
+        thumbColor={colors.textHi}
         disabled={disabled}
       />
     </View>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   border: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   disabled: {
     opacity: 0.5,
@@ -77,15 +77,15 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
   },
   labelDisabled: {
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   description: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
 });

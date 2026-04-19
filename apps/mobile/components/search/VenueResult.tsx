@@ -45,7 +45,7 @@ export function VenueResult({ venue, onPress }: VenueResultProps) {
         ) : null}
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+      <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
     </Pressable>
   );
 }
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   image: {
     width: 48,
@@ -76,11 +76,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   location: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   upcomingBadge: {

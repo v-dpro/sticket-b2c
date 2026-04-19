@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 12,
   },
   row: {
@@ -55,11 +55,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     borderRadius: 14,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '600',
   },
 });

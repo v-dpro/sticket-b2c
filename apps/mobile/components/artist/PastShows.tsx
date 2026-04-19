@@ -45,7 +45,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
         </Text>
 
         <View style={styles.statsRow}>
-          <Ionicons name="people" size={12} color={colors.textTertiary} />
+          <Ionicons name="people" size={12} color={colors.textLo} />
           <Text style={styles.statsText}>{item.logCount} logged</Text>
         </View>
       </View>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -138,11 +138,11 @@ const styles = StyleSheet.create({
   dateDay: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   dateYear: {
     fontSize: 10,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   showInfo: {
     flex: 1,
@@ -150,12 +150,12 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   venueCity: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 4,
   },
   statsRow: {
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   statsText: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   loggedBadge: {
     padding: 8,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   footer: {
     paddingVertical: 16,

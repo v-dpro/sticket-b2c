@@ -33,19 +33,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
     fontWeight: '600',
   },
   value: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 12,
     fontWeight: '800',
   },
   track: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     overflow: 'hidden',
   },
   fill: {

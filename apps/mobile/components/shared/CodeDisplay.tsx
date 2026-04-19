@@ -20,7 +20,7 @@ export function CodeDisplay({ code, onCopy }: CodeDisplayProps) {
       <Text style={styles.label}>Code:</Text>
       <TouchableOpacity onPress={handleCopy} style={styles.codeContainer} activeOpacity={0.8}>
         <Text style={styles.code}>{code}</Text>
-        <Ionicons name="copy-outline" size={14} color={colors.textPrimary} />
+        <Ionicons name="copy-outline" size={14} color={colors.textHi} />
       </TouchableOpacity>
     </View>
   );
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   codeContainer: {
     flexDirection: 'row',
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     fontFamily: 'monospace',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   mapPlaceholder: {
     height: 120,
@@ -82,18 +82,18 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(10, 11, 30, 0.4)',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   mapPlaceholderText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: '600',
   },
   addressContainer: {
     flexDirection: 'row',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   addressText: {
     flex: 1,
@@ -101,12 +101,12 @@ const styles = StyleSheet.create({
   },
   address: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   cityState: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   directionsButton: {
     flexDirection: 'row',

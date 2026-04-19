@@ -43,8 +43,8 @@ export default function SetCityOnboarding() {
         </View>
 
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '800' }}>Set your city</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Set your city</Text>
+          <Text style={{ color: colors.textMid, fontSize: 16 }}>
             We’ll show you shows nearby.
           </Text>
         </View>

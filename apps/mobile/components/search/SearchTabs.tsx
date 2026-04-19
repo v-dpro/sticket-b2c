@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     gap: 6,
   },
   tabActive: {
@@ -86,13 +86,13 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   tabTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   badge: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: radius.full,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -105,10 +105,10 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   badgeTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

@@ -24,13 +24,13 @@ export function FeaturedLogCard({ log, onPress }: FeaturedLogCardProps) {
           <Image source={{ uri: imageUrl }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="musical-notes" size={28} color={colors.textTertiary} />
+            <Ionicons name="musical-notes" size={28} color={colors.textLo} />
           </View>
         )}
 
         {photos?.length > 1 ? (
           <View style={styles.photoBadge}>
-            <Ionicons name="images" size={12} color={colors.textPrimary} />
+            <Ionicons name="images" size={12} color={colors.textHi} />
             <Text style={styles.photoBadgeText}>{photos.length}</Text>
           </View>
         ) : null}
@@ -41,7 +41,7 @@ export function FeaturedLogCard({ log, onPress }: FeaturedLogCardProps) {
           <Text style={styles.artist} numberOfLines={1}>
             {event.artist.name}
           </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
         </View>
 
         <Text style={styles.meta} numberOfLines={1}>
@@ -59,7 +59,7 @@ export function FeaturedLogCard({ log, onPress }: FeaturedLogCardProps) {
 
           {_count?.comments ? (
             <View style={styles.comments}>
-              <Ionicons name="chatbubble-outline" size={14} color={colors.textTertiary} />
+              <Ionicons name="chatbubble-outline" size={14} color={colors.textLo} />
               <Text style={styles.commentText}>{_count.comments}</Text>
             </View>
           ) : null}
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   imageWrap: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     height: 190,
   },
   imagePlaceholder: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   photoBadgeText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -129,17 +129,17 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   meta: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 2,
   },
   date: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -164,13 +164,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   commentText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     fontWeight: '600',
   },
   note: {
     marginTop: 6,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     lineHeight: 18,
   },

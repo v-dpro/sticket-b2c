@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: fonts.bodySmall,
     fontWeight: fonts.medium,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.sm,
   },
   inputContainer: {
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     paddingHorizontal: spacing.lg,
   },
   inputFocused: {
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     fontSize: fonts.body,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   error: {
     fontSize: fonts.caption,

@@ -31,12 +31,12 @@ export function RecentSearches({ searches, onSelect, onRemove, onClearAll }: Rec
           onPress={() => onSelect(search.query)}
           accessibilityRole="button"
         >
-          <Ionicons name="time-outline" size={18} color={colors.textTertiary} />
+          <Ionicons name="time-outline" size={18} color={colors.textLo} />
           <Text style={styles.query} numberOfLines={1}>
             {search.query}
           </Text>
           <Pressable onPress={() => onRemove(search.query)} hitSlop={8} style={styles.removeButton} accessibilityRole="button">
-            <Ionicons name="close" size={18} color={colors.textTertiary} />
+            <Ionicons name="close" size={18} color={colors.textLo} />
           </Pressable>
         </Pressable>
       ))}
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   query: {
     flex: 1,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   removeButton: {
     padding: 4,

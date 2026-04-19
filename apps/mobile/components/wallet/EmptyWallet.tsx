@@ -28,7 +28,7 @@ export function EmptyWallet() {
           end={{ x: 1, y: 0 }}
           style={styles.gradient}
         >
-          <Ionicons name="add" size={20} color={colors.textPrimary} />
+          <Ionicons name="add" size={20} color={colors.textHi} />
           <Text style={styles.buttonText}>Add Ticket</Text>
         </LinearGradient>
       </Pressable>
@@ -56,12 +56,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

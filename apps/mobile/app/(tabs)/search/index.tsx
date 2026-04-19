@@ -110,7 +110,7 @@ export default function SearchTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     paddingTop: spacing.lg,
   },
   loading: {

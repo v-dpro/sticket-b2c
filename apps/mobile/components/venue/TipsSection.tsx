@@ -24,7 +24,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   food: colors.warning,
   seating: colors.brandPurple,
   entry: colors.success,
-  general: colors.textTertiary,
+  general: colors.textLo,
 };
 
 export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps) {
@@ -58,7 +58,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
               <Ionicons
                 name={(CATEGORY_ICONS[cat] || 'information-circle') as any}
                 size={14}
-                color={filter === cat ? colors.textPrimary : CATEGORY_COLORS[cat] || colors.textTertiary}
+                color={filter === cat ? colors.textHi : CATEGORY_COLORS[cat] || colors.textLo}
               />
               <Text style={[styles.filterText, filter === cat && styles.filterTextActive]}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -70,7 +70,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
 
       {filteredTips.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="bulb-outline" size={40} color={colors.textTertiary} />
+          <Ionicons name="bulb-outline" size={40} color={colors.textLo} />
           <Text style={styles.emptyText}>No tips yet. Be the first!</Text>
         </View>
       ) : (
@@ -93,7 +93,7 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
                   <Ionicons
                     name={tip.userUpvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
                     size={20}
-                    color={tip.userUpvoted ? colors.brandPurple : colors.textTertiary}
+                    color={tip.userUpvoted ? colors.brandPurple : colors.textLo}
                   />
                   <Text style={[styles.upvoteCount, tip.userUpvoted && styles.upvoteCountActive]}>{tip.upvotes}</Text>
                 </Pressable>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   addButton: {
     flexDirection: 'row',
@@ -152,10 +152,10 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   filterTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
   },
   tipsList: {
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   tipHeader: {
     flexDirection: 'row',
@@ -201,11 +201,11 @@ const styles = StyleSheet.create({
   },
   tipTime: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   tipText: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     lineHeight: 20,
   },
   tipFooter: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   tipAuthor: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   upvoteButton: {
     flexDirection: 'row',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   upvoteCount: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   upvoteCountActive: {
     color: colors.brandPurple,

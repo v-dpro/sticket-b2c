@@ -69,7 +69,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
         hitSlop={6}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={contact.isFollowing ? colors.brandPurple : colors.textPrimary} />
+          <ActivityIndicator size="small" color={contact.isFollowing ? colors.brandPurple : colors.textHi} />
         ) : (
           <Text style={[styles.followText, contact.isFollowing && styles.followingText]}>
             {contact.isFollowing ? 'Following' : 'Follow'}
@@ -84,11 +84,11 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: radius.md,
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   info: {
     flex: 1,
@@ -96,11 +96,11 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   username: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 1,
   },
   contactBadge: {
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followingText: {
     color: colors.brandPurple,

@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   deleteText: {

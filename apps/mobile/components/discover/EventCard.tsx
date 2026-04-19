@@ -43,7 +43,7 @@ export function EventCard({ event, showFriends = false }: Props) {
           disabled={loading}
           style={({ pressed }) => [styles.heartButton, pressed && { opacity: 0.9 }]}
         >
-          <Ionicons name={isInterested ? 'heart' : 'heart-outline'} size={18} color={isInterested ? colors.brandPink : colors.textPrimary} />
+          <Ionicons name={isInterested ? 'heart' : 'heart-outline'} size={18} color={isInterested ? colors.brandPink : colors.textHi} />
         </Pressable>
       </View>
 
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     marginRight: 12,
   },
   pressed: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     height: 156,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   image: {
     width: '100%',
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   placeholderText: {
     fontSize: 48,
     fontWeight: '900',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   heartButton: {
     position: 'absolute',
@@ -134,12 +134,12 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   venueName: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: 8,
   },
   dateBadge: {
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   friendsRow: {
     flexDirection: 'row',
@@ -168,17 +168,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.surface,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   friendAvatarFallback: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   friendAvatarFallbackText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 11,
     fontWeight: '900',
   },

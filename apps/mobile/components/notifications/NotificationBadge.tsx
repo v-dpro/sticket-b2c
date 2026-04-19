@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     right: -6,
   },
   text: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '900',
   },
   textSmall: {

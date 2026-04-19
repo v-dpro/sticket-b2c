@@ -69,7 +69,7 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
             value={section}
             onChangeText={setSection}
             placeholder="e.g. 102, GA Floor, Balcony"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             style={styles.input}
           />
 
@@ -78,7 +78,7 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
             value={row}
             onChangeText={setRow}
             placeholder="e.g. 12"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             style={styles.input}
           />
 
@@ -93,12 +93,12 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
         <View style={styles.footer}>
           <Pressable style={[styles.submitButton, !canSubmit && styles.submitDisabled]} onPress={handleSubmit} disabled={!canSubmit}>
             <LinearGradient
-              colors={canSubmit ? [colors.brandPurple, colors.brandPink] : [colors.border, colors.border]}
+              colors={canSubmit ? [colors.brandPurple, colors.brandPink] : [colors.hairline, colors.hairline]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
-              {submitting ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Upload</Text>}
+              {submitting ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Upload</Text>}
             </LinearGradient>
           </Pressable>
         </View>
@@ -110,7 +110,7 @@ export function AddSeatViewModal({ visible, onClose, onSubmit }: AddSeatViewModa
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -119,23 +119,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   cancelText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   content: {
     flex: 1,
     padding: 24,
   },
   label: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -144,16 +144,16 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
-    color: colors.textPrimary,
+    color: colors.textHi,
     padding: 12,
   },
   pickButton: {
     marginTop: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
     padding: 12,
     flexDirection: 'row',
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   footer: {
     padding: 24,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

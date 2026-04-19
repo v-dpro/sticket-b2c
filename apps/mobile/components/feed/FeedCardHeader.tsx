@@ -56,16 +56,16 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   username: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 1,
   },
   timestamp: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

@@ -38,13 +38,13 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
           <Ionicons
             name={presale.hasAlert ? 'notifications' : 'notifications-outline'}
             size={20}
-            color={presale.hasAlert ? colors.brandCyan : colors.textTertiary}
+            color={presale.hasAlert ? colors.brandCyan : colors.textLo}
           />
         </Pressable>
       </View>
 
       <View style={styles.venueRow}>
-        <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+        <Ionicons name="location-outline" size={14} color={colors.textMid} />
         <Text style={styles.venueText}>
           {presale.venueName}, {presale.venueCity}
         </Text>
@@ -94,7 +94,7 @@ export default function PresalesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Presales</Text>
         <Pressable onPress={() => router.push('/presales/search')} style={styles.searchButton} accessibilityRole="button">
-          <Ionicons name="search" size={24} color={colors.textPrimary} />
+          <Ionicons name="search" size={24} color={colors.textHi} />
         </Pressable>
       </View>
 
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   searchButton: {
     padding: 8,
@@ -198,10 +198,10 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   tabTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   list: {
     padding: spacing.lg,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   cardUrgent: {
     borderColor: colors.warning,
@@ -230,11 +230,11 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 17,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   tourName: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   alertButton: {
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   },
   venueText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   presaleInfo: {
     flexDirection: 'row',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   presaleTypeBadge: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.full,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   presaleTypeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   timeText: {
     fontSize: 13,
@@ -286,11 +286,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
   },
   codeLabel: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   codeBadge: {
     backgroundColor: colors.brandPurple,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   codeText: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontFamily: 'monospace',
   },
   signupWarning: {

@@ -11,7 +11,7 @@ type NotificationBellButtonProps = {
   badgeSize?: 'small' | 'medium';
 };
 
-export function NotificationBellButton({ color = colors.textPrimary, size = 24, badgeSize = 'small' }: NotificationBellButtonProps) {
+export function NotificationBellButton({ color = colors.textHi, size = 24, badgeSize = 'small' }: NotificationBellButtonProps) {
   const router = useRouter();
 
   return (

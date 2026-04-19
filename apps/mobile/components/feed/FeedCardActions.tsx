@@ -26,20 +26,20 @@ export function FeedCardActions({
         <Ionicons
           name={userWasThere ? 'checkmark-circle' : 'checkmark-circle-outline'}
           size={20}
-          color={userWasThere ? colors.success : colors.textTertiary}
+          color={userWasThere ? colors.success : colors.textLo}
         />
         <Text style={[styles.actionText, userWasThere && { color: colors.success }]}>{userWasThere ? 'I was there!' : 'I was there too'}</Text>
         {wasThereCount > 0 ? <Text style={[styles.count, userWasThere && styles.countActive]}>{wasThereCount}</Text> : null}
       </Pressable>
 
       <Pressable style={styles.action} onPress={onCommentPress} accessibilityRole="button">
-        <Ionicons name="chatbubble-outline" size={18} color={colors.textTertiary} />
+        <Ionicons name="chatbubble-outline" size={18} color={colors.textLo} />
         <Text style={styles.actionText}>Comment</Text>
         {commentCount > 0 ? <Text style={styles.count}>{commentCount}</Text> : null}
       </Pressable>
 
       <Pressable style={styles.iconOnly} onPress={onSharePress} accessibilityRole="button">
-        <Ionicons name="share-outline" size={18} color={colors.textTertiary} />
+        <Ionicons name="share-outline" size={18} color={colors.textLo} />
       </Pressable>
     </View>
   );
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
     marginTop: 12,
     gap: 18,
   },
@@ -66,13 +66,13 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: '600',
   },
   count: {
     fontSize: 12,
-    color: colors.textTertiary,
-    backgroundColor: colors.background,
+    color: colors.textLo,
+    backgroundColor: colors.ink,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,

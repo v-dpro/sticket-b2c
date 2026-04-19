@@ -12,15 +12,15 @@ import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const q = query.trim();
-  if (!q) return <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 15 }}>{text}</Text>;
+  if (!q) return <Text style={{ color: colors.textHi, fontWeight: '700', fontSize: 15 }}>{text}</Text>;
   const lower = text.toLowerCase();
   const idx = lower.indexOf(q.toLowerCase());
-  if (idx < 0) return <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 15 }}>{text}</Text>;
+  if (idx < 0) return <Text style={{ color: colors.textHi, fontWeight: '700', fontSize: 15 }}>{text}</Text>;
   const before = text.slice(0, idx);
   const match = text.slice(idx, idx + q.length);
   const after = text.slice(idx + q.length);
   return (
-    <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 15 }}>
+    <Text style={{ color: colors.textHi, fontWeight: '700', fontSize: 15 }}>
       {before}
       <Text style={{ color: colors.brandCyan }}>{match}</Text>
       {after}
@@ -111,9 +111,9 @@ export default function LogSearchArtist() {
       {/* Header */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Pressable accessibilityRole="button" onPress={goBack} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' })}>
-          <Ionicons name="close" size={24} color={colors.textPrimary} />
+          <Ionicons name="close" size={24} color={colors.textHi} />
         </Pressable>
-        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>Log a Show</Text>
+        <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '700' }}>Log a Show</Text>
         <View style={{ width: 24, height: 24 }} />
       </View>
 
@@ -126,24 +126,24 @@ export default function LogSearchArtist() {
               backgroundColor: colors.surface,
               borderRadius: radius.lg,
               borderWidth: 1,
-              borderColor: isFocused ? colors.brandCyan : colors.border,
+              borderColor: isFocused ? colors.brandCyan : colors.hairline,
               justifyContent: 'center',
             }}
           >
             <Ionicons
               name="search"
               size={20}
-              color={colors.textTertiary}
+              color={colors.textLo}
               style={{ position: 'absolute', left: 16, top: 16 }}
             />
             <TextInput
               placeholder="Search artist..."
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={query}
               onChangeText={setQuery}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              style={{ height: 52, paddingLeft: 48, paddingRight: 16, color: colors.textPrimary, fontSize: 16 }}
+              style={{ height: 52, paddingLeft: 48, paddingRight: 16, color: colors.textHi, fontSize: 16 }}
               autoCorrect={false}
               autoCapitalize="none"
               returnKeyType="search"
@@ -171,30 +171,30 @@ export default function LogSearchArtist() {
                       opacity: pressed ? 0.92 : 1,
                     })}
                   >
-                    <View style={{ width: 48, height: 48, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.surfaceElevated }}>
+                    <View style={{ width: 48, height: 48, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.elevated }}>
                       {a.imageUrl ? (
                         <Image source={{ uri: a.imageUrl }} style={{ width: '100%', height: '100%' }} />
                       ) : (
                         <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                          <Ionicons name="person" size={24} color={colors.textTertiary} />
+                          <Ionicons name="person" size={24} color={colors.textLo} />
                         </View>
                       )}
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <HighlightedText text={a.name} query={q} />
                       {a.genres && a.genres.length > 0 ? (
-                        <Text style={{ color: colors.textTertiary, fontSize: 13 }} numberOfLines={1}>
+                        <Text style={{ color: colors.textLo, fontSize: 13 }} numberOfLines={1}>
                           {a.genres.slice(0, 3).join(', ')}
                         </Text>
                       ) : null}
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
                   </Pressable>
                 ))}
               </View>
             ) : !isLoading ? (
               <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-                <Text style={{ color: colors.textTertiary, fontSize: 14 }}>No artists found</Text>
+                <Text style={{ color: colors.textLo, fontSize: 14 }}>No artists found</Text>
                 <Pressable onPress={() => router.push({ pathname: '/log/create-show', params: { q } })} style={{ marginTop: 16 }}>
                   <Text style={{ color: colors.brandCyan, fontSize: 14, fontWeight: '600' }}>Add "{q}" manually →</Text>
                 </Pressable>
@@ -206,7 +206,7 @@ export default function LogSearchArtist() {
             {/* Recent Searches */}
             {recentSearches.length > 0 ? (
               <View style={{ marginBottom: spacing.lg }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 12 }}>Recent Searches</Text>
+                <Text style={{ color: colors.textMid, fontSize: 14, marginBottom: 12 }}>Recent Searches</Text>
                 <View style={{ gap: 8 }}>
                   {recentSearches.map((name) => (
                     <Pressable
@@ -223,8 +223,8 @@ export default function LogSearchArtist() {
                         opacity: pressed ? 0.92 : 1,
                       })}
                     >
-                      <Ionicons name="time-outline" size={16} color={colors.textTertiary} />
-                      <Text style={{ color: colors.textPrimary, fontSize: 15, flex: 1 }}>{name}</Text>
+                      <Ionicons name="time-outline" size={16} color={colors.textLo} />
+                      <Text style={{ color: colors.textHi, fontSize: 15, flex: 1 }}>{name}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -234,8 +234,8 @@ export default function LogSearchArtist() {
             {/* Suggested Artists from Spotify */}
             {suggestedArtists.length > 0 ? (
               <View style={{ marginBottom: spacing.lg }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 4 }}>From Your Spotify</Text>
-                <Text style={{ color: colors.textTertiary, fontSize: 12, marginBottom: 12 }}>Artists you listen to</Text>
+                <Text style={{ color: colors.textMid, fontSize: 14, marginBottom: 4 }}>From Your Spotify</Text>
+                <Text style={{ color: colors.textLo, fontSize: 12, marginBottom: 12 }}>Artists you listen to</Text>
                 <View style={{ gap: 8 }}>
                   {suggestedArtists.map((a) => (
                     <Pressable
@@ -262,19 +262,19 @@ export default function LogSearchArtist() {
                         opacity: pressed ? 0.92 : 1,
                       })}
                     >
-                      <View style={{ width: 48, height: 48, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.surfaceElevated }}>
+                      <View style={{ width: 48, height: 48, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.elevated }}>
                         {a.images?.[0]?.url ? (
                           <Image source={{ uri: a.images[0].url }} style={{ width: '100%', height: '100%' }} />
                         ) : (
                           <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                            <Ionicons name="person" size={24} color={colors.textTertiary} />
+                            <Ionicons name="person" size={24} color={colors.textLo} />
                           </View>
                         )}
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700' }}>{a.name}</Text>
+                        <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '700' }}>{a.name}</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+                      <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
                     </Pressable>
                   ))}
                 </View>
@@ -293,14 +293,14 @@ export default function LogSearchArtist() {
                 gap: 12,
                 opacity: pressed ? 0.92 : 1,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: colors.hairline,
                 borderStyle: 'dashed',
               })}
             >
               <Ionicons name="add-circle-outline" size={24} color={colors.brandCyan} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>Add Show Manually</Text>
-                <Text style={{ color: colors.textTertiary, fontSize: 13 }}>Can't find it? Enter details yourself</Text>
+                <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '600' }}>Add Show Manually</Text>
+                <Text style={{ color: colors.textLo, fontSize: 13 }}>Can't find it? Enter details yourself</Text>
               </View>
             </Pressable>
           </>

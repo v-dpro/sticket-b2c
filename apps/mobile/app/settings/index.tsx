@@ -36,7 +36,7 @@ export default function SettingsScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Settings</Text>
         <View style={{ width: 40 }} />
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -174,12 +174,12 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: '700',
   },
   versionSubtext: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
     fontWeight: '700',
   },

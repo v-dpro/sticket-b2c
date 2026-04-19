@@ -32,7 +32,7 @@ export function MomentsSection({ moments = [], onAddMoment }: MomentsSectionProp
 
       {moments.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="sparkles-outline" size={32} color={colors.textTertiary} />
+          <Ionicons name="sparkles-outline" size={32} color={colors.textLo} />
           <Text style={styles.emptyText}>No moments yet</Text>
         </View>
       ) : (
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   addText: {
     fontSize: 14,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 8,
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   chips: {
     paddingHorizontal: 16,
@@ -94,16 +94,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   chipText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     fontWeight: '600',
   },
   chipCount: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     fontWeight: '700',
   },

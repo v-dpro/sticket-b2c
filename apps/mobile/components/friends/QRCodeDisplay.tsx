@@ -16,7 +16,7 @@ export function QRCodeDisplay() {
           value={value}
           size={220}
           backgroundColor="#FFFFFF"
-          color={colors.background}
+          color={colors.ink}
           logo={require('../../assets/icon.png')}
           logoSize={44}
           logoBackgroundColor="#FFFFFF"
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   qrContainer: {
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.textHi,
     padding: 16,
     borderRadius: radius.lg,
     marginBottom: 16,
@@ -42,12 +42,12 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 4,
   },
   hint: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textAlign: 'center',
   },
 });

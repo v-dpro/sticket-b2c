@@ -45,9 +45,9 @@ export default function LogDetailScreen() {
         options={{
           title: 'Log',
           headerShown: true,
-          headerTitleStyle: { color: colors.textPrimary },
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { color: colors.textHi },
+          headerStyle: { backgroundColor: colors.ink },
+          headerTintColor: colors.textHi,
           headerRight: () =>
             shareCardData ? <ShareButton data={shareCardData} link={createLogLink(String(id || ''))} /> : null,
         }}
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mutedText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   retryButton: {
     marginTop: 8,
@@ -156,15 +156,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '800',
   },
   sectionTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 18,
     fontWeight: '900',
   },
@@ -174,14 +174,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   commentHeader: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   commentUsername: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '800',
   },
   commentText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   commentInputDock: {
     position: 'absolute',
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
   },
 });
 

@@ -74,7 +74,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
         accessibilityRole="button"
       >
         {loading ? (
-          <ActivityIndicator size="small" color={isFollowing ? colors.brandPurple : colors.textPrimary} />
+          <ActivityIndicator size="small" color={isFollowing ? colors.brandPurple : colors.textHi} />
         ) : (
           <Text style={[styles.followText, isFollowing && styles.followingText]}>{isFollowing ? 'Following' : 'Follow'}</Text>
         )}
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
     gap: spacing.sm,
   },
   avatar: {
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   info: {
     flex: 1,
@@ -114,16 +114,16 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   username: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 1,
   },
   stats: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   followButton: {
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followingText: {
     color: colors.brandPurple,

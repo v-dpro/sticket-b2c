@@ -19,7 +19,7 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
           onPress={() => onTabChange('friends')}
           activeOpacity={0.85}
         >
-          <Ionicons name="people" size={18} color={activeTab === 'friends' ? colors.textPrimary : colors.textTertiary} />
+          <Ionicons name="people" size={18} color={activeTab === 'friends' ? colors.textHi : colors.textLo} />
           <Text style={[styles.tabText, activeTab === 'friends' && styles.tabTextActive]}>Friends</Text>
         </TouchableOpacity>
 
@@ -28,7 +28,7 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
           onPress={() => onTabChange('discover')}
           activeOpacity={0.85}
         >
-          <Ionicons name="globe" size={18} color={activeTab === 'discover' ? colors.textPrimary : colors.textTertiary} />
+          <Ionicons name="globe" size={18} color={activeTab === 'discover' ? colors.textHi : colors.textLo} />
           <Text style={[styles.tabText, activeTab === 'discover' && styles.tabTextActive]}>Discover</Text>
         </TouchableOpacity>
       </View>
@@ -56,15 +56,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   tabTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

@@ -70,8 +70,8 @@ export default function CreateShow() {
     <Screen>
       <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
         <View style={{ gap: 6 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '900' }}>Create show</Text>
-          <Text style={{ color: colors.textSecondary }}>Can’t find it? Add it manually.</Text>
+          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '900' }}>Create show</Text>
+          <Text style={{ color: colors.textMid }}>Can’t find it? Add it manually.</Text>
         </View>
 
         {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}

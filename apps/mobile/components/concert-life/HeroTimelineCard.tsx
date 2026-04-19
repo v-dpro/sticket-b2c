@@ -120,7 +120,7 @@ export function HeroTimelineCard({
             style={styles.actionButton}
             accessibilityRole="button"
           >
-            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? colors.pink : colors.textTertiary} />
+            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? colors.pink : colors.textLo} />
             {likesCount > 0 ? <Text style={[styles.actionCount, isLiked && { color: colors.pink }]}>{likesCount}</Text> : null}
           </Pressable>
 
@@ -132,7 +132,7 @@ export function HeroTimelineCard({
             style={styles.actionButton}
             accessibilityRole="button"
           >
-            <Ionicons name="chatbubble-outline" size={20} color={colors.textTertiary} />
+            <Ionicons name="chatbubble-outline" size={20} color={colors.textLo} />
             {commentsCount > 0 ? <Text style={styles.actionCount}>{commentsCount}</Text> : null}
           </Pressable>
 
@@ -144,7 +144,7 @@ export function HeroTimelineCard({
             style={[styles.actionButton, { marginLeft: 'auto' }]}
             accessibilityRole="button"
           >
-            <Ionicons name="share-social-outline" size={20} color={colors.textTertiary} />
+            <Ionicons name="share-social-outline" size={20} color={colors.textLo} />
           </Pressable>
         </View>
       </View>
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   heroPressable: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   heroFallback: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   heroArtist: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 20,
     fontWeight: '800',
     marginBottom: 4,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   dateChipText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 12,
     fontWeight: '800',
   },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 212, 255, 0.9)',
   },
   upcomingPillText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.6,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   note: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     fontStyle: 'italic',
     lineHeight: 20,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
   },
   actionButton: {
     flexDirection: 'row',
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionCount: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 13,
     fontWeight: '700',
   },

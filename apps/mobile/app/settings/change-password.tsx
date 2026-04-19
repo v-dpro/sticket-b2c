@@ -51,7 +51,7 @@ export default function ChangePasswordScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Change Password</Text>
         <View style={{ width: 40 }} />
@@ -66,13 +66,13 @@ export default function ChangePasswordScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter current password"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry={!showCurrent}
             />
             <Pressable onPress={() => setShowCurrent((v) => !v)} accessibilityRole="button">
-              <Ionicons name={showCurrent ? 'eye-off' : 'eye'} size={20} color={colors.textTertiary} />
+              <Ionicons name={showCurrent ? 'eye-off' : 'eye'} size={20} color={colors.textLo} />
             </Pressable>
           </View>
         </View>
@@ -83,13 +83,13 @@ export default function ChangePasswordScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter new password"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry={!showNew}
             />
             <Pressable onPress={() => setShowNew((v) => !v)} accessibilityRole="button">
-              <Ionicons name={showNew ? 'eye-off' : 'eye'} size={20} color={colors.textTertiary} />
+              <Ionicons name={showNew ? 'eye-off' : 'eye'} size={20} color={colors.textLo} />
             </Pressable>
           </View>
           <Text style={styles.hint}>At least 8 characters</Text>
@@ -101,7 +101,7 @@ export default function ChangePasswordScreen() {
             <TextInput
               style={styles.input}
               placeholder="Confirm new password"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textLo}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showNew}
@@ -110,7 +110,7 @@ export default function ChangePasswordScreen() {
         </View>
 
         <Pressable style={[styles.submitButton, loading && styles.submitButtonDisabled]} onPress={() => void handleSubmit()} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Change Password</Text>}
+          {loading ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Change Password</Text>}
         </Pressable>
 
         <View style={{ height: 80 }} />
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   scrollView: {
     flex: 1,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginBottom: spacing.lg,
     fontWeight: '600',
   },
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
   },
   inputContainer: {
@@ -164,18 +164,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   input: {
     flex: 1,
     height: 48,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     fontWeight: '700',
   },
   hint: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 6,
     fontWeight: '700',
   },
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

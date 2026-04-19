@@ -35,7 +35,7 @@ export function EmptyFeed({ hasNoFriends }: EmptyFeedProps) {
 
       <Pressable style={styles.button} onPress={onPress} accessibilityRole="button">
         <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gradient}>
-          <Ionicons name={buttonIcon as any} size={18} color={colors.textPrimary} />
+          <Ionicons name={buttonIcon as any} size={18} color={colors.textHi} />
           <Text style={styles.buttonText}>{buttonLabel}</Text>
         </LinearGradient>
       </Pressable>
@@ -62,13 +62,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

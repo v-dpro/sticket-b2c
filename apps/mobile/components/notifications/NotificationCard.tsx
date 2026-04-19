@@ -37,7 +37,7 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
         )}
 
         <View style={[styles.typeBadge, { backgroundColor: icon.color }]}>
-          <Ionicons name={icon.name} size={10} color={colors.textPrimary} />
+          <Ionicons name={icon.name} size={10} color={colors.textHi} />
         </View>
       </View>
 
@@ -62,9 +62,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   unread: {
     backgroundColor: 'rgba(139, 92, 246, 0.08)',
@@ -95,23 +95,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.backgroundAlt,
+    borderColor: colors.inkAlt,
   },
   content: {
     flex: 1,
   },
   body: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 20,
   },
   actor: {
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   time: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   unreadDot: {

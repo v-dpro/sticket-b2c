@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   border: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   iconContainer: {
     width: 40,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   username: {
     fontSize: 13,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   notConnected: {
     fontSize: 13,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
     fontWeight: '700',
   },
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   statusTextConnected: {
     color: colors.success,

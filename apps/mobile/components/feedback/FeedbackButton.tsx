@@ -25,7 +25,7 @@ export function FeedbackButton() {
     <>
       <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
         <Pressable style={styles.button} onPress={() => setOpen(true)} accessibilityRole="button">
-          <Ionicons name="chatbubble-ellipses" size={22} color={colors.textPrimary} />
+          <Ionicons name="chatbubble-ellipses" size={22} color={colors.textHi} />
         </Pressable>
       </View>
 

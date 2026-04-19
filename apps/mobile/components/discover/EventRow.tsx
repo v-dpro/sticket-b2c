@@ -46,10 +46,10 @@ export function EventRow({ event }: Props) {
         disabled={loading}
         style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.8 }]}
       >
-        <Ionicons name={isInterested ? 'heart' : 'heart-outline'} size={18} color={isInterested ? colors.brandPink : colors.textTertiary} />
+        <Ionicons name={isInterested ? 'heart' : 'heart-outline'} size={18} color={isInterested ? colors.brandPink : colors.textLo} />
       </Pressable>
 
-      <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+      <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
     </Pressable>
   );
 }
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   pressed: {
     opacity: 0.9,
@@ -72,17 +72,17 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radius.sm,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   imagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   placeholderText: {
     fontSize: 20,
     fontWeight: '900',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   info: {
     flex: 1,
@@ -92,12 +92,12 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   venueName: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   iconButton: {
     padding: 8,

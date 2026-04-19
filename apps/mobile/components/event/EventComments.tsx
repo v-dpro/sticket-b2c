@@ -76,7 +76,7 @@ export function EventComments({
         <TextInput
           style={styles.input}
           placeholder={currentUser ? 'Add a comment...' : 'Log in to comment'}
-          placeholderTextColor={colors.textTertiary}
+          placeholderTextColor={colors.textLo}
           value={newComment}
           onChangeText={setNewComment}
           multiline
@@ -88,7 +88,7 @@ export function EventComments({
           onPress={handleSubmit}
           disabled={!newComment.trim() || posting || !currentUser}
         >
-          <Ionicons name="send" size={18} color={newComment.trim() && currentUser ? colors.brandPurple : colors.textTertiary} />
+          <Ionicons name="send" size={18} color={newComment.trim() && currentUser ? colors.brandPurple : colors.textLo} />
         </Pressable>
       </View>
 
@@ -129,7 +129,7 @@ export function EventComments({
 
               {comment.user.id === currentUser?.id ? (
                 <Pressable style={styles.deleteButton} onPress={() => handleDelete(comment)}>
-                  <Ionicons name="trash-outline" size={16} color={colors.textTertiary} />
+                  <Ionicons name="trash-outline" size={16} color={colors.textLo} />
                 </Pressable>
               ) : null}
             </View>
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     paddingHorizontal: 16,
     marginBottom: 16,
   },
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   input: {
     flex: 1,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     maxHeight: 100,
   },
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   commentsList: {
     paddingHorizontal: 16,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   avatarTextSmall: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   commentContent: {
     flex: 1,
@@ -236,15 +236,15 @@ const styles = StyleSheet.create({
   commentUsername: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   commentTime: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   commentText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 20,
   },
   deleteButton: {

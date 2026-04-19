@@ -40,7 +40,7 @@ export function ProfileHeader({
         </LinearGradient>
         {profile.isOwnProfile && (
           <Pressable style={styles.editAvatarButton} onPress={onEditPress}>
-            <Ionicons name="camera" size={16} color={colors.textPrimary} />
+            <Ionicons name="camera" size={16} color={colors.textHi} />
           </Pressable>
         )}
       </View>
@@ -55,7 +55,7 @@ export function ProfileHeader({
       {/* Location */}
       {profile.city ? (
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
+          <Ionicons name="location-outline" size={14} color={colors.textLo} />
           <Text style={styles.location}>{profile.city}</Text>
         </View>
       ) : null}
@@ -142,22 +142,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: colors.background,
+    borderColor: colors.ink,
   },
   displayName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 4,
   },
   username: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 8,
   },
   bio: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 20,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginLeft: 4,
   },
   statsRow: {
@@ -184,11 +184,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 2,
   },
   editButton: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followButton: {
     borderRadius: 20,
@@ -221,12 +221,12 @@ const styles = StyleSheet.create({
   followButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   followingButton: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     paddingHorizontal: 32,
     paddingVertical: 10,
     alignItems: 'center',
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   followingButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
 });

@@ -73,7 +73,7 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
                       <Ionicons
                         name={active ? 'star' : 'star-outline'}
                         size={28}
-                        color={active ? colors.warning : colors.textTertiary}
+                        color={active ? colors.warning : colors.textLo}
                       />
                     </Pressable>
                   );
@@ -92,12 +92,12 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
             disabled={!hasRatings || submitting}
           >
             <LinearGradient
-              colors={hasRatings ? [colors.brandPurple, colors.brandPink] : [colors.border, colors.border]}
+              colors={hasRatings ? [colors.brandPurple, colors.brandPink] : [colors.hairline, colors.hairline]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
-              {submitting ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Submit Ratings</Text>}
+              {submitting ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Submit Ratings</Text>}
             </LinearGradient>
           </Pressable>
         </View>
@@ -109,7 +109,7 @@ export function RateVenueModal({ visible, onClose, onSubmit, initialRatings }: R
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -118,16 +118,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   cancelText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   content: {
     flex: 1,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   starsRow: {
     flexDirection: 'row',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     textAlign: 'center',
     marginTop: 16,
   },
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

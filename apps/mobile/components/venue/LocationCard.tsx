@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   mapContainer: {
     height: 120,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   marker: {
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.textHi,
     borderRadius: 20,
     padding: 4,
   },
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   addressText: {
     flex: 1,
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   },
   address: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   cityState: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   directionsButton: {
     flexDirection: 'row',

@@ -88,7 +88,7 @@ export default function WalletScreen() {
               </>
             ) : (
               <View style={styles.emptyPast}>
-                <Ionicons name="time-outline" size={48} color={colors.border} />
+                <Ionicons name="time-outline" size={48} color={colors.hairline} />
                 <Text style={styles.emptyText}>No past tickets</Text>
               </View>
             )}
@@ -114,7 +114,7 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   addButton: {
     width: 40,
@@ -156,20 +156,20 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   tabTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   sectionHeader: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: spacing.sm,
   },
 });

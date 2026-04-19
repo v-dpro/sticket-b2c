@@ -22,7 +22,7 @@ export default function ForgotPasswordScreen() {
 
       <View style={styles.container}>
         <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+          <Ionicons name="arrow-back" size={20} color={colors.textMid} />
           <Text style={styles.backText}>Back to Login</Text>
         </Pressable>
 
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   backText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.medium,
   },
@@ -95,19 +95,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h1,
     fontWeight: fonts.bold,
   },
   h2: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h2,
     fontWeight: fonts.bold,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   subhead: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
     lineHeight: 22,
   },
@@ -129,15 +129,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   successText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
     textAlign: 'center',
   },
   successEmail: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.body,
     fontWeight: fonts.semibold,
     marginTop: spacing.sm,

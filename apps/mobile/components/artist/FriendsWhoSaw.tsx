@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   friendName: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   countBadge: {

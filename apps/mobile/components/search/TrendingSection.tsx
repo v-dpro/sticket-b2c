@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     paddingHorizontal: spacing.md,
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   },
   artistName: {
     fontSize: 12,
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   searchTags: {
@@ -114,17 +114,17 @@ const styles = StyleSheet.create({
   searchTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: radius.full,
     paddingHorizontal: spacing.md - 4,
     paddingVertical: spacing.sm,
     gap: 6,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   searchTagText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: '600',
   },
 });

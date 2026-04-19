@@ -12,7 +12,7 @@ export function EmptySearch({ query, searched }: EmptySearchProps) {
   if (!searched) {
     return (
       <View style={styles.container}>
-        <Ionicons name="search" size={48} color={colors.border} />
+        <Ionicons name="search" size={48} color={colors.hairline} />
         <Text style={styles.title}>Search for friends</Text>
         <Text style={styles.subtitle}>Find people by username or display name</Text>
       </View>
@@ -21,7 +21,7 @@ export function EmptySearch({ query, searched }: EmptySearchProps) {
 
   return (
     <View style={styles.container}>
-      <Ionicons name="person-outline" size={48} color={colors.border} />
+      <Ionicons name="person-outline" size={48} color={colors.hairline} />
       <Text style={styles.title} numberOfLines={2}>
         No results for &quot;{query}&quot;
       </Text>
@@ -40,13 +40,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 20,

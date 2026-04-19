@@ -34,7 +34,7 @@ export function SharePreview({ data, link }: SharePreviewProps) {
       </View>
 
       <Pressable style={styles.shareCta} onPress={() => setSheetVisible(true)} accessibilityRole="button">
-        {sharing ? <ActivityIndicator color={colors.textPrimary} /> : <Ionicons name="share-outline" size={18} color={colors.textPrimary} />}
+        {sharing ? <ActivityIndicator color={colors.textHi} /> : <Ionicons name="share-outline" size={18} color={colors.textHi} />}
         <Text style={styles.shareCtaText}>{sharing ? 'Preparing…' : 'Share'}</Text>
       </Pressable>
 
@@ -78,7 +78,7 @@ export function SharePreview({ data, link }: SharePreviewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     minWidth: 160,
   },
   shareCtaText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '800',
   },
 });

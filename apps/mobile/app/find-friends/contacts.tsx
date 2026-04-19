@@ -24,7 +24,7 @@ export default function FindFriendsContactsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Contacts</Text>
         <View style={{ width: 40 }} />
@@ -42,7 +42,7 @@ export default function FindFriendsContactsScreen() {
           <ContactCard key={contact.id} contact={contact} onFollowChange={updateFollowStatus} />
         ))}
         {!loading && matches.length === 0 ? (
-          <Text style={{ color: colors.textTertiary, textAlign: 'center', paddingTop: 24 }}>
+          <Text style={{ color: colors.textLo, textAlign: 'center', paddingTop: 24 }}>
             No matches found from your contacts yet.
           </Text>
         ) : null}
@@ -52,7 +52,7 @@ export default function FindFriendsContactsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.ink },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backButton: { width: 40, height: 40, justifyContent: 'center' },
-  title: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+  title: { fontSize: 18, fontWeight: '800', color: colors.textHi },
   syncButton: {
     height: 52,
     borderRadius: 12,

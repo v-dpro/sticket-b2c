@@ -59,7 +59,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
               <Ionicons
                 name={show.isInterested ? 'heart' : 'heart-outline'}
                 size={18}
-                color={show.isInterested ? colors.error : colors.textTertiary}
+                color={show.isInterested ? colors.error : colors.textLo}
               />
             </Pressable>
           </Pressable>
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     padding: 16,
     width: 200,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   dateBadge: {
     backgroundColor: colors.brandPurple,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   dateDay: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   showInfo: {
@@ -118,12 +118,12 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   venueCity: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   friendsBadge: {
     flexDirection: 'row',
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },

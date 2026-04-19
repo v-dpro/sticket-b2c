@@ -16,13 +16,13 @@ interface ProfileMapViewProps {
 
 // Custom map style for dark theme
 const mapStyle = [
-  { elementType: 'geometry', stylers: [{ color: colors.background }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: colors.textTertiary }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: colors.background }] },
+  { elementType: 'geometry', stylers: [{ color: colors.ink }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: colors.textLo }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: colors.ink }] },
   {
     featureType: 'administrative',
     elementType: 'geometry.stroke',
-    stylers: [{ color: colors.border }],
+    stylers: [{ color: colors.hairline }],
   },
   {
     featureType: 'road',
@@ -32,7 +32,7 @@ const mapStyle = [
   {
     featureType: 'road',
     elementType: 'geometry.stroke',
-    stylers: [{ color: colors.border }],
+    stylers: [{ color: colors.hairline }],
   },
   {
     featureType: 'water',
@@ -111,7 +111,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   if (markers.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="map-outline" size={64} color={colors.textTertiary} />
+        <Ionicons name="map-outline" size={64} color={colors.textLo} />
         <Text style={styles.emptyTitle}>No venues to show</Text>
         <Text style={styles.emptyText}>Log some shows to see them on the map!</Text>
       </View>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 16,
   },
   emptyContainer: {
@@ -188,12 +188,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerCount: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -230,16 +230,16 @@ const styles = StyleSheet.create({
     padding: 12,
     minWidth: 150,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   calloutTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 2,
   },
   calloutCity: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
     marginBottom: 4,
   },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   calloutLast: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 11,
     marginTop: 4,
   },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   statsText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 12,
     fontWeight: '500',
   },

@@ -41,7 +41,7 @@ export function ProfileGridView({
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="images-outline" size={64} color={colors.textTertiary} />
+      <Ionicons name="images-outline" size={64} color={colors.textLo} />
       <Text style={styles.emptyTitle}>No photos yet</Text>
       <Text style={styles.emptyText}>Add photos to your show logs to build your grid.</Text>
     </View>
@@ -72,7 +72,7 @@ export function ProfileGridView({
               <Image source={{ uri: imageUrl }} style={styles.image} />
             ) : (
               <View style={[styles.image, styles.imagePlaceholder]}>
-                <Ionicons name="musical-notes" size={22} color={colors.textTertiary} />
+                <Ionicons name="musical-notes" size={22} color={colors.textLo} />
               </View>
             )}
 
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   image: {
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     height: 150,
   },
   imagePlaceholder: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   overlayPillText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -170,12 +170,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   captionTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 13,
     fontWeight: '800',
   },
   captionSub: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
@@ -190,12 +190,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

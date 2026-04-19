@@ -90,12 +90,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 4,
   },
   historyCard: {
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   countNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.background,
+    color: colors.ink,
   },
   historyContent: {
     flex: 1,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 6,
   },
   showRow: {
@@ -135,12 +135,12 @@ const styles = StyleSheet.create({
   },
   showLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     width: 36,
   },
   showInfo: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMid,
     flex: 1,
   },
 });

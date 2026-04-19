@@ -34,7 +34,7 @@ export default function ResetPasswordScreen() {
 
       <View style={styles.container}>
         <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+          <Ionicons name="arrow-back" size={20} color={colors.textMid} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
@@ -67,7 +67,7 @@ export default function ResetPasswordScreen() {
               {requirements.map((req) => (
                 <View key={req.text} style={styles.reqRow}>
                   <View style={[styles.reqDot, req.met && styles.reqDotMet]}>
-                    {req.met ? <Ionicons name="checkmark" size={12} color={colors.textPrimary} /> : null}
+                    {req.met ? <Ionicons name="checkmark" size={12} color={colors.textHi} /> : null}
                   </View>
                   <Text style={[styles.reqText, req.met ? styles.reqTextMet : styles.reqTextUnmet]}>{req.text}</Text>
                 </View>
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   backText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.medium,
   },
@@ -113,12 +113,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.h1,
     fontWeight: fonts.bold,
   },
   subhead: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
     lineHeight: 22,
   },
@@ -129,12 +129,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },
   requirementsTitle: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     fontWeight: fonts.medium,
     marginBottom: spacing.md,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },

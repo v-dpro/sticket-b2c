@@ -45,7 +45,7 @@ export const Avatar = memo(function Avatar({ uri, size = 'md', name, gradientBor
           width: dimension,
           height: dimension,
           borderRadius: dimension / 2,
-          backgroundColor: colors.surfaceElevated,
+          backgroundColor: colors.elevated,
         },
         !gradientBorder && style,
       ]}
@@ -57,11 +57,11 @@ export const Avatar = memo(function Avatar({ uri, size = 'md', name, gradientBor
           width: dimension,
           height: dimension,
           borderRadius: dimension / 2,
-          backgroundColor: colors.surfaceElevated,
+          backgroundColor: colors.elevated,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: gradientBorder ? 0 : 1,
-          borderColor: colors.border,
+          borderColor: colors.hairline,
         },
         !gradientBorder && style,
       ]}

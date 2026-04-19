@@ -16,7 +16,7 @@ export function FloatingLogButton() {
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
     >
       <LinearGradient colors={gradients.rainbow} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient}>
-        <Ionicons name="add" size={20} color={colors.textPrimary} />
+        <Ionicons name="add" size={20} color={colors.textHi} />
         <Text style={styles.text}>Log a Show</Text>
       </LinearGradient>
     </Pressable>
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   text: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     fontWeight: '800',
   },

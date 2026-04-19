@@ -63,8 +63,8 @@ export default function TicketDetails() {
     <Screen>
       <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800' }}>Ticket details</Text>
-          {eventName ? <Text style={{ color: colors.textSecondary }}>{eventName}</Text> : null}
+          <Text style={{ color: colors.textHi, fontSize: 24, fontWeight: '800' }}>Ticket details</Text>
+          {eventName ? <Text style={{ color: colors.textMid }}>{eventName}</Text> : null}
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -79,13 +79,13 @@ export default function TicketDetails() {
                   paddingVertical: 10,
                   borderRadius: 999,
                   borderWidth: 1,
-                  borderColor: active ? colors.brandCyan : colors.border,
-                  backgroundColor: active ? colors.surfaceElevated : colors.surface,
+                  borderColor: active ? colors.brandCyan : colors.hairline,
+                  backgroundColor: active ? colors.elevated : colors.surface,
                   opacity: pressed ? 0.85 : 1,
                   alignItems: 'center',
                 })}
               >
-                <Text style={{ color: active ? colors.brandCyan : colors.textSecondary, fontWeight: '700' }}>{s}</Text>
+                <Text style={{ color: active ? colors.brandCyan : colors.textMid, fontWeight: '700' }}>{s}</Text>
               </Pressable>
             );
           })}

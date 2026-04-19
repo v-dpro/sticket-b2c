@@ -68,7 +68,7 @@ export function VenueShows({ upcoming, past, pastLoading, pastHasMore, onLoadMor
                     {item.artist.name}
                   </Text>
                   <View style={styles.statsRow}>
-                    <Ionicons name="people" size={12} color={colors.textTertiary} />
+                    <Ionicons name="people" size={12} color={colors.textLo} />
                     <Text style={styles.secondaryText}>{item.logCount} logged</Text>
                   </View>
                 </View>
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     padding: 16,
     width: 220,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   dateBadge: {
     backgroundColor: colors.brandPurple,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   dateDay: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
   },
   showInfo: {
@@ -152,12 +152,12 @@ const styles = StyleSheet.create({
   primaryName: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: 2,
   },
   secondaryText: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   showRow: {
     flexDirection: 'row',
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   dateColumn: {
     width: 48,
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
   dateDaySmall: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   dateYearSmall: {
     fontSize: 10,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   rowInfo: {
     flex: 1,
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   footer: {
     paddingVertical: 16,

@@ -192,33 +192,33 @@ export default function ArtistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   scrollView: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   errorTitle: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
   errorSubtitle: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 16,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   retryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
   },
   backButton: {

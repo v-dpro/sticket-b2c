@@ -15,7 +15,7 @@ export default function FindFriendsQrCodeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>My QR Code</Text>
         <View style={{ width: 40 }} />
@@ -27,7 +27,7 @@ export default function FindFriendsQrCodeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.ink },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backButton: { width: 40, height: 40, justifyContent: 'center' },
-  title: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+  title: { fontSize: 18, fontWeight: '800', color: colors.textHi },
 });
 
 

@@ -49,7 +49,7 @@ export default function FeedbackScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Feedback</Text>
         <View style={{ width: 40 }} />
@@ -78,7 +78,7 @@ export default function FeedbackScreen() {
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor={colors.textTertiary}
+        placeholderTextColor={colors.textLo}
         value={message}
         onChangeText={setMessage}
         multiline
@@ -91,7 +91,7 @@ export default function FeedbackScreen() {
         disabled={sending}
         accessibilityRole="button"
       >
-        {sending ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.submitText}>Submit</Text>}
+        {sending ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Submit</Text>}
       </Pressable>
 
       <View style={{ height: spacing.lg }} />
@@ -115,14 +115,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   subtitle: {
     marginTop: spacing.sm,
     marginBottom: spacing.md,
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 20,
   },
   typeRow: {
@@ -132,12 +132,12 @@ const styles = StyleSheet.create({
   },
   typeChip: {
     flex: 1,
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: radius.md,
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   typeChipActive: {
     borderColor: colors.brandPurple,
@@ -146,20 +146,20 @@ const styles = StyleSheet.create({
   typeText: {
     fontSize: 13,
     fontWeight: '900',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   typeTextActive: {
     color: colors.brandPurple,
   },
   input: {
-    backgroundColor: colors.backgroundAlt,
+    backgroundColor: colors.inkAlt,
     borderRadius: radius.md,
     padding: spacing.md,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 15,
     height: 180,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     marginBottom: spacing.md,
   },
   submit: {
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { ProfileHeader } from '../../../components/profile/ProfileHeader';
+import { Avatar } from '../../../components/ui/Avatar';
+import { MonoLabel } from '../../../components/ui/MonoLabel';
+import { StatPill } from '../../../components/ui/StatPill';
+import { XpBar } from '../../../components/ui/XpBar';
+import { PillButton } from '../../../components/ui/PillButton';
 import { ViewToggle, type ViewMode } from '../../../components/profile/ViewToggle';
 import { TimelineView } from '../../../components/profile/TimelineView';
 import { ProfileMapView } from '../../../components/profile/MapView';
-import { BadgeGrid } from '../../../components/profile/BadgeGrid';
-import { StatsRow } from '../../../components/profile/StatsRow';
 import { ProfileGridView } from '../../../components/profile/ProfileGridView';
 import { ProfileStatsView } from '../../../components/profile/ProfileStatsView';
 import { colors, spacing, fonts, radius } from '../../../lib/theme';
@@ -21,7 +23,6 @@ import type { LogEntry } from '../../../types/profile';
 import type { ShareCardData } from '../../../types/share';
 import { ShareButton } from '../../../components/share/ShareButton';
 import { createUserLink } from '../../../lib/share/deepLinks';
-import { NotificationBellButton } from '../../../components/notifications/NotificationBellButton';
 
 function TicketPreview() {
   const router = useRouter();
@@ -51,11 +52,13 @@ function TicketPreview() {
             <Text style={styles.ticketBadgeText}>{upcomingCount}</Text>
           </View>
         ) : null}
-        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
       </View>
     </Pressable>
   );
 }
+
+type ProfileTab = 'people' | 'concerts' | 'stats';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -63,6 +66,7 @@ export default function ProfileScreen() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('concerts');
 
   const { profile, loading: profileLoading, error: profileError, refetch: refetchProfile } = useProfile();
   const { logs, years, loading: logsLoading, hasMore, loadMore, refresh } = useUserLogs(user?.id || '', selectedYear || undefined);
@@ -142,47 +146,120 @@ export default function ProfileScreen() {
     );
   }
 
+  const tabs: { key: ProfileTab; label: string }[] = [
+    { key: 'people', label: 'My People' },
+    { key: 'concerts', label: 'Concert Life' },
+    { key: 'stats', label: 'Stats' },
+  ];
+
   const headerBlock = (
     <View>
-      {/* Profile Header */}
-      <ProfileHeader profile={profile} onEditPress={handleEditProfile} onFollowersPress={handleFollowers} onFollowingPress={handleFollowing} />
+      {/* Hero section */}
+      <View style={styles.heroSection}>
+        <Avatar
+          uri={profile.avatarUrl}
+          size={72}
+          name={profile.displayName || profile.username}
+          gradientBorder
+        />
 
-      {/* Stats */}
-      <StatsRow shows={profile.stats.shows} artists={profile.stats.artists} venues={profile.stats.venues} />
+        <Text style={styles.displayName}>
+          {profile.displayName || profile.username}
+        </Text>
+
+        <MonoLabel size={10} color={colors.brandCyan}>
+          Opener
+        </MonoLabel>
+
+        {profile.bio ? (
+          <Text style={styles.bio}>{profile.bio}</Text>
+        ) : null}
+      </View>
+
+      {/* Action buttons */}
+      <View style={styles.actionRow}>
+        <PillButton
+          title="Edit Profile"
+          onPress={handleEditProfile}
+          variant="ghost"
+          size="sm"
+        />
+        <PillButton
+          title="Share"
+          onPress={() => {}}
+          variant="ghost"
+          size="sm"
+          icon={<Ionicons name="share-outline" size={14} color={colors.textHi} />}
+        />
+      </View>
+
+      {/* Stats strip */}
+      <View style={styles.statsStrip}>
+        <StatPill value={profile.stats.followers ?? 0} label="Friends" />
+        <StatPill value={profile.stats.shows} label="Shows" />
+        <StatPill
+          value={profile.stats.artists}
+          label="Artists"
+          color={colors.brandPurple}
+        />
+        <StatPill
+          value={profile.stats.venues}
+          label="Venues"
+          color={colors.brandPink}
+        />
+      </View>
+
+      {/* XP Bar */}
+      <View style={styles.xpBarContainer}>
+        <XpBar xp={0} showLabel={true} />
+      </View>
 
       <TicketPreview />
 
-      <Pressable onPress={handleFindFriends} style={styles.findFriendsButton}>
-        <Ionicons name="people-outline" size={18} color={colors.brandCyan} style={styles.leftIcon} />
-        <Text style={styles.findFriendsText}>Find Friends</Text>
-        <View style={{ flex: 1 }} />
-        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-      </Pressable>
+      {/* Tab selector */}
+      <View style={styles.tabRow}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              style={[
+                styles.tab,
+                { borderBottomColor: isActive ? colors.brandPink : 'transparent' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: isActive ? colors.textHi : colors.textLo },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-      {/* Badges */}
-      <BadgeGrid badges={profile.badges} />
-      <Pressable onPress={handleBadges} style={styles.badgesButton}>
-        <Ionicons name="ribbon-outline" size={18} color={colors.brandPurple} style={styles.leftIcon} />
-        <Text style={styles.badgesText}>View all badges</Text>
-        <View style={{ flex: 1 }} />
-        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-      </Pressable>
-
-      {/* View Toggle */}
-      <ViewToggle value={viewMode} onChange={setViewMode} />
+      {/* View Toggle (within Concert Life tab) */}
+      {activeTab === 'concerts' && (
+        <ViewToggle value={viewMode} onChange={setViewMode} />
+      )}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header with settings */}
+      {/* Header row */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <MonoLabel size={11} color={colors.textLo}>
+          {`@${profile.username}`}
+        </MonoLabel>
         <View style={styles.headerActions}>
           <ShareButton data={statsShareData} link={createUserLink(profile.username)} />
-          <NotificationBellButton color={colors.textPrimary} badgeSize="medium" />
           <Pressable onPress={handleSettings} style={styles.settingsButton} accessibilityRole="button">
-            <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
+            <Ionicons name="settings-outline" size={16} color={colors.textHi} />
           </Pressable>
         </View>
       </View>
@@ -239,11 +316,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
@@ -251,7 +328,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: fonts.body,
     fontWeight: fonts.semibold,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
@@ -262,72 +339,101 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandPurple,
   },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.bodySmall,
     fontWeight: fonts.semibold,
   },
+
+  // Header row
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: fonts.black,
-    color: colors.textPrimary,
-    letterSpacing: -0.2,
-  },
-  content: {
-    flex: 1,
-  },
-  settingsButton: {
-    padding: spacing.sm,
+    backgroundColor: colors.ink,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
   },
-  findFriendsButton: {
+  settingsButton: {
+    padding: spacing.sm,
+  },
+
+  // Hero section
+  heroSection: {
+    alignItems: 'center',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  displayName: {
+    fontSize: 36,
+    fontWeight: '400',
+    letterSpacing: -0.8,
+    color: colors.textHi,
+    marginTop: spacing.sm,
+    marginBottom: 4,
+  },
+  bio: {
+    fontSize: 13,
+    color: colors.textMid,
+    lineHeight: 13 * 1.5,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+
+  // Action buttons
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+
+  // Stats strip
+  statsStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: 18,
     marginHorizontal: spacing.md,
+  },
+
+  // XP Bar
+  xpBarContainer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+
+  // Tab selector
+  tabRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
     marginTop: spacing.md,
-    marginBottom: spacing.sm,
-    paddingHorizontal: 14,
-    paddingVertical: radius.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.35)',
-    backgroundColor: 'rgba(17, 10, 58, 0.35)',
-    flexDirection: 'row',
+  },
+  tab: {
+    flex: 1,
     alignItems: 'center',
+    paddingVertical: spacing.sm + 4,
+    borderBottomWidth: 2,
   },
-  findFriendsText: {
-    color: colors.textPrimary,
-    fontSize: fonts.bodySmall,
-    fontWeight: fonts.bold,
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  badgesButton: {
-    marginHorizontal: spacing.md,
-    marginTop: 0,
-    marginBottom: spacing.md,
-    paddingHorizontal: 14,
-    paddingVertical: radius.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.35)',
-    backgroundColor: 'rgba(17, 10, 58, 0.22)',
-    flexDirection: 'row',
-    alignItems: 'center',
+
+  content: {
+    flex: 1,
   },
-  leftIcon: {
-    marginRight: 10,
-  },
-  badgesText: {
-    color: colors.textPrimary,
-    fontSize: fonts.bodySmall,
-    fontWeight: fonts.bold,
-  },
+
+  // Ticket preview (kept from original)
   ticketPreview: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -338,7 +444,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   ticketPreviewLeft: {
     flexDirection: 'row',
@@ -348,11 +454,11 @@ const styles = StyleSheet.create({
   ticketPreviewTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   ticketPreviewSub: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   ticketPreviewRight: {
@@ -367,7 +473,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   ticketBadgeText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: fonts.caption,
     fontWeight: fonts.bold,
   },
@@ -375,6 +481,3 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 });
-
-
-

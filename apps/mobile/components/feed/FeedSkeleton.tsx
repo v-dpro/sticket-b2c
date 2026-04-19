@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   header: {
     flexDirection: 'row',
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     marginRight: 12,
   },
   headerText: {
@@ -82,14 +82,14 @@ const styles = StyleSheet.create({
   nameLine: {
     width: 120,
     height: 14,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 4,
     marginBottom: 6,
   },
   usernameLine: {
     width: 80,
     height: 12,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 4,
   },
   content: {
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 10,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   contentText: {
     flex: 1,
@@ -108,26 +108,26 @@ const styles = StyleSheet.create({
   artistLine: {
     width: '70%',
     height: 16,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 4,
     marginBottom: 8,
   },
   venueLine: {
     width: '50%',
     height: 12,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 4,
     marginBottom: 6,
   },
   dateLine: {
     width: '40%',
     height: 10,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 4,
   },
   photoPlaceholder: {
     height: 200,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: radius.md,
     marginTop: 16,
   },
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 80,
     height: 24,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 12,
   },
 });

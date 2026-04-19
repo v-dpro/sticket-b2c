@@ -13,8 +13,8 @@ export default function ExpoGoPrefixRedirect() {
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'center', gap: 12 }}>
-        <Text style={{ color: colors.textPrimary, fontSize: 20, fontWeight: '700' }}>Launching…</Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 16 }}>
+        <Text style={{ color: colors.textHi, fontSize: 20, fontWeight: '700' }}>Launching…</Text>
+        <Text style={{ color: colors.textMid, fontSize: 16 }}>
           Expo Go opened a prefixed route. Tap to continue.
         </Text>
         <View style={{ gap: 12, marginTop: 8 }}>

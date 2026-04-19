@@ -49,7 +49,7 @@ export function ShareButton({ data, link, message, renderTrigger }: ShareButtonP
         renderTrigger(openSheet)
       ) : (
         <Pressable style={styles.button} onPress={openSheet} accessibilityRole="button">
-          <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+          <Ionicons name="share-outline" size={22} color={colors.textHi} />
         </Pressable>
       )}
 

@@ -121,14 +121,14 @@ const styles = StyleSheet.create({
     height: 120,
   },
   wordmark: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 28,
     fontWeight: fonts.bold,
     letterSpacing: 2,
     marginBottom: spacing.sm,
   },
   tagline: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.body,
   },
   cta: {
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   loginText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: fonts.bodySmall,
     textAlign: 'center',
   },

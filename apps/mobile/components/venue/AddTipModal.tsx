@@ -67,7 +67,7 @@ export function AddTipModal({ visible, onClose, onSubmit }: AddTipModalProps) {
             value={text}
             onChangeText={setText}
             placeholder="Parking, best bars, entrances, best sections…"
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             multiline
             style={styles.input}
           />
@@ -78,16 +78,16 @@ export function AddTipModal({ visible, onClose, onSubmit }: AddTipModalProps) {
         <View style={styles.footer}>
           <Pressable style={[styles.submitButton, !canSubmit && styles.submitDisabled]} onPress={handleSubmit} disabled={!canSubmit}>
             <LinearGradient
-              colors={canSubmit ? [colors.brandPurple, colors.brandPink] : [colors.border, colors.border]}
+              colors={canSubmit ? [colors.brandPurple, colors.brandPink] : [colors.hairline, colors.hairline]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradient}
             >
               {submitting ? (
-                <ActivityIndicator color={colors.textPrimary} />
+                <ActivityIndicator color={colors.textHi} />
               ) : (
                 <View style={styles.submitRow}>
-                  <Ionicons name="send" size={18} color={colors.textPrimary} />
+                  <Ionicons name="send" size={18} color={colors.textHi} />
                   <Text style={styles.submitText}>Post Tip</Text>
                 </View>
               )}
@@ -102,7 +102,7 @@ export function AddTipModal({ visible, onClose, onSubmit }: AddTipModalProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -111,23 +111,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   cancelText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   content: {
     flex: 1,
     padding: 24,
   },
   label: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -144,34 +144,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   chipActive: {
     backgroundColor: colors.brandPurple,
     borderColor: colors.brandPurple,
   },
   chipText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 13,
     fontWeight: '500',
   },
   chipTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   input: {
     minHeight: 120,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
-    color: colors.textPrimary,
+    color: colors.textHi,
     padding: 12,
     textAlignVertical: 'top',
   },
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   footer: {
     padding: 24,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

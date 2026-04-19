@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 10,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   imagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   eventInfo: {
     flex: 1,
@@ -114,13 +114,13 @@ const styles = StyleSheet.create({
   },
   action: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginBottom: 2,
   },
   artistName: {
     fontSize: 17,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   venueRow: {
     flexDirection: 'row',
@@ -133,16 +133,16 @@ const styles = StyleSheet.create({
     color: colors.brandCyan,
   },
   dot: {
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   city: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     flexShrink: 1,
   },
   date: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
   },
   ratingBadge: {
@@ -161,15 +161,15 @@ const styles = StyleSheet.create({
   },
   noteContainer: {
     marginTop: 12,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   note: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 20,
   },
 });

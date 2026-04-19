@@ -3,7 +3,6 @@ import { Redirect, Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { FeedbackButton } from '../../components/feedback/FeedbackButton';
@@ -11,7 +10,7 @@ import { colors } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
 import { useHasShowToday } from '../../hooks/useHasShowToday';
 
-function CenterDiscoveryButton() {
+function CenterLogButton() {
   const router = useRouter();
   const { hasShowToday, todayTicket } = useHasShowToday();
 
@@ -34,21 +33,24 @@ function CenterDiscoveryButton() {
         onPress={handlePress}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityLabel={hasShowToday ? 'Open Show Mode' : 'Discover shows'}
+        accessibilityLabel={hasShowToday ? 'Open Show Mode' : 'Log a show'}
       >
-        <LinearGradient
-          colors={hasShowToday ? [colors.success, colors.brandCyan] : [colors.brandPurple, colors.brandCyan]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.centerButton}
-        >
-          <Ionicons name={hasShowToday ? 'camera' : 'add'} size={28} color="#FFFFFF" />
+        <View style={styles.centerButton}>
+          <Ionicons name="add" size={28} color="#FFFFFF" />
           {hasShowToday ? <View style={styles.showTodayIndicator} /> : null}
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     </View>
   );
 }
+
+// Per-tab accent colors
+const tabAccents = {
+  feed: colors.brandCyan,
+  upcoming: colors.brandPurple,
+  wallet: colors.warning,
+  profile: colors.pink,
+} as const;
 
 export default function TabsLayout() {
   const { user, isLoading } = useSession();
@@ -68,18 +70,21 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.border,
+            backgroundColor: colors.ink,
+            borderTopColor: colors.hairline,
             borderTopWidth: 1,
             height: tabBarHeight,
             paddingBottom: insets.bottom,
           },
           tabBarActiveTintColor: colors.brandCyan,
-          tabBarInactiveTintColor: colors.textTertiary,
+          tabBarInactiveTintColor: colors.textLo,
           tabBarShowLabel: true,
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '600',
+            letterSpacing: 0.5,
+          },
           tabBarItemStyle: { paddingVertical: 4, minWidth: 60 },
-          // Avoid platform default "active background" indicators.
           tabBarActiveBackgroundColor: 'transparent',
           tabBarInactiveBackgroundColor: 'transparent',
         }}
@@ -89,45 +94,54 @@ export default function TabsLayout() {
           name="feed/index"
           options={{
             title: 'Feed',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={focused ? styles.activeIconWrapper : undefined}>
-                <Ionicons name={focused ? 'home' : 'home-outline'} size={20} color={color} />
-              </View>
+            tabBarActiveTintColor: tabAccents.feed,
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={20}
+                color={focused ? tabAccents.feed : colors.textLo}
+              />
             ),
           }}
         />
 
-        {/* Tab 2: My Concert Life */}
+        {/* Tab 2: Upcoming */}
         <Tabs.Screen
           name="timeline/index"
           options={{
-            title: 'My Life',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={focused ? styles.activeIconWrapper : undefined}>
-                <Ionicons name={focused ? 'musical-notes' : 'musical-notes-outline'} size={20} color={color} />
-              </View>
+            title: 'Upcoming',
+            tabBarActiveTintColor: tabAccents.upcoming,
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name={focused ? 'calendar' : 'calendar-outline'}
+                size={20}
+                color={focused ? tabAccents.upcoming : colors.textLo}
+              />
             ),
           }}
         />
 
-        {/* Tab 3: Center + Button (Discovery) */}
+        {/* Tab 3: Center Log FAB */}
         <Tabs.Screen
           name="discover/index"
           options={{
             title: '',
-            tabBarButton: () => <CenterDiscoveryButton />,
+            tabBarButton: () => <CenterLogButton />,
           }}
         />
 
-        {/* Tab 4: My Artists */}
+        {/* Tab 4: Wallet */}
         <Tabs.Screen
-          name="my-artists/index"
+          name="log-placeholder"
           options={{
-            title: 'Artists',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={focused ? styles.activeIconWrapper : undefined}>
-                <Ionicons name={focused ? 'heart' : 'heart-outline'} size={20} color={color} />
-              </View>
+            title: 'Wallet',
+            tabBarActiveTintColor: tabAccents.wallet,
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name={focused ? 'ticket' : 'ticket-outline'}
+                size={20}
+                color={focused ? tabAccents.wallet : colors.textLo}
+              />
             ),
           }}
         />
@@ -137,23 +151,21 @@ export default function TabsLayout() {
           name="profile/index"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={focused ? styles.activeIconWrapper : undefined}>
-                <Ionicons name={focused ? 'person' : 'person-outline'} size={20} color={color} />
-              </View>
+            tabBarActiveTintColor: tabAccents.profile,
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name={focused ? 'person' : 'person-outline'}
+                size={20}
+                color={focused ? tabAccents.profile : colors.textLo}
+              />
             ),
           }}
         />
 
         {/* Hidden tabs (accessible via navigation but not in tab bar) */}
         <Tabs.Screen name="notifications/index" options={{ href: null }} />
-        <Tabs.Screen
-          name="search/index"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen name="log-placeholder" options={{ href: null }} />
+        <Tabs.Screen name="search/index" options={{ href: null }} />
+        <Tabs.Screen name="my-artists/index" options={{ href: null }} />
       </Tabs>
 
       <FeedbackButton />
@@ -162,17 +174,9 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  activeIconWrapper: {
-    backgroundColor: 'rgba(0, 212, 255, 0.12)',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   centerButtonContainer: {
     position: 'relative',
-    top: -20,
+    top: -16,
     alignItems: 'center',
     justifyContent: 'center',
     width: 64,
@@ -183,9 +187,10 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.pink,
     borderWidth: 3,
-    borderColor: colors.background,
-    shadowColor: colors.brandPurple,
+    borderColor: colors.ink,
+    shadowColor: colors.pink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -200,9 +205,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.success,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.ink,
   },
 });
-
-
-

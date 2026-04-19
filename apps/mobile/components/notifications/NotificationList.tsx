@@ -53,12 +53,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.textTertiary,
+    color: colors.textLo,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

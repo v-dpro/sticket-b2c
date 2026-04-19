@@ -105,7 +105,7 @@ export default function RootLayout() {
     <View style={styles.container}>
       <StatusBar style="light" />
       <ErrorBoundary>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }} />
       </ErrorBoundary>
     </View>
   );
@@ -114,7 +114,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
 });
 

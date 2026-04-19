@@ -7,10 +7,10 @@ export default function ArtistLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: colors.background },
-        headerTitleStyle: { color: colors.textPrimary },
-        headerTintColor: colors.textPrimary,
-        contentStyle: { backgroundColor: colors.background },
+        headerStyle: { backgroundColor: colors.ink },
+        headerTitleStyle: { color: colors.textHi },
+        headerTintColor: colors.textHi,
+        contentStyle: { backgroundColor: colors.ink },
       }}
     />
   );

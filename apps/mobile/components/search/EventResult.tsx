@@ -41,12 +41,12 @@ export function EventResult({ event, onPress }: EventResultProps) {
           {event.venue.name}, {event.venue.city}
         </Text>
         <View style={styles.dateRow}>
-          <Ionicons name={upcoming ? 'calendar' : 'time'} size={12} color={upcoming ? colors.success : colors.textTertiary} />
+          <Ionicons name={upcoming ? 'calendar' : 'time'} size={12} color={upcoming ? colors.success : colors.textLo} />
           <Text style={[styles.date, upcoming && styles.dateUpcoming]}>{format(eventDate, 'EEE, MMM d, yyyy')}</Text>
         </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+      <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
     </Pressable>
   );
 }
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
   },
   image: {
     width: 48,
@@ -77,11 +77,11 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   venue: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
     marginTop: 2,
   },
   dateRow: {
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   dateUpcoming: {
     color: colors.success,

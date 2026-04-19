@@ -17,7 +17,7 @@ const variantMap: Record<PillVariant, { bg: string; border: string; text: string
   gold: { bg: 'rgba(255, 215, 0, 0.10)', border: 'rgba(255, 215, 0, 0.30)', text: colors.gold },
   success: { bg: 'rgba(34, 197, 94, 0.10)', border: 'rgba(34, 197, 94, 0.30)', text: colors.success },
   warning: { bg: 'rgba(245, 158, 11, 0.10)', border: 'rgba(245, 158, 11, 0.30)', text: colors.warning },
-  outlined: { bg: 'transparent', border: colors.border, text: colors.textSecondary },
+  outlined: { bg: 'transparent', border: colors.hairline, text: colors.textMid },
 };
 
 export function Pill({ children, variant = 'cyan', style }: PillProps) {

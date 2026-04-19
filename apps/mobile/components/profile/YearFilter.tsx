@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   chipSelected: {
     backgroundColor: colors.brandPurple,
@@ -47,10 +47,10 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   chipTextSelected: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '500',
   },
 });

@@ -6141,6 +6141,235 @@ app.get('/users/me/spotify/top-artists', async (req) => {
   return await getSpotifyTopArtists(spotifyToken, Number.isFinite(limit) ? limit : 50, timeRange);
 });
 
+// ==================== LOG LIKES ====================
+
+// POST /logs/:id/like — Like a log
+app.post('/logs/:id/like', async (req, reply) => {
+  try {
+    const userId = requireAccessUserId(req as any);
+    const { id: logId } = req.params as { id: string };
+
+    const like = await prisma.logLike.upsert({
+      where: { userId_logId: { userId, logId } },
+      create: { userId, logId },
+      update: {},
+    });
+
+    return { like };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for log like');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
+// DELETE /logs/:id/like — Unlike a log
+app.delete('/logs/:id/like', async (req, reply) => {
+  try {
+    const userId = requireAccessUserId(req as any);
+    const { id: logId } = req.params as { id: string };
+
+    await prisma.logLike.deleteMany({
+      where: { userId, logId },
+    });
+
+    return { success: true };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for log unlike');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
+// GET /logs/:id/likes — Get likes for a log
+app.get('/logs/:id/likes', async (req, reply) => {
+  try {
+    requireAccessUserId(req as any);
+    const { id: logId } = req.params as { id: string };
+    const query = (req.query ?? {}) as { limit?: string; cursor?: string };
+    const limit = Math.min(50, Math.max(1, Number(query.limit ?? 20)));
+
+    const likes = await prisma.logLike.findMany({
+      where: { logId },
+      include: {
+        user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = likes.length > limit;
+    const items = hasMore ? likes.slice(0, limit) : likes;
+
+    return {
+      likes: items,
+      nextCursor: hasMore ? items[items.length - 1]?.id : null,
+    };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for log likes');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
+// ==================== EVENT CHECK-INS ====================
+
+// POST /events/:id/checkin — Check in to an event
+app.post('/events/:id/checkin', async (req, reply) => {
+  try {
+    const userId = requireAccessUserId(req as any);
+    const { id: eventId } = req.params as { id: string };
+
+    const checkin = await prisma.userCheckin.upsert({
+      where: { userId_eventId: { userId, eventId } },
+      create: { userId, eventId },
+      update: {},
+    });
+
+    return { checkin };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for event checkin');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
+// GET /events/:id/checkins — Get check-ins for an event
+app.get('/events/:id/checkins', async (req, reply) => {
+  try {
+    requireAccessUserId(req as any);
+    const { id: eventId } = req.params as { id: string };
+    const query = (req.query ?? {}) as { limit?: string; cursor?: string };
+    const limit = Math.min(50, Math.max(1, Number(query.limit ?? 20)));
+
+    const checkins = await prisma.userCheckin.findMany({
+      where: { eventId },
+      include: {
+        user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = checkins.length > limit;
+    const items = hasMore ? checkins.slice(0, limit) : checkins;
+
+    return {
+      checkins: items,
+      total: await prisma.userCheckin.count({ where: { eventId } }),
+      nextCursor: hasMore ? items[items.length - 1]?.id : null,
+    };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for event checkins');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
+// ==================== HANG THREADS ====================
+
+// GET /events/:id/hang — Get hang thread for an event
+app.get('/events/:id/hang', async (req, reply) => {
+  try {
+    requireAccessUserId(req as any);
+    const { id: eventId } = req.params as { id: string };
+    const query = (req.query ?? {}) as { limit?: string; cursor?: string };
+    const limit = Math.min(100, Math.max(1, Number(query.limit ?? 50)));
+
+    let thread = await prisma.hangThread.findUnique({
+      where: { eventId },
+    });
+
+    if (!thread) {
+      return { thread: null, messages: [], nextCursor: null };
+    }
+
+    const messages = await prisma.hangMessage.findMany({
+      where: { threadId: thread.id },
+      include: {
+        user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = messages.length > limit;
+    const items = hasMore ? messages.slice(0, limit) : messages;
+
+    return {
+      thread,
+      messages: items,
+      nextCursor: hasMore ? items[items.length - 1]?.id : null,
+    };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for hang thread');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
+// POST /events/:id/hang/messages — Post a message to hang thread
+app.post('/events/:id/hang/messages', async (req, reply) => {
+  try {
+    const userId = requireAccessUserId(req as any);
+    const { id: eventId } = req.params as { id: string };
+    const body = req.body as { text?: string };
+
+    if (!body.text?.trim()) {
+      reply.status(400);
+      return { error: 'Message text is required' };
+    }
+
+    // Upsert the thread (create if it doesn't exist)
+    const thread = await prisma.hangThread.upsert({
+      where: { eventId },
+      create: { eventId },
+      update: {},
+    });
+
+    const message = await prisma.hangMessage.create({
+      data: {
+        threadId: thread.id,
+        userId,
+        text: body.text.trim(),
+      },
+      include: {
+        user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+      },
+    });
+
+    return { message };
+  } catch (error) {
+    if (isDbUnavailable(error)) {
+      req.log.warn({ error }, 'DB unavailable for hang message');
+      reply.status(503);
+      return { error: 'Service temporarily unavailable' };
+    }
+    throw error;
+  }
+});
+
 async function listenWithFallback() {
   const allowPortFallback = process.env.ALLOW_PORT_FALLBACK === 'true';
 

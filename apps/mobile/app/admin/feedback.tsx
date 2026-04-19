@@ -51,7 +51,7 @@ export default function AdminFeedbackScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
           <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
           </Pressable>
           <Text style={styles.title}>Feedback</Text>
           <View style={{ width: 40 }} />
@@ -67,11 +67,11 @@ export default function AdminFeedbackScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Feedback</Text>
         <Pressable onPress={() => void load()} style={styles.refresh} accessibilityRole="button">
-          <Ionicons name="refresh" size={20} color={colors.textPrimary} />
+          <Ionicons name="refresh" size={20} color={colors.textHi} />
         </Pressable>
       </View>
 
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   refresh: {
     width: 40,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   denied: {
     marginTop: spacing.lg,
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   empty: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: '800',
     textAlign: 'center',
     paddingTop: spacing.lg,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -155,13 +155,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   meta: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: '800',
     fontSize: 12,
   },
   message: {
     marginTop: spacing.sm,
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '700',
     fontSize: 14,
     lineHeight: 20,

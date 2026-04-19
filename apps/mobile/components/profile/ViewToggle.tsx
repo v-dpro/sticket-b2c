@@ -34,12 +34,12 @@ export function ViewToggle({ value, onChange }: ViewToggleProps) {
           >
             {active ? (
               <LinearGradient colors={[...gradients.rainbow]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.activeBg}>
-                <Ionicons name={m.icon} size={16} color={colors.textPrimary} />
+                <Ionicons name={m.icon} size={16} color={colors.textHi} />
                 <Text style={[styles.label, styles.labelActive]}>{m.label}</Text>
               </LinearGradient>
             ) : (
               <View style={styles.inactiveBg}>
-                <Ionicons name={m.icon} size={16} color={colors.textTertiary} />
+                <Ionicons name={m.icon} size={16} color={colors.textLo} />
                 <Text style={styles.label}>{m.label}</Text>
               </View>
             )}
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 6,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   segment: {
     flex: 1,
@@ -85,10 +85,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   labelActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

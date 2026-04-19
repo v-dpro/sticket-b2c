@@ -58,7 +58,7 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
       >
         <Pressable style={styles.closeButton} onPress={onClose} hitSlop={10}>
-          <Ionicons name="close" size={28} color={colors.textPrimary} />
+          <Ionicons name="close" size={28} color={colors.textHi} />
         </Pressable>
 
         <View style={styles.scanFrame}>
@@ -79,7 +79,7 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   camera: {
     flex: 1,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   instructionText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -156,13 +156,13 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
     marginBottom: 8,
   },
   permissionText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
 });
 

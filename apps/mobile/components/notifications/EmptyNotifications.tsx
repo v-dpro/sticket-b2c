@@ -36,12 +36,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 320,

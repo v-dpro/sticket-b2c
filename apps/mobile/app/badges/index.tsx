@@ -36,11 +36,11 @@ export default function BadgesScreen() {
     <Screen padded={false}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Badges</Text>
         <Pressable onPress={() => void refresh()} style={styles.backButton}>
-          <Ionicons name="refresh" size={20} color={colors.textSecondary} />
+          <Ionicons name="refresh" size={20} color={colors.textMid} />
         </Pressable>
       </View>
 
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontSize: 20,
     fontWeight: '900',
   },
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   muted: {
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   retryButton: {
     marginTop: 8,
@@ -137,11 +137,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     backgroundColor: colors.surface,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '900',
   },
   scrollContent: {
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     paddingVertical: 18,
     marginBottom: spacing.lg,
   },
@@ -166,18 +166,18 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 4,
     fontWeight: '700',
   },
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
 });
 

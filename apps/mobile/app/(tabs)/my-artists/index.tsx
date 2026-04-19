@@ -51,10 +51,10 @@ export default function MyArtistsScreen() {
         <Text style={styles.title}>My Artists</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/search')} activeOpacity={0.8}>
-            <Ionicons name="add" size={20} color={colors.textPrimary} />
+            <Ionicons name="add" size={20} color={colors.textHi} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/notifications')} activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="notifications-outline" size={20} color={colors.textHi} />
           </TouchableOpacity>
         </View>
       </View>
@@ -114,7 +114,7 @@ export default function MyArtistsScreen() {
             ))}
             {filteredArtists.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="notifications-outline" size={48} color={colors.textTertiary} />
+                <Ionicons name="notifications-outline" size={48} color={colors.textLo} />
                 <Text style={styles.emptyTitle}>No active presales</Text>
                 <Text style={styles.emptyText}>We’ll notify you when your artists announce presales</Text>
               </View>
@@ -130,7 +130,7 @@ export default function MyArtistsScreen() {
                 <Ionicons
                   name={activeFilter === 'seen' ? 'checkmark-circle-outline' : 'flag-outline'}
                   size={48}
-                  color={colors.textTertiary}
+                  color={colors.textLo}
                 />
                 <Text style={styles.emptyTitle}>{activeFilter === 'seen' ? 'No artists seen yet' : 'All caught up!'}</Text>
                 <Text style={styles.emptyText}>
@@ -164,7 +164,7 @@ function ArtistCircleCard({ artist, onPress }: { artist: ArtistRow; onPress: () 
           </View>
         ) : hasSeen ? (
           <View style={styles.seenBadge}>
-            <Ionicons name="checkmark" size={14} color={colors.textPrimary} />
+            <Ionicons name="checkmark" size={14} color={colors.textHi} />
           </View>
         ) : null}
       </View>
@@ -214,7 +214,7 @@ function PresaleArtistCard({ artist, onPress }: { artist: ArtistRow; onPress: ()
           <StatusPill type="presale" label={presale.presaleType || 'Presale'} />
 
           <View style={styles.presaleRow}>
-            <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+            <Ionicons name="calendar-outline" size={14} color={colors.textMid} />
             <Text style={styles.presaleText}>
               {new Date(presale.presaleStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </Text>
@@ -222,7 +222,7 @@ function PresaleArtistCard({ artist, onPress }: { artist: ArtistRow; onPress: ()
 
           {presale.venueName ? (
             <View style={styles.presaleRow}>
-              <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+              <Ionicons name="location-outline" size={14} color={colors.textMid} />
               <Text style={styles.presaleText}>
                 {presale.venueName}
                 {presale.venueCity ? `, ${presale.venueCity}` : ''}
@@ -250,7 +250,7 @@ function PresaleArtistCard({ artist, onPress }: { artist: ArtistRow; onPress: ()
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fonts.h3,
     fontWeight: fonts.black,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   headerActions: {
     flexDirection: 'row',
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   statsRow: {
     flexDirection: 'row',
@@ -296,18 +296,18 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: fonts.h3,
     fontWeight: fonts.black,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.xs,
   },
   statLabel: {
     fontSize: fonts.caption,
     fontWeight: fonts.bold,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
   },
   filterContainer: {
     marginHorizontal: spacing.lg,
@@ -327,15 +327,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterTabActive: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   filterText: {
     fontSize: 13,
     fontWeight: fonts.bold,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   filterTextActive: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   content: {
     flex: 1,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontWeight: fonts.bold,
   },
   artistGrid: {
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
     backgroundColor: colors.surface,
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   circleImageFallback: {
     flex: 1,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   topTierBadge: {
     position: 'absolute',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
@@ -413,14 +413,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   circleName: {
     fontSize: fonts.caption,
     fontWeight: fonts.semibold,
-    color: colors.textPrimary,
+    color: colors.textHi,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
@@ -431,13 +431,13 @@ const styles = StyleSheet.create({
   },
   circleNotSeen: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   presaleCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     padding: spacing.md,
   },
   presaleHeader: {
@@ -453,9 +453,9 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
     overflow: 'hidden',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
   },
   presaleImage: {
     width: '100%',
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   presaleArtistName: {
     fontSize: fonts.body,
     fontWeight: fonts.bold,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.xs,
   },
   genreBadge: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   },
   presaleSeenCount: {
     fontSize: 11,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: spacing.xs,
   },
   presaleDetails: {
@@ -510,15 +510,15 @@ const styles = StyleSheet.create({
   },
   presaleText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   presaleCodeWrapper: {
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
   },
   emptyPresaleText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: fonts.semibold,
   },
   emptyState: {
@@ -535,14 +535,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: fonts.bold,
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   emptyText: {
     fontSize: fonts.bodySmall,
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
   },

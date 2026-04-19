@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { colors, fonts, gradients, radius, spacing } from '../../lib/theme';
-import { GradientText } from '../../components/ui/GradientText';
+import { MonoLabel } from '../../components/ui/MonoLabel';
 
 const { width } = Dimensions.get('window');
 
@@ -15,13 +15,6 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Ambient glow */}
-        <View style={styles.glowContainer}>
-          <View style={[styles.glow, { backgroundColor: colors.brandCyan }]} />
-          <View style={[styles.glow, styles.glowPurple, { backgroundColor: colors.brandPurple }]} />
-          <View style={[styles.glow, styles.glowPink, { backgroundColor: colors.brandPink }]} />
-        </View>
-
         {/* Logo */}
         <View style={styles.logoContainer}>
           <LinearGradient
@@ -39,23 +32,18 @@ export default function WelcomeScreen() {
               />
             </View>
           </LinearGradient>
-          <GradientText
-            style={styles.appName}
-          >
-            STICKET
-          </GradientText>
+
+          {/* Wordmark */}
+          <Text style={styles.wordmark}>sticket.</Text>
         </View>
 
         {/* Tagline */}
-        <Text style={styles.tagline}>Never miss a show</Text>
-        <Text style={styles.subtitle}>Your whole concert life in one place</Text>
+        <MonoLabel size={13} color={colors.brandCyan} style={styles.tagline}>
+          a place for shows.
+        </MonoLabel>
 
-        {/* Features */}
-        <View style={styles.features}>
-          <FeatureItem icon="🎵" text="Discover shows you'll love" />
-          <FeatureItem icon="🎫" text="Manage all your tickets" />
-          <FeatureItem icon="📸" text="Log and share your experiences" />
-        </View>
+        {/* Description */}
+        <Text style={styles.description}>Concerts. Together.</Text>
       </View>
 
       {/* Bottom Buttons */}
@@ -63,18 +51,11 @@ export default function WelcomeScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.getStartedButton,
-            pressed && styles.buttonPressed,
+            pressed && { transform: [{ scale: 0.97 }] },
           ]}
           onPress={() => router.push('/(auth)/sign-up')}
         >
-          <LinearGradient
-            colors={gradients.accent}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradient}
-          >
-            <Text style={styles.getStartedText}>Get Started</Text>
-          </LinearGradient>
+          <Text style={styles.getStartedText}>Get started →</Text>
         </Pressable>
 
         <Pressable style={styles.loginLink} onPress={() => router.push('/(auth)/sign-in')}>
@@ -87,19 +68,10 @@ export default function WelcomeScreen() {
   );
 }
 
-function FeatureItem({ icon, text }: { icon: string; text: string }) {
-  return (
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>{icon}</Text>
-      <Text style={styles.featureText}>{text}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   content: {
     flex: 1,
@@ -107,35 +79,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  glowContainer: {
-    position: 'absolute',
-    top: '20%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glow: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    opacity: 0.15,
-  },
-  glowPurple: {
-    left: -40,
-    top: -20,
-  },
-  glowPink: {
-    right: -40,
-    top: 20,
-  },
   logoContainer: {
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
   logoBorder: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
+    width: 100,
+    height: 100,
+    borderRadius: 25,
     padding: 3,
     marginBottom: spacing.md,
     shadowColor: colors.brandPurple,
@@ -146,77 +97,47 @@ const styles = StyleSheet.create({
   },
   logoInner: {
     flex: 1,
-    borderRadius: 27,
+    borderRadius: 22,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoImage: {
-    width: 70,
-    height: 70,
+    width: 56,
+    height: 56,
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: 6,
+  wordmark: {
+    fontSize: 54,
+    fontWeight: '400',
+    letterSpacing: -1,
+    color: colors.textHi,
   },
   tagline: {
-    fontSize: fonts.h3,
-    fontWeight: fonts.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    letterSpacing: 1.5,
+    marginBottom: spacing.md,
+  },
+  description: {
+    fontSize: 15,
+    color: colors.textMid,
     textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: fonts.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 48,
-    maxWidth: Math.min(width - 48, 360),
-  },
-  features: {
-    width: '100%',
-    gap: spacing.md,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  featureIcon: {
-    fontSize: 24,
-    marginRight: spacing.md,
-  },
-  featureText: {
-    fontSize: fonts.body,
-    color: colors.textPrimary,
   },
   bottomContainer: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
   },
   getStartedButton: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.95 }],
-  },
-  gradient: {
-    height: 52,
+    width: '100%',
+    height: 46,
+    borderRadius: 999,
+    backgroundColor: colors.pink,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.md,
   },
   getStartedText: {
-    fontSize: fonts.body,
-    fontWeight: fonts.semibold,
-    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.ink,
   },
   loginLink: {
     alignItems: 'center',
@@ -224,10 +145,10 @@ const styles = StyleSheet.create({
   },
   loginLinkText: {
     fontSize: fonts.bodySmall,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   loginLinkHighlight: {
     color: colors.brandCyan,
-    fontWeight: fonts.semibold,
+    fontWeight: '600',
   },
 });

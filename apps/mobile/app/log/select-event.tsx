@@ -89,31 +89,31 @@ export default function SelectEventScreen() {
         }}
       >
         <Pressable accessibilityRole="button" onPress={goBack}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
 
         {artistImage ? <Image source={{ uri: String(artistImage) }} style={{ width: 40, height: 40, borderRadius: 20 }} /> : null}
 
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
+          <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
             {artistName}
           </Text>
-          <Text style={{ color: colors.textTertiary, fontSize: 13 }}>Select a show to log</Text>
+          <Text style={{ color: colors.textLo, fontSize: 13 }}>Select a show to log</Text>
         </View>
       </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={colors.brandCyan} />
-          <Text style={{ color: colors.textTertiary, marginTop: 12 }}>Finding shows...</Text>
+          <Text style={{ color: colors.textLo, marginTop: 12 }}>Finding shows...</Text>
         </View>
       ) : events.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl }}>
-          <Ionicons name="calendar-outline" size={48} color={colors.textTertiary} />
-          <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>
+          <Ionicons name="calendar-outline" size={48} color={colors.textLo} />
+          <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>
             No shows found
           </Text>
-          <Text style={{ color: colors.textTertiary, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
+          <Text style={{ color: colors.textLo, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
             We couldn't find any shows for this artist. You can add it manually.
           </Text>
           <Pressable
@@ -126,7 +126,7 @@ export default function SelectEventScreen() {
               borderRadius: radius.md,
             }}
           >
-            <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>Add Manually</Text>
+            <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '600' }}>Add Manually</Text>
           </Pressable>
         </View>
       ) : (
@@ -134,7 +134,7 @@ export default function SelectEventScreen() {
           {/* Upcoming Shows */}
           {upcomingEvents.length > 0 ? (
             <View style={{ marginBottom: spacing.xl }}>
-              <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Upcoming Shows</Text>
+              <Text style={{ color: colors.textMid, fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Upcoming Shows</Text>
               <View style={{ gap: 8 }}>
                 {upcomingEvents.map((event) => (
                   <EventCard key={event.id} event={event} onSelect={selectEvent} />
@@ -146,7 +146,7 @@ export default function SelectEventScreen() {
           {/* Past Shows */}
           {pastEvents.length > 0 ? (
             <View style={{ marginBottom: spacing.xl }}>
-              <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Past Shows</Text>
+              <Text style={{ color: colors.textMid, fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Past Shows</Text>
               <View style={{ gap: 8 }}>
                 {pastEvents.map((event) => (
                   <EventCard key={event.id} event={event} onSelect={selectEvent} isPast />
@@ -166,14 +166,14 @@ export default function SelectEventScreen() {
               alignItems: 'center',
               gap: 12,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: colors.hairline,
               borderStyle: 'dashed',
             }}
           >
             <Ionicons name="add-circle-outline" size={24} color={colors.brandCyan} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>Add Different Show</Text>
-              <Text style={{ color: colors.textTertiary, fontSize: 13 }}>Show not listed? Enter details manually</Text>
+              <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '600' }}>Add Different Show</Text>
+              <Text style={{ color: colors.textLo, fontSize: 13 }}>Show not listed? Enter details manually</Text>
             </View>
           </Pressable>
         </ScrollView>
@@ -204,29 +204,29 @@ function EventCard({
         padding: 14,
         opacity: pressed ? 0.92 : isPast ? 0.8 : 1,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: colors.hairline,
       })}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+          <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
             {event.venue.name}
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+          <Text style={{ color: colors.textMid, fontSize: 13, marginTop: 2 }}>
             {event.venue.city}
             {event.venue.state ? `, ${event.venue.state}` : ''}
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: isPast ? colors.textTertiary : colors.brandCyan, fontSize: 13, fontWeight: '600' }}>
+          <Text style={{ color: isPast ? colors.textLo : colors.brandCyan, fontSize: 13, fontWeight: '600' }}>
             {formattedDate}
           </Text>
-          <Text style={{ color: colors.textTertiary, fontSize: 12 }}>{formattedTime}</Text>
+          <Text style={{ color: colors.textLo, fontSize: 12 }}>{formattedTime}</Text>
         </View>
       </View>
 
       {event.lineup && event.lineup.length > 1 ? (
-        <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 8 }} numberOfLines={1}>
+        <Text style={{ color: colors.textLo, fontSize: 12, marginTop: 8 }} numberOfLines={1}>
           with {event.lineup.slice(1).join(', ')}
         </Text>
       ) : null}

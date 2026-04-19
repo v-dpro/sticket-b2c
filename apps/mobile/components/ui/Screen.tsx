@@ -8,7 +8,7 @@ type ScreenProps = PropsWithChildren<{ padded?: boolean }>;
 
 export function Screen({ children, padded = true }: ScreenProps) {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.ink }}>
       <View style={{ flex: 1, paddingHorizontal: padded ? 24 : 0 }}>{children}</View>
     </SafeAreaView>
   );

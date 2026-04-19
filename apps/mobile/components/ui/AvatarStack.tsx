@@ -65,17 +65,17 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   placeholder: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontWeight: '700',
   },
   remainingText: {
     marginLeft: 8,
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 12,
     fontWeight: '600',
   },

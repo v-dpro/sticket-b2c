@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   header: {
     flexDirection: 'row',
@@ -90,11 +90,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   count: {
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   ratingsGrid: {
     gap: 12,
@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   ratingBar: {
     flex: 1,
     height: 8,
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     borderRadius: 4,
     marginHorizontal: 12,
     overflow: 'hidden',
@@ -128,14 +128,14 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     width: 32,
     textAlign: 'right',
   },
   noRating: {
     flex: 1,
     fontSize: 12,
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontStyle: 'italic',
     marginLeft: 12,
   },

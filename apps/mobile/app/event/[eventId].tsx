@@ -159,7 +159,7 @@ export default function EventScreen() {
                 renderTrigger={(open) => (
                   <Pressable onPress={open} style={styles.headerIconButton} accessibilityRole="button">
                     <BlurView intensity={50} style={styles.headerBlurButton}>
-                      <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+                      <Ionicons name="share-outline" size={22} color={colors.textHi} />
                     </BlurView>
                   </Pressable>
                 )}
@@ -203,7 +203,7 @@ export default function EventScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   scrollView: {
     flex: 1,
@@ -224,19 +224,19 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
   },
   errorText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     textAlign: 'center',
   },

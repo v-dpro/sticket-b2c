@@ -14,11 +14,11 @@ export default function NotFound() {
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'center', gap: 12 }}>
-        <Text style={{ color: colors.textPrimary, fontSize: 20, fontWeight: '700' }}>Route not found</Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 16 }}>
+        <Text style={{ color: colors.textHi, fontSize: 20, fontWeight: '700' }}>Route not found</Text>
+        <Text style={{ color: colors.textMid, fontSize: 16 }}>
           Sticket opened at: {pathname}
         </Text>
-        <Text style={{ color: colors.textTertiary, fontSize: 14 }}>
+        <Text style={{ color: colors.textLo, fontSize: 14 }}>
           Tap a button below to continue.
         </Text>
         <View style={{ gap: 12, marginTop: 8 }}>

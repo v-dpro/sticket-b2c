@@ -111,7 +111,7 @@ export default function SelectArtistsScreen() {
       >
         {selected ? (
           <View style={[styles.checkBadge, tier === 'top-tier' && styles.checkBadgeTopTier]}>
-            <Ionicons name={tier === 'top-tier' ? 'star' : 'checkmark'} size={14} color={colors.textPrimary} />
+            <Ionicons name={tier === 'top-tier' ? 'star' : 'checkmark'} size={14} color={colors.textHi} />
           </View>
         ) : null}
 
@@ -143,7 +143,7 @@ export default function SelectArtistsScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
         </Pressable>
         <Text style={styles.stepText}>Step 3 of 6</Text>
       </View>
@@ -157,11 +157,11 @@ export default function SelectArtistsScreen() {
         </Text>
 
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={colors.textTertiary} />
+          <Ionicons name="search" size={20} color={colors.textLo} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search artists..."
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textLo}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
@@ -174,7 +174,7 @@ export default function SelectArtistsScreen() {
               accessibilityRole="button"
               accessibilityLabel="Clear search"
             >
-              <Ionicons name="refresh" size={20} color={colors.textTertiary} />
+              <Ionicons name="refresh" size={20} color={colors.textLo} />
             </Pressable>
           )}
         </View>
@@ -202,7 +202,7 @@ export default function SelectArtistsScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
-                <Ionicons name="search" size={48} color={colors.textTertiary} />
+                <Ionicons name="search" size={48} color={colors.textLo} />
                 <Text style={styles.emptyText}>{searchQuery ? 'No artists found' : 'Search for artists to follow'}</Text>
               </View>
             )}
@@ -229,7 +229,7 @@ export default function SelectArtistsScreen() {
               style={styles.continueGradient}
             >
               <Text style={styles.continueButtonText}>Continue with {selectedArtists.length} artists</Text>
-              <Ionicons name="arrow-forward" size={20} color={colors.textPrimary} />
+              <Ionicons name="arrow-forward" size={20} color={colors.textHi} />
             </LinearGradient>
           ) : (
             <View style={styles.continueDisabledInner}>
@@ -259,7 +259,7 @@ export default function SelectArtistsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   header: {
     flexDirection: 'row',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   content: {
     flex: 1,
@@ -282,12 +282,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textMid,
     lineHeight: 22,
     marginBottom: spacing.lg,
   },
@@ -301,12 +301,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   selectionInfo: {
     flexDirection: 'row',
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   minText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   grid: {
     paddingBottom: spacing.xl,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.hairline,
   },
   artistCardSelected: {
     borderWidth: 2,
@@ -365,25 +365,25 @@ const styles = StyleSheet.create({
     borderRadius: 32,
   },
   artistImagePlaceholder: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
     width: 64,
     height: 64,
   },
   avatarText: {
-    color: colors.textTertiary,
+    color: colors.textLo,
     fontSize: 24,
     fontWeight: '900',
   },
   artistName: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.textMid,
     textAlign: 'center',
   },
   artistNameSelected: {
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   checkBadge: {
     position: 'absolute',
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.md,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   emptyContainer: {
     flex: 1,
@@ -418,12 +418,12 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: spacing.md,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textMid,
   },
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.hairline,
   },
   continueButton: {
     borderRadius: radius.lg,
@@ -440,19 +440,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   continueDisabledInner: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.elevated,
     paddingVertical: 16,
     alignItems: 'center',
   },
   continueButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   continueButtonTextDisabled: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
   skipButton: {
     paddingVertical: 12,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   skipButtonText: {
-    color: colors.textSecondary,
+    color: colors.textMid,
     fontSize: 14,
     fontWeight: '500',
   },

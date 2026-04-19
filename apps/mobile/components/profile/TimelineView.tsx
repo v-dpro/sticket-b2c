@@ -136,7 +136,7 @@ export function TimelineView({
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="musical-notes-outline" size={64} color={colors.textTertiary} />
+      <Ionicons name="musical-notes-outline" size={64} color={colors.textLo} />
       <Text style={styles.emptyTitle}>No shows logged yet</Text>
       <Text style={styles.emptyText}>Start logging your concert experiences!</Text>
     </View>
@@ -214,12 +214,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
   },
 });
 

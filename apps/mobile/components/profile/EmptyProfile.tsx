@@ -14,7 +14,7 @@ interface EmptyProfileProps {
 export function EmptyProfile({ title = 'No shows yet', subtitle = 'Start logging your concert experiences!', ctaText, onCtaPress }: EmptyProfileProps) {
   return (
     <View style={styles.container}>
-      <Ionicons name="musical-notes-outline" size={64} color={colors.textTertiary} />
+      <Ionicons name="musical-notes-outline" size={64} color={colors.textLo} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
       {ctaText && onCtaPress ? (
@@ -37,12 +37,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textHi,
     marginTop: 16,
   },
   subtitle: {
     fontSize: 14,
-    color: colors.textTertiary,
+    color: colors.textLo,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandPurple,
   },
   ctaText: {
-    color: colors.textPrimary,
+    color: colors.textHi,
     fontWeight: '600',
   },
 });

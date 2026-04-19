@@ -57,7 +57,7 @@ export default function NotificationsScreen() {
             ) : null}
 
             <Pressable onPress={() => router.push('/notification-settings')} style={styles.headerButton} accessibilityRole="button">
-              <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+              <Ionicons name="settings-outline" size={22} color={colors.textMid} />
             </Pressable>
           </View>
         </View>
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.textPrimary,
+    color: colors.textHi,
   },
   headerActions: {
     flexDirection: 'row',
