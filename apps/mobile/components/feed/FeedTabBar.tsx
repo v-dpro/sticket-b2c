@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../lib/theme';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { accentSets, colors, radius } from '../../lib/theme';
 
 export type FeedTab = 'friends' | 'discover';
 
@@ -10,62 +10,71 @@ interface FeedTabBarProps {
   onTabChange: (tab: FeedTab) => void;
 }
 
+const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+const accent = accentSets.cyan;
+
+const TABS: { key: FeedTab; label: string }[] = [
+  { key: 'friends', label: 'Friends' },
+  { key: 'discover', label: 'Public' },
+];
+
 export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
   return (
-    <View style={styles.container}>
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'friends' && styles.tabActive]}
-          onPress={() => onTabChange('friends')}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="people" size={18} color={activeTab === 'friends' ? colors.textHi : colors.textLo} />
-          <Text style={[styles.tabText, activeTab === 'friends' && styles.tabTextActive]}>Friends</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'discover' && styles.tabActive]}
-          onPress={() => onTabChange('discover')}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="globe" size={18} color={activeTab === 'discover' ? colors.textHi : colors.textLo} />
-          <Text style={[styles.tabText, activeTab === 'discover' && styles.tabTextActive]}>Discover</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.track}>
+      {TABS.map((tab) => {
+        const active = activeTab === tab.key;
+        return (
+          <Pressable
+            key={tab.key}
+            onPress={() => onTabChange(tab.key)}
+            style={({ pressed }) => [
+              styles.pill,
+              active && styles.pillActive,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Text
+              style={[
+                styles.pillText,
+                active && styles.pillTextActive,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  track: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
     padding: 4,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
-  tabRow: {
-    flexDirection: 'row',
-    gap: 4,
+  pill: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 999,
   },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
+  pillActive: {
+    backgroundColor: accent.hex,
   },
-  tabActive: {
-    backgroundColor: colors.elevated,
-  },
-  tabText: {
-    fontSize: 14,
+  pillText: {
+    fontFamily: MONO_FONT,
+    fontSize: 12,
     fontWeight: '700',
-    color: colors.textLo,
+    color: colors.textMid,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
-  tabTextActive: {
-    color: colors.textHi,
+  pillTextActive: {
+    color: colors.ink,
   },
 });
-
-

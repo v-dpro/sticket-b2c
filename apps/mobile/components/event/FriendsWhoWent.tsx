@@ -1,8 +1,10 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { FriendAttendee } from '../../types/event';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface FriendsWhoWentProps {
   friends: FriendAttendee[];
@@ -14,9 +16,9 @@ export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: Friend
   if (!friends.length) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.title}>Friends who went</Text>
+        <Text style={styles.sectionLabel}>FRIENDS WHO WENT</Text>
         {friends.length > 5 ? (
           <Pressable onPress={onSeeAllPress}>
             <Text style={styles.seeAll}>See all</Text>
@@ -24,87 +26,99 @@ export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: Friend
         ) : null}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {friends.slice(0, 10).map((friend) => (
-          <Pressable key={friend.id} style={styles.friendCard} onPress={() => onFriendPress(friend.id)}>
-            {friend.avatarUrl ? (
-              <Image source={{ uri: friend.avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>{(friend.displayName || friend.username).charAt(0)}</Text>
-              </View>
-            )}
-            <Text style={styles.username} numberOfLines={1}>
-              {friend.displayName || friend.username}
-            </Text>
-            {typeof friend.rating === 'number' ? (
-              <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={10} color={colors.warning} />
-                <Text style={styles.ratingText}>{friend.rating}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.card}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {friends.slice(0, 10).map((friend) => (
+            <Pressable key={friend.id} style={styles.friendItem} onPress={() => onFriendPress(friend.id)}>
+              {friend.avatarUrl ? (
+                <Image source={{ uri: friend.avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarInitial}>
+                    {(friend.displayName || friend.username).charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.name} numberOfLines={1}>
+                {friend.displayName || friend.username}
+              </Text>
+              {typeof friend.rating === 'number' ? (
+                <View style={styles.ratingRow}>
+                  <Ionicons name="star" size={9} color={colors.warning} />
+                  <Text style={styles.ratingText}>{friend.rating}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 24,
+  section: {
+    marginTop: 24,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+  sectionLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
   },
   seeAll: {
-    fontSize: 14,
-    color: colors.brandCyan,
+    fontSize: 13,
+    color: accentSets.cyan.hex,
+  },
+  card: {
+    marginHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingVertical: 14,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 14,
+    gap: 14,
   },
-  friendCard: {
+  friendItem: {
     alignItems: 'center',
-    width: 72,
+    width: 64,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     marginBottom: 6,
-    borderWidth: 2,
-    borderColor: colors.brandPurple,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.elevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.brandPurple,
+  avatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textMid,
   },
-  username: {
-    fontSize: 12,
+  name: {
+    fontSize: 11,
     color: colors.textMid,
     textAlign: 'center',
   },
-  ratingBadge: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 3,
     gap: 2,
   },
   ratingText: {
@@ -113,6 +127,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-
-

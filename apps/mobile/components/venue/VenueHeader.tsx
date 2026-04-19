@@ -1,12 +1,13 @@
 import React from 'react';
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { colors } from '../../lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, accentSets, radius } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
-const HEADER_HEIGHT = 280;
+const HEADER_HEIGHT = 260;
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface VenueHeaderProps {
   name: string;
@@ -29,7 +30,8 @@ export function VenueHeader({
   onBackPress,
   onSharePress,
 }: VenueHeaderProps) {
-  const location = [city, state, country].filter(Boolean).join(', ');
+  const insets = useSafeAreaInsets();
+  const neighborhood = [city, state].filter(Boolean).join(', ');
 
   return (
     <View style={styles.container}>
@@ -37,46 +39,39 @@ export function VenueHeader({
         <Image source={{ uri: imageUrl }} style={styles.backgroundImage} />
       ) : (
         <View style={[styles.backgroundImage, styles.placeholderBg]}>
-          <Ionicons name="business" size={64} color={colors.hairline} />
+          <Ionicons name="business" size={56} color={colors.hairline} />
         </View>
       )}
 
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.ink]}
+        colors={['rgba(11,11,20,0.15)', 'rgba(11,11,20,0.72)', colors.ink]}
+        locations={[0, 0.55, 1]}
         style={styles.gradient}
       />
 
-      <View style={styles.topBar}>
-        <Pressable onPress={onBackPress} style={styles.iconButton}>
-          <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-          </BlurView>
+      {/* Top bar */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={onBackPress} style={styles.circleButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={18} color={colors.textHi} />
         </Pressable>
-        <Pressable onPress={onSharePress} style={styles.iconButton}>
-          <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="share-outline" size={22} color={colors.textHi} />
-          </BlurView>
+        <Pressable onPress={onSharePress} style={styles.circleButton} accessibilityRole="button">
+          <Ionicons name="share-outline" size={18} color={colors.textHi} />
         </Pressable>
       </View>
 
+      {/* Hero content */}
       <View style={styles.content}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="business" size={32} color={colors.brandPurple} />
+        <Text style={styles.eyebrowLabel}>VENUE</Text>
+        <Text style={styles.name} numberOfLines={2}>{name}</Text>
+        <View style={styles.subtitleRow}>
+          <Text style={styles.subtitle}>{neighborhood}</Text>
+          {capacity ? (
+            <View style={styles.capacityBadge}>
+              <Ionicons name="people" size={11} color={colors.textMid} />
+              <Text style={styles.capacityText}>{capacity.toLocaleString()}</Text>
+            </View>
+          ) : null}
         </View>
-
-        <Text style={styles.name}>{name}</Text>
-
-        <View style={styles.locationRow}>
-          <Ionicons name="location" size={16} color={colors.brandCyan} />
-          <Text style={styles.location}>{location}</Text>
-        </View>
-
-        {capacity ? (
-          <View style={styles.capacityBadge}>
-            <Ionicons name="people" size={14} color={colors.textMid} />
-            <Text style={styles.capacityText}>{capacity.toLocaleString()} capacity</Text>
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -104,72 +99,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50,
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  blurButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  circleButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     position: 'absolute',
-    bottom: 24,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+    bottom: 20,
+    left: 16,
+    right: 16,
   },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: colors.brandPurple,
+  eyebrowLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: accentSets.cyan.hex,
+    marginBottom: 6,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 36,
+    fontWeight: '800',
     color: colors.textHi,
-    textAlign: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 16,
+    lineHeight: 40,
+    marginBottom: 6,
   },
-  locationRow: {
+  subtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 10,
   },
-  location: {
+  subtitle: {
     fontSize: 14,
     color: colors.textMid,
-    marginLeft: 6,
   },
   capacityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     gap: 4,
   },
   capacityText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMid,
+    fontWeight: '500',
   },
 });
-
-
-

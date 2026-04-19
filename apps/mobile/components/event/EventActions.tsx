@@ -1,8 +1,9 @@
 import React from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface EventActionsProps {
   isLogged: boolean;
@@ -30,50 +31,41 @@ export function EventActions({
   return (
     <View style={styles.container}>
       {isPast ? (
-        <Pressable style={[styles.primaryButton, isLogged && styles.loggedButton]} onPress={onLogPress}>
+        <Pressable
+          style={[styles.pillButton, isLogged ? styles.pillGhost : styles.pillAccent]}
+          onPress={onLogPress}
+        >
           {isLogged ? (
             <>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <Text style={styles.loggedText}>You were there!</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <Text style={[styles.pillText, { color: colors.success }]}>You were there!</Text>
             </>
           ) : (
-            <LinearGradient
-              colors={[colors.brandPurple, colors.brandPink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.gradient}
-            >
-              <Ionicons name="add-circle" size={20} color={colors.textHi} />
-              <Text style={styles.buttonText}>I was there</Text>
-            </LinearGradient>
+            <>
+              <Ionicons name="add-circle" size={18} color={colors.ink} />
+              <Text style={[styles.pillText, { color: colors.ink }]}>I was there</Text>
+            </>
           )}
         </Pressable>
       ) : (
         <>
           {ticketUrl ? (
-            <Pressable style={styles.primaryButton} onPress={handleBuyTickets}>
-              <LinearGradient
-                colors={[colors.brandPurple, colors.brandPink]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradient}
-              >
-                <Ionicons name="ticket" size={20} color={colors.textHi} />
-                <Text style={styles.buttonText}>Get Tickets</Text>
-              </LinearGradient>
+            <Pressable style={[styles.pillButton, styles.pillAccent]} onPress={handleBuyTickets}>
+              <Ionicons name="ticket" size={18} color={colors.ink} />
+              <Text style={[styles.pillText, { color: colors.ink }]}>Get Tickets</Text>
             </Pressable>
           ) : null}
 
           <Pressable
-            style={[styles.secondaryButton, isInterested && styles.interestedActive]}
+            style={[styles.pillButton, styles.pillGhost, isInterested && styles.pillInterestedActive]}
             onPress={onInterestedPress}
           >
             <Ionicons
               name={isInterested ? 'heart' : 'heart-outline'}
-              size={20}
+              size={18}
               color={isInterested ? colors.error : colors.textMid}
             />
-            <Text style={[styles.secondaryText, isInterested && styles.interestedText]}>
+            <Text style={[styles.pillText, { color: isInterested ? colors.error : colors.textMid }]}>
               {isInterested ? 'Interested' : 'Mark Interested'}
             </Text>
           </Pressable>
@@ -86,64 +78,31 @@ export function EventActions({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 20,
-    gap: 12,
+    paddingTop: 16,
+    gap: 10,
   },
-  primaryButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  gradient: {
+  pillButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    height: 48,
+    borderRadius: 9999,
     gap: 8,
   },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textHi,
+  pillAccent: {
+    backgroundColor: accentSets.cyan.hex,
   },
-  loggedButton: {
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.success,
-  },
-  loggedText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.success,
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingVertical: 14,
-    gap: 8,
+  pillGhost: {
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: colors.hairline,
   },
-  interestedActive: {
+  pillInterestedActive: {
     borderColor: colors.error,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(239,68,68,0.08)',
   },
-  secondaryText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textMid,
-  },
-  interestedText: {
-    color: colors.error,
+  pillText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
-
-
-

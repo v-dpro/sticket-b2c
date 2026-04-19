@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,7 +22,7 @@ import { useSession } from '../hooks/useSession';
 import { useSessionStore } from '../stores/sessionStore';
 import { updateProfile as updateLocalProfile } from '../lib/local/repo/profileRepo';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
-import { colors } from '../lib/theme';
+import { colors, radius, spacing } from '../lib/theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -124,7 +125,7 @@ export default function EditProfileScreen() {
   if (profileLoading || !profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.brandPurple} />
+        <ActivityIndicator size="large" color={colors.brandCyan} />
       </View>
     );
   }
@@ -138,7 +139,7 @@ export default function EditProfileScreen() {
         </Pressable>
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <Pressable onPress={handleSave} disabled={!canSave}>
-          {saving ? <ActivityIndicator size="small" color={colors.brandPurple} /> : <Text style={styles.saveText}>Save</Text>}
+          {saving ? <ActivityIndicator size="small" color={colors.brandCyan} /> : <Text style={styles.saveText}>Save</Text>}
         </Pressable>
       </View>
 
@@ -241,14 +242,15 @@ const styles = StyleSheet.create({
     color: colors.textMid,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '400',
+    letterSpacing: -0.6,
     color: colors.textHi,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.brandPurple,
+    color: colors.brandCyan,
   },
   content: {
     flex: 1,
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: colors.brandPurple,
+    borderColor: colors.brandCyan,
   },
   avatarPlaceholder: {
     backgroundColor: colors.surface,
@@ -276,7 +278,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: colors.brandPurple,
+    color: colors.brandCyan,
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.brandPurple,
+    backgroundColor: colors.brandCyan,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -304,14 +306,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textMid,
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: colors.textLo,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
   },
   input: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: colors.textHi,

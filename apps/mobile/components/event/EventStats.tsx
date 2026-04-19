@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../../lib/theme';
+import { StyleSheet, View } from 'react-native';
+import { colors, radius } from '../../lib/theme';
+import { StatPill } from '../ui/StatPill';
 
 interface EventStatsProps {
   logCount: number;
@@ -12,25 +12,11 @@ interface EventStatsProps {
 export function EventStats({ logCount, avgRating, interestedCount }: EventStatsProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.stat}>
-        <Ionicons name="people" size={20} color={colors.brandPurple} />
-        <Text style={styles.statValue}>{logCount}</Text>
-        <Text style={styles.statLabel}>were there</Text>
-      </View>
-
+      <StatPill value={logCount} label="ATTENDED" style={styles.pill} />
       {typeof avgRating === 'number' ? (
-        <View style={styles.stat}>
-          <Ionicons name="star" size={20} color={colors.warning} />
-          <Text style={styles.statValue}>{avgRating.toFixed(1)}</Text>
-          <Text style={styles.statLabel}>avg rating</Text>
-        </View>
+        <StatPill value={avgRating.toFixed(1)} label="AVG RATING" style={styles.pill} />
       ) : null}
-
-      <View style={styles.stat}>
-        <Ionicons name="heart" size={20} color={colors.error} />
-        <Text style={styles.statValue}>{interestedCount}</Text>
-        <Text style={styles.statLabel}>interested</Text>
-      </View>
+      <StatPill value={interestedCount} label="INTERESTED" style={styles.pill} />
     </View>
   );
 }
@@ -38,30 +24,12 @@ export function EventStats({ logCount, avgRating, interestedCount }: EventStatsP
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: -40,
-    paddingVertical: 20,
-    borderWidth: 1,
-    borderColor: colors.hairline,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    gap: 8,
   },
-  stat: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textHi,
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 2,
+  pill: {
+    flex: 1,
+    borderRadius: radius.md,
   },
 });
-
-
-

@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '600',
     color: colors.textHi,
   },
   labelDestructive: {

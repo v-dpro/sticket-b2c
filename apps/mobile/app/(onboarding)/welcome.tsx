@@ -1,84 +1,231 @@
 import { Link, Stack, useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Image, Text, View, StyleSheet, Animated, Easing } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useRef, useState } from 'react';
+import { Image, Text, View, StyleSheet, Animated, Easing, Platform, Pressable } from 'react-native';
 
-import { Button } from '../../components/ui/Button';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, spacing, radius } from '../../lib/theme';
+import { colors, accentSets, spacing, radius, shadows } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
+
+const MONO = Platform.select({ ios: 'Menlo', android: 'monospace' });
+const TAGLINE = 'CONCERTS. TOGETHER.';
+const TAGLINE_SPEED = 38; // ms per character
 
 export default function WelcomeOnboarding() {
   const router = useRouter();
   const markWelcomeSeen = useOnboardingStore((s) => s.markWelcomeSeen);
-  const pulse = useRef(new Animated.Value(0)).current;
+
+  // ── Logo entrance: scale(2) rotate(-20deg) → scale(1) rotate(0deg) ──
+  const logoScale = useRef(new Animated.Value(2)).current;
+  const logoRotate = useRef(new Animated.Value(-20)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+
+  // ── Pulse ring ──
+  const pulseScale = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(0.6)).current;
+
+  // ── Content fade-in (wordmark, tagline, description, CTA) ──
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(18)).current;
+
+  // ── Typed tagline ──
+  const [typedCount, setTypedCount] = useState(0);
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [pulse]);
+    // 1. Logo entrance — 540ms spring
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        stiffness: 160,
+        damping: 16,
+        mass: 0.9,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoRotate, {
+        toValue: 0,
+        stiffness: 160,
+        damping: 16,
+        mass: 0.9,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 2. Pulse ring loop (starts after logo lands)
+    const pulseTimer = setTimeout(() => {
+      Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(pulseScale, {
+              toValue: 1.6,
+              duration: 1800,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseScale, {
+              toValue: 1,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(pulseOpacity, {
+              toValue: 0,
+              duration: 1800,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseOpacity, {
+              toValue: 0.6,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      ).start();
+    }, 500);
+
+    // 3. Content slides in after logo
+    const contentTimer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 400,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentTranslateY, {
+          toValue: 0,
+          stiffness: 180,
+          damping: 22,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 540);
+
+    // 4. Typed tagline starts after content is visible
+    const typeStart = setTimeout(() => {
+      let i = 0;
+      const typeInterval = setInterval(() => {
+        i += 1;
+        setTypedCount(i);
+        if (i >= TAGLINE.length) clearInterval(typeInterval);
+      }, TAGLINE_SPEED);
+      return () => clearInterval(typeInterval);
+    }, 900);
+
+    return () => {
+      clearTimeout(pulseTimer);
+      clearTimeout(contentTimer);
+      clearTimeout(typeStart);
+    };
+  }, []);
+
+  const logoRotateStr = logoRotate.interpolate({
+    inputRange: [-20, 0],
+    outputRange: ['-20deg', '0deg'],
+  });
 
   return (
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        {/* Glow behind logo */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.glow,
-            {
-              transform: [
-                {
-                  scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }),
-                },
-              ],
-              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.75, 1] }),
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[`${colors.brandCyan}33`, `${colors.brandPurple}33`, `${colors.brandPink}33`]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-
         {/* Center content */}
         <View style={styles.center}>
-          <View style={styles.logoWrap}>
-            <Image source={require('../../assets/brand-logo.png')} style={styles.logo} resizeMode="contain" accessibilityLabel="Sticket logo" />
+          {/* Logo + Pulse ring */}
+          <View style={styles.logoArea}>
+            {/* Pulse ring */}
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.pulseRing,
+                {
+                  transform: [{ scale: pulseScale }],
+                  opacity: pulseOpacity,
+                },
+              ]}
+            />
+
+            {/* Logo */}
+            <Animated.View
+              style={[
+                styles.logoWrap,
+                {
+                  opacity: logoOpacity,
+                  transform: [{ scale: logoScale }, { rotate: logoRotateStr }],
+                },
+              ]}
+            >
+              <Image
+                source={require('../../assets/brand-logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+                accessibilityLabel="Sticket logo"
+              />
+            </Animated.View>
           </View>
 
-          <Text style={styles.wordmark}>STICKET</Text>
-          <Text style={styles.tagline}>Never miss a show</Text>
+          {/* Wordmark + tagline + description */}
+          <Animated.View
+            style={[
+              styles.textBlock,
+              {
+                opacity: contentOpacity,
+                transform: [{ translateY: contentTranslateY }],
+              },
+            ]}
+          >
+            <Text style={styles.wordmark}>sticket.</Text>
+
+            <Text style={styles.tagline}>
+              {TAGLINE.slice(0, typedCount)}
+              {typedCount < TAGLINE.length && (
+                <Text style={styles.cursor}>|</Text>
+              )}
+            </Text>
+
+            <Text style={styles.description}>
+              Log the shows. Find your people.{'\n'}Build a life soundtrack that's actually shared.
+            </Text>
+          </Animated.View>
         </View>
 
         {/* Bottom CTA */}
-        <View style={styles.cta}>
-          <Button
-            title="Get Started"
+        <Animated.View
+          style={[
+            styles.cta,
+            {
+              opacity: contentOpacity,
+              transform: [{ translateY: contentTranslateY }],
+            },
+          ]}
+        >
+          <Pressable
+            style={({ pressed }) => [
+              styles.ctaButton,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+            ]}
             onPress={() => {
               markWelcomeSeen();
-              router.push('/(onboarding)/set-city');
+              router.push('/(onboarding)/select-artists');
             }}
-            fullWidth
-          />
+            accessibilityRole="button"
+          >
+            <Text style={styles.ctaText}>Get started &rarr;</Text>
+          </Pressable>
+
           <Text style={styles.loginText}>
             Already have an account?{' '}
             <Link href="/(auth)/sign-in" style={styles.loginLink}>
               Log in
             </Link>
           </Text>
-        </View>
+        </Animated.View>
       </View>
     </Screen>
   );
@@ -92,59 +239,89 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['3xl'],
     justifyContent: 'space-between',
   },
-  glow: {
-    position: 'absolute',
-    top: '28%',
-    left: '50%',
-    width: 300,
-    height: 300,
-    marginLeft: -150,
-    marginTop: -150,
-    borderRadius: 9999,
-    overflow: 'hidden',
-  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoWrap: {
+  logoArea: {
     width: 120,
     height: 120,
-    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xl,
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: accentSets.cyan.hex,
+  },
+  logoWrap: {
+    width: 120,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
     width: 120,
     height: 120,
   },
+  textBlock: {
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   wordmark: {
     color: colors.textHi,
-    fontSize: 28,
-    fontWeight: fonts.bold,
-    letterSpacing: 2,
-    marginBottom: spacing.sm,
+    fontSize: 54,
+    fontWeight: '400',
+    letterSpacing: -1,
   },
   tagline: {
+    color: accentSets.cyan.hex,
+    fontSize: 13,
+    fontFamily: MONO,
+    letterSpacing: 2.5,
+    textAlign: 'center',
+  },
+  cursor: {
+    color: accentSets.cyan.hex,
+    fontFamily: MONO,
+  },
+  description: {
     color: colors.textMid,
-    fontSize: fonts.body,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   cta: {
     gap: spacing.md,
     paddingBottom: spacing.xl,
   },
+  ctaButton: {
+    backgroundColor: accentSets.cyan.hex,
+    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.card,
+  },
+  ctaText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   loginText: {
     color: colors.textMid,
-    fontSize: fonts.bodySmall,
+    fontSize: 14,
     textAlign: 'center',
   },
   loginLink: {
-    color: colors.brandCyan,
-    fontWeight: fonts.semibold,
+    color: accentSets.cyan.hex,
+    fontWeight: '600',
   },
 });
-
-
-

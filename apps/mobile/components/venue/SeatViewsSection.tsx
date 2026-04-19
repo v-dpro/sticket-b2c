@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SeatView } from '../../types/venue';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48 - 16) / 3;
@@ -27,7 +29,7 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
         <View style={styles.header}>
           <Text style={styles.title}>Seat Views</Text>
           <Pressable style={styles.addButton} onPress={onAddPress}>
-            <Ionicons name="camera" size={18} color={colors.brandPurple} />
+            <Ionicons name="camera" size={18} color={accentSets.cyan.hex} />
             <Text style={styles.addText}>Add View</Text>
           </Pressable>
         </View>
@@ -45,7 +47,7 @@ export function SeatViewsSection({ seatViews, sections, onAddPress }: SeatViewsS
       <View style={styles.header}>
         <Text style={styles.title}>Seat Views</Text>
         <Pressable style={styles.addButton} onPress={onAddPress}>
-          <Ionicons name="camera" size={18} color={colors.brandPurple} />
+          <Ionicons name="camera" size={18} color={accentSets.cyan.hex} />
           <Text style={styles.addText}>Add View</Text>
         </Pressable>
       </View>
@@ -122,9 +124,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
+    textTransform: 'uppercase',
   },
   addButton: {
     flexDirection: 'row',
@@ -132,15 +137,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addText: {
-    fontSize: 14,
-    color: colors.brandPurple,
+    fontSize: 13,
+    color: accentSets.cyan.hex,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 28,
     marginHorizontal: 16,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.hairline,
   },
@@ -168,8 +173,8 @@ const styles = StyleSheet.create({
     borderColor: colors.hairline,
   },
   sectionChipActive: {
-    backgroundColor: colors.brandPurple,
-    borderColor: colors.brandPurple,
+    backgroundColor: accentSets.cyan.hex,
+    borderColor: accentSets.cyan.hex,
   },
   sectionText: {
     fontSize: 13,

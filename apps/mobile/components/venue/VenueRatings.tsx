@@ -1,8 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
 import type { VenueRatingsSummary } from '../../types/venue';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface VenueRatingsProps {
   ratings: VenueRatingsSummary;
@@ -39,7 +41,7 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
         <Text style={styles.count}>{ratings.totalRatings} ratings</Text>
       </View>
 
-      <View style={styles.ratingsGrid}>
+      <View style={styles.ratingsCard}><View style={styles.ratingsGrid}>
         {RATING_CATEGORIES.map(({ key, label, icon }) => {
           const value = ratings[key as keyof VenueRatingsSummary] as number | null;
 
@@ -63,7 +65,7 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
         })}
       </View>
 
-      <Pressable style={styles.rateButton} onPress={onRatePress}>
+      </View><Pressable style={styles.rateButton} onPress={onRatePress}>
         <Ionicons name={userHasRated ? 'create-outline' : 'star-outline'} size={18} color={colors.brandPurple} />
         <Text style={styles.rateButtonText}>{userHasRated ? 'Update Your Ratings' : 'Rate This Venue'}</Text>
       </Pressable>
@@ -73,28 +75,33 @@ export function VenueRatings({ ratings, userHasRated, onRatePress }: VenueRating
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
     marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
+    marginTop: 24,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
+    textTransform: 'uppercase',
   },
   count: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textLo,
+  },
+  ratingsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    padding: 14,
   },
   ratingsGrid: {
     gap: 12,
@@ -143,17 +150,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    marginTop: 12,
+    height: 40,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: colors.brandPurple,
-    gap: 8,
+    borderColor: colors.hairline,
+    gap: 6,
   },
   rateButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.brandPurple,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMid,
   },
 });
 

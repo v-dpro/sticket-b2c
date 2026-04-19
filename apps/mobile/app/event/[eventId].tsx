@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { BlurView } from 'expo-blur';
 
 import { EventHeader } from '../../components/event/EventHeader';
 import { EventStats } from '../../components/event/EventStats';
@@ -23,7 +22,12 @@ import type { ShareCardData } from '../../types/share';
 import { createEventLink } from '../../lib/share/deepLinks';
 import { ShareButton } from '../../components/share/ShareButton';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
+
+const TABS = ['Photos', 'Setlist', 'Moments'] as const;
+type Tab = typeof TABS[number];
 
 export default function EventScreen() {
   const router = useRouter();
@@ -38,6 +42,7 @@ export default function EventScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [localLogId, setLocalLogId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>('Photos');
   const goBack = useSafeBack();
 
   const isPast = useMemo(() => {
@@ -122,7 +127,7 @@ export default function EventScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={colors.brandPurple} />
+        <ActivityIndicator size="large" color={accentSets.cyan.hex} />
       </View>
     );
   }
@@ -141,7 +146,7 @@ export default function EventScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brandPurple} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={accentSets.cyan.hex} />}
       >
         <EventHeader
           imageUrl={event.imageUrl}
@@ -157,10 +162,8 @@ export default function EventScreen() {
                 data={shareCardData}
                 link={createEventLink(id)}
                 renderTrigger={(open) => (
-                  <Pressable onPress={open} style={styles.headerIconButton} accessibilityRole="button">
-                    <BlurView intensity={50} style={styles.headerBlurButton}>
-                      <Ionicons name="share-outline" size={22} color={colors.textHi} />
-                    </BlurView>
+                  <Pressable onPress={open} style={styles.headerCircleButton} accessibilityRole="button">
+                    <Ionicons name="share-outline" size={18} color={colors.textHi} />
                   </Pressable>
                 )}
               />
@@ -181,11 +184,32 @@ export default function EventScreen() {
 
         <FriendsWhoWent friends={event.friendsWhoWent} onFriendPress={handleFriendPress} onSeeAllPress={handleSeeAllFriends} />
 
-        <PhotosSection photos={photos} onLoadMore={loadMorePhotos} hasMore={hasMorePhotos && !photosLoading} />
+        {/* Tabs: Photos | Setlist | Moments */}
+        <View style={styles.tabBar}>
+          {TABS.map((tab) => (
+            <Pressable
+              key={tab}
+              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                {tab.toUpperCase()}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
-        <SetlistSection songs={event.setlist ?? []} isUpcoming={!isPast} />
+        {activeTab === 'Photos' && (
+          <PhotosSection photos={photos} onLoadMore={loadMorePhotos} hasMore={hasMorePhotos && !photosLoading} />
+        )}
 
-        <MomentsSection moments={event.moments ?? []} />
+        {activeTab === 'Setlist' && (
+          <SetlistSection songs={event.setlist ?? []} isUpcoming={!isPast} />
+        )}
+
+        {activeTab === 'Moments' && (
+          <MomentsSection moments={event.moments ?? []} />
+        )}
 
         <EventComments
           comments={comments}
@@ -195,6 +219,8 @@ export default function EventScreen() {
           onDeleteComment={removeComment}
           onUserPress={handleUserPress}
         />
+
+        <View style={{ height: 80 }} />
       </ScrollView>
     </View>
   );
@@ -208,19 +234,40 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  headerBlurButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerCircleButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    marginTop: 24,
+    marginHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: accentSets.cyan.hex,
+  },
+  tabText: {
+    fontFamily: monoFont,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 1.5,
+    color: colors.textLo,
+    textTransform: 'uppercase',
+  },
+  tabTextActive: {
+    color: accentSets.cyan.hex,
   },
   loadingContainer: {
     flex: 1,
@@ -241,6 +288,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-
-

@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing } from '../../lib/theme';
 
@@ -20,13 +20,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   title: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 10.5,
+    fontWeight: '600',
     color: colors.textLo,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2,
     marginBottom: spacing.sm,
     paddingHorizontal: 16,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
   },
   content: {
     backgroundColor: colors.surface,

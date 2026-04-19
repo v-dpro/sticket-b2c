@@ -240,7 +240,7 @@ export default function SignInScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.h1}>Welcome back</Text>
+            <Text style={styles.h1}>Sign in.</Text>
             <Text style={styles.subhead}>Log in to continue tracking your shows</Text>
           </View>
 
@@ -382,13 +382,14 @@ const styles = StyleSheet.create({
   },
   h1: {
     color: colors.textHi,
-    fontSize: fonts.h1,
-    fontWeight: fonts.bold,
+    fontSize: 34,
+    fontWeight: '400',
+    letterSpacing: -0.8,
     textAlign: 'center',
   },
   subhead: {
     color: colors.textMid,
-    fontSize: fonts.body,
+    fontSize: 14,
     textAlign: 'center',
   },
   form: {
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
   },
   socialBtn: {
     height: 56,
-    borderRadius: radius.md,
+    borderRadius: 999,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.hairline,
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.97 }],
   },
   disabled: {
     opacity: 0.5,

@@ -1,21 +1,101 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View, Vibration } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Vibration,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 
-import { radius, spacing, colors, gradients } from '../../lib/theme';
+import { colors, accentSets, spacing, radius } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
 import { searchArtists } from '../../lib/api/artists';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+
+const MONO = Platform.select({ ios: 'Menlo', android: 'monospace' });
 
 interface ArtistOption {
   spotifyId?: string;
   name: string;
   imageUrl?: string;
   genres?: string[];
+}
+
+/* ── Chip with shake-pop on select ── */
+function ArtistChip({
+  artist,
+  selected,
+  onPress,
+}: {
+  artist: ArtistOption;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const translateXAnim = useRef(new Animated.Value(0)).current;
+  const prevSelected = useRef(selected);
+
+  useEffect(() => {
+    if (selected && !prevSelected.current) {
+      // shake-pop: quick scale bump + tiny horizontal shake
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.12,
+            duration: 100,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            stiffness: 300,
+            damping: 15,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(translateXAnim, { toValue: 4, duration: 40, useNativeDriver: true }),
+          Animated.timing(translateXAnim, { toValue: -4, duration: 40, useNativeDriver: true }),
+          Animated.timing(translateXAnim, { toValue: 3, duration: 40, useNativeDriver: true }),
+          Animated.timing(translateXAnim, { toValue: -3, duration: 40, useNativeDriver: true }),
+          Animated.timing(translateXAnim, { toValue: 0, duration: 30, useNativeDriver: true }),
+        ]),
+      ]).start();
+    }
+    prevSelected.current = selected;
+  }, [selected]);
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnim }, { translateX: translateXAnim }],
+      }}
+    >
+      <Pressable
+        onPress={onPress}
+        style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+      >
+        {selected && (
+          <Ionicons name="checkmark" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+        )}
+        <Text style={[styles.chipText, selected ? styles.chipTextSelected : styles.chipTextUnselected]}>
+          {artist.name}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  );
 }
 
 export default function SelectArtistsScreen() {
@@ -49,7 +129,7 @@ export default function SelectArtistsScreen() {
             name: r.name,
             imageUrl: r.imageUrl,
             genres: r.genres,
-          }))
+          })),
         );
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -74,182 +154,112 @@ export default function SelectArtistsScreen() {
 
   const isSelected = (artist: ArtistOption) =>
     selectedArtists.some(
-      (a) => (a.spotifyId && a.spotifyId === artist.spotifyId) || a.name.toLowerCase() === artist.name.toLowerCase()
+      (a) =>
+        (a.spotifyId && a.spotifyId === artist.spotifyId) ||
+        a.name.toLowerCase() === artist.name.toLowerCase(),
     );
-
-  const getSelectionTier = (artist: ArtistOption) =>
-    selectedArtists.find(
-      (a) => (a.spotifyId && a.spotifyId === artist.spotifyId) || a.name.toLowerCase() === artist.name.toLowerCase()
-    )?.tier;
 
   const handleArtistPress = (artist: ArtistOption) => {
     toggleArtistSelection(artist, false);
   };
 
-  const handleArtistLongPress = (artist: ArtistOption) => {
-    Vibration.vibrate(50);
-    toggleArtistSelection(artist, true);
-  };
-
   const handleContinue = () => {
-    // Persist current selection and advance.
     setSelectedArtists(selectedArtists as any);
-    router.push('/(onboarding)/presale-preview');
+    router.push('/(onboarding)/set-city');
   };
 
-  const renderArtist = ({ item }: { item: ArtistOption }) => {
-    const selected = isSelected(item);
-    const tier = getSelectionTier(item);
-
-    return (
-      <Pressable
-        style={[styles.artistCard, selected && styles.artistCardSelected, tier === 'top-tier' && styles.artistCardTopTier]}
-        onPress={() => handleArtistPress(item)}
-        onLongPress={() => handleArtistLongPress(item)}
-        delayLongPress={300}
-        accessibilityRole="button"
-      >
-        {selected ? (
-          <View style={[styles.checkBadge, tier === 'top-tier' && styles.checkBadgeTopTier]}>
-            <Ionicons name={tier === 'top-tier' ? 'star' : 'checkmark'} size={14} color={colors.textHi} />
-          </View>
-        ) : null}
-
-        <View style={styles.avatarContainer}>
-          {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={styles.artistImage} />
-          ) : (
-            <View style={[styles.artistImage, styles.artistImagePlaceholder]}>
-              <Text style={styles.avatarText}>
-                {item.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={[
-          styles.artistName,
-          (selected || tier === 'top-tier') && styles.artistNameSelected
-        ]} numberOfLines={1}>
-          {item.name}
-        </Text>
-      </Pressable>
-    );
-  };
-
-  const mustSees = selectedArtists.filter((a) => a.tier === 'top-tier').length;
+  const count = selectedArtists.length;
+  const canContinue = count >= 3;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
-        <Text style={styles.stepText}>Step 3 of 6</Text>
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Select Your Artists</Text>
-        <Text style={styles.subtitle}>
-          {spotifyConnected
-            ? 'We found artists you listen to! Tap to follow, long press for must-sees ⭐'
-            : 'Search for artists you want to follow. Long press for must-sees ⭐'}
+      {/* Title */}
+      <View style={styles.titleBlock}>
+        <Text style={styles.title}>Who do you love?</Text>
+        <Text style={styles.subtitle}>Pick at least 3</Text>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color={colors.textLo} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search artists..."
+          placeholderTextColor={colors.textLo}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searching && <ActivityIndicator size="small" color={accentSets.cyan.hex} />}
+      </View>
+
+      {/* Counter */}
+      <View style={styles.counterRow}>
+        <Text style={[styles.counter, canContinue ? styles.counterActive : styles.counterInactive]}>
+          {count} / 3 picked
         </Text>
+      </View>
 
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={colors.textLo} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search artists..."
-            placeholderTextColor={colors.textLo}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searching ? <ActivityIndicator size="small" color={colors.brandPurple} /> : (
-            <Pressable
-              onPress={() => setSearchQuery('')}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="refresh" size={20} color={colors.textLo} />
-            </Pressable>
-          )}
-        </View>
-
-        <View style={styles.selectionInfo}>
-          <Text style={styles.selectionText}>
-            {selectedArtists.length} selected{mustSees > 0 ? ` (${mustSees} must-sees)` : ''}
-          </Text>
-          <Text style={styles.minText}>Minimum 3 artists</Text>
-        </View>
-
+      {/* Chip grid */}
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={styles.chipGrid}
+        showsVerticalScrollIndicator={false}
+      >
         {spotifyLoading && !searchQuery.trim() ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.brandPurple} />
-            <Text style={styles.loadingText}>Loading your artists from Spotify...</Text>
+            <ActivityIndicator size="large" color={accentSets.cyan.hex} />
+            <Text style={styles.loadingText}>Loading your artists...</Text>
+          </View>
+        ) : displayArtists.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="search" size={36} color={colors.textLo} />
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'No artists found' : 'Search for artists to follow'}
+            </Text>
           </View>
         ) : (
-          <FlatList
-            data={displayArtists}
-            keyExtractor={(item) => item.spotifyId || item.name}
-            renderItem={renderArtist}
-            numColumns={3}
-            columnWrapperStyle={styles.row}
-            contentContainerStyle={styles.grid}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="search" size={48} color={colors.textLo} />
-                <Text style={styles.emptyText}>{searchQuery ? 'No artists found' : 'Search for artists to follow'}</Text>
-              </View>
-            )}
-          />
+          <View style={styles.chipWrap}>
+            {displayArtists.map((artist) => (
+              <ArtistChip
+                key={artist.spotifyId || artist.name}
+                artist={artist}
+                selected={isSelected(artist)}
+                onPress={() => handleArtistPress(artist)}
+              />
+            ))}
+          </View>
         )}
-      </View>
+      </ScrollView>
 
+      {/* Footer */}
       <View style={styles.footer}>
         <Pressable
           onPress={handleContinue}
-          disabled={!artistsStepCompleted}
+          disabled={!canContinue}
           style={({ pressed }) => [
             styles.continueButton,
-            !artistsStepCompleted && styles.continueButtonDisabled,
-            pressed && { opacity: 0.9 }
+            canContinue ? styles.continueEnabled : styles.continueDisabled,
+            pressed && canContinue && { opacity: 0.85, transform: [{ scale: 0.97 }] },
           ]}
           accessibilityRole="button"
         >
-          {artistsStepCompleted ? (
-            <LinearGradient
-              colors={gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.continueGradient}
-            >
-              <Text style={styles.continueButtonText}>Continue with {selectedArtists.length} artists</Text>
-              <Ionicons name="arrow-forward" size={20} color={colors.textHi} />
-            </LinearGradient>
-          ) : (
-            <View style={styles.continueDisabledInner}>
-              <Text style={styles.continueButtonTextDisabled}>Select at least 3 artists</Text>
-            </View>
-          )}
-        </Pressable>
-
-        {/* Skip Button - allows users to proceed without selecting */}
-        <Pressable
-          style={styles.skipButton}
-          onPress={async () => {
-            // Mark artists step as completed even if no artists selected
-            const markArtistsStepCompleted = useOnboardingStore.getState().markArtistsStepCompleted;
-            await markArtistsStepCompleted();
-            router.push('/(onboarding)/presale-preview');
-          }}
-          accessibilityRole="button"
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
+          <Text
+            style={[
+              styles.continueText,
+              canContinue ? styles.continueTextEnabled : styles.continueTextDisabled,
+            ]}
+          >
+            Continue &rarr;
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -268,141 +278,97 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   backButton: {
-    marginRight: spacing.md,
+    padding: 4,
   },
-  stepText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textLo,
-  },
-  content: {
-    flex: 1,
+  titleBlock: {
     paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 38,
+    fontWeight: '400',
+    letterSpacing: -0.8,
     color: colors.textHi,
-    marginBottom: spacing.sm,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textMid,
-    lineHeight: 22,
-    marginBottom: spacing.lg,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.hairline,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textHi,
+    padding: 0,
   },
-  selectionInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  counterRow: {
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  selectionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.brandCyan,
+  counter: {
+    fontSize: 10.5,
+    fontFamily: MONO,
   },
-  minText: {
-    fontSize: 14,
+  counterActive: {
+    color: accentSets.cyan.hex,
+  },
+  counterInactive: {
     color: colors.textLo,
   },
-  grid: {
+  scrollArea: {
+    flex: 1,
+  },
+  chipGrid: {
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
   },
-  row: {
-    justifyContent: 'flex-start',
-    gap: 12,
-    marginBottom: 12,
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  artistCard: {
-    width: '31%',
-    aspectRatio: 0.85,
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+  },
+  chipSelected: {
+    backgroundColor: accentSets.cyan.hex,
+  },
+  chipUnselected: {
     backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
     borderWidth: 1,
-    borderColor: colors.hairline,
+    borderColor: colors.line,
   },
-  artistCardSelected: {
-    borderWidth: 2,
-    borderColor: colors.brandCyan,
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-  },
-  artistCardTopTier: {
-    borderWidth: 2,
-    borderColor: colors.gold,
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-  },
-  avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  artistImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  artistImagePlaceholder: {
-    backgroundColor: colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 64,
-    height: 64,
-  },
-  avatarText: {
-    color: colors.textLo,
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  artistName: {
-    fontSize: 12,
+  chipText: {
+    fontSize: 13.5,
     fontWeight: '600',
-    color: colors.textMid,
-    textAlign: 'center',
   },
-  artistNameSelected: {
+  chipTextSelected: {
+    color: '#FFFFFF',
+  },
+  chipTextUnselected: {
     color: colors.textHi,
   },
-  checkBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.brandCyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkBadgeTopTier: {
-    backgroundColor: colors.gold,
-  },
   loadingContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 60,
   },
   loadingText: {
     marginTop: spacing.md,
@@ -410,13 +376,12 @@ const styles = StyleSheet.create({
     color: colors.textMid,
   },
   emptyContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 60,
+    gap: spacing.sm,
   },
   emptyText: {
-    marginTop: spacing.md,
     fontSize: 14,
     color: colors.textMid,
   },
@@ -426,45 +391,27 @@ const styles = StyleSheet.create({
     borderTopColor: colors.hairline,
   },
   continueButton: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-  },
-  continueButtonDisabled: {
-    opacity: 0.5,
-  },
-  continueGradient: {
-    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
   },
-  continueDisabledInner: {
-    backgroundColor: colors.elevated,
-    paddingVertical: 16,
-    alignItems: 'center',
+  continueEnabled: {
+    backgroundColor: accentSets.cyan.hex,
   },
-  continueButtonText: {
-    fontSize: 16,
+  continueDisabled: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  continueText: {
+    fontSize: 15,
     fontWeight: '700',
-    color: colors.textHi,
   },
-  continueButtonTextDisabled: {
-    fontSize: 16,
-    fontWeight: '700',
+  continueTextEnabled: {
+    color: '#FFFFFF',
+  },
+  continueTextDisabled: {
     color: colors.textLo,
   },
-  skipButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  skipButtonText: {
-    color: colors.textMid,
-    fontSize: 14,
-    fontWeight: '500',
-  },
 });
-
-

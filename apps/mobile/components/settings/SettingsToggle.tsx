@@ -41,7 +41,7 @@ export function SettingsToggle({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: colors.hairline, true: colors.brandPurple }}
+        trackColor={{ false: colors.hairline, true: colors.brandCyan }}
         thumbColor={colors.textHi}
         disabled={disabled}
       />
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     color: colors.textHi,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   labelDisabled: {
     color: colors.textLo,

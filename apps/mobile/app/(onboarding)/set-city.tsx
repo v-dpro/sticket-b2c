@@ -1,63 +1,188 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ProgressDots } from '../../components/onboarding/ProgressDots';
-import { Button } from '../../components/ui/Button';
-import { Screen } from '../../components/ui/Screen';
-import { TextField } from '../../components/ui/TextField';
-import { colors, spacing } from '../../lib/theme';
-import { updateProfile } from '../../lib/local/repo/profileRepo';
-import { useSession } from '../../hooks/useSession';
+import { colors, accentSets, spacing, radius, shadows } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
+import { useSafeBack } from '../../lib/navigation/safeNavigation';
+
+type OrbitOption = 'friends' | 'fof' | 'taste';
+
+const ORBIT_OPTIONS: { key: OrbitOption; label: string; description: string }[] = [
+  {
+    key: 'friends',
+    label: 'FRIENDS',
+    description: 'Only people you follow. Tight circle, zero noise.',
+  },
+  {
+    key: 'fof',
+    label: 'FRIENDS+FOF',
+    description: 'Friends and their friends. Wider net, still curated.',
+  },
+  {
+    key: 'taste',
+    label: 'TASTE GRAPH',
+    description: 'Anyone who shares your music taste. Maximum discovery.',
+  },
+];
 
 export default function SetCityOnboarding() {
   const router = useRouter();
-  const { user, profile, refresh } = useSession();
-  const setCityInStore = useOnboardingStore((s) => s.setCity);
+  const goBack = useSafeBack();
+  const [selected, setSelected] = useState<OrbitOption>('fof');
 
-  const [city, setCity] = useState(profile?.city ?? '');
-  const [isSaving, setIsSaving] = useState(false);
+  const activeOption = ORBIT_OPTIONS.find((o) => o.key === selected)!;
 
-  const canContinue = useMemo(() => city.trim().length >= 2, [city]);
-
-  const onContinue = async () => {
-    if (!user) return;
-    setIsSaving(true);
-    try {
-      const nextCity = city.trim();
-      await updateProfile(user.id, { city: nextCity });
-      setCityInStore(nextCity);
-      await refresh();
-      router.push('/(onboarding)/connect-spotify');
-    } finally {
-      setIsSaving(false);
-    }
+  const onContinue = () => {
+    // Store orbit preference (reusing city store slot or adding new field)
+    router.push('/(onboarding)/done');
   };
 
   return (
-    <Screen>
-      <View style={{ flex: 1, paddingTop: spacing.lg, gap: spacing.lg }}>
-        <View style={{ alignItems: 'center' }}>
-          <ProgressDots total={4} current={0} />
-        </View>
-
-        <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Set your city</Text>
-          <Text style={{ color: colors.textMid, fontSize: 16 }}>
-            We’ll show you shows nearby.
-          </Text>
-        </View>
-
-        <TextField label="City" placeholder="Los Angeles" value={city} onChangeText={setCity} />
-
-        <View style={{ marginTop: 'auto' }}>
-          <Button label={isSaving ? 'Saving…' : 'Continue'} disabled={!canContinue || isSaving} onPress={onContinue} />
-        </View>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+        </Pressable>
       </View>
-    </Screen>
+
+      <View style={styles.content}>
+        {/* Title */}
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>Your orbit.</Text>
+          <Text style={styles.subtitle}>How wide a net?</Text>
+        </View>
+
+        {/* Segmented control */}
+        <View style={styles.segmentedTrack}>
+          {ORBIT_OPTIONS.map((option) => {
+            const isActive = selected === option.key;
+            return (
+              <Pressable
+                key={option.key}
+                onPress={() => setSelected(option.key)}
+                style={[styles.segmentedItem, isActive && styles.segmentedItemActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+              >
+                <Text
+                  style={[
+                    styles.segmentedLabel,
+                    isActive ? styles.segmentedLabelActive : styles.segmentedLabelInactive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Description */}
+        <Text style={styles.description}>{activeOption.description}</Text>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Pressable
+          onPress={onContinue}
+          style={({ pressed }) => [
+            styles.ctaButton,
+            pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+          ]}
+          accessibilityRole="button"
+        >
+          <Text style={styles.ctaText}>Looks good &rarr;</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }
 
-
-
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.ink,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  backButton: {
+    padding: 4,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+  },
+  titleBlock: {
+    marginBottom: spacing['2xl'],
+  },
+  title: {
+    fontSize: 38,
+    fontWeight: '400',
+    letterSpacing: -0.8,
+    color: colors.textHi,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textMid,
+  },
+  segmentedTrack: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    padding: 3,
+    marginBottom: spacing.lg,
+  },
+  segmentedItem: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentedItemActive: {
+    backgroundColor: accentSets.cyan.hex,
+  },
+  segmentedLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  segmentedLabelActive: {
+    color: '#FFFFFF',
+  },
+  segmentedLabelInactive: {
+    color: colors.textMid,
+  },
+  description: {
+    fontSize: 15,
+    color: colors.textMid,
+    lineHeight: 22,
+  },
+  footer: {
+    padding: spacing.lg,
+  },
+  ctaButton: {
+    backgroundColor: accentSets.cyan.hex,
+    paddingVertical: 16,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.card,
+  },
+  ctaText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+});

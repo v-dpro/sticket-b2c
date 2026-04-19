@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
 import type { VenueTip } from '../../types/venue';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface TipsSectionProps {
   tips: VenueTip[];
@@ -19,14 +21,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   general: 'information-circle',
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  parking: colors.brandCyan,
-  food: colors.warning,
-  seating: colors.brandPurple,
-  entry: colors.success,
-  general: colors.textLo,
-};
-
 export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps) {
   const [filter, setFilter] = useState<string | null>(null);
 
@@ -37,9 +31,9 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Tips</Text>
+        <Text style={styles.sectionLabel}>INSIDER TIPS</Text>
         <Pressable style={styles.addButton} onPress={onAddTipPress}>
-          <Ionicons name="add" size={20} color={colors.brandPurple} />
+          <Ionicons name="add" size={18} color={accentSets.cyan.hex} />
           <Text style={styles.addText}>Add Tip</Text>
         </Pressable>
       </View>
@@ -57,8 +51,8 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
             >
               <Ionicons
                 name={(CATEGORY_ICONS[cat] || 'information-circle') as any}
-                size={14}
-                color={filter === cat ? colors.textHi : CATEGORY_COLORS[cat] || colors.textLo}
+                size={12}
+                color={filter === cat ? colors.ink : colors.textLo}
               />
               <Text style={[styles.filterText, filter === cat && styles.filterTextActive]}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -70,34 +64,41 @@ export function TipsSection({ tips, onUpvote, onAddTipPress }: TipsSectionProps)
 
       {filteredTips.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="bulb-outline" size={40} color={colors.textLo} />
+          <Ionicons name="bulb-outline" size={32} color={colors.textLo} />
           <Text style={styles.emptyText}>No tips yet. Be the first!</Text>
         </View>
       ) : (
         <View style={styles.tipsList}>
           {filteredTips.map((tip) => (
-            <View key={tip.id} style={styles.tipCard}>
-              <View style={styles.tipHeader}>
-                <View style={[styles.categoryBadge, { backgroundColor: `${CATEGORY_COLORS[tip.category]}20` }]}>
-                  <Ionicons name={CATEGORY_ICONS[tip.category] as any} size={12} color={CATEGORY_COLORS[tip.category]} />
-                  <Text style={[styles.categoryText, { color: CATEGORY_COLORS[tip.category] }]}>{tip.category}</Text>
+            <View key={tip.id} style={styles.tipRow}>
+              {/* Avatar */}
+              {tip.user.avatarUrl ? (
+                <Image source={{ uri: tip.user.avatarUrl }} style={styles.tipAvatar} />
+              ) : (
+                <View style={[styles.tipAvatar, styles.tipAvatarPlaceholder]}>
+                  <Text style={styles.tipAvatarInitial}>
+                    {(tip.user.username || '?').charAt(0).toUpperCase()}
+                  </Text>
                 </View>
-                <Text style={styles.tipTime}>{formatDistanceToNow(new Date(tip.createdAt), { addSuffix: true })}</Text>
+              )}
+
+              <View style={styles.tipContent}>
+                <View style={styles.tipMeta}>
+                  <Text style={styles.tipUser}>@{tip.user.username}</Text>
+                </View>
+                <Text style={styles.tipText}>{tip.text}</Text>
               </View>
 
-              <Text style={styles.tipText}>{tip.text}</Text>
-
-              <View style={styles.tipFooter}>
-                <Text style={styles.tipAuthor}>@{tip.user.username}</Text>
-                <Pressable style={styles.upvoteButton} onPress={() => onUpvote(tip.id)}>
-                  <Ionicons
-                    name={tip.userUpvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
-                    size={20}
-                    color={tip.userUpvoted ? colors.brandPurple : colors.textLo}
-                  />
-                  <Text style={[styles.upvoteCount, tip.userUpvoted && styles.upvoteCountActive]}>{tip.upvotes}</Text>
-                </Pressable>
-              </View>
+              <Pressable style={styles.upvoteButton} onPress={() => onUpvote(tip.id)}>
+                <Ionicons
+                  name={tip.userUpvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
+                  size={18}
+                  color={tip.userUpvoted ? accentSets.cyan.hex : colors.textLo}
+                />
+                <Text style={[styles.upvoteCount, tip.userUpvoted && styles.upvoteCountActive]}>
+                  {tip.upvotes}
+                </Text>
+              </Pressable>
             </View>
           ))}
         </View>
@@ -115,12 +116,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+  sectionLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
   },
   addButton: {
     flexDirection: 'row',
@@ -128,109 +131,120 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addText: {
-    fontSize: 14,
-    color: colors.brandPurple,
+    fontSize: 13,
+    color: accentSets.cyan.hex,
   },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: 10,
+    gap: 6,
     flexWrap: 'wrap',
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
     gap: 4,
   },
   filterChipActive: {
-    backgroundColor: colors.brandPurple,
+    backgroundColor: accentSets.cyan.hex,
+    borderColor: accentSets.cyan.hex,
   },
   filterText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMid,
   },
   filterTextActive: {
-    color: colors.textHi,
+    color: colors.ink,
+    fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 28,
     marginHorizontal: 16,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textLo,
     marginTop: 8,
   },
   tipsList: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 8,
   },
-  tipCard: {
+  tipRow: {
+    flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.hairline,
+    padding: 12,
   },
-  tipHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  tipAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 10,
+  },
+  tipAvatarPlaceholder: {
+    backgroundColor: colors.elevated,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  categoryBadge: {
+  tipAvatarInitial: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMid,
+  },
+  tipContent: {
+    flex: 1,
+  },
+  tipMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    gap: 6,
+    marginBottom: 4,
   },
-  categoryText: {
+  tipUser: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textHi,
+  },
+  tipRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  tipRatingText: {
     fontSize: 10,
+    color: colors.warning,
     fontWeight: '600',
-    textTransform: 'uppercase',
   },
-  tipTime: {
+  tipText: {
+    fontSize: 13.5,
+    color: colors.textMid,
+    lineHeight: 13.5 * 1.4,
+  },
+  upvoteButton: {
+    alignItems: 'center',
+    marginLeft: 8,
+    gap: 2,
+  },
+  upvoteCount: {
     fontSize: 11,
     color: colors.textLo,
   },
-  tipText: {
-    fontSize: 14,
-    color: colors.textHi,
-    lineHeight: 20,
-  },
-  tipFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  tipAuthor: {
-    fontSize: 12,
-    color: colors.textLo,
-  },
-  upvoteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  upvoteCount: {
-    fontSize: 12,
-    color: colors.textLo,
-  },
   upvoteCountActive: {
-    color: colors.brandPurple,
+    color: accentSets.cyan.hex,
   },
 });
-
-
-

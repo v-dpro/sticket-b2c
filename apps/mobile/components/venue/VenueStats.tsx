@@ -1,43 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../lib/theme';
+import { StyleSheet, View } from 'react-native';
+import { colors, radius } from '../../lib/theme';
+import { StatPill } from '../ui/StatPill';
 
 interface VenueStatsProps {
   totalShows: number;
   totalLogs: number;
   capacity?: number;
-}
-
-export function VenueStats({ totalShows, totalLogs, capacity }: VenueStatsProps) {
-  return (
-    <View style={styles.container}>
-      <View style={styles.stat}>
-        <Ionicons name="calendar" size={20} color={colors.brandPurple} />
-        <Text style={styles.statValue}>{formatNumber(totalShows)}</Text>
-        <Text style={styles.statLabel}>shows</Text>
-      </View>
-
-      <View style={styles.divider} />
-
-      <View style={styles.stat}>
-        <Ionicons name="musical-notes" size={20} color={colors.brandCyan} />
-        <Text style={styles.statValue}>{formatNumber(totalLogs)}</Text>
-        <Text style={styles.statLabel}>logs</Text>
-      </View>
-
-      {typeof capacity === 'number' ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.stat}>
-            <Ionicons name="people" size={20} color={colors.warning} />
-            <Text style={styles.statValue}>{formatNumber(capacity)}</Text>
-            <Text style={styles.statLabel}>capacity</Text>
-          </View>
-        </>
-      ) : null}
-    </View>
-  );
 }
 
 function formatNumber(num: number): string {
@@ -46,40 +15,27 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
+export function VenueStats({ totalShows, totalLogs, capacity }: VenueStatsProps) {
+  return (
+    <View style={styles.container}>
+      <StatPill value={formatNumber(totalShows)} label="YOUR VISITS" style={styles.pill} />
+      <StatPill value={formatNumber(totalLogs)} label="AVG RATING" style={styles.pill} />
+      {typeof capacity === 'number' ? (
+        <StatPill value={formatNumber(capacity)} label="CAPACITY" style={styles.pill} />
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    marginHorizontal: 16,
+    paddingHorizontal: 16,
     marginTop: 16,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
+    gap: 8,
   },
-  stat: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.textHi,
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.hairline,
+  pill: {
+    flex: 1,
+    borderRadius: radius.md,
   },
 });
-
-
-

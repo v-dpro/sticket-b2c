@@ -1,9 +1,11 @@
 import React from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import type { VenueShow } from '../../types/venue';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface VenueShowsProps {
   upcoming: VenueShow[];
@@ -18,65 +20,77 @@ interface VenueShowsProps {
 export function VenueShows({ upcoming, past, pastLoading, pastHasMore, onLoadMorePast, onShowPress, onLogPress }: VenueShowsProps) {
   return (
     <View style={styles.container}>
+      {/* Upcoming shows */}
       {upcoming.length ? (
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.title}>Upcoming Shows</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            {upcoming.map((show) => (
-              <Pressable key={show.id} style={styles.upcomingCard} onPress={() => onShowPress(show.id)}>
-                <View style={styles.dateBadge}>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>{upcoming.length} UPCOMING SHOWS</Text>
+
+          <View style={styles.card}>
+            {upcoming.map((show, i) => (
+              <Pressable
+                key={show.id}
+                style={[styles.upcomingRow, i < upcoming.length - 1 && styles.rowBorder]}
+                onPress={() => onShowPress(show.id)}
+              >
+                <View style={styles.dateCol}>
                   <Text style={styles.dateMonth}>{format(new Date(show.date), 'MMM').toUpperCase()}</Text>
                   <Text style={styles.dateDay}>{format(new Date(show.date), 'd')}</Text>
                 </View>
 
                 <View style={styles.showInfo}>
-                  <Text style={styles.primaryName} numberOfLines={1}>
-                    {show.artist.name}
-                  </Text>
-                  <Text style={styles.secondaryText} numberOfLines={1}>
-                    {format(new Date(show.date), 'EEE, MMM d')} 
+                  <Text style={styles.artistName} numberOfLines={1}>{show.artist.name}</Text>
+                  <Text style={styles.showMeta} numberOfLines={1}>
+                    {format(new Date(show.date), 'EEE, MMM d')}
                   </Text>
                 </View>
+
+                <Ionicons name="chevron-forward" size={16} color={colors.textLo} />
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
         </View>
       ) : null}
 
+      {/* Past shows */}
       {past.length || pastLoading ? (
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.title}>Past Shows</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PAST SHOWS</Text>
 
           <FlatList
             data={past}
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
             onEndReached={onLoadMorePast}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={pastLoading ? <View style={styles.footer}><ActivityIndicator size="small" color={colors.brandPurple} /></View> : null}
-            renderItem={({ item }) => (
-              <Pressable style={styles.showRow} onPress={() => onShowPress(item.id)}>
-                <View style={styles.dateColumn}>
-                  <Text style={styles.dateMonthSmall}>{format(new Date(item.date), 'MMM')}</Text>
-                  <Text style={styles.dateDaySmall}>{format(new Date(item.date), 'd')}</Text>
-                  <Text style={styles.dateYearSmall}>{format(new Date(item.date), 'yyyy')}</Text>
+            ListFooterComponent={
+              pastLoading ? (
+                <View style={styles.footer}>
+                  <ActivityIndicator size="small" color={accentSets.cyan.hex} />
+                </View>
+              ) : null
+            }
+            renderItem={({ item, index }) => (
+              <Pressable
+                style={[styles.pastRow, index < past.length - 1 && styles.rowBorderSurface]}
+                onPress={() => onShowPress(item.id)}
+              >
+                <View style={styles.dateColPast}>
+                  <Text style={styles.dateMono}>
+                    {format(new Date(item.date), 'MMM d').toUpperCase()}
+                  </Text>
+                  <Text style={styles.dateYear}>{format(new Date(item.date), 'yyyy')}</Text>
                 </View>
 
-                <View style={styles.rowInfo}>
-                  <Text style={styles.primaryName} numberOfLines={1}>
-                    {item.artist.name}
-                  </Text>
+                <View style={styles.showInfo}>
+                  <Text style={styles.artistName} numberOfLines={1}>{item.artist.name}</Text>
                   <View style={styles.statsRow}>
-                    <Ionicons name="people" size={12} color={colors.textLo} />
-                    <Text style={styles.secondaryText}>{item.logCount} logged</Text>
+                    <Ionicons name="people" size={11} color={colors.textLo} />
+                    <Text style={styles.showMeta}>{item.logCount} logged</Text>
                   </View>
                 </View>
 
                 {item.userLogged ? (
-                  <View style={styles.loggedBadge}>
-                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  </View>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                 ) : (
                   <Pressable
                     style={styles.logButton}
@@ -104,112 +118,112 @@ export function VenueShows({ upcoming, past, pastLoading, pastHasMore, onLoadMor
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 0,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+  container: {},
+  section: {
+    marginTop: 24,
     paddingHorizontal: 16,
-    marginBottom: 12,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
+  sectionLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
+    marginBottom: 10,
   },
-  upcomingCard: {
+  card: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    width: 220,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.hairline,
+    overflow: 'hidden',
   },
-  dateBadge: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
+  upcomingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+  },
+  rowBorderSurface: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+  },
+  dateCol: {
+    width: 44,
+    alignItems: 'center',
+    marginRight: 12,
   },
   dateMonth: {
-    fontSize: 10,
+    fontFamily: monoFont,
+    fontSize: 9,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    color: accentSets.cyan.hex,
+    letterSpacing: 1,
   },
   dateDay: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.textHi,
-    textAlign: 'center',
+  },
+  dateColPast: {
+    width: 44,
+    marginRight: 12,
+  },
+  dateMono: {
+    fontFamily: monoFont,
+    fontSize: 10,
+    fontWeight: '500',
+    color: colors.textLo,
+    letterSpacing: 0.5,
+  },
+  dateYear: {
+    fontFamily: monoFont,
+    fontSize: 9,
+    color: colors.textLo,
   },
   showInfo: {
     flex: 1,
   },
-  primaryName: {
+  artistName: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.textHi,
     marginBottom: 2,
   },
-  secondaryText: {
+  showMeta: {
     fontSize: 12,
     color: colors.textLo,
-  },
-  showRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  dateColumn: {
-    width: 48,
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  dateMonthSmall: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.brandPurple,
-    textTransform: 'uppercase',
-  },
-  dateDaySmall: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.textHi,
-  },
-  dateYearSmall: {
-    fontSize: 10,
-    color: colors.textLo,
-  },
-  rowInfo: {
-    flex: 1,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  loggedBadge: {
-    padding: 8,
+  pastRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
   logButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+    backgroundColor: accentSets.cyan.hex,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 9999,
   },
   logButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textHi,
+    color: colors.ink,
   },
   footer: {
     paddingVertical: 16,
@@ -217,13 +231,10 @@ const styles = StyleSheet.create({
   },
   loadMoreButton: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   loadMoreText: {
-    fontSize: 14,
-    color: colors.brandCyan,
+    fontSize: 13,
+    color: accentSets.cyan.hex,
   },
 });
-
-
-

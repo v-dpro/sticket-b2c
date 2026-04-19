@@ -29,7 +29,7 @@ export default function ForgotPasswordScreen() {
         {!sent ? (
           <>
             <View style={styles.header}>
-              <Text style={styles.h1}>Reset password</Text>
+              <Text style={styles.h1}>Reset password.</Text>
               <Text style={styles.subhead}>Enter your email and we&apos;ll send you a link to reset your password</Text>
             </View>
 
@@ -96,19 +96,21 @@ const styles = StyleSheet.create({
   },
   h1: {
     color: colors.textHi,
-    fontSize: fonts.h1,
-    fontWeight: fonts.bold,
+    fontSize: 34,
+    fontWeight: '400',
+    letterSpacing: -0.8,
   },
   h2: {
     color: colors.textHi,
-    fontSize: fonts.h2,
-    fontWeight: fonts.bold,
+    fontSize: 28,
+    fontWeight: '400',
+    letterSpacing: -0.6,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   subhead: {
     color: colors.textMid,
-    fontSize: fonts.body,
+    fontSize: 14,
     lineHeight: 22,
   },
   form: {

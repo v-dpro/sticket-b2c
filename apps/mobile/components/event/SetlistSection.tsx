@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import type { SetlistSong } from '../../types/event';
-import { colors } from '../../lib/theme';
+import { colors, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface SetlistSectionProps {
   songs: SetlistSong[];
@@ -16,9 +18,9 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
   if (!songs.length) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Setlist</Text>
+        <Text style={[styles.sectionLabel, { paddingHorizontal: 16 }]}>SETLIST</Text>
         <View style={styles.emptyContainer}>
-          <Ionicons name="musical-notes-outline" size={40} color={colors.textLo} />
+          <Ionicons name="musical-notes-outline" size={32} color={colors.textLo} />
           <Text style={styles.emptyText}>No setlist available</Text>
         </View>
       </View>
@@ -31,9 +33,9 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
   if (!revealed) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Setlist</Text>
+        <Text style={[styles.sectionLabel, { paddingHorizontal: 16 }]}>SETLIST</Text>
         <Pressable style={styles.spoilerButton} onPress={() => setRevealed(true)}>
-          <Ionicons name="eye-off" size={24} color={colors.brandPurple} />
+          <Ionicons name="eye-off" size={22} color={colors.brandCyan} />
           <Text style={styles.spoilerText}>Reveal Setlist</Text>
           <Text style={styles.spoilerHint}>Tap to see {songs.length} songs</Text>
         </Pressable>
@@ -44,7 +46,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Setlist</Text>
+        <Text style={styles.sectionLabel}>SETLIST</Text>
         <Text style={styles.count}>{songs.length} songs</Text>
       </View>
 
@@ -56,7 +58,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
               <Text style={styles.songName}>{song.songName}</Text>
               {song.info ? <Text style={styles.songNote}>{song.info}</Text> : null}
             </View>
-            {song.spotifyUrl ? <FontAwesome name="spotify" size={18} color="#1DB954" /> : null}
+            {song.spotifyUrl ? <FontAwesome name="spotify" size={16} color="#1DB954" /> : null}
           </View>
         ))}
 
@@ -64,7 +66,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
           <>
             <View style={styles.encoreDivider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.encoreLabel}>Encore</Text>
+              <Text style={styles.encoreLabel}>ENCORE</Text>
               <View style={styles.dividerLine} />
             </View>
             {encore.map((song) => (
@@ -74,7 +76,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
                   <Text style={styles.songName}>{song.songName}</Text>
                   {song.info ? <Text style={styles.songNote}>{song.info}</Text> : null}
                 </View>
-                {song.spotifyUrl ? <FontAwesome name="spotify" size={18} color="#1DB954" /> : null}
+                {song.spotifyUrl ? <FontAwesome name="spotify" size={16} color="#1DB954" /> : null}
               </View>
             ))}
           </>
@@ -84,7 +86,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       {songs.length > 5 ? (
         <Pressable style={styles.expandButton} onPress={() => setExpanded(!expanded)}>
           <Text style={styles.expandText}>{expanded ? 'Show less' : `Show all ${songs.length} songs`}</Text>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.brandCyan} />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.brandCyan} />
         </Pressable>
       ) : null}
     </View>
@@ -99,44 +101,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
+    gap: 8,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+  sectionLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
   },
   count: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textLo,
-    marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 28,
     marginHorizontal: 16,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textLo,
     marginTop: 8,
   },
   spoilerButton: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 28,
     marginHorizontal: 16,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.brandPurple,
+    borderColor: colors.brandCyan,
     borderStyle: 'dashed',
   },
   spoilerText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.brandPurple,
+    color: colors.brandCyan,
     marginTop: 8,
   },
   spoilerHint: {
@@ -147,20 +153,23 @@ const styles = StyleSheet.create({
   listContainer: {
     marginHorizontal: 16,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.hairline,
     overflow: 'hidden',
   },
   songRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.hairline,
   },
   songNumber: {
-    width: 24,
-    fontSize: 12,
+    fontFamily: monoFont,
+    width: 26,
+    fontSize: 11,
     color: colors.textLo,
   },
   songInfo: {
@@ -178,8 +187,8 @@ const styles = StyleSheet.create({
   encoreDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   dividerLine: {
     flex: 1,
@@ -187,10 +196,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.hairline,
   },
   encoreLabel: {
-    fontSize: 12,
+    fontFamily: monoFont,
+    fontSize: 10,
     fontWeight: '600',
-    color: colors.brandPurple,
-    marginHorizontal: 12,
+    letterSpacing: 1.5,
+    color: colors.brandCyan,
+    marginHorizontal: 10,
   },
   expandButton: {
     flexDirection: 'row',
@@ -198,14 +209,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     marginHorizontal: 16,
-    marginTop: 8,
+    marginTop: 6,
     gap: 4,
   },
   expandText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.brandCyan,
   },
 });
-
-
-

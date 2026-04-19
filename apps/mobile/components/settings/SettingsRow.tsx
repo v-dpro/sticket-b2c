@@ -73,13 +73,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: colors.textHi,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   value: {
     fontSize: 13,
     color: colors.textLo,
     marginRight: 8,
-    fontWeight: '700',
+    fontWeight: '400',
   },
 });
 

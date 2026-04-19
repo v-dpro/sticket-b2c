@@ -1,13 +1,13 @@
 import React from 'react';
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { format } from 'date-fns';
-import { BlurView } from 'expo-blur';
-import { colors } from '../../lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, accentSets, radius } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
-const HEADER_HEIGHT = 300;
+const HEADER_HEIGHT = 260;
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface EventHeaderProps {
   imageUrl?: string;
@@ -32,10 +32,7 @@ export function EventHeader({
   onSharePress,
   shareButton,
 }: EventHeaderProps) {
-  const dt = new Date(date);
-  const formattedDate = format(dt, 'EEEE, MMMM d, yyyy');
-  const formattedTime = format(dt, 'h:mm a');
-  const isPast = dt < new Date();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -50,60 +47,35 @@ export function EventHeader({
         <View style={[styles.backgroundImage, styles.placeholderBg]} />
       )}
 
-      {/* Gradient Overlay */}
+      {/* Gradient scrim */}
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.3)', 'rgba(10, 11, 30, 0.9)', colors.ink]}
+        colors={['rgba(11,11,20,0.15)', 'rgba(11,11,20,0.72)', colors.ink]}
+        locations={[0, 0.55, 1]}
         style={styles.gradient}
       />
 
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <Pressable onPress={onBackPress} style={styles.iconButton}>
-          <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-          </BlurView>
+      {/* Top bar: back + share */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={onBackPress} style={styles.circleButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={18} color={colors.textHi} />
         </Pressable>
+
         {shareButton ? (
           shareButton
-        ) : (
-          <Pressable onPress={onSharePress} style={styles.iconButton} accessibilityRole="button">
-            <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="share-outline" size={22} color={colors.textHi} />
-            </BlurView>
+        ) : onSharePress ? (
+          <Pressable onPress={onSharePress} style={styles.circleButton} accessibilityRole="button">
+            <Ionicons name="share-outline" size={18} color={colors.textHi} />
           </Pressable>
+        ) : (
+          <View style={{ width: 36 }} />
         )}
       </View>
 
-      {/* Content */}
+      {/* Hero content */}
       <View style={styles.content}>
-        {/* Date Badge */}
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateText}>{formattedDate}</Text>
-          {!isPast && <Text style={styles.timeText}>{formattedTime}</Text>}
-        </View>
-
-        {/* Artist Name */}
-        <Text style={styles.artistName}>{artistName}</Text>
-
-        {/* Venue */}
-        <View style={styles.venueRow}>
-          <Ionicons name="location" size={16} color={colors.textMid} />
-          <Text style={styles.venueName}>{venueName}</Text>
-          <Text style={styles.venueCity}> • {venueCity}</Text>
-        </View>
-
-        {/* Status Badge */}
-        {isPast ? (
-          <View style={styles.statusBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-            <Text style={styles.statusText}>Past Event</Text>
-          </View>
-        ) : (
-          <View style={[styles.statusBadge, styles.upcomingBadge]}>
-            <Ionicons name="calendar" size={14} color={colors.brandCyan} />
-            <Text style={[styles.statusText, styles.upcomingText]}>Upcoming</Text>
-          </View>
-        )}
+        <Text style={styles.eyebrowLabel}>EVENT</Text>
+        <Text style={styles.eventName} numberOfLines={2}>{artistName}</Text>
+        <Text style={styles.subtitle}>{venueName} &middot; {venueCity}</Text>
       </View>
     </View>
   );
@@ -129,85 +101,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50,
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  blurButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  circleButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 20,
     left: 16,
     right: 16,
   },
-  dateBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+  eyebrowLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: accentSets.cyan.hex,
+    marginBottom: 6,
   },
-  dateText: {
-    fontSize: 14,
-    color: colors.brandCyan,
-    fontWeight: '500',
-  },
-  timeText: {
-    fontSize: 14,
-    color: colors.textMid,
-    marginLeft: 8,
-  },
-  artistName: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  eventName: {
+    fontSize: 36,
+    fontWeight: '800',
     color: colors.textHi,
-    marginBottom: 8,
+    lineHeight: 40,
+    marginBottom: 6,
   },
-  venueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  venueName: {
+  subtitle: {
     fontSize: 14,
     color: colors.textMid,
-    marginLeft: 6,
-  },
-  venueCity: {
-    fontSize: 14,
-    color: colors.textLo,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  upcomingBadge: {
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-  },
-  statusText: {
-    fontSize: 12,
-    color: colors.success,
-    fontWeight: '500',
-  },
-  upcomingText: {
-    color: colors.brandCyan,
   },
 });
-
-
-

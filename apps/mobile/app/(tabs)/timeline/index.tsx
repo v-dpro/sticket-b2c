@@ -1,24 +1,28 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useConcertLife } from '../../../hooks/useConcertLife';
-import { TimelineCard } from '../../../components/concert-life/TimelineCard';
-import { colors, radius } from '../../../lib/theme';
-import { HeroTimelineCard } from '../../../components/concert-life/HeroTimelineCard';
+import { colors, radius, fonts, spacing, accentSets } from '../../../lib/theme';
 import { Eyebrow } from '../../../components/ui/Eyebrow';
-import { StatPill } from '../../../components/ui/StatPill';
+import { MonoLabel } from '../../../components/ui/MonoLabel';
 
-type UpcomingItem = any & { itemType: 'ticket' | 'tracking' | 'presale' };
+const mono = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
-function isTodayISO(dateStr: string): boolean {
-  const date = new Date(dateStr);
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
-}
+// ─── Helpers ──────────────────────────────────────────────
 
 function startOfTodayLocal() {
   const d = new Date();
@@ -26,286 +30,728 @@ function startOfTodayLocal() {
   return d;
 }
 
-function TimelineRail() {
+function daysUntil(dateStr: string): number {
+  const now = startOfTodayLocal().getTime();
+  const target = new Date(dateStr).getTime();
+  return Math.max(0, Math.ceil((target - now) / (1000 * 60 * 60 * 24)));
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function hueFromName(name: string): number {
+  return (name.charCodeAt(0) * 11) % 360;
+}
+
+// ─── Types ────────────────────────────────────────────────
+
+type ShowStatus = 'ticketed' | 'planned';
+
+interface UpcomingShow {
+  id: string;
+  status: ShowStatus;
+  artistName: string;
+  venueName: string;
+  venueCity: string;
+  date: string;
+  imageUrl: string | null;
+  ticketApp?: string;
+  section?: string;
+  row?: string;
+  seat?: string;
+  eventId?: string;
+  tourName?: string;
+}
+
+// ─── NextShowHero ─────────────────────────────────────────
+
+function NextShowHero({ show }: { show: UpcomingShow }) {
+  const days = daysUntil(show.date);
+
   return (
-    <View style={styles.timelineLine} />
+    <View style={heroStyles.wrapper}>
+      <View style={heroStyles.container}>
+        {show.imageUrl ? (
+          <Image source={{ uri: show.imageUrl }} style={heroStyles.bgImage} />
+        ) : (
+          <View style={[heroStyles.bgImage, { backgroundColor: colors.elevated }]} />
+        )}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.75)']}
+          style={heroStyles.gradient}
+        />
+
+        {/* Top row — NEXT SHOW pill */}
+        <View style={heroStyles.topRow}>
+          <View style={heroStyles.nextShowPill}>
+            <View style={heroStyles.accentDot} />
+            <Text style={heroStyles.nextShowText}>NEXT SHOW</Text>
+          </View>
+        </View>
+
+        {/* Bottom content */}
+        <View style={heroStyles.bottomContent}>
+          {/* Countdown */}
+          <View style={heroStyles.countdownRow}>
+            <Text style={heroStyles.countdownNumber}>{days}</Text>
+            <Text style={heroStyles.countdownLabel}>DAYS</Text>
+          </View>
+
+          {/* Artist */}
+          <Text style={heroStyles.artistName} numberOfLines={1}>
+            {show.artistName}
+          </Text>
+
+          {/* Venue + date */}
+          <Text style={heroStyles.venueDateText} numberOfLines={1}>
+            {show.venueName}{show.venueCity ? `, ${show.venueCity}` : ''} · {formatDateShort(show.date)}
+          </Text>
+
+          {/* Bottom row — ticket app + seat */}
+          <View style={heroStyles.bottomRow}>
+            {show.ticketApp ? (
+              <View style={heroStyles.ticketAppPill}>
+                <Text style={heroStyles.ticketAppText}>{show.ticketApp}</Text>
+              </View>
+            ) : null}
+            {show.section || show.row || show.seat ? (
+              <Text style={heroStyles.seatText}>
+                {[show.section && `Sec ${show.section}`, show.row && `Row ${show.row}`, show.seat && `Seat ${show.seat}`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
-function MonthDot() {
+const heroStyles = StyleSheet.create({
+  wrapper: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  container: {
+    minHeight: 280,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
+    elevation: 12,
+  },
+  bgImage: {
+    ...StyleSheet.absoluteFillObject,
+    resizeMode: 'cover',
+  } as any,
+  gradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  topRow: {
+    padding: 14,
+  },
+  nextShowPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 6,
+  },
+  accentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: accentSets.purple.hex,
+    shadowColor: accentSets.purple.hex,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  nextShowText: {
+    fontFamily: mono,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#FFFFFF',
+  },
+  bottomContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 18,
+  },
+  countdownRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    marginBottom: 4,
+  },
+  countdownNumber: {
+    fontSize: 72,
+    fontWeight: '700',
+    letterSpacing: -3,
+    color: '#FFFFFF',
+    lineHeight: 72,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  countdownLabel: {
+    fontFamily: mono,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  artistName: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    color: '#FFFFFF',
+    marginBottom: 2,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  venueDateText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+  },
+  ticketAppPill: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  ticketAppText: {
+    fontFamily: mono,
+    fontSize: 9.5,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  seatText: {
+    fontFamily: mono,
+    fontSize: 9.5,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.7)',
+  },
+});
+
+// ─── TicketedRow ──────────────────────────────────────────
+
+function TicketedRow({ show, onPress }: { show: UpcomingShow; onPress: () => void }) {
+  const days = daysUntil(show.date);
+
   return (
-    <View style={styles.monthDot} />
+    <TouchableOpacity style={ticketedStyles.row} onPress={onPress} activeOpacity={0.7}>
+      {show.imageUrl ? (
+        <Image source={{ uri: show.imageUrl }} style={ticketedStyles.cover} />
+      ) : (
+        <View style={[ticketedStyles.cover, { backgroundColor: accentSets.purple.soft }]} />
+      )}
+      <View style={ticketedStyles.info}>
+        <View style={ticketedStyles.topMeta}>
+          <Text style={ticketedStyles.countdown}>IN {days}D</Text>
+          <Text style={ticketedStyles.dateMono}>{formatDateShort(show.date).toUpperCase()}</Text>
+        </View>
+        <Text style={ticketedStyles.artist} numberOfLines={1}>
+          {show.artistName}
+        </Text>
+        <Text style={ticketedStyles.venue} numberOfLines={1}>
+          {show.venueName}
+          {show.ticketApp ? ` · ${show.ticketApp}` : ''}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
-export default function MyConcertLifeScreen() {
+const ticketedStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 6,
+    gap: 10,
+  },
+  cover: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+  },
+  info: {
+    flex: 1,
+  },
+  topMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  countdown: {
+    fontFamily: mono,
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: accentSets.purple.hex,
+  },
+  dateMono: {
+    fontFamily: mono,
+    fontSize: 9.5,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: colors.textLo,
+  },
+  artist: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textHi,
+    marginBottom: 1,
+  },
+  venue: {
+    fontSize: 11.5,
+    color: colors.textLo,
+  },
+});
+
+// ─── PlannedRow ───────────────────────────────────────────
+
+function PlannedRow({ show, onPress }: { show: UpcomingShow; onPress: () => void }) {
+  const hue = hueFromName(show.artistName);
+  const initial = show.artistName.charAt(0).toUpperCase();
+
+  return (
+    <TouchableOpacity style={plannedStyles.row} onPress={onPress} activeOpacity={0.7}>
+      <LinearGradient
+        colors={[`hsl(${hue}, 55%, 40%)`, `hsl(${hue}, 55%, 25%)`]}
+        style={plannedStyles.avatar}
+      >
+        <Text style={plannedStyles.initial}>{initial}</Text>
+      </LinearGradient>
+      <View style={plannedStyles.info}>
+        <View style={plannedStyles.topMeta}>
+          <View style={plannedStyles.plannedBadge}>
+            <Text style={plannedStyles.plannedBadgeText}>PLANNED</Text>
+          </View>
+        </View>
+        <Text style={plannedStyles.artist} numberOfLines={1}>
+          {show.artistName}
+        </Text>
+        <Text style={plannedStyles.venue} numberOfLines={1}>
+          {show.venueName} · {formatDateShort(show.date)}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const plannedStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed',
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 6,
+    gap: 10,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  initial: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.5)',
+  },
+  info: {
+    flex: 1,
+  },
+  topMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  plannedBadge: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  plannedBadgeText: {
+    fontFamily: mono,
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: colors.textMid,
+  },
+  artist: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textHi,
+    marginBottom: 1,
+  },
+  venue: {
+    fontSize: 11.5,
+    color: colors.textLo,
+  },
+});
+
+// ─── OnSaleRow ────────────────────────────────────────────
+
+function OnSaleRow({ item, onRemind }: { item: any; onRemind?: () => void }) {
+  const days = daysUntil(item.date || item.signupDeadline);
+  const saleDate = item.signupDeadline || item.date;
+
+  return (
+    <View style={onSaleStyles.row}>
+      <View style={onSaleStyles.topMeta}>
+        <View style={onSaleStyles.onSaleBadge}>
+          <Text style={onSaleStyles.onSaleBadgeText}>ON SALE IN {days}D</Text>
+        </View>
+        <Text style={onSaleStyles.saleDateMono}>{formatDateShort(saleDate).toUpperCase()}</Text>
+      </View>
+      <Text style={onSaleStyles.artist} numberOfLines={1}>
+        {item.artistName || item.event?.artist?.name || item.tourName || 'Unknown'}
+      </Text>
+      <Text style={onSaleStyles.venue} numberOfLines={1}>
+        {item.venueName || item.event?.venue?.name || 'Venue'} · {formatDate(item.date)}
+      </Text>
+      {onRemind && (
+        <TouchableOpacity style={onSaleStyles.remindButton} onPress={onRemind} activeOpacity={0.7}>
+          <Text style={onSaleStyles.remindButtonText}>Remind me</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const onSaleStyles = StyleSheet.create({
+  row: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 6,
+  },
+  topMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  onSaleBadge: {
+    backgroundColor: accentSets.purple.soft,
+    borderWidth: 1,
+    borderColor: accentSets.purple.line,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  onSaleBadgeText: {
+    fontFamily: mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: accentSets.purple.hex,
+  },
+  saleDateMono: {
+    fontFamily: mono,
+    fontSize: 9.5,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: colors.textLo,
+  },
+  artist: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textHi,
+    marginBottom: 2,
+  },
+  venue: {
+    fontSize: 12,
+    color: colors.textLo,
+    marginBottom: 8,
+  },
+  remindButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: accentSets.purple.hex,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  remindButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+});
+
+// ─── SectionLabel ─────────────────────────────────────────
+
+function SectionLabel({ label, action, onAction }: { label: string; action?: string; onAction?: () => void }) {
+  return (
+    <View style={sectionStyles.container}>
+      <Text style={sectionStyles.label}>{label}</Text>
+      {action && onAction && (
+        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+          <Text style={sectionStyles.action}>{action}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const sectionStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    marginBottom: 10,
+    marginTop: 24,
+  },
+  label: {
+    fontFamily: mono,
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: colors.textLo,
+  },
+  action: {
+    fontFamily: mono,
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: accentSets.purple.hex,
+  },
+});
+
+// ─── Main Screen ──────────────────────────────────────────
+
+export default function UpcomingScreen() {
   const router = useRouter();
   const { data, loading, refreshing, refresh, error } = useConcertLife();
-  const [liked, setLiked] = useState<Record<string, boolean>>({});
 
-  const pastLogs = data?.pastLogs ?? [];
-  const upcomingLogs = (data as any)?.upcomingLogs ?? [];
   const upcomingTickets = data?.upcomingTickets ?? [];
   const tracking = data?.tracking ?? [];
   const presaleAlerts = data?.presaleAlerts ?? [];
-  const stats = data?.stats;
+  const upcomingLogs = (data as any)?.upcomingLogs ?? [];
 
-  const allForwardItems: any[] = useMemo(() => {
-    const items: any[] = [
-      ...upcomingLogs.map((l: any) => ({ ...l, itemType: 'log' as const })),
-      ...upcomingTickets.map((t: any) => ({ ...t, itemType: 'ticket' as const })),
-      ...tracking.map((t: any) => ({ ...t, itemType: 'tracking' as const })),
-      ...presaleAlerts.map((p: any) => ({ ...p, itemType: 'presale' as const })),
+  // Map data into unified UpcomingShow list
+  const { ticketedShows, plannedShows, onSaleItems } = useMemo(() => {
+    const today = startOfTodayLocal().getTime();
+
+    const ticketed: UpcomingShow[] = [
+      ...upcomingTickets
+        .filter((t: any) => new Date(t.date).getTime() >= today)
+        .map((t: any) => ({
+          id: t.id,
+          status: 'ticketed' as const,
+          artistName: t.event?.artist?.name || t.artistName || 'Unknown',
+          venueName: t.event?.venue?.name || t.venueName || 'Venue',
+          venueCity: t.event?.venue?.city || t.venueCity || '',
+          date: t.date,
+          imageUrl: t.event?.imageUrl || t.event?.artist?.imageUrl || null,
+          ticketApp: t.ticketApp || undefined,
+          section: t.section,
+          row: t.row,
+          seat: t.seat,
+          eventId: t.event?.id,
+        })),
+      ...upcomingLogs
+        .filter((l: any) => new Date(l.date).getTime() >= today)
+        .map((l: any) => ({
+          id: l.id,
+          status: 'ticketed' as const,
+          artistName: l.event?.artist?.name || l.artistName || 'Unknown',
+          venueName: l.event?.venue?.name || l.venueName || 'Venue',
+          venueCity: l.event?.venue?.city || l.venueCity || '',
+          date: l.date,
+          imageUrl: l.event?.imageUrl || l.event?.artist?.imageUrl || null,
+          eventId: l.event?.id,
+        })),
     ];
-    return items.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [presaleAlerts, tracking, upcomingLogs, upcomingTickets]);
 
-  const { todayItems, futureItems } = useMemo(() => {
-    const start = startOfTodayLocal().getTime();
-    const end = start + 24 * 60 * 60 * 1000;
-    const todayItems = allForwardItems.filter((i) => {
-      const t = new Date(i.date).getTime();
-      return t >= start && t < end;
-    });
-    const futureItems = allForwardItems.filter((i) => new Date(i.date).getTime() >= end);
-    return { todayItems, futureItems };
-  }, [allForwardItems]);
+    ticketed.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const groupedPastLogs = useMemo(() => {
-    return pastLogs.reduce((acc: Record<string, any[]>, log: any) => {
-      const date = new Date(log.event.date);
-      const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      if (!acc[monthYear]) acc[monthYear] = [];
-      acc[monthYear].push(log);
-      return acc;
-    }, {});
-  }, [pastLogs]);
+    const planned: UpcomingShow[] = tracking
+      .filter((t: any) => new Date(t.date).getTime() >= today)
+      .map((t: any) => ({
+        id: t.id,
+        status: 'planned' as const,
+        artistName: t.event?.artist?.name || t.artistName || 'Unknown',
+        venueName: t.event?.venue?.name || t.venueName || 'Venue',
+        venueCity: t.event?.venue?.city || t.venueCity || '',
+        date: t.date,
+        imageUrl: t.event?.imageUrl || t.event?.artist?.imageUrl || null,
+        eventId: t.event?.id,
+      }))
+      .sort((a: UpcomingShow, b: UpcomingShow) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // Match Figma: single continuous timeline (no Past/Today/Future toggles).
-  // Includes: past logs + future-dated logs + tickets + tracking + presales, grouped by month.
-  const groupedAllTimelineItems = useMemo(() => {
-    const items: any[] = [
-      ...pastLogs.map((l: any) => ({ ...l, itemType: 'log' as const })),
-      ...allForwardItems,
-    ];
-    // Sort by date DESC to match the visual ordering in Figma (future months at top).
-    items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const onSale = presaleAlerts
+      .filter((p: any) => new Date(p.date).getTime() >= today)
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    return items.reduce((acc: Record<string, any[]>, item: any) => {
-      const date = new Date(item.date);
-      const monthYear = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      if (!acc[monthYear]) acc[monthYear] = [];
-      acc[monthYear].push(item);
-      return acc;
-    }, {});
-  }, [allForwardItems, pastLogs]);
+    return { ticketedShows: ticketed, plannedShows: planned, onSaleItems: onSale };
+  }, [upcomingTickets, upcomingLogs, tracking, presaleAlerts]);
 
-  const artistsCount = useMemo(() => {
-    const all = [...pastLogs, ...allForwardItems];
-    const keys = all
-      .map((x: any) => x?.event?.artist?.id ?? x?.event?.artist?.name ?? x?.artistName)
-      .filter(Boolean) as string[];
-    return new Set(keys).size;
-  }, [allForwardItems, pastLogs]);
+  const totalShowCount = ticketedShows.length + plannedShows.length;
+  const heroShow = ticketedShows[0] || null;
+  const remainingTicketed = ticketedShows.slice(1);
 
-  const venuesCount = useMemo(() => {
-    const all = [...pastLogs, ...allForwardItems];
-    const keys = all
-      .map((x: any) => x?.event?.venue?.id ?? x?.event?.venue?.name ?? x?.venueName)
-      .filter(Boolean) as string[];
-    return new Set(keys).size;
-  }, [allForwardItems, pastLogs]);
-
-  const upcomingCount = useMemo(() => {
-    // Count unique upcoming events (tickets/logs/tracking) excluding presales.
-    const start = startOfTodayLocal().getTime();
-    const ids = allForwardItems
-      .filter((i: any) => new Date(i.date).getTime() >= start)
-      .filter((i: any) => i.itemType !== 'presale')
-      .map((i: any) => i?.event?.id)
-      .filter(Boolean) as string[];
-    return new Set(ids).size;
-  }, [allForwardItems]);
-
-  const totalShows = (stats?.totalShows || 0) + upcomingCount;
-
-  const renderHeroForItem = (item: any) => {
-    const event = item.event;
-    const artist = event?.artist?.name || item.artistName || 'Unknown';
-    const venue = event?.venue?.name || item.venueName || 'Venue';
-    const city = event?.venue?.city || item.venueCity || '';
-    const date = new Date(item.date);
-    const tour = item.itemType === 'presale' ? item.tourName : event?.name;
-    const imageUrl = (item.itemType === 'log' && Array.isArray(item.photos) ? item.photos[0] : null) ?? event?.imageUrl ?? event?.artist?.imageUrl ?? null;
-
-    const isUpcoming = new Date(item.date).getTime() >= startOfTodayLocal().getTime();
-    const showUpcomingPill = isUpcoming;
-
-    // Use existing list-style card for presales/tracking (no strong hero visuals).
-    const shouldUseHero = item.itemType === 'ticket' || item.itemType === 'log';
-
-    if (!shouldUseHero) {
-      return (
-        <TimelineCard
-          type={item.itemType === 'presale' ? 'presale' : item.itemType}
-          artist={artist}
-          venue={venue}
-          city={city}
-          date={date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          section={item.section}
-          row={item.row}
-          seat={item.seat}
-          maxPrice={item.maxPrice}
-          presaleType={item.presaleType}
-          presaleCode={item.code}
-          presaleDeadline={item.signupDeadline}
-          isToday={isTodayISO(item.date)}
-          onPress={() => {
-            if (item.itemType === 'presale') router.push(`/presales/${item.id}`);
-            else if (item.itemType === 'log') router.push(`/log/${item.id}`);
-            else if (item.event?.id) router.push(`/event/${item.event.id}`);
-          }}
-        />
-      );
+  const navigateToShow = (show: UpcomingShow) => {
+    if (show.eventId) {
+      router.push(`/event/${show.eventId}`);
     }
-
-    const idKey = `${item.itemType}-${item.id}`;
-    const isLiked = liked[idKey] ?? false;
-
-    return (
-      <HeroTimelineCard
-        artist={artist}
-        tour={tour}
-        venue={venue}
-        city={city}
-        date={date}
-        imageUrl={imageUrl}
-        showUpcomingPill={showUpcomingPill}
-        rating={item.itemType === 'log' ? item.rating : null}
-        note={item.itemType === 'log' ? item.note : null}
-        likesCount={item.itemType === 'log' ? Number(item.wasThereCount ?? 0) : 0}
-        commentsCount={item.itemType === 'log' ? Number(item.commentCount ?? 0) : 0}
-        isLiked={isLiked}
-        onPress={() => {
-          if (item.itemType === 'log') router.push(`/log/${item.id}`);
-          else if (item.event?.id) router.push(`/event/${item.event.id}`);
-        }}
-        onToggleLike={() => setLiked((prev) => ({ ...prev, [idKey]: !isLiked }))}
-        onPressComments={() => {
-          if (item.itemType === 'log') router.push(`/log/${item.id}`);
-          else if (item.event?.id) router.push(`/event/${item.event.id}`);
-        }}
-        onPressShare={() => {
-          // Placeholder until we decide what share UX should be here.
-          if (item.itemType === 'log') router.push(`/log/${item.id}`);
-          else if (item.event?.id) router.push(`/event/${item.event.id}`);
-        }}
-      />
-    );
   };
 
-  const showEmptyToday = !loading && todayItems.length === 0;
-  const showEmptyFuture = !loading && futureItems.length === 0;
-  const showEmptyPast = !loading && pastLogs.length === 0;
+  const isEmpty = !loading && totalShowCount === 0 && onSaleItems.length === 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Eyebrow text="UPCOMING" color={colors.brandPurple} />
+        <View style={styles.headerLeft}>
+          <Eyebrow text="UPCOMING" color={colors.textLo} />
           <Text style={styles.title}>Plans</Text>
         </View>
-        <Text style={styles.showCount}>{totalShows} SHOWS</Text>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statsRow}>
-          <StatPill value={stats?.totalShows || 0} label="Shows" color={colors.textHi} style={styles.statPill} />
-          <StatPill value={upcomingCount} label="Upcoming" color={colors.lime} style={styles.statPill} />
-          <StatPill value={artistsCount} label="Artists" color={colors.brandPink} style={styles.statPill} />
-          <StatPill value={venuesCount} label="Venues" color={colors.brandCyan} style={styles.statPill} />
-        </View>
+        <Text style={styles.showCount}>{totalShowCount} SHOWS</Text>
       </View>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandPurple} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={accentSets.purple.hex} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.brandPurple} />
-            <Text style={styles.loadingText}>Loading…</Text>
+            <ActivityIndicator size="large" color={accentSets.purple.hex} />
+            <Text style={styles.loadingText}>Loading...</Text>
           </View>
         ) : error ? (
           <View style={styles.emptyState}>
             <Ionicons name="alert-circle-outline" size={64} color={colors.textLo} />
-            <Text style={styles.emptyTitle}>Couldn't load your timeline</Text>
+            <Text style={styles.emptyTitle}>Couldn't load your plans</Text>
             <Text style={styles.emptyText}>{error}</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={refresh} activeOpacity={0.85}>
               <Text style={styles.emptyButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        ) : Object.keys(groupedAllTimelineItems).length === 0 ? (
+        ) : isEmpty ? (
           <View style={styles.emptyState}>
             <Ionicons name="musical-notes-outline" size={64} color={colors.textLo} />
-            <Text style={styles.emptyTitle}>No concert activity yet</Text>
-            <Text style={styles.emptyText}>Log a show, add a ticket, or track an event</Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/(tabs)/discover')} activeOpacity={0.85}>
+            <Text style={styles.emptyTitle}>No upcoming plans</Text>
+            <Text style={styles.emptyText}>
+              Add tickets for your shows or track events you're interested in
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => router.push('/(tabs)/discover')}
+              activeOpacity={0.85}
+            >
               <Text style={styles.emptyButtonText}>Find Shows</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.timeline}>
-            <TimelineRail />
+          <>
+            {/* NextShowHero */}
+            {heroShow && <NextShowHero show={heroShow} />}
 
-            {Object.entries(groupedAllTimelineItems).map(([monthYear, items]) => {
-              const parts = monthYear.split(' ');
-              const month = parts[0];
-              const year = parts[1];
-
-              return (
-                <View key={monthYear}>
-                  {/* Year marker */}
-                  <Text style={styles.yearMarker}>{year}</Text>
-
-                  <View style={styles.monthHeader}>
-                    <View style={styles.dotColumn}>
-                      <MonthDot />
-                    </View>
-                    <Text style={styles.monthText}>{month.toUpperCase()}</Text>
-                  </View>
-
-                  {(items as any[]).map((item) => {
-                    const itemDate = new Date(item.date).getTime();
-                    const isUpcoming = itemDate >= startOfTodayLocal().getTime();
-
-                    return (
-                      <View key={`${item.itemType}-${item.id}`} style={styles.timelineRow}>
-                        <View style={styles.dotColumn}>
-                          <View style={[styles.timelineDot, isUpcoming ? styles.dotPurple : styles.dotMuted]} />
-                        </View>
-                        <View style={styles.rowContent}>
-                          {isUpcoming && (
-                            <View style={styles.upcomingBadge}>
-                              <Text style={styles.upcomingBadgeText}>UPCOMING</Text>
-                            </View>
-                          )}
-                          {renderHeroForItem(item)}
-                        </View>
-                      </View>
-                    );
-                  })}
+            {/* TICKETED section (remaining) */}
+            {remainingTicketed.length > 0 && (
+              <>
+                <SectionLabel label="TICKETED" />
+                <View style={styles.sectionContent}>
+                  {remainingTicketed.map((show) => (
+                    <TicketedRow key={`ticketed-${show.id}`} show={show} onPress={() => navigateToShow(show)} />
+                  ))}
                 </View>
-              );
-            })}
-          </View>
+              </>
+            )}
+
+            {/* PLANNED section */}
+            {plannedShows.length > 0 && (
+              <>
+                <SectionLabel
+                  label="PLANNED"
+                  action="+ ADD"
+                  onAction={() => router.push('/(tabs)/discover')}
+                />
+                <View style={styles.sectionContent}>
+                  {plannedShows.map((show) => (
+                    <PlannedRow key={`planned-${show.id}`} show={show} onPress={() => navigateToShow(show)} />
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* ON SALE THIS WEEK section */}
+            {onSaleItems.length > 0 && (
+              <>
+                <SectionLabel label="ON SALE THIS WEEK" />
+                <View style={styles.sectionContent}>
+                  {onSaleItems.map((item: any) => (
+                    <OnSaleRow
+                      key={`presale-${item.id}`}
+                      item={item}
+                      onRemind={() => {
+                        if (item.id) router.push(`/presales/${item.id}`);
+                      }}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+// ─── Main Styles ──────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -316,44 +762,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 18,
+    paddingTop: 6,
     paddingBottom: 12,
+  },
+  headerLeft: {
+    gap: 4,
   },
   title: {
     fontSize: 34,
     fontWeight: '700',
     letterSpacing: -0.5,
     color: colors.textHi,
-    marginTop: 4,
   },
   showCount: {
+    fontFamily: mono,
     fontSize: 11,
     fontWeight: '600',
     color: colors.textMid,
     letterSpacing: 1,
-    marginBottom: 8,
-  },
-  statsContainer: {
-    marginHorizontal: 24,
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statPill: {
-    flex: 1,
+    marginBottom: 6,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 24,
     paddingBottom: 120,
+  },
+  sectionContent: {
+    paddingHorizontal: 18,
   },
   loadingContainer: {
     paddingTop: 60,
@@ -365,92 +802,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  timeline: {
-    position: 'relative',
-  },
-  timelineLine: {
-    position: 'absolute',
-    left: 20,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: colors.hairline,
-  },
-  dotColumn: {
-    width: 40,
-    alignItems: 'center',
-  },
-  timelineRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    zIndex: 1,
-  },
-  rowContent: {
-    flex: 1,
-  },
-  dotPurple: {
-    backgroundColor: colors.brandPurple,
-  },
-  dotMuted: {
-    backgroundColor: colors.textLo,
-  },
-  yearMarker: {
-    fontSize: 56,
-    fontWeight: '400',
-    color: colors.textLo,
-    marginTop: 24,
-    marginBottom: 4,
-    paddingLeft: 56,
-  },
-  monthHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-    marginTop: 4,
-  },
-  monthDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.brandPurple,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    zIndex: 1,
-  },
-  monthText: {
-    fontSize: 11,
-    fontWeight: '600',
-    fontFamily: 'monospace',
-    color: colors.brandPurple,
-    letterSpacing: 2,
-  },
-  upcomingBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(139,92,246,0.14)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  upcomingBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.brandPurple,
-    letterSpacing: 1,
-  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 80,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
     fontSize: 20,
@@ -464,13 +820,12 @@ const styles = StyleSheet.create({
     color: colors.textMid,
     textAlign: 'center',
     marginBottom: 24,
-    paddingHorizontal: 32,
   },
   emptyButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: radius.md,
-    backgroundColor: colors.brandPurple,
+    backgroundColor: accentSets.purple.hex,
   },
   emptyButtonText: {
     fontSize: 15,

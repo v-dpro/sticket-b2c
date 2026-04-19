@@ -2,6 +2,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { VenueHeader } from '../../components/venue/VenueHeader';
 import { LocationCard } from '../../components/venue/LocationCard';
@@ -32,7 +35,7 @@ import { useSession } from '../../hooks/useSession';
 import { submitSeatView, submitVenueRatings } from '../../lib/api/venues';
 import type { VenueRatingsSubmission, VenueShow } from '../../types/venue';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
 
 export default function VenueScreen() {
   const router = useRouter();
@@ -50,6 +53,7 @@ export default function VenueScreen() {
   const [rateModalVisible, setRateModalVisible] = useState(false);
   const [addTipVisible, setAddTipVisible] = useState(false);
   const [addSeatViewVisible, setAddSeatViewVisible] = useState(false);
+  const [saved, setSaved] = useState(false);
   const goBack = useSafeBack();
 
   const handleRefresh = async () => {
@@ -76,6 +80,21 @@ export default function VenueScreen() {
       // eslint-disable-next-line no-console
       console.error('Share failed:', shareError);
     }
+  };
+
+  const handleDirections = () => {
+    if (!venue) return;
+    const destination = encodeURIComponent(venue.address || `${venue.name}, ${venue.city}${venue.state ? `, ${venue.state}` : ''}`);
+    const url = Platform.select({
+      ios: `maps://app?daddr=${destination}`,
+      android: `google.navigation:q=${destination}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${destination}`,
+    });
+    if (url) Linking.openURL(url);
+  };
+
+  const handleSave = () => {
+    setSaved((prev) => !prev);
   };
 
   const handleRateSubmit = async (ratings: VenueRatingsSubmission) => {
@@ -122,7 +141,7 @@ export default function VenueScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={colors.brandPurple} />
+        <ActivityIndicator size="large" color={accentSets.cyan.hex} />
       </View>
     );
   }
@@ -149,7 +168,7 @@ export default function VenueScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brandPurple} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={accentSets.cyan.hex} />}
       >
         <VenueHeader
           name={venue.name}
@@ -162,15 +181,27 @@ export default function VenueScreen() {
           onSharePress={handleShare}
         />
 
+        {/* Action buttons: Directions + Save */}
+        <View style={styles.actionRow}>
+          <Pressable style={styles.directionsButton} onPress={handleDirections}>
+            <Ionicons name="navigate" size={16} color={colors.ink} />
+            <Text style={styles.directionsText}>Directions</Text>
+          </Pressable>
+          <Pressable style={[styles.saveButton, saved && styles.saveButtonActive]} onPress={handleSave}>
+            <Ionicons
+              name={saved ? 'bookmark' : 'bookmark-outline'}
+              size={16}
+              color={saved ? accentSets.cyan.hex : colors.textMid}
+            />
+            <Text style={[styles.saveText, saved && styles.saveTextActive]}>
+              {saved ? 'Saved' : 'Save'}
+            </Text>
+          </Pressable>
+        </View>
+
         <VenueStats totalShows={venue.totalShows} totalLogs={venue.totalLogs} capacity={venue.capacity} />
 
-        <YourVenueHistory
-          showCount={venue.userShowCount}
-          firstShow={venue.userFirstShow}
-          lastShow={venue.userLastShow}
-          onSeeAllPress={handleSeeAllHistory}
-        />
-
+        {/* Map placeholder */}
         <LocationCard
           name={venue.name}
           address={venue.address}
@@ -180,7 +211,12 @@ export default function VenueScreen() {
           lng={venue.lng}
         />
 
-        <VenueRatings ratings={venue.ratings} userHasRated={!!venue.userRatings} onRatePress={() => setRateModalVisible(true)} />
+        <YourVenueHistory
+          showCount={venue.userShowCount}
+          firstShow={venue.userFirstShow}
+          lastShow={venue.userLastShow}
+          onSeeAllPress={handleSeeAllHistory}
+        />
 
         <VenueShows
           upcoming={upcoming.shows}
@@ -191,6 +227,8 @@ export default function VenueScreen() {
           onShowPress={handleShowPress}
           onLogPress={handleLogPress}
         />
+
+        <VenueRatings ratings={venue.ratings} userHasRated={!!venue.userRatings} onRatePress={() => setRateModalVisible(true)} />
 
         <SeatViewsSection
           seatViews={seatViews.seatViews}
@@ -233,6 +271,50 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  actionRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginTop: 16,
+    gap: 10,
+  },
+  directionsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    borderRadius: 9999,
+    backgroundColor: accentSets.cyan.hex,
+    gap: 6,
+  },
+  directionsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.ink,
+  },
+  saveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    gap: 6,
+  },
+  saveButtonActive: {
+    borderColor: accentSets.cyan.line,
+    backgroundColor: accentSets.cyan.soft,
+  },
+  saveText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textMid,
+  },
+  saveTextActive: {
+    color: accentSets.cyan.hex,
+  },
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.ink,
@@ -260,13 +342,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: colors.brandPurple,
+    backgroundColor: accentSets.cyan.hex,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 18,
+    borderRadius: 9999,
   },
   retryButtonText: {
-    color: colors.textHi,
+    color: colors.ink,
     fontWeight: '700',
   },
   backButton: {
@@ -275,10 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   backButtonText: {
-    color: colors.brandCyan,
+    color: accentSets.cyan.hex,
     fontWeight: '700',
   },
 });
-
-
-

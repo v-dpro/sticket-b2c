@@ -1,8 +1,11 @@
 import React from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import { colors } from '../../lib/theme';
+import { colors, accentSets, radius } from '../../lib/theme';
+
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface LocationCardProps {
   name: string;
@@ -30,6 +33,9 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
 
   return (
     <View style={styles.container}>
+      <Text style={styles.sectionLabel}>MAP</Text>
+
+      {/* Map placeholder or real map */}
       {hasCoordinates ? (
         <View style={styles.mapContainer}>
           <MapView
@@ -48,16 +54,27 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
           >
             <Marker coordinate={{ latitude: lat!, longitude: lng! }}>
               <View style={styles.marker}>
-                <Ionicons name="location" size={24} color={colors.brandPurple} />
+                <Ionicons name="location" size={20} color={accentSets.cyan.hex} />
               </View>
             </Marker>
           </MapView>
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.mapPlaceholder}>
+          <LinearGradient
+            colors={[colors.surface, colors.elevated]}
+            style={styles.placeholderGradient}
+          >
+            <Ionicons name="location" size={28} color={accentSets.cyan.hex} />
+            <Text style={styles.placeholderText}>{address || `${city}${state ? `, ${state}` : ''}`}</Text>
+          </LinearGradient>
+        </View>
+      )}
 
-      <View style={styles.addressContainer}>
-        <Ionicons name="location-outline" size={20} color={colors.brandPurple} />
-        <View style={styles.addressText}>
+      {/* Address row */}
+      <View style={styles.addressRow}>
+        <Ionicons name="location-outline" size={16} color={colors.textLo} />
+        <View style={styles.addressContent}>
           {address ? <Text style={styles.address}>{address}</Text> : null}
           <Text style={styles.cityState}>
             {city}
@@ -67,8 +84,8 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
       </View>
 
       <Pressable style={styles.directionsButton} onPress={handleGetDirections}>
-        <Ionicons name="navigate" size={18} color={colors.brandCyan} />
-        <Text style={styles.directionsText}>Get Directions</Text>
+        <Ionicons name="navigate" size={16} color={colors.ink} />
+        <Text style={styles.directionsText}>Directions</Text>
       </Pressable>
     </View>
   );
@@ -76,38 +93,59 @@ export function LocationCard({ name, address, city, state, lat, lng }: LocationC
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 24,
+  },
+  sectionLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
+    marginBottom: 10,
+  },
+  mapContainer: {
+    height: 140,
+    borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.hairline,
-  },
-  mapContainer: {
-    height: 120,
-    width: '100%',
   },
   map: {
     flex: 1,
   },
   marker: {
     backgroundColor: colors.textHi,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 4,
   },
-  addressContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
+  mapPlaceholder: {
+    height: 140,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
-  addressText: {
+  placeholderGradient: {
     flex: 1,
-    marginLeft: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  placeholderText: {
+    fontSize: 12,
+    color: colors.textLo,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 8,
+  },
+  addressContent: {
+    flex: 1,
   },
   address: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textHi,
     marginBottom: 2,
   },
@@ -119,15 +157,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
+    height: 40,
+    borderRadius: 9999,
+    backgroundColor: accentSets.cyan.hex,
+    marginTop: 12,
     gap: 6,
   },
   directionsText: {
     fontSize: 14,
-    color: colors.brandCyan,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: colors.ink,
   },
 });
-
-
-

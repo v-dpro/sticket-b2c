@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventPhoto } from '../../types/event';
 import { PhotoLightbox } from './PhotoLightbox';
-import { colors } from '../../lib/theme';
+import { colors, radius } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
-const PHOTO_SIZE = (width - 48) / 3;
+const GRID_GAP = 4;
+const GRID_PADDING = 16;
+const PHOTO_SIZE = (width - GRID_PADDING * 2 - GRID_GAP * 2) / 3;
+const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface PhotosSectionProps {
   photos: EventPhoto[];
@@ -20,9 +23,9 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
   if (photos.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Photos</Text>
+        <Text style={[styles.sectionLabel, { paddingHorizontal: GRID_PADDING }]}>PHOTOS</Text>
         <View style={styles.emptyContainer}>
-          <Ionicons name="camera-outline" size={40} color={colors.textLo} />
+          <Ionicons name="camera-outline" size={32} color={colors.textLo} />
           <Text style={styles.emptyText}>No photos yet</Text>
         </View>
       </View>
@@ -32,7 +35,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Photos</Text>
+        <Text style={styles.sectionLabel}>PHOTOS</Text>
         <Text style={styles.count}>{photos.length}</Text>
       </View>
 
@@ -52,7 +55,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       {hasMore ? (
         <Pressable style={styles.loadMoreButton} onPress={onLoadMore}>
           <Text style={styles.loadMoreText}>Load more photos</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.brandCyan} />
+          <Ionicons name="chevron-forward" size={14} color={colors.brandCyan} />
         </Pressable>
       ) : null}
 
@@ -68,41 +71,45 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: GRID_PADDING,
+    marginBottom: 10,
+    gap: 8,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
+  sectionLabel: {
+    fontFamily: monoFont,
+    fontSize: 10.5,
+    fontWeight: '500',
+    letterSpacing: 2,
+    color: colors.textLo,
   },
   count: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textLo,
-    marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
-    marginHorizontal: 16,
+    paddingVertical: 28,
+    marginHorizontal: GRID_PADDING,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textLo,
     marginTop: 8,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 4,
+    paddingHorizontal: GRID_PADDING,
+    gap: GRID_GAP,
   },
   photoContainer: {
     width: PHOTO_SIZE,
     height: PHOTO_SIZE,
-    borderRadius: 8,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   photo: {
@@ -111,29 +118,26 @@ const styles = StyleSheet.create({
   },
   moreOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   moreText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.textHi,
   },
   loadMoreButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: 8,
+    marginHorizontal: GRID_PADDING,
+    marginTop: 6,
   },
   loadMoreText: {
     color: colors.brandCyan,
-    fontSize: 14,
+    fontSize: 13,
   },
 });
-
-
-

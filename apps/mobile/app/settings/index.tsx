@@ -5,6 +5,8 @@ import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { Platform } from 'react-native';
+
 import { Screen } from '../../components/ui/Screen';
 import { DangerButton, ServiceConnection, SettingsRow, SettingsSection } from '../../components/settings';
 import { useAccountActions } from '../../hooks/useAccountActions';
@@ -38,7 +40,7 @@ export default function SettingsScreen() {
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
           <Ionicons name="arrow-back" size={22} color={colors.textHi} />
         </Pressable>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>Settings.</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -160,8 +162,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 28,
+    fontWeight: '400',
+    letterSpacing: -0.6,
     color: colors.textHi,
   },
   scrollView: {
@@ -175,13 +178,14 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 13,
     color: colors.textLo,
-    fontWeight: '700',
+    fontWeight: '500',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
   },
   versionSubtext: {
     fontSize: 12,
     color: colors.textLo,
     marginTop: 4,
-    fontWeight: '700',
+    fontWeight: '400',
   },
 });
 

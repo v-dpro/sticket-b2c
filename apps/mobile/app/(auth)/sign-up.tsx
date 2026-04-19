@@ -250,7 +250,7 @@ export default function SignUpScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.h1}>Create account</Text>
+            <Text style={styles.h1}>Sign up.</Text>
             <Text style={styles.subhead}>Start tracking your concert journey</Text>
           </View>
 
@@ -449,13 +449,14 @@ const styles = StyleSheet.create({
   },
   h1: {
     color: colors.textHi,
-    fontSize: fonts.h1,
-    fontWeight: fonts.bold,
+    fontSize: 34,
+    fontWeight: '400',
+    letterSpacing: -0.8,
     textAlign: 'center',
   },
   subhead: {
     color: colors.textMid,
-    fontSize: fonts.body,
+    fontSize: 14,
     textAlign: 'center',
   },
   form: {
@@ -529,7 +530,8 @@ const styles = StyleSheet.create({
     fontWeight: fonts.semibold,
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.9,
+    transform: [{ scale: 0.97 }],
   },
   dividerRow: {
     flexDirection: 'row',
@@ -553,7 +555,7 @@ const styles = StyleSheet.create({
   },
   socialBtn: {
     height: 56,
-    borderRadius: radius.md,
+    borderRadius: 999,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.hairline,

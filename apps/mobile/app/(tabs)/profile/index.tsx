@@ -1,60 +1,35 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Avatar } from '../../../components/ui/Avatar';
 import { MonoLabel } from '../../../components/ui/MonoLabel';
-import { StatPill } from '../../../components/ui/StatPill';
-import { XpBar } from '../../../components/ui/XpBar';
 import { PillButton } from '../../../components/ui/PillButton';
-import { ViewToggle, type ViewMode } from '../../../components/profile/ViewToggle';
 import { TimelineView } from '../../../components/profile/TimelineView';
-import { ProfileMapView } from '../../../components/profile/MapView';
-import { ProfileGridView } from '../../../components/profile/ProfileGridView';
 import { ProfileStatsView } from '../../../components/profile/ProfileStatsView';
 import { colors, spacing, fonts, radius } from '../../../lib/theme';
 import { useProfile } from '../../../hooks/useProfile';
 import { useUserLogs } from '../../../hooks/useUserLogs';
 import { useSession } from '../../../hooks/useSession';
-import { useTickets } from '../../../hooks/useTickets';
 import type { LogEntry } from '../../../types/profile';
 import type { ShareCardData } from '../../../types/share';
 import { ShareButton } from '../../../components/share/ShareButton';
 import { createUserLink } from '../../../lib/share/deepLinks';
 
-function TicketPreview() {
-  const router = useRouter();
-  const { upcomingGroups } = useTickets();
+const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
-  const upcomingCount = upcomingGroups.reduce((acc, g) => acc + g.tickets.length, 0);
-  const nextTicket = upcomingGroups[0]?.tickets[0];
+function StatDivider() {
+  return <View style={styles.statDivider} />;
+}
 
+function Stat({ value, label, color }: { value: number; label: string; color: string }) {
   return (
-    <Pressable onPress={() => router.push('/wallet')} style={styles.ticketPreview} accessibilityRole="button">
-      <View style={styles.ticketPreviewLeft}>
-        <Ionicons name="ticket" size={20} color={colors.brandCyan} />
-        <View>
-          <Text style={styles.ticketPreviewTitle}>My Tickets</Text>
-          {nextTicket ? (
-            <Text style={styles.ticketPreviewSub} numberOfLines={1}>
-              Next: {nextTicket.event?.artist?.name}
-            </Text>
-          ) : (
-            <Text style={styles.ticketPreviewSub}>No upcoming shows</Text>
-          )}
-        </View>
-      </View>
-      <View style={styles.ticketPreviewRight}>
-        {upcomingCount > 0 ? (
-          <View style={styles.ticketBadge}>
-            <Text style={styles.ticketBadgeText}>{upcomingCount}</Text>
-          </View>
-        ) : null}
-        <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
-      </View>
-    </Pressable>
+    <View style={styles.statItem}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={[styles.statLabel, { color }]}>{label}</Text>
+    </View>
   );
 }
 
@@ -64,7 +39,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, isLoading: sessionLoading } = useSession();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('concerts');
 
@@ -106,10 +80,6 @@ export default function ProfileScreen() {
 
   const handleLogPress = (log: LogEntry) => {
     router.push({ pathname: '/event/[eventId]', params: { eventId: log.event.id } });
-  };
-
-  const handleVenuePress = (venueId: string) => {
-    router.push({ pathname: '/venue/[venueId]', params: { venueId } });
   };
 
   const handleSettings = () => {
@@ -154,7 +124,7 @@ export default function ProfileScreen() {
 
   const headerBlock = (
     <View>
-      {/* Hero section */}
+      {/* Hero section — avatar + name side-by-side */}
       <View style={styles.heroSection}>
         <Avatar
           uri={profile.avatarUrl}
@@ -162,19 +132,19 @@ export default function ProfileScreen() {
           name={profile.displayName || profile.username}
           gradientBorder
         />
-
-        <Text style={styles.displayName}>
-          {profile.displayName || profile.username}
-        </Text>
-
-        <MonoLabel size={10} color={colors.brandCyan}>
-          Opener
-        </MonoLabel>
-
-        {profile.bio ? (
-          <Text style={styles.bio}>{profile.bio}</Text>
-        ) : null}
+        <View style={styles.heroInfo}>
+          <MonoLabel size={10} color={colors.brandCyan}>
+            {`${profile.stats.followers ?? 0} FRIENDS \u00B7 ${profile.stats.shows} SHOWS`}
+          </MonoLabel>
+          <Text style={styles.displayName}>
+            {profile.displayName || profile.username}.
+          </Text>
+        </View>
       </View>
+
+      {profile.bio ? (
+        <Text style={styles.bio}>{profile.bio}</Text>
+      ) : null}
 
       {/* Action buttons */}
       <View style={styles.actionRow}>
@@ -193,28 +163,16 @@ export default function ProfileScreen() {
         />
       </View>
 
-      {/* Stats strip */}
+      {/* Stats strip with vertical dividers */}
       <View style={styles.statsStrip}>
-        <StatPill value={profile.stats.followers ?? 0} label="Friends" />
-        <StatPill value={profile.stats.shows} label="Shows" />
-        <StatPill
-          value={profile.stats.artists}
-          label="Artists"
-          color={colors.brandPurple}
-        />
-        <StatPill
-          value={profile.stats.venues}
-          label="Venues"
-          color={colors.brandPink}
-        />
+        <Stat value={profile.stats.followers ?? 0} label="FRIENDS" color={colors.brandCyan} />
+        <StatDivider />
+        <Stat value={profile.stats.shows} label="SHOWS" color={colors.brandCyan} />
+        <StatDivider />
+        <Stat value={profile.stats.artists} label="ARTISTS" color={colors.brandPurple} />
+        <StatDivider />
+        <Stat value={profile.stats.venues} label="VENUES" color={colors.brandPink} />
       </View>
-
-      {/* XP Bar */}
-      <View style={styles.xpBarContainer}>
-        <XpBar xp={0} showLabel={true} />
-      </View>
-
-      <TicketPreview />
 
       {/* Tab selector */}
       <View style={styles.tabRow}>
@@ -226,7 +184,7 @@ export default function ProfileScreen() {
               onPress={() => setActiveTab(tab.key)}
               style={[
                 styles.tab,
-                { borderBottomColor: isActive ? colors.brandPink : 'transparent' },
+                { borderBottomColor: isActive ? colors.brandCyan : 'transparent' },
               ]}
             >
               <Text
@@ -241,11 +199,6 @@ export default function ProfileScreen() {
           );
         })}
       </View>
-
-      {/* View Toggle (within Concert Life tab) */}
-      {activeTab === 'concerts' && (
-        <ViewToggle value={viewMode} onChange={setViewMode} />
-      )}
     </View>
   );
 
@@ -265,7 +218,17 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.content}>
-        {viewMode === 'timeline' ? (
+        {activeTab === 'stats' ? (
+          <ProfileStatsView
+            headerComponent={headerBlock}
+            logs={logs}
+            years={years}
+            selectedYear={selectedYear}
+            onYearSelect={setSelectedYear}
+            loading={logsLoading}
+            onRefresh={refresh}
+          />
+        ) : (
           <TimelineView
             headerComponent={headerBlock}
             logs={logs}
@@ -278,35 +241,6 @@ export default function ProfileScreen() {
             loading={logsLoading}
             hasMore={hasMore}
           />
-        ) : viewMode === 'grid' ? (
-          <ProfileGridView
-            headerComponent={headerBlock}
-            logs={logs}
-            years={years}
-            selectedYear={selectedYear}
-            onYearSelect={setSelectedYear}
-            onLogPress={handleLogPress}
-            onLoadMore={loadMore}
-            onRefresh={refresh}
-            loading={logsLoading}
-            hasMore={hasMore}
-          />
-        ) : viewMode === 'stats' ? (
-          <ProfileStatsView
-            headerComponent={headerBlock}
-            logs={logs}
-            years={years}
-            selectedYear={selectedYear}
-            onYearSelect={setSelectedYear}
-            loading={logsLoading}
-            onRefresh={refresh}
-          />
-        ) : (
-          <ScrollView contentContainerStyle={styles.mapScrollContent}>
-            {headerBlock}
-
-            <ProfileMapView userId={user?.id || ''} onVenuePress={handleVenuePress} />
-          </ScrollView>
         )}
       </View>
     </SafeAreaView>
@@ -362,28 +296,31 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
 
-  // Hero section
+  // Hero section — row layout
   heroSection: {
-    alignItems: 'center',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 14,
+    paddingTop: spacing.sm,
+    paddingBottom: 0,
+    paddingHorizontal: 20,
+  },
+  heroInfo: {
+    flex: 1,
   },
   displayName: {
     fontSize: 36,
     fontWeight: '400',
     letterSpacing: -0.8,
     color: colors.textHi,
-    marginTop: spacing.sm,
-    marginBottom: 4,
+    marginTop: 4,
   },
   bio: {
     fontSize: 13,
     color: colors.textMid,
     lineHeight: 13 * 1.5,
-    textAlign: 'center',
     marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 20,
   },
 
   // Action buttons
@@ -392,23 +329,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: spacing.md,
   },
 
-  // Stats strip
+  // Stats strip with dividers
   statsStrip: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: 18,
+    paddingVertical: 18,
     marginHorizontal: spacing.md,
   },
-
-  // XP Bar
-  xpBarContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 36,
+    fontWeight: '400',
+    letterSpacing: -1,
+    color: colors.textHi,
+  },
+  statLabel: {
+    fontFamily: MONO_FONT,
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: colors.hairline,
   },
 
   // Tab selector
@@ -425,59 +380,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   tabText: {
-    fontSize: 14,
+    fontFamily: MONO_FONT,
+    fontSize: 11,
     fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
 
   content: {
     flex: 1,
   },
 
-  // Ticket preview (kept from original)
-  ticketPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  ticketPreviewLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: radius.md,
-  },
-  ticketPreviewTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  ticketPreviewSub: {
-    fontSize: 13,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  ticketPreviewRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  ticketBadge: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  ticketBadgeText: {
-    color: colors.textHi,
-    fontSize: fonts.caption,
-    fontWeight: fonts.bold,
-  },
-  mapScrollContent: {
-    paddingBottom: spacing.xl,
-  },
 });
