@@ -7,12 +7,22 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, withSpring, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, gradients } from '../lib/theme';
+import { colors } from '../lib/theme';
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { uploadShowPhoto, getShowPhotos } from '../lib/api/showMedia';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
+import { PillButton } from '../components/ui/PillButton';
+import { MonoLabel } from '../components/ui/MonoLabel';
 
 type MediaItem = {
   id: string;
@@ -20,6 +30,57 @@ type MediaItem = {
   type: 'photo' | 'video';
   uploadedAt: string;
 };
+
+function PulsingDot() {
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(0.3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [opacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.pulsingDot, animStyle]} />
+  );
+}
+
+function CountdownCell({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={styles.countdownCell}>
+      <Text style={styles.countdownNumber}>{value}</Text>
+      <MonoLabel size={9} color={colors.brandCyan}>{label}</MonoLabel>
+    </View>
+  );
+}
+
+function useCountdown(targetDate?: Date) {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!targetDate || targetDate <= now) return null;
+
+  const diff = targetDate.getTime() - now.getTime();
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+
+  return {
+    hours: String(hours).padStart(2, '0'),
+    minutes: String(minutes).padStart(2, '0'),
+    seconds: String(seconds).padStart(2, '0'),
+  };
+}
 
 export default function ShowModeScreen() {
   const router = useRouter();
@@ -32,9 +93,18 @@ export default function ShowModeScreen() {
   const [cameraFacing, setCameraFacing] = useState<'back' | 'front'>('back');
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
 
   const { ticket } = useTicketDetail(ticketId || '');
   const captureScale = useSharedValue(1);
+
+  const eventData = ticket?.event as Record<string, unknown> | undefined;
+  const doorsDate = eventData?.doorsAt
+    ? new Date(eventData.doorsAt as string)
+    : eventData?.date
+      ? new Date(eventData.date as string)
+      : undefined;
+  const countdown = useCountdown(doorsDate);
 
   useEffect(() => {
     if (eventId) {
@@ -109,140 +179,274 @@ export default function ShowModeScreen() {
 
   const handleClose = goBack;
 
-  const handleLogShow = () => {
-    router.push({
-      pathname: '/log/details',
-      params: { eventId, mediaCount: String(mediaItems.length) },
-    });
+  const handleShowTicket = () => {
+    if (ticketId) {
+      router.push({ pathname: '/wallet/[id]', params: { id: ticketId } });
+    }
+  };
+
+  const handleCapturePress = () => {
+    setShowCamera(true);
+  };
+
+  const handleDirections = () => {
+    // Could deep-link to maps; for now just a placeholder
+    if (ticket?.event?.venue?.name) {
+      Alert.alert('Getting there', `Directions to ${ticket.event.venue.name}`);
+    }
   };
 
   const captureButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: captureScale.value }],
   }));
 
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
+  // ---------- Camera view ----------
+  if (showCamera) {
+    if (!permission) {
+      return <View style={styles.container} />;
+    }
 
-  if (!permission.granted) {
+    if (!permission.granted) {
+      return (
+        <View style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <Text style={styles.permissionText}>Camera access is required to capture moments from your show.</Text>
+          <PillButton title="Grant Access" onPress={() => void requestPermission()} variant="solid" size="lg" />
+          <View style={{ height: 12 }} />
+          <PillButton title="Go Back" onPress={() => setShowCamera(false)} variant="ghost" size="lg" />
+        </View>
+      );
+    }
+
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Text style={styles.permissionText}>Camera access is required to capture moments from your show.</Text>
-        <Pressable style={styles.permissionButton} onPress={() => void requestPermission()} accessibilityRole="button">
-          <Text style={styles.permissionButtonText}>Grant Access</Text>
-        </Pressable>
-        <Pressable style={[styles.permissionButton, { marginTop: 12, backgroundColor: colors.surface }]} onPress={handleClose} accessibilityRole="button">
-          <Text style={styles.permissionButtonText}>Go Back</Text>
-        </Pressable>
+        <CameraView ref={cameraRef} style={styles.camera} facing={cameraFacing} flash={flash}>
+          {/* Top Controls */}
+          <View style={[styles.cameraTopControls, { paddingTop: insets.top + 8 }]}>
+            <Pressable onPress={() => setShowCamera(false)} style={styles.controlButton} accessibilityRole="button">
+              <BlurView intensity={50} style={styles.blurButton}>
+                <Ionicons name="close" size={24} color={colors.textHi} />
+              </BlurView>
+            </Pressable>
+
+            <View style={styles.cameraLiveIndicator}>
+              <View style={styles.cameraLiveDot} />
+              <Text style={styles.cameraLiveText}>REC</Text>
+            </View>
+
+            <Pressable onPress={handleToggleFlash} style={styles.controlButton} accessibilityRole="button">
+              <BlurView intensity={50} style={styles.blurButton}>
+                <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color={colors.textHi} />
+              </BlurView>
+            </Pressable>
+          </View>
+
+          {/* Bottom Controls */}
+          <View style={[styles.cameraBottomControls, { paddingBottom: insets.bottom + 16 }]}>
+            <Pressable onPress={handlePickImage} style={styles.galleryButton} accessibilityRole="button">
+              {mediaItems.length > 0 ? (
+                <Image source={{ uri: mediaItems[0].uri }} style={styles.galleryPreview} />
+              ) : (
+                <View style={styles.galleryPlaceholder}>
+                  <Ionicons name="images" size={24} color={colors.textHi} />
+                </View>
+              )}
+              {mediaItems.length > 0 ? (
+                <View style={styles.galleryCount}>
+                  <Text style={styles.galleryCountText}>{mediaItems.length}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+
+            <Animated.View style={captureButtonStyle}>
+              <Pressable onPress={handleCapture} style={styles.captureButton} accessibilityRole="button">
+                <View style={styles.captureButtonInner} />
+              </Pressable>
+            </Animated.View>
+
+            <Pressable onPress={handleFlipCamera} style={styles.flipButton} accessibilityRole="button">
+              <BlurView intensity={50} style={styles.blurButton}>
+                <Ionicons name="camera-reverse" size={24} color={colors.textHi} />
+              </BlurView>
+            </Pressable>
+          </View>
+        </CameraView>
       </View>
     );
+  }
+
+  // ---------- Fallback states ----------
+  if (!permission) {
+    return <View style={styles.container} />;
   }
 
   if (!eventId) {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Text style={styles.permissionText}>Missing event. Try opening Show Mode from today’s ticket.</Text>
-        <Pressable style={styles.permissionButton} onPress={handleClose} accessibilityRole="button">
-          <Text style={styles.permissionButtonText}>Go Back</Text>
-        </Pressable>
+        <Text style={styles.permissionText}>Missing event. Try opening Show Mode from today's ticket.</Text>
+        <PillButton title="Go Back" onPress={handleClose} variant="ghost" size="lg" />
       </View>
     );
   }
 
+  // ---------- Main show-mode companion ----------
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['rgba(0,212,255,0.08)', colors.ink, colors.ink]}
+      locations={[0, 0.45, 1]}
+      style={styles.container}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <CameraView ref={cameraRef} style={styles.camera} facing={cameraFacing} flash={flash}>
-        {/* Top Controls */}
-        <View style={[styles.topControls, { paddingTop: insets.top + 8 }]}>
-          <Pressable onPress={handleClose} style={styles.controlButton} accessibilityRole="button">
-            <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="close" size={24} color={colors.textHi} />
-            </BlurView>
-          </Pressable>
+      {/* Close button */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={handleClose} hitSlop={12} accessibilityRole="button">
+          <Ionicons name="close" size={24} color={colors.textMid} />
+        </Pressable>
+      </View>
 
-          <View style={styles.liveIndicator}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Live indicator */}
+        <View style={styles.liveRow}>
+          <PulsingDot />
+          <MonoLabel size={10.5} color={colors.brandCyan}>LIVE  ·  TONIGHT</MonoLabel>
+        </View>
+
+        {/* Artist name */}
+        <Text style={styles.artistName} numberOfLines={2}>
+          {ticket?.event?.artist?.name ?? 'Show'}
+        </Text>
+
+        {/* Venue */}
+        <MonoLabel size={12} color={colors.textLo} style={{ marginTop: 8 }}>
+          {(ticket?.event?.venue?.name ?? '').toUpperCase()}
+        </MonoLabel>
+
+        {/* Countdown */}
+        {countdown ? (
+          <View style={styles.countdownBox}>
+            <CountdownCell value={countdown.hours} label="HRS" />
+            <View style={styles.countdownDivider} />
+            <CountdownCell value={countdown.minutes} label="MIN" />
+            <View style={styles.countdownDivider} />
+            <CountdownCell value={countdown.seconds} label="SEC" />
           </View>
+        ) : null}
+      </View>
 
-          <Pressable onPress={handleToggleFlash} style={styles.controlButton} accessibilityRole="button">
-            <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color={colors.textHi} />
-            </BlurView>
-          </Pressable>
-        </View>
-
-        {/* Show Info Banner */}
-        <View style={styles.showInfoBanner}>
-          <BlurView intensity={80} style={styles.showInfoBlur}>
-            <Text style={styles.showInfoArtist} numberOfLines={1}>
-              {ticket?.event?.artist?.name ?? 'Show'}
-            </Text>
-            <Text style={styles.showInfoVenue} numberOfLines={1}>
-              {ticket?.event?.venue?.name ?? ''}
-            </Text>
-          </BlurView>
-        </View>
-
-        {/* Bottom Controls */}
-        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
-          <Pressable onPress={handlePickImage} style={styles.galleryButton} accessibilityRole="button">
-            {mediaItems.length > 0 ? (
-              <Image source={{ uri: mediaItems[0].uri }} style={styles.galleryPreview} />
-            ) : (
-              <View style={styles.galleryPlaceholder}>
-                <Ionicons name="images" size={24} color={colors.textHi} />
-              </View>
-            )}
-            {mediaItems.length > 0 ? (
-              <View style={styles.galleryCount}>
-                <Text style={styles.galleryCountText}>{mediaItems.length}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-
-          <Animated.View style={captureButtonStyle}>
-            <Pressable onPress={handleCapture} style={styles.captureButton} accessibilityRole="button">
-              <View style={styles.captureButtonInner} />
-            </Pressable>
-          </Animated.View>
-
-          <Pressable onPress={handleFlipCamera} style={styles.flipButton} accessibilityRole="button">
-            <BlurView intensity={50} style={styles.blurButton}>
-              <Ionicons name="camera-reverse" size={24} color={colors.textHi} />
-            </BlurView>
-          </Pressable>
-        </View>
-      </CameraView>
-
-      {mediaItems.length > 0 ? (
-        <View style={[styles.logPrompt, { bottom: insets.bottom + 100 }]}>
-          <Pressable onPress={handleLogShow} style={styles.logPromptButton} accessibilityRole="button">
-            <Text style={styles.logPromptText}>{mediaItems.length} photos captured</Text>
-            <Text style={styles.logPromptAction}>Log this show →</Text>
-          </Pressable>
-        </View>
-      ) : null}
-    </View>
+      {/* Action buttons */}
+      <View style={[styles.actions, { paddingBottom: insets.bottom + 24 }]}>
+        <PillButton
+          title="SHOW TICKET"
+          onPress={handleShowTicket}
+          variant="solid"
+          size="lg"
+          accentColor={colors.brandCyan}
+        />
+        <View style={{ height: 10 }} />
+        <PillButton
+          title="Capture a moment"
+          onPress={handleCapturePress}
+          variant="ghost"
+          size="lg"
+          icon={<Ionicons name="camera-outline" size={18} color={colors.textHi} />}
+        />
+        <View style={{ height: 10 }} />
+        <PillButton
+          title="Getting there"
+          onPress={handleDirections}
+          variant="ghost"
+          size="lg"
+          icon={<Ionicons name="navigate-outline" size={18} color={colors.textHi} />}
+        />
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.ink,
   },
+
+  // --- Top bar ---
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+  },
+
+  // --- Content ---
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  liveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  pulsingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.brandCyan,
+  },
+  artistName: {
+    fontSize: 52,
+    fontWeight: '400',
+    letterSpacing: -1.5,
+    color: colors.textHi,
+  },
+
+  // --- Countdown ---
+  countdownBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    marginTop: 32,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    alignSelf: 'flex-start',
+  },
+  countdownCell: {
+    alignItems: 'center',
+    minWidth: 52,
+  },
+  countdownNumber: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: colors.textHi,
+    marginBottom: 2,
+  },
+  countdownDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 36,
+    backgroundColor: colors.hairline,
+    marginHorizontal: 14,
+  },
+
+  // --- Actions ---
+  actions: {
+    paddingHorizontal: 28,
+    gap: 0,
+  },
+
+  // --- Camera view styles ---
   camera: {
     flex: 1,
     width: '100%',
   },
-  topControls: {
+  cameraTopControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -262,7 +466,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
-  liveIndicator: {
+  cameraLiveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.9)',
@@ -271,41 +475,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 6,
   },
-  liveDot: {
+  cameraLiveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.textHi,
   },
-  liveText: {
+  cameraLiveText: {
     color: colors.textHi,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
   },
-  showInfoBanner: {
-    position: 'absolute',
-    top: 100,
-    left: 16,
-    right: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  showInfoBlur: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  showInfoArtist: {
-    color: colors.textHi,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  showInfoVenue: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  bottomControls: {
+  cameraBottomControls: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -370,48 +552,12 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: 'hidden',
   },
-  logPrompt: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-  },
-  logPromptButton: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logPromptText: {
-    color: colors.textHi,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  logPromptAction: {
-    color: colors.brandCyan,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+
+  // --- Permission / fallback ---
   permissionText: {
     color: colors.textHi,
     fontSize: 16,
     textAlign: 'center',
     padding: 32,
   },
-  permissionButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    overflow: 'hidden',
-  },
-  permissionButtonText: {
-    color: colors.textHi,
-    fontSize: 16,
-    fontWeight: '600',
-  },
 });
-
-
-

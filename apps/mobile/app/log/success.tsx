@@ -1,256 +1,484 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, Text, useWindowDimensions, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 
-import { EarnedBadgeModal } from '../../components/badges/EarnedBadgeModal';
 import { Screen } from '../../components/ui/Screen';
-import { colors, gradients, radius, spacing } from '../../lib/theme';
-import { getAllBadges } from '../../lib/api/badges';
+import { XpBar } from '../../components/ui/XpBar';
+import { TicketStub } from '../../components/ui/TicketStub';
+import { PillButton } from '../../components/ui/PillButton';
+import { MonoLabel } from '../../components/ui/MonoLabel';
+import { colors, spacing } from '../../lib/theme';
+import { previewLogRewards, type PastShow } from '../../lib/game';
 import { getEventById, type Event } from '../../lib/local/repo/eventsRepo';
-import type { Badge } from '../../types/badge';
 
-type ConfettiParticle = {
-  id: number;
-  x: number; // px
-  y: number; // start px
-  color: string;
-  size: number;
-  rotation: number;
-  delay: number;
-  duration: number;
-  round: boolean;
-};
-
-const confettiColors = [colors.brandCyan, colors.brandPurple, colors.brandPink];
-
-function makeConfetti(count: number, width: number): ConfettiParticle[] {
-  const rand = (min: number, max: number) => min + Math.random() * (max - min);
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    x: rand(0, Math.max(1, width)),
-    y: -rand(10, 40),
-    color: confettiColors[Math.floor(Math.random() * confettiColors.length)]!,
-    size: rand(6, 14),
-    rotation: rand(0, 360),
-    delay: rand(0, 0.5),
-    duration: rand(3, 5),
-    round: Math.random() > 0.5,
-  }));
-}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function formatDate(dateISO: string) {
   const d = new Date(dateISO);
   if (Number.isNaN(d.getTime())) return dateISO;
-  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
+
+function formatStubDate(dateISO: string) {
+  const d = new Date(dateISO);
+  if (Number.isNaN(d.getTime())) return dateISO;
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase timings (ms after mount)
+// ---------------------------------------------------------------------------
+
+const PHASE_TIMINGS = [0, 1500, 2500, 3500, 4500] as const;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function LogSuccess() {
   const router = useRouter();
-  const { eventId, newBadges } = useLocalSearchParams<{ eventId: string; newBadges?: string }>();
-  const { width, height } = useWindowDimensions();
+  const { eventId, newBadges } = useLocalSearchParams<{
+    eventId: string;
+    newBadges?: string;
+  }>();
 
   const [event, setEvent] = useState<Event | null>(null);
-  const progress = useRef(new Animated.Value(0)).current;
-  const check = useRef(new Animated.Value(0)).current;
+  const [phase, setPhase] = useState(0);
 
-  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
-  const [badgeIndex, setBadgeIndex] = useState(0);
-  const [badgeModalVisible, setBadgeModalVisible] = useState(false);
+  // Animated values — one per phase for opacity, plus stamp scale
+  const stampScale = useRef(new Animated.Value(0)).current;
+  const stampOpacity = useRef(new Animated.Value(0)).current;
+  const xpOpacity = useRef(new Animated.Value(0)).current;
+  const badgesOpacity = useRef(new Animated.Value(0)).current;
+  const stubOpacity = useRef(new Animated.Value(0)).current;
 
-  const confetti = useMemo(() => makeConfetti(30, width), [width]);
+  // ------------------------------------------------------------------
+  // Load event
+  // ------------------------------------------------------------------
 
   useEffect(() => {
     if (!eventId) return;
-    getEventById(String(eventId)).then(setEvent).catch(() => setEvent(null));
+    getEventById(String(eventId))
+      .then(setEvent)
+      .catch(() => setEvent(null));
   }, [eventId]);
 
+  // ------------------------------------------------------------------
+  // Phase advancement
+  // ------------------------------------------------------------------
+
   useEffect(() => {
-    const ids = String(newBadges || '')
+    const timers = PHASE_TIMINGS.slice(1).map((ms, i) =>
+      setTimeout(() => setPhase(i + 1), ms),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  // ------------------------------------------------------------------
+  // Animations triggered by phase changes
+  // ------------------------------------------------------------------
+
+  useEffect(() => {
+    if (phase >= 1) {
+      // Stamp appear
+      Animated.parallel([
+        Animated.spring(stampScale, {
+          toValue: 1,
+          damping: 10,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(stampOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [phase >= 1]);
+
+  useEffect(() => {
+    if (phase >= 2) {
+      Animated.timing(xpOpacity, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [phase >= 2]);
+
+  useEffect(() => {
+    if (phase >= 3) {
+      Animated.timing(badgesOpacity, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [phase >= 3]);
+
+  useEffect(() => {
+    if (phase >= 4) {
+      Animated.timing(stubOpacity, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [phase >= 4]);
+
+  // ------------------------------------------------------------------
+  // Derived show data
+  // ------------------------------------------------------------------
+
+  const show = {
+    artist: event?.artist.name ?? 'Artist',
+    venue: event?.venue.name ?? 'Venue',
+    date: event?.date ?? new Date().toISOString().slice(0, 10),
+    city: (event as any)?.venue?.city ?? '',
+  };
+
+  // Compute gamification preview.  We pass an empty pastShows array here
+  // because the actual history isn't available on this screen — the server
+  // already persisted the log.  This gives baseline XP values and lets the
+  // reveal feel correct even without full history context.
+  const rewards = useMemo(() => {
+    return previewLogRewards(
+      { venue: show.venue, artist: show.artist, date: show.date },
+      [] as PastShow[],
+    );
+  }, [show.artist, show.venue, show.date]);
+
+  // Parse new badge IDs passed from the log action
+  const parsedBadgeIds = useMemo(() => {
+    return String(newBadges || '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-    if (!ids.length) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const all = await getAllBadges();
-        if (cancelled) return;
-        const found = ids.map((id) => all.find((b) => b.id === id)).filter(Boolean) as Badge[];
-        setEarnedBadges(found);
-        setBadgeIndex(0);
-        setBadgeModalVisible(found.length > 0);
-      } catch {
-        // If we can't load the catalog, just skip the badge modal.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [newBadges]);
 
-  useEffect(() => {
-    progress.setValue(0);
-    check.setValue(0);
+  // Merge with computed badges — prefer computed ones but include server-side IDs
+  const displayBadges = useMemo(() => {
+    const computed = rewards.newBadges;
+    // If server passed badge IDs that aren't in computed, add placeholders
+    const computedIds = new Set(computed.map((b) => b.id));
+    const extras = parsedBadgeIds
+      .filter((id) => !computedIds.has(id))
+      .map((id) => ({ id, label: id, emoji: '🏅', desc: '' }));
+    return [...computed, ...extras];
+  }, [rewards.newBadges, parsedBadgeIds]);
 
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 4500,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }).start();
-
-    Animated.spring(check, {
-      toValue: 1,
-      damping: 14,
-      stiffness: 180,
-      useNativeDriver: true,
-    }).start();
-  }, [check, progress]);
-
-  const show = {
-    artist: event?.artist.name ?? 'The Weeknd',
-    venue: event?.venue.name ?? 'SoFi Stadium',
-    date: event?.date ? formatDate(event.date) : 'December 15, 2024',
-    artistImage: event?.artist.imageUrl || event?.imageUrl || null,
-  };
+  // ------------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------------
 
   return (
     <Screen padded={false}>
-      {/* Confetti layer */}
-      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}>
-        {confetti.map((p) => {
-          const y = progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [p.y, height + 120],
-          });
-          const rot = progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [`${p.rotation}deg`, `${p.rotation + 360 * 3}deg`],
-          });
-          const opacity = progress.interpolate({
-            inputRange: [0, 0.08, 0.92, 1],
-            outputRange: [0, 1, 1, 0],
-          });
-
-          return (
-            <Animated.View
-              key={p.id}
-              style={{
-                position: 'absolute',
-                width: p.size,
-                height: p.size,
-                borderRadius: p.round ? 999 : 2,
-                backgroundColor: p.color,
-                opacity,
-                transform: [{ translateX: p.x }, { translateY: y }, { rotate: rot }],
-              }}
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: spacing.lg,
+          paddingBottom: 48,
+          alignItems: 'center',
+          justifyContent: phase === 0 ? 'center' : 'flex-start',
+          paddingTop: phase === 0 ? 0 : 64,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ---------------------------------------------------------- */}
+        {/* Phase 0: Saving spinner                                    */}
+        {/* ---------------------------------------------------------- */}
+        {phase === 0 && (
+          <View style={{ alignItems: 'center' }}>
+            <ActivityIndicator
+              size="large"
+              color={colors.brandCyan}
+              style={{ marginBottom: 20 }}
             />
-          );
-        })}
-      </View>
-
-      {/* Main content */}
-      <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingBottom: 128, alignItems: 'center', justifyContent: 'center' }}>
-        {/* Glowing ring */}
-        <Animated.View
-          style={{
-            marginBottom: 32,
-            transform: [
-              {
-                scale: check.interpolate({ inputRange: [0, 1], outputRange: [0.1, 1] }),
-              },
-              {
-                rotate: check.interpolate({ inputRange: [0, 1], outputRange: ['-180deg', '0deg'] }),
-              },
-            ],
-          }}
-        >
-          <View style={{ position: 'absolute', left: -12, right: -12, top: -12, bottom: -12, borderRadius: 999, opacity: 0.55 }}>
-            <LinearGradient colors={gradients.rainbow} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 999 }} />
+            <MonoLabel size={11} color={colors.brandCyan}>
+              STAMPING YOUR STUB...
+            </MonoLabel>
           </View>
+        )}
 
-          <LinearGradient
-            colors={gradients.rainbow}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+        {/* ---------------------------------------------------------- */}
+        {/* Phase 1: LOGGED stamp                                      */}
+        {/* ---------------------------------------------------------- */}
+        {phase >= 1 && (
+          <Animated.View
             style={{
-              width: 96,
-              height: 96,
-              borderRadius: 999,
+              opacity: stampOpacity,
+              transform: [{ scale: stampScale }],
+              marginBottom: 32,
               alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: colors.brandPurple,
-              shadowOpacity: 0.5,
-              shadowRadius: 24,
-              shadowOffset: { width: 0, height: 14 },
             }}
           >
-            <Ionicons name="checkmark" size={52} color={colors.textHi} />
-          </LinearGradient>
-        </Animated.View>
+            <View
+              style={{
+                borderWidth: 3,
+                borderColor: colors.brandCyan,
+                borderRadius: 8,
+                paddingHorizontal: 28,
+                paddingVertical: 12,
+                transform: [{ rotate: '-8deg' }],
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.textHi,
+                  fontSize: 36,
+                  fontWeight: '900',
+                  letterSpacing: 6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                LOGGED
+              </Text>
+            </View>
+          </Animated.View>
+        )}
 
-        {/* Text stack */}
-        <View style={{ alignItems: 'center', marginBottom: 32 }}>
-          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '900', marginBottom: 12 }}>You were there!</Text>
-          <Text style={{ color: colors.textHi, fontSize: 20, fontWeight: '900', marginBottom: 6 }}>{show.artist}</Text>
-          <Text style={{ color: colors.textMid, fontSize: 18, marginBottom: 4 }}>at {show.venue}</Text>
-          <Text style={{ color: colors.textLo, fontSize: 16 }}>{show.date}</Text>
-        </View>
+        {/* ---------------------------------------------------------- */}
+        {/* Phase 2: XP card                                           */}
+        {/* ---------------------------------------------------------- */}
+        {phase >= 2 && (
+          <Animated.View
+            style={{
+              opacity: xpOpacity,
+              width: '100%',
+              marginBottom: 24,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.hairline,
+                padding: 20,
+              }}
+            >
+              {/* Header */}
+              <MonoLabel size={10} color={colors.brandCyan} style={{ marginBottom: 6 }}>
+                XP EARNED
+              </MonoLabel>
+              <Text
+                style={{
+                  fontSize: 36,
+                  fontWeight: '800',
+                  color: colors.textHi,
+                  marginBottom: 16,
+                }}
+              >
+                +{rewards.xpGain}
+              </Text>
 
-        {/* Artist image ring */}
-        {show.artistImage ? (
-          <LinearGradient colors={gradients.rainbow} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 104, height: 104, borderRadius: 999, padding: 2 }}>
-            <View style={{ width: '100%', height: '100%', borderRadius: 999, backgroundColor: colors.ink, padding: 2 }}>
-              <View style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', backgroundColor: colors.elevated }}>
-                <Image source={{ uri: show.artistImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              {/* Reasons breakdown */}
+              <View style={{ gap: 8, marginBottom: 20 }}>
+                {rewards.reasons.map((r) => (
+                  <View
+                    key={r.label}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.textMid,
+                        fontSize: 13,
+                        fontWeight: '500',
+                      }}
+                    >
+                      {r.label}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.brandCyan,
+                        fontSize: 13,
+                        fontWeight: '700',
+                      }}
+                    >
+                      {r.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Level progress */}
+              <XpBar xp={rewards.xpAfter} showLabel />
+
+              {/* Level-up callout */}
+              {rewards.leveledUp && (
+                <View
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: colors.elevated,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.brandCyan,
+                      fontSize: 14,
+                      fontWeight: '800',
+                      letterSpacing: 1,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Level Up! {rewards.afterLevel.name}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* ---------------------------------------------------------- */}
+        {/* Phase 3: Badges                                            */}
+        {/* ---------------------------------------------------------- */}
+        {phase >= 3 && displayBadges.length > 0 && (
+          <Animated.View
+            style={{
+              opacity: badgesOpacity,
+              width: '100%',
+              marginBottom: 24,
+              gap: 10,
+            }}
+          >
+            <MonoLabel size={10} color={colors.brandCyan} style={{ marginBottom: 4 }}>
+              NEW BADGES
+            </MonoLabel>
+            {displayBadges.map((badge) => (
+              <View
+                key={badge.id}
+                style={{
+                  backgroundColor: colors.surface,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: colors.hairline,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  gap: 12,
+                }}
+              >
+                <Text style={{ fontSize: 28 }}>{badge.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: colors.textHi,
+                      fontSize: 15,
+                      fontWeight: '700',
+                      marginBottom: 2,
+                    }}
+                  >
+                    {badge.label}
+                  </Text>
+                  {badge.desc ? (
+                    <Text
+                      style={{
+                        color: colors.textMid,
+                        fontSize: 12,
+                      }}
+                    >
+                      {badge.desc}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ))}
+          </Animated.View>
+        )}
+
+        {/* ---------------------------------------------------------- */}
+        {/* Phase 4: Collectible stub + actions                        */}
+        {/* ---------------------------------------------------------- */}
+        {phase >= 4 && (
+          <Animated.View
+            style={{
+              opacity: stubOpacity,
+              width: '100%',
+              alignItems: 'center',
+              gap: 20,
+            }}
+          >
+            <TicketStub
+              artist={show.artist}
+              venue={show.venue}
+              city={show.city}
+              date={formatStubDate(show.date)}
+            />
+
+            <View
+              style={{
+                width: '100%',
+                gap: 12,
+                marginTop: 8,
+              }}
+            >
+              <View style={{ alignItems: 'center' }}>
+                <PillButton
+                  title="Share to feed  \u2192"
+                  variant="solid"
+                  size="lg"
+                  accentColor={colors.pink}
+                  onPress={() => {
+                    if (eventId) {
+                      router.replace({
+                        pathname: '/log/details',
+                        params: { eventId: String(eventId) },
+                      });
+                    }
+                  }}
+                />
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <PillButton
+                  title="Done"
+                  variant="ghost"
+                  size="lg"
+                  onPress={() => {
+                    if (eventId) {
+                      router.replace({
+                        pathname: '/event/[eventId]',
+                        params: { eventId: String(eventId) },
+                      });
+                    } else {
+                      router.replace('/(tabs)/discover');
+                    }
+                  }}
+                />
               </View>
             </View>
-          </LinearGradient>
-        ) : null}
-      </View>
-
-      {/* Bottom buttons */}
-      <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: 24, gap: 12 }}>
-        <Pressable
-          onPress={() => {
-            if (eventId) router.replace({ pathname: '/log/details', params: { eventId: String(eventId) } });
-          }}
-          style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
-        >
-          <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '900' }}>Add Details</Text>
-          </LinearGradient>
-        </Pressable>
-
-        <Pressable
-          onPress={() => {
-            if (eventId) router.replace({ pathname: '/event/[eventId]', params: { eventId: String(eventId) } });
-            else router.replace('/(tabs)/discover');
-          }}
-          style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
-        >
-          <View style={{ height: 56, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.hairline, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
-            <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '900' }}>Done</Text>
-          </View>
-        </Pressable>
-      </View>
-
-      <EarnedBadgeModal
-        badge={earnedBadges[badgeIndex] ?? null}
-        visible={badgeModalVisible}
-        onClose={() => {
-          const next = badgeIndex + 1;
-          if (next < earnedBadges.length) setBadgeIndex(next);
-          else setBadgeModalVisible(false);
-        }}
-      />
+          </Animated.View>
+        )}
+      </ScrollView>
     </Screen>
   );
 }
-
-
-
