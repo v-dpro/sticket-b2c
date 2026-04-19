@@ -1,6 +1,8 @@
 // lib/theme.ts — SINGLE SOURCE OF TRUTH
 // Sticket redesign tokens — "Ticket Stub" identity system
 
+export { fontFamilies } from './fonts';
+
 export const colors = {
   // Core palette
   ink: '#0B0B14',

@@ -4,6 +4,7 @@ import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'r
 
 import { Screen } from '../../components/ui/Screen';
 import { colors, accentSets, spacing, radius, shadows } from '../../lib/theme';
+import { Confetti } from '../../components/ui/Confetti';
 import { updateProfile } from '../../lib/local/repo/profileRepo';
 import { useSession } from '../../hooks/useSession';
 import { useOnboardingStore } from '../../stores/onboardingStore';
@@ -101,6 +102,9 @@ export default function DoneOnboarding() {
   return (
     <Screen padded={false}>
       <View style={styles.container}>
+        {/* Confetti burst */}
+        <Confetti active={true} originY={0.35} />
+
         {/* Center content */}
         <View style={styles.center}>
           {/* WELCOME IN stamp */}

@@ -15,6 +15,7 @@ import { TicketStub } from '../../components/ui/TicketStub';
 import { PillButton } from '../../components/ui/PillButton';
 import { MonoLabel } from '../../components/ui/MonoLabel';
 import { colors, spacing } from '../../lib/theme';
+import { Confetti } from '../../components/ui/Confetti';
 import { previewLogRewards, type PastShow } from '../../lib/game';
 import { getEventById, type Event } from '../../lib/local/repo/eventsRepo';
 
@@ -221,6 +222,9 @@ export default function LogSuccess() {
             </MonoLabel>
           </View>
         )}
+
+        {/* Confetti burst */}
+        <Confetti active={phase >= 1} originY={0.35} />
 
         {/* ---------------------------------------------------------- */}
         {/* Phase 1: LOGGED stamp                                      */}

@@ -13,10 +13,12 @@ export default function OnboardingLayout() {
       }}
     >
       <Stack.Screen name="welcome" />
+      <Stack.Screen name="about-you" />
       <Stack.Screen name="select-artists" />
       <Stack.Screen name="set-city" />
       <Stack.Screen name="connect-spotify" />
       <Stack.Screen name="presale-preview" />
+      <Stack.Screen name="privacy" />
       <Stack.Screen name="log-first-show" />
       <Stack.Screen name="find-friends" />
       <Stack.Screen name="done" />

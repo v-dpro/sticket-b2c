@@ -66,6 +66,24 @@ export async function reportMoment(eventId: string, moment: { type: string; labe
   await apiClient.post(`/events/${eventId}/moments`, moment);
 }
 
+// ---------------------------------------------------------------------------
+// Hang (Partiful-style event chat/invite)
+// ---------------------------------------------------------------------------
+
+export async function getHang(eventId: string): Promise<any> {
+  const response = await apiClient.get(`/events/${eventId}/hang`);
+  return response.data;
+}
+
+export async function postHangMessage(eventId: string, text: string): Promise<any> {
+  const response = await apiClient.post(`/events/${eventId}/hang/messages`, { text });
+  return response.data;
+}
+
+export async function rsvpHang(eventId: string, status: 'going' | 'maybe' | 'cant'): Promise<void> {
+  await apiClient.post(`/events/${eventId}/hang/rsvp`, { status });
+}
+
 
 
 
