@@ -113,7 +113,7 @@ export default function DoneOnboarding() {
               styles.stampContainer,
               {
                 opacity: stamp.opacity,
-                transform: stamp.transform,
+                transform: stamp.transform as any,
               },
             ]}
           >

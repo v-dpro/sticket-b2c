@@ -1,5 +1,6 @@
 import React from 'react';
 import { Redirect, Tabs, useRouter } from 'expo-router';
+import { Image as RNImage } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,24 +45,15 @@ function CenterLogButton() {
   );
 }
 
-// Per-tab accent colors
-const tabAccents = {
-  feed: colors.brandCyan,
-  upcoming: colors.brandPurple,
-  wallet: colors.warning,
-  profile: colors.pink,
-} as const;
-
 export default function TabsLayout() {
-  const { user, isLoading } = useSession();
+  const { user, profile, isLoading } = useSession();
   const insets = useSafeAreaInsets();
 
-  // Auth gate: if you sign out while inside tabs, kick back to auth.
   if (!isLoading && !user) {
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  const tabBarHeight = 80 + insets.bottom;
+  const tabBarHeight = 52 + insets.bottom;
 
   return (
     <View style={{ flex: 1 }}>
@@ -70,52 +62,47 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: colors.ink,
+            backgroundColor: 'rgba(8, 8, 16, 0.88)',
             borderTopColor: colors.hairline,
             borderTopWidth: 1,
             height: tabBarHeight,
             paddingBottom: insets.bottom,
           },
-          tabBarActiveTintColor: colors.brandCyan,
-          tabBarInactiveTintColor: colors.textLo,
-          tabBarShowLabel: true,
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '600',
-            letterSpacing: 0.5,
-          },
-          tabBarItemStyle: { paddingVertical: 4, minWidth: 60 },
+          tabBarActiveTintColor: colors.textHi,
+          tabBarInactiveTintColor: colors.textHi,
+          tabBarShowLabel: false,
+          tabBarItemStyle: { paddingVertical: 4 },
           tabBarActiveBackgroundColor: 'transparent',
           tabBarInactiveBackgroundColor: 'transparent',
         }}
       >
-        {/* Tab 1: Feed */}
+        {/* Tab 1: Home (Feed) */}
         <Tabs.Screen
           name="feed/index"
           options={{
-            title: 'Feed',
-            tabBarActiveTintColor: tabAccents.feed,
+            title: 'Home',
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
-                size={20}
-                color={focused ? tabAccents.feed : colors.textLo}
+                size={26}
+                color={colors.textHi}
+                style={{ opacity: focused ? 1 : 0.5 }}
               />
             ),
           }}
         />
 
-        {/* Tab 2: Upcoming */}
+        {/* Tab 2: Upcoming (Calendar/Plans) */}
         <Tabs.Screen
           name="timeline/index"
           options={{
             title: 'Upcoming',
-            tabBarActiveTintColor: tabAccents.upcoming,
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name={focused ? 'calendar' : 'calendar-outline'}
-                size={20}
-                color={focused ? tabAccents.upcoming : colors.textLo}
+                size={26}
+                color={colors.textHi}
+                style={{ opacity: focused ? 1 : 0.5 }}
               />
             ),
           }}
@@ -130,42 +117,55 @@ export default function TabsLayout() {
           }}
         />
 
-        {/* Tab 4: Wallet */}
+        {/* Tab 4: Concert Life */}
         <Tabs.Screen
-          name="log-placeholder"
+          name="my-artists/index"
           options={{
-            title: 'Wallet',
-            tabBarActiveTintColor: tabAccents.wallet,
+            title: 'Life',
             tabBarIcon: ({ focused }) => (
               <Ionicons
-                name={focused ? 'ticket' : 'ticket-outline'}
-                size={20}
-                color={focused ? tabAccents.wallet : colors.textLo}
+                name={focused ? 'musical-notes' : 'musical-notes-outline'}
+                size={26}
+                color={colors.textHi}
+                style={{ opacity: focused ? 1 : 0.5 }}
               />
             ),
           }}
         />
 
-        {/* Tab 5: Profile */}
+        {/* Tab 5: Profile (avatar with ring) */}
         <Tabs.Screen
           name="profile/index"
           options={{
-            title: 'Profile',
-            tabBarActiveTintColor: tabAccents.profile,
-            tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name={focused ? 'person' : 'person-outline'}
-                size={20}
-                color={focused ? tabAccents.profile : colors.textLo}
-              />
-            ),
+            title: 'You',
+            tabBarIcon: ({ focused }) => {
+              const avatarUrl = profile?.avatarUrl;
+              if (avatarUrl) {
+                return (
+                  <View style={[styles.profileTabAvatar, focused && styles.profileTabAvatarActive]}>
+                    <RNImage
+                      source={{ uri: avatarUrl }}
+                      style={styles.profileTabImage}
+                    />
+                  </View>
+                );
+              }
+              return (
+                <Ionicons
+                  name={focused ? 'person' : 'person-outline'}
+                  size={26}
+                  color={colors.textHi}
+                  style={{ opacity: focused ? 1 : 0.5 }}
+                />
+              );
+            },
           }}
         />
 
-        {/* Hidden tabs (accessible via navigation but not in tab bar) */}
+        {/* Hidden tabs */}
         <Tabs.Screen name="notifications/index" options={{ href: null }} />
         <Tabs.Screen name="search/index" options={{ href: null }} />
-        <Tabs.Screen name="my-artists/index" options={{ href: null }} />
+        <Tabs.Screen name="log-placeholder" options={{ href: null }} />
       </Tabs>
 
       <FeedbackButton />
@@ -206,5 +206,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
     borderWidth: 2,
     borderColor: colors.ink,
+  },
+  profileTabAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+  },
+  profileTabAvatarActive: {
+    borderColor: colors.textHi,
+  },
+  profileTabImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
   },
 });

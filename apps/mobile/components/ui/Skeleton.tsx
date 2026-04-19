@@ -22,7 +22,7 @@ export function Skeleton({ width = '100%', height = 20, borderRadius: br = radiu
     opacity: interpolate(progress.value, [0, 1], [0.3, 0.7]),
   }));
 
-  return <Animated.View style={[styles.skeleton, { width, height, borderRadius: br }, animatedStyle, style]} />;
+  return <Animated.View style={[styles.skeleton, { width: width as any, height, borderRadius: br }, animatedStyle, style]} />;
 }
 
 export function FeedCardSkeleton() {
