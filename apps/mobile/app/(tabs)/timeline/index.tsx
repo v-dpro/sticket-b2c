@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,11 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useConcertLife } from '../../../hooks/useConcertLife';
-import { colors, radius, fonts, spacing, accentSets } from '../../../lib/theme';
+import { colors, radius, fonts, spacing, accentSets, fontFamilies } from '../../../lib/theme';
 import { Eyebrow } from '../../../components/ui/Eyebrow';
 import { MonoLabel } from '../../../components/ui/MonoLabel';
-
-const mono = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+import { ScreenTitle } from '../../../components/ui/ScreenTitle';
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -185,9 +183,8 @@ const heroStyles = StyleSheet.create({
     elevation: 4,
   },
   nextShowText: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10,
-    fontWeight: '600',
     letterSpacing: 1.5,
     color: '#FFFFFF',
   },
@@ -205,8 +202,8 @@ const heroStyles = StyleSheet.create({
     marginBottom: 4,
   },
   countdownNumber: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 72,
-    fontWeight: '700',
     letterSpacing: -3,
     color: '#FFFFFF',
     lineHeight: 72,
@@ -215,15 +212,14 @@ const heroStyles = StyleSheet.create({
     textShadowRadius: 8,
   },
   countdownLabel: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 12,
-    fontWeight: '700',
     letterSpacing: 1.5,
     color: 'rgba(255,255,255,0.8)',
   },
   artistName: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fontFamilies.displayItalic,
+    fontSize: 26,
     letterSpacing: -0.5,
     color: '#FFFFFF',
     marginBottom: 2,
@@ -232,7 +228,8 @@ const heroStyles = StyleSheet.create({
     textShadowRadius: 6,
   },
   venueDateText: {
-    fontSize: 13,
+    fontFamily: fontFamilies.ui,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.85)',
   },
   bottomRow: {
@@ -248,17 +245,15 @@ const heroStyles = StyleSheet.create({
     paddingVertical: 4,
   },
   ticketAppText: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 9.5,
-    fontWeight: '600',
     letterSpacing: 1,
     color: '#FFFFFF',
     textTransform: 'uppercase',
   },
   seatText: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.mono,
     fontSize: 9.5,
-    fontWeight: '500',
     letterSpacing: 0.5,
     color: 'rgba(255,255,255,0.7)',
   },
@@ -320,27 +315,26 @@ const ticketedStyles = StyleSheet.create({
     marginBottom: 2,
   },
   countdown: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9.5,
-    fontWeight: '700',
     letterSpacing: 1,
     color: accentSets.purple.hex,
   },
   dateMono: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.mono,
     fontSize: 9.5,
-    fontWeight: '500',
     letterSpacing: 0.5,
     color: colors.textLo,
   },
   artist: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiSemi,
+    fontSize: 13.5,
     color: colors.textHi,
     marginBottom: 1,
   },
   venue: {
-    fontSize: 11.5,
+    fontFamily: fontFamilies.ui,
+    fontSize: 11,
     color: colors.textLo,
   },
 });
@@ -416,20 +410,20 @@ const plannedStyles = StyleSheet.create({
     paddingVertical: 2,
   },
   plannedBadgeText: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9,
-    fontWeight: '600',
     letterSpacing: 1,
     color: colors.textMid,
   },
   artist: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiSemi,
+    fontSize: 13.5,
     color: colors.textHi,
     marginBottom: 1,
   },
   venue: {
-    fontSize: 11.5,
+    fontFamily: fontFamilies.ui,
+    fontSize: 11,
     color: colors.textLo,
   },
 });
@@ -487,26 +481,25 @@ const onSaleStyles = StyleSheet.create({
     paddingVertical: 2,
   },
   onSaleBadgeText: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9,
-    fontWeight: '700',
     letterSpacing: 1,
     color: accentSets.purple.hex,
   },
   saleDateMono: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.mono,
     fontSize: 9.5,
-    fontWeight: '500',
     letterSpacing: 0.5,
     color: colors.textLo,
   },
   artist: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiSemi,
+    fontSize: 13.5,
     color: colors.textHi,
     marginBottom: 2,
   },
   venue: {
+    fontFamily: fontFamilies.ui,
     fontSize: 12,
     color: colors.textLo,
     marginBottom: 8,
@@ -519,8 +512,8 @@ const onSaleStyles = StyleSheet.create({
     paddingVertical: 6,
   },
   remindButtonText: {
+    fontFamily: fontFamilies.uiSemi,
     fontSize: 12,
-    fontWeight: '700',
     color: '#FFFFFF',
   },
 });
@@ -550,16 +543,14 @@ const sectionStyles = StyleSheet.create({
     marginTop: 24,
   },
   label: {
-    fontFamily: mono,
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 2,
+    fontFamily: fontFamilies.monoSemi,
+    fontSize: 11,
+    letterSpacing: 2.2,
     color: colors.textLo,
   },
   action: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10.5,
-    fontWeight: '700',
     letterSpacing: 1.5,
     color: accentSets.purple.hex,
   },
@@ -649,13 +640,12 @@ export default function UpcomingScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Eyebrow text="UPCOMING" color={colors.textLo} />
-          <Text style={styles.title}>Plans</Text>
-        </View>
-        <Text style={styles.showCount}>{totalShowCount} SHOWS</Text>
-      </View>
+      <ScreenTitle
+        eyebrow="UPCOMING"
+        eyebrowColor={colors.brandPurple}
+        title="What's ahead"
+        right={<Text style={styles.showCount}>{totalShowCount} SHOWS</Text>}
+      />
 
       <ScrollView
         style={styles.content}
@@ -758,27 +748,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.ink,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 6,
-    paddingBottom: 12,
-  },
-  headerLeft: {
-    gap: 4,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: colors.textHi,
-  },
   showCount: {
-    fontFamily: mono,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 11,
-    fontWeight: '600',
     color: colors.textMid,
     letterSpacing: 1,
     marginBottom: 6,

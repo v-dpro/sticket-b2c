@@ -5,7 +5,7 @@ import Barcode from 'react-native-barcode-svg';
 import QRCode from 'react-native-qrcode-svg';
 
 import type { BarcodeFormat } from '../../types/ticket';
-import { colors } from '../../lib/theme';
+import { colors, fontFamilies } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   barcodeText: {
     marginTop: 12,
     fontSize: 14,
-    fontFamily: 'monospace',
+    fontFamily: fontFamilies.mono,
     color: '#000000',
     letterSpacing: 2,
   },
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   fallbackCode: {
     marginTop: 12,
     fontSize: 16,
-    fontFamily: 'monospace',
+    fontFamily: fontFamilies.mono,
     color: '#000000',
     letterSpacing: 1,
     textAlign: 'center',

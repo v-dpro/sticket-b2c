@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,13 +15,11 @@ import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, accentSets, spacing, radius } from '../../lib/theme';
+import { colors, accentSets, spacing, radius, fontFamilies } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
 import { searchArtists } from '../../lib/api/artists';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace' });
 
 interface ArtistOption {
   spotifyId?: string;
@@ -285,13 +282,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 38,
-    fontWeight: '400',
     letterSpacing: -0.8,
     color: colors.textHi,
     marginBottom: 4,
   },
   subtitle: {
+    fontFamily: fontFamilies.ui,
     fontSize: 14,
     color: colors.textMid,
   },
@@ -319,8 +317,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   counter: {
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10.5,
-    fontFamily: MONO,
   },
   counterActive: {
     color: accentSets.cyan.hex,
@@ -356,8 +354,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   chipText: {
+    fontFamily: fontFamilies.uiSemi,
     fontSize: 13.5,
-    fontWeight: '600',
   },
   chipTextSelected: {
     color: '#FFFFFF',
@@ -405,8 +403,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   continueText: {
+    fontFamily: fontFamilies.uiBold,
     fontSize: 15,
-    fontWeight: '700',
   },
   continueTextEnabled: {
     color: '#FFFFFF',

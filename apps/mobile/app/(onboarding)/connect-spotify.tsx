@@ -9,7 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Screen } from '../../components/ui/Screen';
 import { apiClient } from '../../lib/api/client';
 import { updateProfile } from '../../lib/local/repo/profileRepo';
-import { colors, spacing } from '../../lib/theme';
+import { colors, spacing, fontFamilies } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 
@@ -79,7 +79,7 @@ export default function ConnectSpotifyOnboarding() {
         </View>
 
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Connect Spotify</Text>
+          <Text style={{ fontFamily: fontFamilies.displayItalic, color: colors.textHi, fontSize: 28 }}>Connect Spotify</Text>
           <Text style={{ color: colors.textMid, fontSize: 16 }}>We’ll use your top artists to personalize Discover.</Text>
         </View>
 

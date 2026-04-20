@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { Dimensions, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventPhoto } from '../../types/event';
 import { PhotoLightbox } from './PhotoLightbox';
-import { colors, radius } from '../../lib/theme';
+import { colors, radius, fontFamilies } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const GRID_GAP = 4;
 const GRID_PADDING = 16;
 const PHOTO_SIZE = (width - GRID_PADDING * 2 - GRID_GAP * 2) / 3;
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface PhotosSectionProps {
   photos: EventPhoto[];
@@ -76,7 +75,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,

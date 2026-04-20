@@ -1,10 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Dimensions, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SeatView } from '../../types/venue';
-import { colors, accentSets, radius } from '../../lib/theme';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48 - 16) / 3;
@@ -124,7 +122,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,

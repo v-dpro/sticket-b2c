@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../lib/theme';
+import { colors, fontFamilies } from '../../lib/theme';
 
 interface CodeDisplayProps {
   code: string;
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   code: {
     fontSize: 14,
     fontWeight: '700',
-    fontFamily: 'monospace',
+    fontFamily: fontFamilies.monoBold,
     color: colors.textHi,
   },
 });

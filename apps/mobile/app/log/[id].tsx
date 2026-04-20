@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '../../components/ui/Screen';
-import { colors, accentSets, radius, fonts } from '../../lib/theme';
+import { colors, accentSets, radius, fonts, fontFamilies } from '../../lib/theme';
 import { MonoLabel } from '../../components/ui/MonoLabel';
 import { Avatar } from '../../components/ui/Avatar';
 import { useLogDetail } from '../../hooks/useLogDetail';
@@ -33,7 +33,6 @@ import type { ShareCardData } from '../../types/share';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MEDIA_HEIGHT = SCREEN_WIDTH * (5 / 4); // 4:5 aspect ratio
 const HEADER_HEIGHT = 52;
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
 // ─── Rating stars helper ──────────────────────────────
 function RatingStars({ rating, size = 14 }: { rating: number; size?: number }) {
@@ -421,7 +420,7 @@ export default function LogDetailScreen() {
                 ))}
                 <Text style={styles.likesText}>
                   {data.othersWhoWent?.length
-                    ? <>Liked by <Text style={{ fontWeight: '700' }}>@{data.othersWhoWent[0].username}</Text>{data.wasThereCount > 1 ? ` and ${data.wasThereCount - 1} others` : ''}</>
+                    ? <>Liked by <Text style={{ fontFamily: fontFamilies.uiBold }}>@{data.othersWhoWent[0].username}</Text>{data.wasThereCount > 1 ? ` and ${data.wasThereCount - 1} others` : ''}</>
                     : `${data.wasThereCount} ${data.wasThereCount === 1 ? 'like' : 'likes'}`
                   }
                 </Text>
@@ -473,7 +472,7 @@ export default function LogDetailScreen() {
                     ))}
                   </View>
                   <Text style={styles.whoText} numberOfLines={1}>
-                    <Text style={{ fontWeight: '700' }}>@{data.othersWhoWent[0].username}</Text>
+                    <Text style={{ fontFamily: fontFamilies.uiSemi }}>@{data.othersWhoWent[0].username}</Text>
                     {data.othersWhoWent.length > 1
                       ? ` + ${data.othersWhoWent.length - 1} ${data.othersWhoWent.length - 1 === 1 ? 'friend' : 'friends'} also went`
                       : ' also went'}
@@ -717,7 +716,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: colors.textHi,
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiBold,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 8,
@@ -740,11 +739,12 @@ const styles = StyleSheet.create({
   postUsername: {
     color: colors.textHi,
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiBold,
   },
   postMeta: {
     color: colors.textMid,
     fontSize: 12,
+    fontFamily: fontFamilies.ui,
     marginTop: 2,
   },
 
@@ -769,8 +769,7 @@ const styles = StyleSheet.create({
   counterText: {
     color: colors.textHi,
     fontSize: 11,
-    fontFamily: MONO_FONT,
-    fontWeight: '600',
+    fontFamily: fontFamilies.monoSemi,
   },
 
   // ─── 5. Action row ────────────────────────────────────
@@ -808,6 +807,7 @@ const styles = StyleSheet.create({
   likesText: {
     color: colors.textHi,
     fontSize: 13,
+    fontFamily: fontFamilies.ui,
     marginLeft: 6,
   },
 
@@ -820,18 +820,19 @@ const styles = StyleSheet.create({
   captionArtist: {
     color: colors.textHi,
     fontSize: 28,
-    fontWeight: '400',
+    fontFamily: fontFamilies.displayItalic,
     letterSpacing: -0.6,
     lineHeight: 28 * 1.1,
   },
   captionText: {
     color: colors.textHi,
     fontSize: 14,
+    fontFamily: fontFamilies.ui,
     lineHeight: 14 * 1.45,
     marginTop: 6,
   },
   captionBoldUser: {
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiBold,
     color: colors.textHi,
   },
 
@@ -871,7 +872,7 @@ const styles = StyleSheet.create({
   whoPersonName: {
     color: colors.textHi,
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiSemi,
   },
   whoFollowBtn: {
     paddingHorizontal: 10,
@@ -889,6 +890,7 @@ const styles = StyleSheet.create({
   viewAllComments: {
     color: colors.textLo,
     fontSize: 13,
+    fontFamily: fontFamilies.ui,
   },
   commentRow: {
     flexDirection: 'row',
@@ -898,16 +900,17 @@ const styles = StyleSheet.create({
   commentBody: {
     color: colors.textHi,
     fontSize: 13.5,
+    fontFamily: fontFamilies.ui,
     lineHeight: 13.5 * 1.4,
   },
   commentBoldUser: {
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiBold,
     color: colors.textHi,
   },
   commentMeta: {
     color: colors.textLo,
     fontSize: 10,
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     textTransform: 'uppercase',
   },
 
@@ -929,7 +932,7 @@ const styles = StyleSheet.create({
   spoilerText: {
     color: colors.textMid,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fontFamilies.ui,
   },
   setlistCard: {
     backgroundColor: colors.surface,
@@ -940,7 +943,8 @@ const styles = StyleSheet.create({
   },
   setlistPlaceholder: {
     color: colors.textLo,
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: fontFamilies.ui,
     fontStyle: 'italic',
   },
 
@@ -991,8 +995,8 @@ const styles = StyleSheet.create({
   },
   relatedChipText: {
     color: colors.textHi,
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 13.5,
+    fontFamily: fontFamilies.uiSemi,
   },
   relatedChipBadge: {
     backgroundColor: accentSets.cyan.soft,
@@ -1002,8 +1006,8 @@ const styles = StyleSheet.create({
   },
   relatedChipBadgeText: {
     color: accentSets.cyan.hex,
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 13.5,
+    fontFamily: fontFamilies.uiSemi,
   },
   relatedDot: {
     color: colors.textMuted,
@@ -1026,13 +1030,14 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.textHi,
     fontSize: 14,
+    fontFamily: fontFamilies.ui,
     paddingVertical: 8,
     maxHeight: 80,
   },
   composerPost: {
     color: colors.textLo,
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: fontFamilies.uiBold,
   },
   composerPostActive: {
     color: accentSets.cyan.hex,

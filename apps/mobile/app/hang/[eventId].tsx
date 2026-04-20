@@ -21,7 +21,7 @@ import { MonoLabel } from '../../components/ui/MonoLabel';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { apiClient } from '../../lib/api/client';
-import { colors, accentSets, radius, spacing, fonts } from '../../lib/theme';
+import { colors, accentSets, radius, spacing, fonts, fontFamilies } from '../../lib/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,7 +76,6 @@ interface HangData {
   userRsvp?: RsvpStatus | null;
 }
 
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 const accent = accentSets.cyan;
 
 // ---------------------------------------------------------------------------
@@ -483,9 +482,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heroPillText: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 9.5,
-    fontWeight: '600',
     letterSpacing: 1.5,
     color: colors.textHi,
     textTransform: 'uppercase',
@@ -587,7 +585,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textLo,
     marginTop: 2,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
   },
 
   // Guests
@@ -631,7 +629,7 @@ const styles = StyleSheet.create({
     color: colors.textHi,
   },
   msgTime: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
     fontSize: 9.5,
     color: colors.textLo,
   },

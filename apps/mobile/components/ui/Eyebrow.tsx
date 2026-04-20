@@ -1,28 +1,15 @@
-import React from 'react';
-import { Text, type ViewStyle } from 'react-native';
-import { colors } from '../../lib/theme';
+import { StyleSheet, Text, type TextStyle } from 'react-native';
+import { colors, fontFamilies } from '../../lib/theme';
 
-type EyebrowProps = {
-  text: string;
-  color?: string;
-  style?: ViewStyle;
-};
-
-export function Eyebrow({ text, color = colors.textLo, style }: EyebrowProps) {
-  return (
-    <Text
-      style={[
-        {
-          fontSize: 10.5,
-          fontWeight: '600',
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-          color,
-        },
-        style,
-      ]}
-    >
-      {text}
-    </Text>
-  );
+export function Eyebrow({ text, color = colors.brandCyan, style }: { text: string; color?: string; style?: TextStyle }) {
+  return <Text style={[styles.eyebrow, { color }, style]}>{text}</Text>;
 }
+
+const styles = StyleSheet.create({
+  eyebrow: {
+    fontFamily: fontFamilies.monoSemi,
+    fontSize: 10.5,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+});

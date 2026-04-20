@@ -1,7 +1,7 @@
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { accentSets, colors, radius } from '../../lib/theme';
+import { accentSets, colors, fontFamilies, radius } from '../../lib/theme';
 
 export type FeedTab = 'friends' | 'discover';
 
@@ -10,7 +10,6 @@ interface FeedTabBarProps {
   onTabChange: (tab: FeedTab) => void;
 }
 
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 const accent = accentSets.cyan;
 
 const TABS: { key: FeedTab; label: string }[] = [
@@ -67,9 +66,8 @@ const styles = StyleSheet.create({
     backgroundColor: accent.hex,
   },
   pillText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 12,
-    fontWeight: '700',
     color: colors.textMid,
     textTransform: 'uppercase',
     letterSpacing: 1.2,

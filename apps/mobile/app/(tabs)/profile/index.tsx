@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,9 +7,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Avatar } from '../../../components/ui/Avatar';
 import { MonoLabel } from '../../../components/ui/MonoLabel';
 import { PillButton } from '../../../components/ui/PillButton';
+import { ScreenTitle } from '../../../components/ui/ScreenTitle';
 import { TimelineView } from '../../../components/profile/TimelineView';
 import { ProfileStatsView } from '../../../components/profile/ProfileStatsView';
-import { colors, spacing, fonts, radius } from '../../../lib/theme';
+import { colors, spacing, fonts, radius, fontFamilies } from '../../../lib/theme';
 import { useProfile } from '../../../hooks/useProfile';
 import { useUserLogs } from '../../../hooks/useUserLogs';
 import { useSession } from '../../../hooks/useSession';
@@ -17,8 +18,6 @@ import type { LogEntry } from '../../../types/profile';
 import type { ShareCardData } from '../../../types/share';
 import { ShareButton } from '../../../components/share/ShareButton';
 import { createUserLink } from '../../../lib/share/deepLinks';
-
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
 function StatDivider() {
   return <View style={styles.statDivider} />;
@@ -205,17 +204,19 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header row */}
-      <View style={styles.header}>
-        <MonoLabel size={11} color={colors.textLo}>
-          {`@${profile.username}`}
-        </MonoLabel>
-        <View style={styles.headerActions}>
-          <ShareButton data={statsShareData} link={createUserLink(profile.username)} />
-          <Pressable onPress={handleSettings} style={styles.settingsButton} accessibilityRole="button">
-            <Ionicons name="settings-outline" size={16} color={colors.textHi} />
-          </Pressable>
-        </View>
-      </View>
+      <ScreenTitle
+        eyebrow="PROFILE"
+        eyebrowColor={colors.brandPink}
+        title={profile?.displayName || profile?.username || ''}
+        right={
+          <View style={styles.headerActions}>
+            <ShareButton data={statsShareData} link={createUserLink(profile.username)} />
+            <Pressable onPress={handleSettings} style={styles.settingsButton} accessibilityRole="button">
+              <Ionicons name="settings-outline" size={16} color={colors.textHi} />
+            </Pressable>
+          </View>
+        }
+      />
 
       <View style={styles.content}>
         {activeTab === 'stats' ? (
@@ -273,20 +274,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandPurple,
   },
   primaryButtonText: {
+    fontFamily: fontFamilies.uiSemi,
     color: colors.textHi,
     fontSize: fonts.bodySmall,
-    fontWeight: fonts.semibold,
   },
 
   // Header row
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.ink,
-  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -309,13 +302,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   displayName: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 36,
-    fontWeight: '400',
     letterSpacing: -0.8,
     color: colors.textHi,
     marginTop: 4,
   },
   bio: {
+    fontFamily: fontFamilies.ui,
     fontSize: 13,
     color: colors.textMid,
     lineHeight: 13 * 1.5,
@@ -347,15 +341,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 36,
-    fontWeight: '400',
     letterSpacing: -1,
     color: colors.textHi,
   },
   statLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10,
-    fontWeight: '500',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 2,
@@ -380,9 +373,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   tabText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 11,
-    fontWeight: '600',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },

@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import type { FeedComment, FeedItem } from '../../types/feed';
-import { accentSets, colors, fonts, radius } from '../../lib/theme';
+import { accentSets, colors, fontFamilies, fonts, radius } from '../../lib/theme';
 import { CommentInput } from './CommentInput';
 
 interface FeedCardProps {
@@ -185,8 +185,6 @@ export function FeedCard({ item, onWasThere, onComment, onCommentAdded }: FeedCa
   );
 }
 
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
@@ -221,13 +219,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   username: {
+    fontFamily: fontFamilies.uiSemi,
     fontSize: 13,
-    fontWeight: fonts.semibold,
     color: colors.textHi,
   },
   dateLine: {
+    fontFamily: fontFamilies.mono,
     fontSize: 11,
-    fontFamily: MONO_FONT,
     color: colors.textLo,
     letterSpacing: 0.4,
     marginTop: 1,
@@ -251,7 +249,7 @@ const styles = StyleSheet.create({
     bottom: 14,
   },
   tourName: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10,
     color: accent.hex,
     letterSpacing: 1.5,
@@ -259,11 +257,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   artistName: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 30,
-    fontWeight: fonts.regular,
+    fontWeight: '400',
     letterSpacing: -0.6,
     color: colors.textHi,
-    lineHeight: 30 * 1.05,
+    lineHeight: 31.5,
   },
 
   /* ── Perforation ── */
@@ -283,7 +282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   venueText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 11,
     color: colors.textMid,
     letterSpacing: 0.6,
@@ -291,12 +290,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   reviewQuote: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 18,
-    fontWeight: fonts.regular,
+    fontWeight: '400',
     letterSpacing: -0.2,
     color: colors.textHi,
-    lineHeight: 18 * 1.3,
-    fontStyle: 'italic',
+    lineHeight: 23.4,
+    ...(Platform.OS === 'ios' ? { fontStyle: 'italic' as const } : {}),
     marginTop: 10,
   },
 
@@ -316,16 +316,14 @@ const styles = StyleSheet.create({
     marginRight: 18,
   },
   actionCount: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 12,
-    fontWeight: fonts.semibold,
     color: colors.textMid,
     marginLeft: 5,
   },
   wasThereText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 12,
-    fontWeight: fonts.semibold,
     color: accent.hex,
   },
 

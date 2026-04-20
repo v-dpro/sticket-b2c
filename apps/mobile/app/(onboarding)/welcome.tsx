@@ -1,12 +1,10 @@
 import { Link, Stack, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Text, View, StyleSheet, Animated, Easing, Platform, Pressable } from 'react-native';
+import { Image, Text, View, StyleSheet, Animated, Easing, Pressable } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
-import { colors, accentSets, spacing, radius, shadows } from '../../lib/theme';
+import { colors, accentSets, spacing, radius, shadows, fontFamilies } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
-
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace' });
 const TAGLINE = 'CONCERTS. TOGETHER.';
 const TAGLINE_SPEED = 38; // ms per character
 
@@ -274,23 +272,24 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   wordmark: {
+    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
     fontSize: 54,
-    fontWeight: '400',
     letterSpacing: -1,
   },
   tagline: {
     color: accentSets.cyan.hex,
     fontSize: 13,
-    fontFamily: MONO,
+    fontFamily: fontFamilies.monoBold,
     letterSpacing: 2.5,
     textAlign: 'center',
   },
   cursor: {
     color: accentSets.cyan.hex,
-    fontFamily: MONO,
+    fontFamily: fontFamilies.monoBold,
   },
   description: {
+    fontFamily: fontFamilies.ui,
     color: colors.textMid,
     fontSize: 15,
     lineHeight: 22,
@@ -311,9 +310,9 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   ctaText: {
+    fontFamily: fontFamilies.uiBold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
   },
   loginText: {
     color: colors.textMid,

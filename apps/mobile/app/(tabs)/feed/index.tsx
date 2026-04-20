@@ -6,7 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '../../../components/ui/Screen';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { SectionHead } from '../../../components/ui/SectionHead';
-import { colors, spacing } from '../../../lib/theme';
+import { colors, fontFamilies, spacing } from '../../../lib/theme';
 import { useFeed } from '../../../hooks/useFeed';
 import { usePublicFeed } from '../../../hooks/usePublicFeed';
 import { useFeedActions } from '../../../hooks/useFeedActions';
@@ -233,6 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
   },
   wordmark: {
+    fontFamily: fontFamilies.uiBold,
     fontSize: 18,
     fontWeight: '700',
     color: colors.textHi,

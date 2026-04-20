@@ -1,7 +1,7 @@
 import React, { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius } from '../../lib/theme';
+import { colors, radius, fontFamilies } from '../../lib/theme';
 
 type SpoilerBoxProps = {
   label?: string; // default "Spoiler"
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   label: {
-    fontFamily: 'Menlo',
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10.5,
     fontWeight: '700',
     color: colors.textHi,
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   revealText: {
-    fontFamily: 'Menlo',
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10.5,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
   },
   hideText: {
-    fontFamily: 'Menlo',
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9.5,
     fontWeight: '700',
     color: colors.textHi,

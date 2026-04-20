@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, type TextStyle } from 'react-native';
-import { colors } from '../../lib/theme';
+import { colors, fontFamilies } from '../../lib/theme';
 
 type MonoLabelProps = {
   children: string;
@@ -9,16 +9,12 @@ type MonoLabelProps = {
   style?: TextStyle;
 };
 
-export function MonoLabel({
-  children,
-  size = 11,
-  color = colors.textLo,
-  style,
-}: MonoLabelProps) {
+export function MonoLabel({ children, size = 11, color = colors.textLo, style }: MonoLabelProps) {
   return (
     <Text
       style={[
         {
+          fontFamily: fontFamilies.mono,
           fontSize: size,
           fontWeight: '500',
           letterSpacing: 1.5,

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import type { SetlistSong } from '../../types/event';
-import { colors, radius } from '../../lib/theme';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
+import { colors, radius, fontFamilies } from '../../lib/theme';
 
 interface SetlistSectionProps {
   songs: SetlistSong[];
@@ -105,7 +103,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,
@@ -167,7 +165,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.hairline,
   },
   songNumber: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.mono,
     width: 26,
     fontSize: 11,
     color: colors.textLo,
@@ -196,7 +194,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.hairline,
   },
   encoreLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 1.5,

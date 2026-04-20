@@ -1,11 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 import type { VenueTip } from '../../types/venue';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface TipsSectionProps {
   tips: VenueTip[];
@@ -119,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,

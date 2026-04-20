@@ -1,8 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, Image, StyleSheet, Platform } from 'react-native';
-import { colors, accentSets, radius } from '../../lib/theme';
-
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace' }) as string;
+import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 // ── MatchPill ──────────────────────────────────────────────
 
@@ -203,7 +201,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   kindLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 9,
     fontWeight: '500',
     letterSpacing: 1.2,
@@ -218,7 +216,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   matchPillText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -231,7 +229,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   actionButtonText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1,

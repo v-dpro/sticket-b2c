@@ -1,11 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import type { VenueShow } from '../../types/venue';
-import { colors, accentSets, radius } from '../../lib/theme';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 interface VenueShowsProps {
   upcoming: VenueShow[];
@@ -124,7 +122,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,
@@ -158,7 +156,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   dateMonth: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 9,
     fontWeight: '600',
     color: accentSets.cyan.hex,
@@ -174,14 +172,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   dateMono: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10,
     fontWeight: '500',
     color: colors.textLo,
     letterSpacing: 0.5,
   },
   dateYear: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.mono,
     fontSize: 9,
     color: colors.textLo,
   },

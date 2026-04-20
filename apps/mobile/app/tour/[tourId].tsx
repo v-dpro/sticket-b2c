@@ -10,7 +10,6 @@ import {
   Text,
   Pressable,
   Image,
-  Platform,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,12 +20,10 @@ import { StatPill } from '../../components/ui/StatPill';
 
 import { apiClient } from '../../lib/api/client';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 260;
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace' }) as string;
-
 // ── Types ──────────────────────────────────────────────────
 
 type TourShow = {
@@ -465,7 +462,7 @@ const styles = StyleSheet.create({
     right: 16,
   },
   tourLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: accentSets.cyan.hex,
     letterSpacing: 2,
@@ -489,7 +486,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   dateRange: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: colors.textLo,
     letterSpacing: 1.5,
@@ -566,7 +563,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   sectionLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: colors.textLo,
     letterSpacing: 2,
@@ -615,7 +612,7 @@ const styles = StyleSheet.create({
     color: colors.textMid,
   },
   miniShowDate: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10,
     color: colors.textLo,
     letterSpacing: 0.5,
@@ -629,7 +626,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   seeAllText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10.5,
     fontWeight: '700',
     color: accentSets.cyan.hex,
@@ -651,7 +648,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateMonth: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9,
     fontWeight: '700',
     color: accentSets.cyan.hex,
@@ -659,7 +656,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   dateDay: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 20,
     fontWeight: '700',
     color: accentSets.cyan.hex,
@@ -683,7 +680,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   statusBadgeText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,

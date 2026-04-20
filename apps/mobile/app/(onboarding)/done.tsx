@@ -1,16 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
-import { colors, accentSets, spacing, radius, shadows } from '../../lib/theme';
+import { colors, accentSets, spacing, radius, shadows, fontFamilies } from '../../lib/theme';
 import { Confetti } from '../../components/ui/Confetti';
 import { updateProfile } from '../../lib/local/repo/profileRepo';
 import { useSession } from '../../hooks/useSession';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useStamp } from '../../lib/motion';
-
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace' });
 
 export default function DoneOnboarding() {
   const router = useRouter();
@@ -192,15 +190,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stampText: {
-    fontFamily: MONO,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 20,
-    fontWeight: '700',
     color: accentSets.cyan.hex,
     letterSpacing: 3,
   },
   headline: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 36,
-    fontWeight: '400',
     letterSpacing: -0.8,
     color: colors.textHi,
     textAlign: 'center',
@@ -226,13 +223,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   badgeTitle: {
-    fontFamily: MONO,
+    fontFamily: fontFamilies.uiBold,
     fontSize: 12,
-    fontWeight: '700',
     color: accentSets.cyan.hex,
     letterSpacing: 1,
   },
   badgeDescription: {
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 12.5,
     color: colors.textMid,
   },
@@ -248,8 +245,8 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   ctaText: {
+    fontFamily: fontFamilies.uiBold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
   },
 });

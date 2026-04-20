@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -22,9 +22,7 @@ import type { ShareCardData } from '../../types/share';
 import { createEventLink } from '../../lib/share/deepLinks';
 import { ShareButton } from '../../components/share/ShareButton';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius } from '../../lib/theme';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 const TABS = ['Photos', 'Setlist', 'Moments'] as const;
 type Tab = typeof TABS[number];
@@ -259,7 +257,7 @@ const styles = StyleSheet.create({
     borderBottomColor: accentSets.cyan.hex,
   },
   tabText: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 11,
     fontWeight: '500',
     letterSpacing: 1.5,

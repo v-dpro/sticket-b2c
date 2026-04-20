@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, accentSets, spacing, radius, shadows } from '../../lib/theme';
+import { colors, accentSets, spacing, radius, shadows, fontFamilies } from '../../lib/theme';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
@@ -124,8 +124,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
   title: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 38,
-    fontWeight: '400',
     letterSpacing: -0.8,
     color: colors.textHi,
     marginBottom: 4,
@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     backgroundColor: accentSets.cyan.hex,
   },
   segmentedLabel: {
+    fontFamily: fontFamilies.monoBold,
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   segmentedLabelActive: {
@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
     color: colors.textMid,
   },
   description: {
+    fontFamily: fontFamilies.ui,
     fontSize: 15,
     color: colors.textMid,
     lineHeight: 22,
@@ -181,8 +182,8 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   ctaText: {
+    fontFamily: fontFamilies.uiBold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
   },
 });

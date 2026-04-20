@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Image,
   Linking,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,9 +21,8 @@ import { PillButton } from '../../components/ui/PillButton';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { apiClient } from '../../lib/api/client';
-import { colors, accentSets, radius, spacing, fonts } from '../../lib/theme';
+import { colors, accentSets, radius, spacing, fonts, fontFamilies } from '../../lib/theme';
 
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 const accent = accentSets.cyan;
 
 // ---------------------------------------------------------------------------
@@ -484,7 +482,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   heroDate: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
     fontSize: 11,
     color: colors.textLo,
     letterSpacing: 1,
@@ -514,14 +512,14 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   countdownUnit: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 12,
     fontWeight: '600',
     color: colors.textLo,
     letterSpacing: 1.5,
   },
   doorsText: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
     fontSize: 10,
     color: colors.textMuted,
     marginTop: 6,
@@ -552,7 +550,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ticketLabel: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 12,
     fontWeight: '600',
     color: colors.textHi,
@@ -583,7 +581,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   presaleCode: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoBold,
     fontSize: 12,
     fontWeight: '700',
     color: accent.hex,
@@ -603,7 +601,7 @@ const styles = StyleSheet.create({
     color: colors.textHi,
   },
   friendStatus: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
     fontSize: 9.5,
     color: colors.textLo,
     letterSpacing: 1,
@@ -617,7 +615,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   messageBtnText: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10,
     fontWeight: '600',
     color: accent.hex,
@@ -640,7 +638,7 @@ const styles = StyleSheet.create({
     color: colors.textHi,
   },
   weatherCondition: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
     fontSize: 10,
     color: colors.textLo,
     letterSpacing: 1,
@@ -659,7 +657,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.hairline,
   },
   setlistNum: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
     fontSize: 12,
     color: colors.textMuted,
     width: 28,
@@ -670,7 +668,7 @@ const styles = StyleSheet.create({
     color: colors.textHi,
   },
   setlistPct: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 11,
     color: accent.hex,
     fontWeight: '600',

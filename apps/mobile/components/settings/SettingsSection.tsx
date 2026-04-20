@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react';
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing } from '../../lib/theme';
+import { colors, radius, spacing, fontFamilies } from '../../lib/theme';
 
 type SettingsSectionProps = PropsWithChildren<{ title?: string }>;
 
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: spacing.sm,
     paddingHorizontal: 16,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.monoSemi,
   },
   content: {
     backgroundColor: colors.surface,

@@ -14,7 +14,7 @@ import { XpBar } from '../../components/ui/XpBar';
 import { TicketStub } from '../../components/ui/TicketStub';
 import { PillButton } from '../../components/ui/PillButton';
 import { MonoLabel } from '../../components/ui/MonoLabel';
-import { colors, spacing } from '../../lib/theme';
+import { colors, spacing, fontFamilies } from '../../lib/theme';
 import { Confetti } from '../../components/ui/Confetti';
 import { previewLogRewards, type PastShow } from '../../lib/game';
 import { getEventById, type Event } from '../../lib/local/repo/eventsRepo';
@@ -251,9 +251,9 @@ export default function LogSuccess() {
               <Text
                 style={{
                   color: colors.textHi,
-                  fontSize: 36,
-                  fontWeight: '900',
-                  letterSpacing: 6,
+                  fontSize: 28,
+                  fontFamily: fontFamilies.monoBold,
+                  letterSpacing: 4,
                   textTransform: 'uppercase',
                 }}
               >
@@ -289,8 +289,8 @@ export default function LogSuccess() {
               </MonoLabel>
               <Text
                 style={{
-                  fontSize: 36,
-                  fontWeight: '800',
+                  fontSize: 72,
+                  fontFamily: fontFamilies.displayItalic,
                   color: colors.textHi,
                   marginBottom: 16,
                 }}
@@ -312,7 +312,7 @@ export default function LogSuccess() {
                       style={{
                         color: colors.textMid,
                         fontSize: 13,
-                        fontWeight: '500',
+                        fontFamily: fontFamilies.mono,
                       }}
                     >
                       {r.label}
@@ -321,7 +321,7 @@ export default function LogSuccess() {
                       style={{
                         color: colors.brandCyan,
                         fontSize: 13,
-                        fontWeight: '700',
+                        fontFamily: fontFamilies.monoBold,
                       }}
                     >
                       {r.value}
@@ -349,7 +349,7 @@ export default function LogSuccess() {
                     style={{
                       color: colors.brandCyan,
                       fontSize: 14,
-                      fontWeight: '800',
+                      fontFamily: fontFamilies.monoSemi,
                       letterSpacing: 1,
                       textTransform: 'uppercase',
                     }}
@@ -398,7 +398,7 @@ export default function LogSuccess() {
                     style={{
                       color: colors.textHi,
                       fontSize: 15,
-                      fontWeight: '700',
+                      fontFamily: fontFamilies.uiBold,
                       marginBottom: 2,
                     }}
                   >
@@ -409,6 +409,7 @@ export default function LogSuccess() {
                       style={{
                         color: colors.textMid,
                         fontSize: 12,
+                        fontFamily: fontFamilies.ui,
                       }}
                     >
                       {badge.desc}

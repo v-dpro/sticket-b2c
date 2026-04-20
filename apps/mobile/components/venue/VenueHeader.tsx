@@ -1,13 +1,12 @@
 import React from 'react';
-import { Dimensions, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 260;
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface VenueHeaderProps {
   name: string;
@@ -115,7 +114,7 @@ const styles = StyleSheet.create({
     right: 16,
   },
   eyebrowLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10.5,
     fontWeight: '600',
     letterSpacing: 2,

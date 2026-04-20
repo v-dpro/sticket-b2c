@@ -1,9 +1,7 @@
 import React from 'react';
-import { View, Text, Pressable, Image, StyleSheet, Platform } from 'react-native';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 import { PersonRow } from './PersonRow';
-
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace' }) as string;
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -213,7 +211,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10.5,
     fontWeight: '600',
     color: colors.textLo,
@@ -221,7 +219,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sectionSubLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 9,
     fontWeight: '500',
     color: colors.textLo,
@@ -240,7 +238,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   viewAllText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10.5,
     fontWeight: '700',
     color: accentSets.cyan.hex,
@@ -260,7 +258,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   emptyTitle: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10.5,
     fontWeight: '600',
     color: colors.textLo,

@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors } from '../lib/theme';
+import { colors, fontFamilies } from '../lib/theme';
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { uploadShowPhoto, getShowPhotos } from '../lib/api/showMedia';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
@@ -55,7 +55,7 @@ function CountdownCell({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.countdownCell}>
       <Text style={styles.countdownNumber}>{value}</Text>
-      <MonoLabel size={9} color={colors.brandCyan}>{label}</MonoLabel>
+      <MonoLabel size={9} color={colors.red}>{label}</MonoLabel>
     </View>
   );
 }
@@ -294,7 +294,7 @@ export default function ShowModeScreen() {
   // ---------- Main show-mode companion ----------
   return (
     <LinearGradient
-      colors={['rgba(0,212,255,0.08)', colors.ink, colors.ink]}
+      colors={['rgba(255,77,94,0.08)', colors.ink, colors.ink]}
       locations={[0, 0.45, 1]}
       style={styles.container}
     >
@@ -312,7 +312,7 @@ export default function ShowModeScreen() {
         {/* Live indicator */}
         <View style={styles.liveRow}>
           <PulsingDot />
-          <MonoLabel size={10.5} color={colors.brandCyan}>LIVE  ·  TONIGHT</MonoLabel>
+          <MonoLabel size={10.5} color={colors.red}>LIVE  ·  TONIGHT</MonoLabel>
         </View>
 
         {/* Artist name */}
@@ -344,7 +344,7 @@ export default function ShowModeScreen() {
           onPress={handleShowTicket}
           variant="solid"
           size="lg"
-          accentColor={colors.brandCyan}
+          accentColor={colors.red}
         />
         <View style={{ height: 10 }} />
         <PillButton
@@ -396,11 +396,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.brandCyan,
+    backgroundColor: colors.red,
   },
   artistName: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 52,
-    fontWeight: '400',
     letterSpacing: -1.5,
     color: colors.textHi,
   },
@@ -423,8 +423,8 @@ const styles = StyleSheet.create({
     minWidth: 52,
   },
   countdownNumber: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 36,
-    fontWeight: '700',
     color: colors.textHi,
     marginBottom: 2,
   },

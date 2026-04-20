@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,7 +21,7 @@ import { useSession } from '../hooks/useSession';
 import { useSessionStore } from '../stores/sessionStore';
 import { updateProfile as updateLocalProfile } from '../lib/local/repo/profileRepo';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
-import { colors, radius, spacing } from '../lib/theme';
+import { colors, radius, spacing, fontFamilies } from '../lib/theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -312,7 +311,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 2,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
   },
   input: {
     backgroundColor: colors.surface,

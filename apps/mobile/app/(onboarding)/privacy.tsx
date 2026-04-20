@@ -116,9 +116,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   title: {
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 38,
-    fontWeight: '700',
     color: colors.textHi,
     letterSpacing: -0.8,
     marginBottom: 6,
@@ -179,11 +178,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   radioTitle: {
+    fontFamily: fontFamilies.uiBold,
     fontSize: 15,
-    fontWeight: '700',
     color: colors.textHi,
   },
   radioDescription: {
+    fontFamily: fontFamilies.ui,
     fontSize: 12.5,
     color: colors.textMid,
     lineHeight: 12.5 * 1.4,
@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   continueText: {
+    fontFamily: fontFamilies.uiBold,
     fontSize: 16,
-    fontWeight: '700',
     color: colors.ink,
   },
 });

@@ -5,6 +5,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { View, StyleSheet, LogBox } from 'react-native';
+import { useFonts } from 'expo-font';
+import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_600SemiBold, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -78,6 +82,19 @@ export default function RootLayout() {
   const router = useRouter();
   const { user, profile, isLoading } = useSession();
 
+  const [fontsLoaded] = useFonts({
+    'InstrumentSerif': InstrumentSerif_400Regular,
+    'InstrumentSerif-Italic': InstrumentSerif_400Regular_Italic,
+    'JetBrainsMono': JetBrainsMono_400Regular,
+    'JetBrainsMono-Medium': JetBrainsMono_500Medium,
+    'JetBrainsMono-Semi': JetBrainsMono_600SemiBold,
+    'JetBrainsMono-Bold': JetBrainsMono_700Bold,
+    'Inter': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-Semi': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+  });
+
   useEffect(() => {
     return setupDeepLinkHandler((path) => {
       router.push(path as any);
@@ -96,10 +113,10 @@ export default function RootLayout() {
   }, [profile?.username, user]);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && fontsLoaded) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isLoading]);
+  }, [isLoading, fontsLoaded]);
 
   return (
     <View style={styles.container}>

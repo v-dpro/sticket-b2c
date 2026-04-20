@@ -332,9 +332,8 @@ export default function AboutYouScreen() {
 
 const styles = StyleSheet.create({
   title: {
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 38,
-    fontWeight: '700',
     color: colors.textHi,
     letterSpacing: -0.8,
     marginBottom: 6,
@@ -346,8 +345,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionLabel: {
+    fontFamily: fontFamilies.monoBold,
     fontSize: 13,
-    fontWeight: '600',
     color: colors.textMid,
     marginBottom: 8,
     textTransform: 'uppercase',
@@ -412,6 +411,7 @@ const styles = StyleSheet.create({
     borderColor: accentSets.cyan.line,
   },
   textInput: {
+    fontFamily: fontFamilies.uiSemi,
     height: 48,
     paddingHorizontal: 14,
     fontSize: 15,
@@ -441,8 +441,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   chipText: {
+    fontFamily: fontFamilies.uiSemi,
     fontSize: 12.5,
-    fontWeight: '600',
     color: colors.textHi,
   },
   chipTextSelected: {
@@ -484,8 +484,8 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   continueText: {
+    fontFamily: fontFamilies.uiBold,
     fontSize: 16,
-    fontWeight: '700',
     color: colors.ink,
   },
 });

@@ -3,9 +3,7 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import { colors, accentSets, radius } from '../../lib/theme';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 interface LocationCardProps {
   name: string;
@@ -97,7 +95,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,

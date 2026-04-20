@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, shadows } from '../../lib/theme';
+import { colors } from '../../lib/theme';
+import { fontFamilies } from '../../lib/theme';
 
 type TicketStubProps = {
   artist: string;
@@ -12,11 +13,6 @@ type TicketStubProps = {
   seat?: string;
 };
 
-function accentHue(artist: string): number {
-  const code = artist.length > 0 ? artist.charCodeAt(0) : 65;
-  return (code * 11) % 360;
-}
-
 export function TicketStub({
   artist,
   venue,
@@ -26,19 +22,10 @@ export function TicketStub({
   row,
   seat,
 }: TicketStubProps) {
-  const hue = accentHue(artist);
   const hasSeatInfo = section || row || seat;
 
   return (
-    <View style={[styles.card, shadows.stub]}>
-      {/* Accent band */}
-      <View
-        style={[
-          styles.accentBand,
-          { backgroundColor: `hsl(${hue}, 75%, 55%)` },
-        ]}
-      />
-
+    <View style={styles.card}>
       {/* Top section */}
       <View style={styles.topSection}>
         <Text style={styles.date}>{date}</Text>
@@ -48,10 +35,17 @@ export function TicketStub({
         </Text>
       </View>
 
-      {/* Perforation */}
+      {/* Perforation with circle cutouts */}
       {hasSeatInfo && (
         <>
-          <View style={styles.perforation} />
+          <View style={styles.perforationWrap}>
+            {/* Left cutout */}
+            <View style={styles.cutoutLeft} />
+            {/* Dashed line */}
+            <View style={styles.perforation} />
+            {/* Right cutout */}
+            <View style={styles.cutoutRight} />
+          </View>
 
           {/* Bottom section */}
           <View style={styles.bottomSection}>
@@ -82,13 +76,14 @@ export function TicketStub({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.paper,
+    backgroundColor: '#F6F1E4',
     borderRadius: 18,
-    overflow: 'hidden',
-  },
-  accentBand: {
-    height: 6,
-    width: '100%',
+    overflow: 'visible',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.35,
+    shadowRadius: 40,
+    elevation: 12,
   },
   topSection: {
     padding: 20,
@@ -96,29 +91,55 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: fontFamilies.mono,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
-    color: '#8A8472',
+    color: '#888',
     marginBottom: 6,
   },
   artist: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fontFamilies.displayItalic,
     letterSpacing: -0.6,
-    color: '#1A1A1A',
+    color: '#0B0B14',
     marginBottom: 4,
   },
   venue: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#4A4A3E',
+    fontFamily: fontFamilies.ui,
+    color: '#555',
+  },
+  perforationWrap: {
+    position: 'relative',
+    overflow: 'visible',
+    height: 1,
+    justifyContent: 'center',
+    marginHorizontal: 12,
   },
   perforation: {
     borderTopWidth: 1,
     borderStyle: 'dashed',
     borderColor: '#D4CFC2',
-    marginHorizontal: 12,
+  },
+  cutoutLeft: {
+    position: 'absolute',
+    left: -20,
+    top: -8,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.ink,
+    zIndex: 1,
+  },
+  cutoutRight: {
+    position: 'absolute',
+    right: -20,
+    top: -8,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.ink,
+    zIndex: 1,
   },
   bottomSection: {
     flexDirection: 'row',
@@ -131,14 +152,14 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     fontSize: 9,
-    fontWeight: '600',
+    fontFamily: fontFamilies.mono,
     letterSpacing: 1.5,
-    color: '#8A8472',
+    color: '#888',
     marginBottom: 2,
   },
   seatValue: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontFamily: fontFamilies.monoBold,
+    color: '#0B0B14',
   },
 });

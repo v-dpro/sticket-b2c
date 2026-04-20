@@ -3,7 +3,6 @@ import { Stack, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,7 +16,7 @@ import { format } from 'date-fns';
 
 import { Screen } from '../../../components/ui/Screen';
 import { AvatarStack } from '../../../components/ui/AvatarStack';
-import { colors, accentSets, spacing, radius } from '../../../lib/theme';
+import { colors, accentSets, spacing, radius, fontFamilies } from '../../../lib/theme';
 import { useDiscovery } from '../../../hooks/useDiscovery';
 import { usePresales } from '../../../hooks/usePresales';
 import type { PresaleItem } from '../../../hooks/usePresales';
@@ -30,7 +29,6 @@ import { NotificationBellButton } from '../../../components/notifications/Notifi
 // ---------------------------------------------------------------------------
 
 const accent = accentSets.cyan;
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 const CARD_WIDTH = 220;
 const CARD_GAP = 12;
 
@@ -143,7 +141,7 @@ const stubStyles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   eyebrow: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10,
     letterSpacing: 2,
     color: '#88aa66',
@@ -166,22 +164,21 @@ const stubStyles = StyleSheet.create({
     marginLeft: 12,
   },
   opensLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 9,
     color: '#88aa66',
     letterSpacing: 1,
     marginBottom: 2,
   },
   dateMonth: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 11,
     color: colors.ink,
     letterSpacing: 1,
   },
   dateDay: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 18,
-    fontWeight: '700',
     color: colors.ink,
   },
   perforationRow: {
@@ -219,15 +216,14 @@ const stubStyles = StyleSheet.create({
     paddingVertical: 14,
   },
   codeLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 9,
     color: '#888888',
     letterSpacing: 1,
   },
   codeValue: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 18,
-    fontWeight: '700',
     color: colors.ink,
     letterSpacing: 2,
     marginTop: 2,
@@ -239,9 +235,8 @@ const stubStyles = StyleSheet.create({
     paddingVertical: 8,
   },
   copyButtonText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 11,
-    fontWeight: '700',
     color: colors.textHi,
   },
 });
@@ -287,9 +282,8 @@ const sectionHeadStyles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   eyebrow: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10.5,
-    fontWeight: '600',
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: accent.hex,
@@ -302,9 +296,8 @@ const sectionHeadStyles = StyleSheet.create({
     marginTop: 4,
   },
   action: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10.5,
-    fontWeight: '600',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: accent.hex,
@@ -378,7 +371,7 @@ const upcomingStyles = StyleSheet.create({
     padding: 12,
   },
   date: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 9.5,
     color: accent.hex,
     letterSpacing: 1.5,
@@ -505,14 +498,13 @@ const friendRowStyles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoBold,
     fontSize: 10,
-    fontWeight: '700',
     color: accent.hex,
     letterSpacing: 0.6,
   },
   badgeLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 9,
     color: accent.hex,
     letterSpacing: 0.4,
@@ -705,7 +697,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   headerEyebrow: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: accent.hex,
     letterSpacing: 2,

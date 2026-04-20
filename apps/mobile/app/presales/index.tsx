@@ -7,7 +7,7 @@ import { format, isToday, isTomorrow } from 'date-fns';
 import { Screen } from '../../components/ui/Screen';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { colors, spacing, radius } from '../../lib/theme';
+import { colors, spacing, radius, fontFamilies } from '../../lib/theme';
 import { usePresales, type PresaleItem } from '../../hooks/usePresales';
 
 function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggleAlert: () => void }) {
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: colors.textHi,
-    fontFamily: 'monospace',
+    fontFamily: fontFamilies.monoBold,
   },
   signupWarning: {
     flexDirection: 'row',

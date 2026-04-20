@@ -10,7 +10,6 @@ import {
   Text,
   Pressable,
   Image,
-  Platform,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,12 +27,10 @@ import { useSession } from '../../hooks/useSession';
 import { markInterested, removeInterested } from '../../lib/api/events';
 import type { ArtistShow } from '../../types/artist';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 260;
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace' }) as string;
-
 export default function ArtistScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -458,7 +455,7 @@ const styles = StyleSheet.create({
     right: 16,
   },
   artistLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: accentSets.cyan.hex,
     letterSpacing: 2,
@@ -482,7 +479,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   monthlyListeners: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: colors.textLo,
     letterSpacing: 1.5,
@@ -547,7 +544,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
   },
   genrePillText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 10,
     fontWeight: '600',
     color: colors.textMid,
@@ -572,7 +569,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   sectionLabel: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10.5,
     color: colors.textLo,
     letterSpacing: 2,
@@ -657,7 +654,7 @@ const styles = StyleSheet.create({
     color: colors.textMid,
   },
   miniShowDate: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.mono,
     fontSize: 10,
     color: colors.textLo,
     letterSpacing: 0.5,
@@ -670,7 +667,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   loadMoreText: {
-    fontFamily: MONO_FONT,
+    fontFamily: fontFamilies.monoSemi,
     fontSize: 11,
     fontWeight: '600',
     color: accentSets.cyan.hex,

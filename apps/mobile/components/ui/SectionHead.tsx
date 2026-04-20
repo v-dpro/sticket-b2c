@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { colors } from '../../lib/theme';
+import { colors, fontFamilies } from '../../lib/theme';
 import { Eyebrow } from './Eyebrow';
 
 type SectionHeadProps = {
@@ -10,24 +10,15 @@ type SectionHeadProps = {
   action?: { label: string; onPress: () => void };
 };
 
-export function SectionHead({
-  eyebrow,
-  title,
-  accentColor = colors.brandCyan,
-  action,
-}: SectionHeadProps) {
+export function SectionHead({ eyebrow, title, accentColor = colors.brandCyan, action }: SectionHeadProps) {
   return (
     <View style={styles.container}>
+      <Eyebrow text={eyebrow} color={accentColor} />
       <View style={styles.row}>
-        <View style={styles.left}>
-          <Eyebrow text={eyebrow} color={accentColor} />
-          <Text style={styles.title}>{title}</Text>
-        </View>
+        <Text style={styles.title}>{title}</Text>
         {action && (
           <Pressable onPress={action.onPress} hitSlop={8}>
-            <Text style={[styles.action, { color: accentColor }]}>
-              {action.label}
-            </Text>
+            <Text style={[styles.action, { color: colors.textMid }]}>{action.label} →</Text>
           </Pressable>
         )}
       </View>
@@ -37,17 +28,17 @@ export function SectionHead({
 
 const styles = StyleSheet.create({
   container: {
+    paddingHorizontal: 20,
     marginBottom: 14,
+    marginTop: 28,
   },
   row: {
     flexDirection: 'row',
+    alignItems: 'baseline',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  left: {
-    flex: 1,
   },
   title: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 26,
     fontWeight: '400',
     letterSpacing: -0.5,
@@ -55,10 +46,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   action: {
-    fontSize: 10.5,
+    fontFamily: fontFamilies.ui,
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.3,
   },
 });

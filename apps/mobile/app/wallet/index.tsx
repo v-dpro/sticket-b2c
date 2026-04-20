@@ -18,14 +18,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { differenceInDays, parseISO, format } from 'date-fns';
 
 import { Screen } from '../../components/ui/Screen';
-import { Eyebrow } from '../../components/ui/Eyebrow';
+import { ScreenTitle } from '../../components/ui/ScreenTitle';
 import { MonoLabel } from '../../components/ui/MonoLabel';
 import { TicketStub } from '../../components/ui/TicketStub';
 import { EmailInstructions } from '../../components/wallet/EmailInstructions';
 import { EmptyWallet } from '../../components/wallet/EmptyWallet';
 import { WalletSkeleton } from '../../components/wallet/WalletSkeleton';
 import { useTickets } from '../../hooks/useTickets';
-import { colors, spacing, radius } from '../../lib/theme';
+import { colors, spacing, radius, fontFamilies } from '../../lib/theme';
 import type { Ticket, TicketGroup } from '../../types/ticket';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -168,8 +168,7 @@ export default function WalletScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.container}>
           <View style={styles.header}>
-            <Eyebrow text="THE WALLET" color={colors.warning} />
-            <Text style={styles.title}>Your ticket drawer</Text>
+            <ScreenTitle eyebrow="THE WALLET" eyebrowColor={colors.warning} title="Your ticket drawer" />
           </View>
           <WalletSkeleton />
         </View>
@@ -184,8 +183,7 @@ export default function WalletScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Eyebrow text="THE WALLET" color={colors.warning} />
-            <Text style={styles.title}>Your ticket drawer</Text>
+            <ScreenTitle eyebrow="THE WALLET" eyebrowColor={colors.warning} title="Your ticket drawer" />
           </View>
           <Pressable style={styles.addButton} onPress={handleAddTicket} accessibilityRole="button">
             <Ionicons name="add" size={22} color={colors.warning} />
@@ -306,13 +304,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     backgroundColor: colors.ink,
   },
-  title: {
-    fontSize: 34,
-    fontWeight: '400',
-    letterSpacing: -0.8,
-    color: colors.textHi,
-    marginTop: 4,
-  },
   addButton: {
     width: 40,
     height: 40,
@@ -351,7 +342,7 @@ const styles = StyleSheet.create({
   },
   segmentedLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fontFamilies.monoBold,
     color: colors.textMid,
   },
   segmentedLabelActive: {
@@ -400,11 +391,12 @@ const styles = StyleSheet.create({
   },
   ticketArtist: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fontFamilies.uiBold,
     color: colors.textHi,
   },
   ticketMeta: {
     fontSize: 11.5,
+    fontFamily: fontFamilies.ui,
     color: colors.textMid,
   },
 

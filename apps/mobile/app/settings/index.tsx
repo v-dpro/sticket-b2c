@@ -5,15 +5,13 @@ import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Platform } from 'react-native';
-
 import { Screen } from '../../components/ui/Screen';
 import { DangerButton, ServiceConnection, SettingsRow, SettingsSection } from '../../components/settings';
 import { useAccountActions } from '../../hooks/useAccountActions';
 import { useSettings } from '../../hooks/useSettings';
 import { useSession } from '../../hooks/useSession';
 import { isAdminUser } from '../../lib/admin/isAdmin';
-import { colors, spacing } from '../../lib/theme';
+import { colors, spacing, fontFamilies } from '../../lib/theme';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function SettingsScreen() {
@@ -179,7 +177,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textLo,
     fontWeight: '500',
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontFamily: fontFamilies.mono,
   },
   versionSubtext: {
     fontSize: 12,

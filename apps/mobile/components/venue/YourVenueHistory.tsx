@@ -1,11 +1,9 @@
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
 import type { UserVenueShow } from '../../types/venue';
-
-const monoFont = Platform.select({ ios: 'Menlo', android: 'monospace' }) ?? 'monospace';
 
 interface YourVenueHistoryProps {
   showCount: number;
@@ -67,7 +65,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionLabel: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.monoMedium,
     fontSize: 10.5,
     fontWeight: '500',
     letterSpacing: 2,
@@ -133,7 +131,7 @@ const styles = StyleSheet.create({
     color: colors.textLo,
   },
   showDate: {
-    fontFamily: monoFont,
+    fontFamily: fontFamilies.mono,
     fontSize: 10,
     color: colors.textLo,
     letterSpacing: 0.5,

@@ -1,10 +1,12 @@
-import { Platform } from 'react-native';
-
 export const fontFamilies = {
-  /** Instrument Serif fallback */
-  display: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
-  /** Space Grotesk / Inter fallback — system default */
-  ui: Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }),
-  /** JetBrains Mono fallback */
-  mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
-};
+  display: 'InstrumentSerif',
+  displayItalic: 'InstrumentSerif-Italic',
+  ui: 'Inter',
+  uiMedium: 'Inter-Medium',
+  uiSemi: 'Inter-Semi',
+  uiBold: 'Inter-Bold',
+  mono: 'JetBrainsMono',
+  monoMedium: 'JetBrainsMono-Medium',
+  monoSemi: 'JetBrainsMono-Semi',
+  monoBold: 'JetBrainsMono-Bold',
+} as const;
