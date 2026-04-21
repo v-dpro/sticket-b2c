@@ -157,8 +157,8 @@ export async function seedIfEmpty() {
     if (userRow) {
       for (const log of stockLogs) {
         await db.runAsync(
-          'INSERT OR IGNORE INTO logs (id, user_id, event_id, rating, note, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-          log.id, userRow.id, log.eventId, log.rating, log.note ?? null, log.createdAt
+          'INSERT OR IGNORE INTO user_logs (id, user_id, event_id, rating, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          log.id, userRow.id, log.eventId, log.rating, log.note ?? null, log.createdAt, log.createdAt
         );
       }
     }
