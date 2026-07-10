@@ -22,6 +22,7 @@ import { getUserIdFromRequest } from './lib/auth.js';
 import { AppError } from './lib/errors.js';
 import { BADGES } from './lib/badges/badgeDefinitions.js';
 import { checkBadges, getBadgeProgress, getEarnedBadges } from './lib/badges/badgeChecker.js';
+import { computeLogXp, buildXpReason, levelFor, monthRange, XP_PHOTO } from './lib/xp.js';
 import {
   generateTokens,
   verifyToken,
@@ -4932,14 +4933,19 @@ app.get('/feed/public', async (req) => {
         where: { visibility: 'PUBLIC', isFlagged: false },
         take: 4,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, photoUrl: true },
+        select: { id: true, photoUrl: true, mediaKind: true, duration: true, thumbUrl: true },
       },
       comments: {
         take: 3,
         orderBy: { createdAt: 'desc' },
         include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       },
-      _count: { select: { comments: true, wasThere: true } },
+      likes: {
+        take: 2,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+      },
+      _count: { select: { comments: true, wasThere: true, likes: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -4947,11 +4953,16 @@ app.get('/feed/public', async (req) => {
   });
 
   const logIds = logs.map((l) => l.id);
-  const wasThereRows =
+  const [wasThereRows, likedRows] = await Promise.all([
     viewerId && logIds.length
-      ? await prisma.wasThere.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
-      : [];
+      ? prisma.wasThere.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
+      : Promise.resolve([] as { logId: string }[]),
+    viewerId && logIds.length
+      ? prisma.logLike.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
+      : Promise.resolve([] as { logId: string }[]),
+  ]);
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
+  const likedSet = new Set(likedRows.map((l) => l.logId));
 
   return logs.map((log) => ({
     id: `public-${log.id}`,
@@ -4968,7 +4979,14 @@ app.get('/feed/public', async (req) => {
       rating: typeof log.rating === 'number' ? log.rating : undefined,
       note: log.note ?? undefined,
       visibility: log.visibility,
-      photos: (log.photos ?? []).map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.photoUrl })),
+      photos: (log.photos ?? []).map((p) => ({
+        id: p.id,
+        photoUrl: p.photoUrl,
+        thumbnailUrl: p.thumbUrl ?? p.photoUrl,
+        mediaKind: p.mediaKind,
+        duration: p.duration ?? undefined,
+        thumbUrl: p.thumbUrl ?? undefined,
+      })),
     },
     event: {
       id: log.event.id,
@@ -5002,6 +5020,14 @@ app.get('/feed/public', async (req) => {
       })),
     wasThereCount: log._count.wasThere,
     userWasThere: viewerId ? wasThereSet.has(log.id) : false,
+    likeCount: log._count.likes,
+    likedByMe: viewerId ? likedSet.has(log.id) : false,
+    recentLikers: (log.likes ?? []).map((l) => ({
+      id: l.user.id,
+      username: l.user.username,
+      displayName: l.user.displayName ?? undefined,
+      avatarUrl: l.user.avatarUrl ?? undefined,
+    })),
   }));
 });
 
@@ -5047,14 +5073,19 @@ app.get('/feed', async (req) => {
         where: { visibility: 'PUBLIC', isFlagged: false },
         take: 4,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, photoUrl: true },
+        select: { id: true, photoUrl: true, mediaKind: true, duration: true, thumbUrl: true },
       },
       comments: {
         take: 3,
         orderBy: { createdAt: 'desc' },
         include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       },
-      _count: { select: { comments: true, wasThere: true } },
+      likes: {
+        take: 2,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+      },
+      _count: { select: { comments: true, wasThere: true, likes: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: limit + 1,
@@ -5064,13 +5095,22 @@ app.get('/feed', async (req) => {
   const slice = logs.slice(0, limit);
 
   const logIds = slice.map((l) => l.id);
-  const wasThereRows = logIds.length
-    ? await prisma.wasThere.findMany({
-        where: { userId, logId: { in: logIds } },
-        select: { logId: true },
-      })
-    : [];
+  const [wasThereRows, likedRows] = await Promise.all([
+    logIds.length
+      ? prisma.wasThere.findMany({
+          where: { userId, logId: { in: logIds } },
+          select: { logId: true },
+        })
+      : Promise.resolve([] as { logId: string }[]),
+    logIds.length
+      ? prisma.logLike.findMany({
+          where: { userId, logId: { in: logIds } },
+          select: { logId: true },
+        })
+      : Promise.resolve([] as { logId: string }[]),
+  ]);
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
+  const likedSet = new Set(likedRows.map((l) => l.logId));
 
   const items = slice.map((log) => ({
     id: log.id,
@@ -5087,7 +5127,14 @@ app.get('/feed', async (req) => {
       rating: typeof log.rating === 'number' ? log.rating : undefined,
       note: log.note ?? undefined,
       visibility: log.visibility,
-      photos: (log.photos ?? []).map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.photoUrl })),
+      photos: (log.photos ?? []).map((p) => ({
+        id: p.id,
+        photoUrl: p.photoUrl,
+        thumbnailUrl: p.thumbUrl ?? p.photoUrl,
+        mediaKind: p.mediaKind,
+        duration: p.duration ?? undefined,
+        thumbUrl: p.thumbUrl ?? undefined,
+      })),
     },
     event: {
       id: log.event.id,
@@ -5121,6 +5168,14 @@ app.get('/feed', async (req) => {
       })),
     wasThereCount: log._count.wasThere,
     userWasThere: wasThereSet.has(log.id),
+    likeCount: log._count.likes,
+    likedByMe: likedSet.has(log.id),
+    recentLikers: (log.likes ?? []).map((l) => ({
+      id: l.user.id,
+      username: l.user.username,
+      displayName: l.user.displayName ?? undefined,
+      avatarUrl: l.user.avatarUrl ?? undefined,
+    })),
   }));
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
@@ -5159,23 +5214,80 @@ app.post('/logs', async (req, reply) => {
     const eventId = body.eventId;
     if (!eventId) throw new AppError('eventId is required', 400);
 
-    const created = await prisma.userLog.create({
-      data: {
-        userId,
-        eventId,
-        rating: typeof body.rating === 'number' ? body.rating : null,
-        note: typeof body.note === 'string' ? body.note : null,
-        section: typeof body.section === 'string' ? body.section : null,
-        row: typeof body.row === 'string' ? body.row : null,
-        seat: typeof body.seat === 'string' ? body.seat : null,
-        visibility: body.visibility ?? 'PUBLIC',
-      },
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, artistId: true, venueId: true, date: true },
     });
+    if (!event) throw new AppError('Event not found', 404);
+
+    const note = typeof body.note === 'string' ? body.note : null;
+    const hasReview = Boolean(note && note.trim().length > 0);
+    const { start: monthStart, end: monthEnd } = monthRange(event.date);
+
+    // Server-authoritative XP inputs, derived from the user's real history
+    // *before* this log exists — so "new venue / new artist / first log of
+    // the month" bonuses reflect prior state only.
+    const [venueLogCount, artistLogCount, monthLogCount] = await Promise.all([
+      prisma.userLog.count({ where: { userId, event: { venueId: event.venueId } } }),
+      prisma.userLog.count({ where: { userId, event: { artistId: event.artistId } } }),
+      prisma.userLog.count({ where: { userId, event: { date: { gte: monthStart, lt: monthEnd } } } }),
+    ]);
+
+    const xpInputs = {
+      isNewVenue: venueLogCount === 0,
+      isNewArtist: artistLogCount === 0,
+      hasReview,
+      // Photos are attached via a follow-up POST /logs/:id/photos call once
+      // the client has this log's id, so a freshly created log never has any
+      // yet. Left here (rather than hardcoded at the call site) so this
+      // stays correct if log creation ever accepts inline photos.
+      hasPhoto: false,
+      firstOfMonth: monthLogCount === 0,
+    };
+    const xpGain = computeLogXp(xpInputs);
+    const xpReason = buildXpReason(xpInputs);
+
+    const { created, xpAfter } = await prisma.$transaction(async (tx) => {
+      const created = await tx.userLog.create({
+        data: {
+          userId,
+          eventId,
+          rating: typeof body.rating === 'number' ? body.rating : null,
+          note,
+          section: typeof body.section === 'string' ? body.section : null,
+          row: typeof body.row === 'string' ? body.row : null,
+          seat: typeof body.seat === 'string' ? body.seat : null,
+          visibility: body.visibility ?? 'PUBLIC',
+        },
+      });
+
+      await tx.xpEntry.create({
+        data: { userId, logId: created.id, amount: xpGain, reason: xpReason },
+      });
+
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { xpTotal: { increment: xpGain } },
+        select: { xpTotal: true },
+      });
+
+      return { created, xpAfter: updatedUser.xpTotal };
+    });
+
+    const xpBefore = xpAfter - xpGain;
+    const leveledUp = levelFor(xpAfter).index > levelFor(xpBefore).index;
 
     const badgeResult = await checkBadges(userId, { award: true, eventId });
 
     reply.status(201);
-    return { id: created.id, newBadges: badgeResult.newBadges };
+    return {
+      id: created.id,
+      newBadges: badgeResult.newBadges,
+      xpGain,
+      xpBefore,
+      xpAfter,
+      leveledUp,
+    };
   } catch (error) {
     // Handle "already logged" nicely
     const e = error as { code?: string };
@@ -6007,6 +6119,42 @@ app.delete('/show-media/:id', async (req) => {
   return { success: true };
 });
 
+// DELETE /logs/:id — delete a log and reverse the XP it granted.
+app.delete('/logs/:id', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: logId } = req.params as { id: string };
+
+  const log = await prisma.userLog.findUnique({ where: { id: logId }, select: { userId: true } });
+  if (!log) throw new AppError('Log not found', 404);
+  if (log.userId !== userId) throw new AppError('Forbidden', 403);
+
+  const grantedXp = await prisma.xpEntry.aggregate({
+    where: { logId },
+    _sum: { amount: true },
+  });
+  const xpToReverse = grantedXp._sum.amount ?? 0;
+
+  await prisma.$transaction(async (tx) => {
+    // These relations don't cascade in the schema; clear them explicitly.
+    await tx.comment.deleteMany({ where: { logId } });
+    await tx.logPhoto.deleteMany({ where: { logId } });
+    // Tags, was-there, and likes cascade; xpEntries detach via SetNull.
+    await tx.userLog.delete({ where: { id: logId } });
+
+    if (xpToReverse !== 0) {
+      await tx.xpEntry.create({
+        data: { userId, amount: -xpToReverse, reason: 'log_deleted' },
+      });
+      await tx.user.update({
+        where: { id: userId },
+        data: { xpTotal: { decrement: xpToReverse } },
+      });
+    }
+  });
+
+  return { success: true, xpReversed: xpToReverse };
+});
+
 app.post('/logs/:id/photos', async (req, reply) => {
   const userId = requireAccessUserId(req as any);
   const { id: logId } = req.params as { id: string };
@@ -6042,8 +6190,32 @@ app.post('/logs/:id/photos', async (req, reply) => {
     data: { logId, userId, photoUrl, visibility: 'PUBLIC' },
   });
 
+  // Photos arrive after log creation, so the photo XP bonus can't be granted
+  // by POST /logs. Award it exactly once: on the log's first photo, provided
+  // no XP entry for this log already covered a photo.
+  let xpGain = 0;
+  let xpAfter: number | null = null;
+  const [photoCount, photoXpCount] = await Promise.all([
+    prisma.logPhoto.count({ where: { logId } }),
+    prisma.xpEntry.count({ where: { logId, reason: { contains: 'photo' } } }),
+  ]);
+  if (photoCount === 1 && photoXpCount === 0) {
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      await tx.xpEntry.create({
+        data: { userId, logId, amount: XP_PHOTO, reason: 'photo_bonus' },
+      });
+      return tx.user.update({
+        where: { id: userId },
+        data: { xpTotal: { increment: XP_PHOTO } },
+        select: { xpTotal: true },
+      });
+    });
+    xpGain = XP_PHOTO;
+    xpAfter = updatedUser.xpTotal;
+  }
+
   reply.status(201);
-  return { id: created.id, photoUrl: created.photoUrl };
+  return { id: created.id, photoUrl: created.photoUrl, xpGain, xpAfter };
 });
 
 // Not in MVP schema yet (friend tagging)
