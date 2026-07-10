@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 28,
     fontWeight: '400',
     letterSpacing: -0.6,

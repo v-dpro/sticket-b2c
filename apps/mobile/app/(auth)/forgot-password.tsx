@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ForgotPasswordScreen() {
@@ -95,12 +95,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
+    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
     fontSize: 34,
     fontWeight: '400',
     letterSpacing: -0.8,
   },
   h2: {
+    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
     fontSize: 28,
     fontWeight: '400',

@@ -12,17 +12,12 @@ import * as WebBrowser from 'expo-web-browser';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
 import { useSessionStore } from '../../stores/sessionStore';
 import { apiClient } from '../../lib/api/client';
 import * as SecureStore from '../../lib/storage/secureStore';
-import { upsertUserFromRemote } from '../../lib/local/users';
-import { ensureProfile, getProfile } from '../../lib/local/repo/profileRepo';
-import { getLogCount } from '../../lib/local/repo/logsRepo';
 
 WebBrowser.maybeCompleteAuthSession();
-
-const SESSION_KEY = 'sticket.currentUserId';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -132,27 +127,16 @@ export default function SignInScreen() {
         email: credential.email,
       });
 
-      const { accessToken, refreshToken, user } = response.data;
-      
+      const { accessToken, refreshToken } = response.data;
+
       // Store tokens
       await SecureStore.setItemAsync('access_token', accessToken);
       await SecureStore.setItemAsync('refresh_token', refreshToken);
       await SecureStore.setItemAsync('auth_token', accessToken);
 
-      const localUser = await upsertUserFromRemote({ id: user.id, email: user.email });
-      await SecureStore.setItemAsync(SESSION_KEY, localUser.id);
-      await ensureProfile(localUser.id);
-      const profile = await getProfile(localUser.id);
-      const logCount = await getLogCount(localUser.id);
+      // Hydrate the session from /auth/me using the fresh tokens
+      await useSessionStore.getState().hydrateFromToken();
 
-      useSessionStore.setState({
-        user: localUser,
-        profile,
-        hasLoggedFirstShow: logCount > 0,
-        isLoading: false,
-        error: null,
-      });
-      
       // Navigate to app
       router.replace('/');
     } catch (error: any) {
@@ -180,26 +164,15 @@ export default function SignInScreen() {
       setAuthError(null);
       const response = await apiClient.post('/auth/google/callback', { idToken });
       
-      const { accessToken, refreshToken, user } = response.data;
-      
+      const { accessToken, refreshToken } = response.data;
+
       await SecureStore.setItemAsync('access_token', accessToken);
       await SecureStore.setItemAsync('refresh_token', refreshToken);
       await SecureStore.setItemAsync('auth_token', accessToken);
 
-      const localUser = await upsertUserFromRemote({ id: user.id, email: user.email });
-      await SecureStore.setItemAsync(SESSION_KEY, localUser.id);
-      await ensureProfile(localUser.id);
-      const profile = await getProfile(localUser.id);
-      const logCount = await getLogCount(localUser.id);
+      // Hydrate the session from /auth/me using the fresh tokens
+      await useSessionStore.getState().hydrateFromToken();
 
-      useSessionStore.setState({
-        user: localUser,
-        profile,
-        hasLoggedFirstShow: logCount > 0,
-        isLoading: false,
-        error: null,
-      });
-      
       router.replace('/');
     } catch (error: any) {
       console.error('Google Sign In error:', error);
@@ -381,6 +354,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
+    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
     fontSize: 34,
     fontWeight: '400',

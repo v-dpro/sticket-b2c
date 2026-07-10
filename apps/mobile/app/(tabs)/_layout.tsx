@@ -1,9 +1,21 @@
 import React from 'react';
 import { Redirect, Tabs, useRouter } from 'expo-router';
-import { Image as RNImage } from 'react-native';
+import {
+  ActionSheetIOS,
+  Alert,
+  Image as RNImage,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { FeedbackButton } from '../../components/feedback/FeedbackButton';
@@ -11,36 +23,94 @@ import { colors } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
 import { useHasShowToday } from '../../hooks/useHasShowToday';
 
+// Per-tab accent leads (DESIGN_TOKENS.md). Referenced defensively so this file
+// stays decoupled from concurrent theme edits — falls back to spec hex values.
+const ACCENTS = {
+  cyan: (colors as { cyan?: string }).cyan ?? colors.brandCyan ?? '#00D4FF',
+  purple: (colors as { purple?: string }).purple ?? colors.brandPurple ?? '#8B5CF6',
+  pink: (colors as { pink?: string }).pink ?? '#EC4899',
+  amber: (colors as { amber?: string }).amber ?? colors.warning ?? '#F59E0B',
+};
+const TAB_INACTIVE = (colors as { mute?: string }).mute ?? colors.textLo;
+
+// Spring per INTERACTIONS.md: tap release stiffness 260, damping 20.
+const TAP_SPRING = { stiffness: 260, damping: 20, mass: 0.6 };
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 function CenterLogButton() {
   const router = useRouter();
   const { hasShowToday, todayTicket } = useHasShowToday();
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const openLogFlow = () => router.push('/log/search');
+  const openShowMode = () => {
+    if (!todayTicket) return;
+    router.push({
+      pathname: '/show-mode',
+      params: { ticketId: todayTicket.id, eventId: todayTicket.eventId },
+    });
+  };
 
   const handlePress = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    // Spec: the FAB opens the Log flow. When a show is happening today we also
+    // surface the Show Mode shortcut via a lightweight native chooser.
     if (hasShowToday && todayTicket) {
-      router.push({
-        pathname: '/show-mode',
-        params: { ticketId: todayTicket.id, eventId: todayTicket.eventId },
-      });
-    } else {
-      router.push('/(tabs)/discover');
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            title: 'Tonight',
+            options: ['Log a show', 'Show Mode', 'Cancel'],
+            cancelButtonIndex: 2,
+            userInterfaceStyle: 'dark',
+          },
+          (index) => {
+            if (index === 0) openLogFlow();
+            else if (index === 1) openShowMode();
+          },
+        );
+      } else {
+        Alert.alert('Tonight', undefined, [
+          { text: 'Log a show', onPress: openLogFlow },
+          { text: 'Show Mode', onPress: openShowMode },
+          { text: 'Cancel', style: 'cancel' },
+        ]);
+      }
+      return;
     }
+
+    openLogFlow();
+  };
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, TAP_SPRING);
+  };
+  const handlePressOut = () => {
+    scale.value = withSpring(1, TAP_SPRING);
   };
 
   return (
-    <View style={styles.centerButtonContainer}>
-      <TouchableOpacity
+    <View style={styles.centerButtonContainer} pointerEvents="box-none">
+      <AnimatedPressable
         onPress={handlePress}
-        activeOpacity={0.8}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        hitSlop={10}
         accessibilityRole="button"
-        accessibilityLabel={hasShowToday ? 'Open Show Mode' : 'Log a show'}
+        accessibilityLabel={hasShowToday ? 'Log a show or open Show Mode' : 'Log a show'}
+        style={animatedStyle}
       >
         <View style={styles.centerButton}>
-          <Ionicons name="add" size={28} color="#FFFFFF" />
+          <Ionicons name="add" size={30} color="#FFFFFF" />
           {hasShowToday ? <View style={styles.showTodayIndicator} /> : null}
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -61,6 +131,8 @@ export default function TabsLayout() {
         initialRouteName="feed/index"
         screenOptions={{
           headerShown: false,
+          // Tab → tab: crossfade, no slide (INTERACTIONS.md).
+          animation: 'fade',
           tabBarStyle: {
             backgroundColor: 'rgba(8, 8, 16, 0.88)',
             borderTopColor: colors.hairline,
@@ -68,85 +140,82 @@ export default function TabsLayout() {
             height: tabBarHeight,
             paddingBottom: insets.bottom,
           },
-          tabBarActiveTintColor: colors.textHi,
-          tabBarInactiveTintColor: colors.textHi,
+          tabBarInactiveTintColor: TAB_INACTIVE,
           tabBarShowLabel: false,
           tabBarItemStyle: { paddingVertical: 4 },
           tabBarActiveBackgroundColor: 'transparent',
           tabBarInactiveBackgroundColor: 'transparent',
         }}
       >
-        {/* Tab 1: Home (Feed) */}
+        {/* Tab 1: Home (Feed) — cyan */}
         <Tabs.Screen
           name="feed/index"
           options={{
             title: 'Home',
+            tabBarActiveTintColor: ACCENTS.cyan,
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 size={26}
-                color={colors.textHi}
-                style={{ opacity: focused ? 1 : 0.5 }}
+                color={focused ? ACCENTS.cyan : TAB_INACTIVE}
               />
             ),
           }}
         />
 
-        {/* Tab 2: Upcoming (Calendar/Plans) */}
+        {/* Tab 2: Upcoming (Calendar) — purple */}
         <Tabs.Screen
           name="timeline/index"
           options={{
             title: 'Upcoming',
+            tabBarActiveTintColor: ACCENTS.purple,
             tabBarIcon: ({ focused }) => (
               <Ionicons
                 name={focused ? 'calendar' : 'calendar-outline'}
                 size={26}
-                color={colors.textHi}
-                style={{ opacity: focused ? 1 : 0.5 }}
+                color={focused ? ACCENTS.purple : TAB_INACTIVE}
               />
             ),
           }}
         />
 
-        {/* Tab 3: Center Log FAB */}
+        {/* Tab 3: Center Log FAB — pink, raised */}
         <Tabs.Screen
-          name="discover/index"
+          name="log-placeholder"
           options={{
             title: '',
             tabBarButton: () => <CenterLogButton />,
           }}
         />
 
-        {/* Tab 4: Concert Life */}
+        {/* Tab 4: Wallet — amber, ticket */}
         <Tabs.Screen
-          name="my-artists/index"
+          name="wallet"
           options={{
-            title: 'Life',
+            title: 'Wallet',
+            tabBarActiveTintColor: ACCENTS.amber,
             tabBarIcon: ({ focused }) => (
               <Ionicons
-                name={focused ? 'musical-notes' : 'musical-notes-outline'}
+                name={focused ? 'ticket' : 'ticket-outline'}
                 size={26}
-                color={colors.textHi}
-                style={{ opacity: focused ? 1 : 0.5 }}
+                color={focused ? ACCENTS.amber : TAB_INACTIVE}
               />
             ),
           }}
         />
 
-        {/* Tab 5: Profile (avatar with ring) */}
+        {/* Tab 5: Profile — pink avatar ring when active */}
         <Tabs.Screen
           name="profile/index"
           options={{
             title: 'You',
+            tabBarActiveTintColor: ACCENTS.pink,
             tabBarIcon: ({ focused }) => {
               const avatarUrl = profile?.avatarUrl;
               if (avatarUrl) {
                 return (
                   <View style={[styles.profileTabAvatar, focused && styles.profileTabAvatarActive]}>
-                    <RNImage
-                      source={{ uri: avatarUrl }}
-                      style={styles.profileTabImage}
-                    />
+                    <RNImage source={{ uri: avatarUrl }} style={styles.profileTabImage} />
                   </View>
                 );
               }
@@ -154,18 +223,18 @@ export default function TabsLayout() {
                 <Ionicons
                   name={focused ? 'person' : 'person-outline'}
                   size={26}
-                  color={colors.textHi}
-                  style={{ opacity: focused ? 1 : 0.5 }}
+                  color={focused ? ACCENTS.pink : TAB_INACTIVE}
                 />
               );
             },
           }}
         />
 
-        {/* Hidden tabs */}
+        {/* Hidden routes — reachable by deep link / in-app navigation, not tabbed */}
+        <Tabs.Screen name="discover/index" options={{ href: null }} />
+        <Tabs.Screen name="my-artists/index" options={{ href: null }} />
         <Tabs.Screen name="notifications/index" options={{ href: null }} />
         <Tabs.Screen name="search/index" options={{ href: null }} />
-        <Tabs.Screen name="log-placeholder" options={{ href: null }} />
       </Tabs>
 
       <FeedbackButton />
@@ -187,10 +256,10 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.pink,
+    backgroundColor: ACCENTS.pink,
     borderWidth: 3,
     borderColor: colors.ink,
-    shadowColor: colors.pink,
+    shadowColor: ACCENTS.pink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -216,7 +285,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   profileTabAvatarActive: {
-    borderColor: colors.textHi,
+    borderColor: ACCENTS.pink,
   },
   profileTabImage: {
     width: '100%',

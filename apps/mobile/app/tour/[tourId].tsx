@@ -470,6 +470,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   tourName: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 36,
     fontWeight: '400',
     color: colors.textHi,

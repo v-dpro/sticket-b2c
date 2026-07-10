@@ -27,7 +27,7 @@ import { useSession } from '../../hooks/useSession';
 import { markInterested, removeInterested } from '../../lib/api/events';
 import type { ArtistShow } from '../../types/artist';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
+import { colors, accentSets, radius, fontFamilies, density } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 260;
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: density.pad,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -451,8 +451,8 @@ const styles = StyleSheet.create({
   heroText: {
     position: 'absolute',
     bottom: 20,
-    left: 16,
-    right: 16,
+    left: density.pad,
+    right: density.pad,
   },
   artistLabel: {
     fontFamily: fontFamilies.mono,
@@ -463,6 +463,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   artistName: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 36,
     fontWeight: '400',
     color: colors.textHi,
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: density.pad,
     gap: 10,
   },
   followBtn: {
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: density.pad,
   },
   genrePill: {
     backgroundColor: colors.surface,
@@ -555,7 +556,7 @@ const styles = StyleSheet.create({
   // ── 4. Bio ──
   bioContainer: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: density.pad,
   },
   bioText: {
     fontSize: 14,
@@ -565,7 +566,7 @@ const styles = StyleSheet.create({
 
   // ── 5. Section ──
   section: {
-    paddingHorizontal: 16,
+    paddingHorizontal: density.pad,
     marginTop: 20,
   },
   sectionLabel: {
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: accentSets.cyan.line,
     borderRadius: radius.md,
-    padding: 12,
+    padding: density.cardPad,
     gap: 12,
   },
   tourIcon: {

@@ -9,6 +9,7 @@ import { useFonts } from 'expo-font';
 import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_600SemiBold, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { SpaceGrotesk_400Regular, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -93,6 +94,10 @@ export default function RootLayout() {
     'Inter-Medium': Inter_500Medium,
     'Inter-Semi': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
+    'SpaceGrotesk': SpaceGrotesk_400Regular,
+    'SpaceGrotesk-Medium': SpaceGrotesk_500Medium,
+    'SpaceGrotesk-Semi': SpaceGrotesk_600SemiBold,
+    'SpaceGrotesk-Bold': SpaceGrotesk_700Bold,
   });
 
   useEffect(() => {

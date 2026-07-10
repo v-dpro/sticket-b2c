@@ -77,7 +77,8 @@
       ],
       "@react-native-community/datetimepicker",
       "sentry-expo",
-      "expo-font"
+      "expo-font",
+      "expo-video"
     ],
     "extra": {
       "eas": {

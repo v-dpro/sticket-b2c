@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, fonts, gradients, radius, spacing } from '../../lib/theme';
+import { colors, fonts, fontFamilies, gradients, radius, spacing } from '../../lib/theme';
 import { MonoLabel } from '../../components/ui/MonoLabel';
 
 const { width } = Dimensions.get('window');
@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
     height: 56,
   },
   wordmark: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 54,
     fontWeight: '400',
     letterSpacing: -1,

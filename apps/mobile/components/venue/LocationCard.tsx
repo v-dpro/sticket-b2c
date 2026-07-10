@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   marker: {
-    backgroundColor: colors.textHi,
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 4,
   },

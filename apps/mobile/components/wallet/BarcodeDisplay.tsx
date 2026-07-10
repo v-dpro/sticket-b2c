@@ -80,15 +80,15 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.textHi,
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 16,
     alignItems: 'center',
   },
   bright: {
-    backgroundColor: colors.textHi,
-    shadowColor: colors.textHi,
+    backgroundColor: colors.white,
+    shadowColor: colors.white,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 20,

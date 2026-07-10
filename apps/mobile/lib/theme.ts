@@ -4,33 +4,44 @@
 export { fontFamilies } from './fonts';
 
 export const colors = {
-  // Core palette
+  // Core palette (aligned to DESIGN_TOKENS.md)
   ink: '#0B0B14',
   pitch: '#05050B',
   navy: '#0A0B1E',
-  surface: '#13131F',
+  surface: '#121220',
   elevated: '#1B1B2B',
-  hairline: '#242433',
-  line: '#2E2E42',
+  hairline: '#20202B', // subtle divider / card border (softer than `line`)
+  line: '#2A2A3A', // dividers, borders at 100%
+  lineSoft: 'rgba(255,255,255,0.08)', // subtle dividers (spec `lineSoft`)
   bone: '#EFE9DC',
-  paper: '#F6F1E4',
+  paper: '#F6F1E4', // NOTE: app-specific cream for ticket-stub cards (not spec `paper` bg)
 
-  // Text hierarchy
-  textPrimary: '#FFFFFF',
-  textHi: '#FFFFFF',
-  textMid: '#B5B5CC',
-  textLo: '#6E6E88',
-  textSecondary: '#B5B5CC',
-  textTertiary: '#6E6E88',
+  // Text hierarchy — spec: text #E8E8EE / mute #8B8B9E / muteSoft #5A5A6C
+  textPrimary: '#E8E8EE',
+  textHi: '#E8E8EE',
+  textMid: '#8B8B9E',
+  textLo: '#5A5A6C',
+  textSecondary: '#8B8B9E',
+  textTertiary: '#5A5A6C',
   textMuted: '#4A4A6A',
+  // Spec-named text tokens
+  text: '#E8E8EE',
+  textSoft: '#B4B4C2', // body copy
+  mute: '#8B8B9E',
+  muteSoft: '#5A5A6C',
+  onAccent: '#0A0A12', // near-black text on accent-filled surfaces
+  white: '#FFFFFF', // true white — barcode/QR scan surfaces, camera controls
 
-  // Brand accents
+  // Brand accents (spec palette)
   brandCyan: '#00D4FF',
   brandPurple: '#8B5CF6',
-  brandPink: '#E879F9',
+  brandPink: '#EC4899',
   brandBlue: '#4A90F7',
-  lime: '#D4FF00',
-  red: '#FF4D5E',
+  cyan: '#00D4FF',
+  purple: '#8B5CF6',
+  amber: '#F59E0B',
+  lime: '#BEF264',
+  red: '#EF4444',
   gold: '#FFD700',
   pink: '#EC4899',
 
@@ -42,18 +53,20 @@ export const colors = {
 
   // Back-compat aliases
   background: '#0B0B14',
-  backgroundAlt: '#13131F',
-  inkAlt: '#13131F',
+  backgroundAlt: '#121220',
+  inkAlt: '#121220',
   surfaceElevated: '#1B1B2B',
-  border: '#242433',
-  borderLight: '#2E2E42',
+  border: '#20202B',
+  borderLight: '#2A2A3A',
 } as const;
 
 export const accentSets = {
   cyan: { hex: colors.brandCyan, soft: 'rgba(0,212,255,0.12)', line: 'rgba(0,212,255,0.35)' },
   purple: { hex: colors.brandPurple, soft: 'rgba(139,92,246,0.14)', line: 'rgba(139,92,246,0.4)' },
-  pink: { hex: colors.brandPink, soft: 'rgba(232,121,249,0.14)', line: 'rgba(232,121,249,0.4)' },
-  lime: { hex: colors.lime, soft: 'rgba(212,255,0,0.12)', line: 'rgba(212,255,0,0.35)' },
+  pink: { hex: colors.pink, soft: 'rgba(236,72,153,0.14)', line: 'rgba(236,72,153,0.4)' },
+  amber: { hex: colors.amber, soft: 'rgba(245,158,11,0.14)', line: 'rgba(245,158,11,0.4)' },
+  lime: { hex: colors.lime, soft: 'rgba(190,242,100,0.14)', line: 'rgba(190,242,100,0.4)' },
+  red: { hex: colors.red, soft: 'rgba(239,68,68,0.14)', line: 'rgba(239,68,68,0.4)' },
 } as const;
 
 export const gradients = {
@@ -71,6 +84,14 @@ export const spacing = {
   xl: 32,
   '2xl': 48,
   '3xl': 64,
+} as const;
+
+// Semantic density tokens (spec `comfortable` default)
+export const density = {
+  gap: 14, // gap between related elements
+  pad: 20, // screen / section horizontal padding
+  cardPad: 18, // padding inside cards
+  rowH: 68, // standard list row height
 } as const;
 
 export const radius = {

@@ -148,6 +148,7 @@ const stubStyles = StyleSheet.create({
     marginBottom: 6,
   },
   artistName: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 28,
     fontWeight: '400',
     color: colors.ink,
@@ -289,6 +290,7 @@ const sectionHeadStyles = StyleSheet.create({
     color: accent.hex,
   },
   title: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 26,
     fontWeight: '400',
     letterSpacing: -0.5,
@@ -669,7 +671,7 @@ export default function DiscoverScreen() {
               </Pressable>
               <Pressable
                 style={styles.emptyButtonSecondary}
-                onPress={() => router.push('/settings/connected-services')}
+                onPress={() => router.push('/settings')}
                 accessibilityRole="button"
               >
                 <Text style={styles.emptyButtonSecondaryText}>Connect Spotify</Text>
@@ -703,6 +705,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   headerTitle: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 34,
     fontWeight: '400',
     color: colors.textHi,

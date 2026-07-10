@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ResetPasswordScreen() {
@@ -113,9 +113,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
+    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
     fontSize: fonts.h1,
-    fontWeight: fonts.bold,
+    fontWeight: fonts.regular,
+    letterSpacing: -0.8,
   },
   subhead: {
     color: colors.textMid,

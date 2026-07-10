@@ -13,7 +13,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { differenceInDays, parseISO, format } from 'date-fns';
 
@@ -165,7 +165,6 @@ export default function WalletScreen() {
   if (loading) {
     return (
       <Screen padded={false}>
-        <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.container}>
           <View style={styles.header}>
             <ScreenTitle eyebrow="THE WALLET" eyebrowColor={colors.warning} title="Your ticket drawer" />
@@ -178,7 +177,6 @@ export default function WalletScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -212,7 +210,7 @@ export default function WalletScreen() {
                 },
               ]}
             />
-            {TABS.map((tab, i) => (
+            {TABS.map((tab) => (
               <Pressable
                 key={tab.key}
                 style={styles.segmentedTab}

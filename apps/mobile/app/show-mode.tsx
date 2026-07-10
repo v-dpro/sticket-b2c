@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.textHi,
+    backgroundColor: colors.white,
   },
   cameraLiveText: {
     color: colors.textHi,
@@ -538,13 +538,13 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: colors.textHi,
+    borderColor: colors.white,
     padding: 4,
   },
   captureButtonInner: {
     flex: 1,
     borderRadius: 36,
-    backgroundColor: colors.textHi,
+    backgroundColor: colors.white,
   },
   flipButton: {
     width: 56,
