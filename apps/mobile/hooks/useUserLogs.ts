@@ -1,41 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getUserLogs } from '../lib/api/profile';
-import { listLogsForUser } from '../lib/local/repo/logsRepo';
 import type { LogEntry } from '../types/profile';
-
-function toLogEntry(local: any): LogEntry {
-  return {
-    id: local.id,
-    rating: typeof local.rating === 'number' ? local.rating : undefined,
-    note: typeof local.note === 'string' ? local.note : undefined,
-    section: typeof local.section === 'string' ? local.section : undefined,
-    row: typeof local.row === 'string' ? local.row : undefined,
-    seat: typeof local.seat === 'string' ? local.seat : undefined,
-    visibility: 'PUBLIC',
-    createdAt: local.createdAt || new Date().toISOString(),
-    event: {
-      id: local.event.id,
-      name: local.event.name,
-      date: local.event.date,
-      artist: {
-        id: local.event.artist.id,
-        name: local.event.artist.name,
-        imageUrl: local.event.artist.imageUrl ?? undefined,
-      },
-      venue: {
-        id: local.event.venue.id,
-        name: local.event.venue.name,
-        city: local.event.venue.city,
-        state: local.event.venue.state ?? undefined,
-        lat: undefined,
-        lng: undefined,
-      },
-    },
-    photos: [],
-    _count: undefined,
-  };
-}
+import { getErrorMessage } from '../lib/api/errorUtils';
 
 export function useUserLogs(userId: string, year?: number) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -61,19 +28,11 @@ export function useUserLogs(userId: string, year?: number) {
 
       try {
         const newOffset = reset ? 0 : offset;
-        // Local-only users do not exist in the API DB; read logs from local DB instead.
-        let data: LogEntry[];
-        if (userId.startsWith('user_')) {
-          const all = await listLogsForUser(userId);
-          const filtered = typeof year === 'number' ? all.filter((l) => new Date(l.event.date).getFullYear() === year) : all;
-          data = filtered.slice(newOffset, newOffset + LIMIT).map(toLogEntry);
-        } else {
-          data = await getUserLogs(userId, {
-            limit: LIMIT,
-            offset: newOffset,
-            year,
-          });
-        }
+        const data = await getUserLogs(userId, {
+          limit: LIMIT,
+          offset: newOffset,
+          year,
+        });
 
         if (reset) {
           setLogs(data);
@@ -86,8 +45,7 @@ export function useUserLogs(userId: string, year?: number) {
         setHasMore(data.length === LIMIT);
       } catch (err: any) {
         const status = err?.response?.status;
-        // For "user not found" (common when viewing a local-only id against the API),
-        // treat as empty logs so the UI doesn't hang.
+        // For "user not found", treat as empty logs so the UI doesn't hang.
         if (status === 404) {
           if (reset) {
             setLogs([]);
@@ -96,7 +54,7 @@ export function useUserLogs(userId: string, year?: number) {
           setHasMore(false);
           setError(null);
         } else {
-          setError(err?.response?.data?.error || 'Failed to load logs');
+          setError(getErrorMessage(err));
         }
       } finally {
         setLoading(false);
@@ -146,7 +104,3 @@ export function useUserLogs(userId: string, year?: number) {
     years,
   };
 }
-
-
-
-

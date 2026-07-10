@@ -14,10 +14,12 @@ import { XpBar } from '../../components/ui/XpBar';
 import { TicketStub } from '../../components/ui/TicketStub';
 import { PillButton } from '../../components/ui/PillButton';
 import { MonoLabel } from '../../components/ui/MonoLabel';
+import { SpringNumber } from '../../components/ui/SpringNumber';
 import { colors, spacing, fontFamilies } from '../../lib/theme';
 import { Confetti } from '../../components/ui/Confetti';
-import { previewLogRewards, type PastShow } from '../../lib/game';
-import { getEventById, type Event } from '../../lib/local/repo/eventsRepo';
+import { levelFor, previewLogRewards, type PastShow } from '../../lib/game';
+import { getEvent } from '../../lib/api/events';
+import type { EventDetails } from '../../types/event';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,12 +58,16 @@ const PHASE_TIMINGS = [0, 1500, 2500, 3500, 4500] as const;
 
 export default function LogSuccess() {
   const router = useRouter();
-  const { eventId, newBadges } = useLocalSearchParams<{
+  const { eventId, newBadges, xpGain, xpAfter, leveledUp, badges } = useLocalSearchParams<{
     eventId: string;
     newBadges?: string;
+    xpGain?: string;
+    xpAfter?: string;
+    leveledUp?: string;
+    badges?: string;
   }>();
 
-  const [event, setEvent] = useState<Event | null>(null);
+  const [event, setEvent] = useState<EventDetails | null>(null);
   const [phase, setPhase] = useState(0);
 
   // Animated values — one per phase for opacity, plus stamp scale
@@ -77,7 +83,7 @@ export default function LogSuccess() {
 
   useEffect(() => {
     if (!eventId) return;
-    getEventById(String(eventId))
+    getEvent(String(eventId))
       .then(setEvent)
       .catch(() => setEvent(null));
   }, [eventId]);
@@ -157,19 +163,54 @@ export default function LogSuccess() {
     artist: event?.artist.name ?? 'Artist',
     venue: event?.venue.name ?? 'Venue',
     date: event?.date ?? new Date().toISOString().slice(0, 10),
-    city: (event as any)?.venue?.city ?? '',
+    city: event?.venue?.city ?? '',
   };
 
-  // Compute gamification preview.  We pass an empty pastShows array here
-  // because the actual history isn't available on this screen — the server
-  // already persisted the log.  This gives baseline XP values and lets the
-  // reveal feel correct even without full history context.
-  const rewards = useMemo(() => {
+  // Server-computed rewards passed from the log action (POST /logs returns
+  // { xpGain, xpAfter, leveledUp, newBadges }).
+  const serverXpGain = Number(xpGain);
+  const serverXpAfter = Number(xpAfter);
+  const hasServerRewards = Number.isFinite(serverXpGain) && Number.isFinite(serverXpAfter);
+
+  const serverBadges = useMemo(() => {
+    if (!badges) return null;
+    try {
+      const parsed = JSON.parse(String(badges));
+      if (!Array.isArray(parsed)) return null;
+      return parsed
+        .filter((b) => b && typeof b.id === 'string')
+        .map((b) => ({
+          id: b.id as string,
+          label: typeof b.name === 'string' && b.name ? b.name : String(b.id),
+          emoji: typeof b.icon === 'string' && b.icon ? b.icon : '🏅',
+          desc: typeof b.description === 'string' ? b.description : '',
+        }));
+    } catch {
+      return null;
+    }
+  }, [badges]);
+
+  // Client-side preview — only used as a defensive fallback when the server
+  // fields are absent (e.g. log edits or older callers).
+  const preview = useMemo(() => {
     return previewLogRewards(
       { venue: show.venue, artist: show.artist, date: show.date },
       [] as PastShow[],
     );
   }, [show.artist, show.venue, show.date]);
+
+  const rewards = useMemo(() => {
+    if (!hasServerRewards) return preview;
+    return {
+      ...preview,
+      xpGain: serverXpGain,
+      xpAfter: serverXpAfter,
+      leveledUp: leveledUp === '1' || leveledUp === 'true',
+      afterLevel: levelFor(serverXpAfter),
+      reasons: [{ label: 'Show logged', value: `+${serverXpGain}` }],
+      newBadges: serverBadges ?? [],
+    };
+  }, [hasServerRewards, preview, serverXpGain, serverXpAfter, leveledUp, serverBadges]);
 
   // Parse new badge IDs passed from the log action
   const parsedBadgeIds = useMemo(() => {
@@ -287,16 +328,18 @@ export default function LogSuccess() {
               <MonoLabel size={10} color={colors.brandCyan} style={{ marginBottom: 6 }}>
                 XP EARNED
               </MonoLabel>
-              <Text
-                style={{
-                  fontSize: 72,
-                  fontFamily: fontFamilies.displayItalic,
-                  color: colors.textHi,
-                  marginBottom: 16,
-                }}
-              >
-                +{rewards.xpGain}
-              </Text>
+              <View style={{ alignSelf: 'flex-start', marginBottom: 16 }}>
+                <SpringNumber
+                  value={rewards.xpGain}
+                  prefix="+"
+                  mode="spring"
+                  style={{
+                    fontSize: 72,
+                    fontFamily: fontFamilies.displayItalic,
+                    color: colors.textHi,
+                  }}
+                />
+              </View>
 
               {/* Reasons breakdown */}
               <View style={{ gap: 8, marginBottom: 20 }}>
@@ -449,7 +492,7 @@ export default function LogSuccess() {
             >
               <View style={{ alignItems: 'center' }}>
                 <PillButton
-                  title="Share to feed  \u2192"
+                  title={'Share to feed  \u2192'}
                   variant="solid"
                   size="lg"
                   accentColor={colors.pink}

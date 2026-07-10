@@ -1,13 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Button } from '../../components/ui/Button';
 import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
-import { createTicket, type TicketStatus } from '../../lib/local/repo/ticketsRepo';
-import { getDb } from '../../lib/local/db';
+import { addTicket, updateTicket } from '../../lib/api/tickets';
+import { getEvent } from '../../lib/api/events';
+import { getErrorMessage } from '../../lib/api/errorUtils';
+import type { TicketStatus } from '../../types/ticket';
 import { useSession } from '../../hooks/useSession';
 
 const statuses: TicketStatus[] = ['KEEPING', 'SELLING', 'SOLD'];
@@ -29,12 +31,14 @@ export default function TicketDetails() {
   useEffect(() => {
     let cancelled = false;
     if (!eventId) return;
-    (async () => {
-      const db = await getDb();
-      const row = await db.getFirstAsync<{ name: string }>('SELECT name FROM events WHERE id = ? LIMIT 1', String(eventId));
-      if (cancelled) return;
-      setEventName(row?.name ?? '');
-    })();
+    getEvent(String(eventId))
+      .then((event) => {
+        if (cancelled) return;
+        setEventName(event.name ?? '');
+      })
+      .catch(() => {
+        // Name is decorative here — the save flow surfaces real errors.
+      });
     return () => {
       cancelled = true;
     };
@@ -44,16 +48,22 @@ export default function TicketDetails() {
     if (!user || !eventId) return;
     setIsSaving(true);
     try {
-      await createTicket({
-        userId: user.id,
+      const ticket = await addTicket({
         eventId: String(eventId),
-        section: section.trim() || null,
-        row: row.trim() || null,
-        seat: seat.trim() || null,
-        barcode: barcode.trim() || null,
-        status,
+        section: section.trim() || undefined,
+        row: row.trim() || undefined,
+        seat: seat.trim() || undefined,
+        barcode: barcode.trim() || undefined,
       });
+
+      // POST /tickets always creates KEEPING; apply any other choice.
+      if (status !== 'KEEPING') {
+        await updateTicket(ticket.id, { status });
+      }
+
       router.replace({ pathname: '/tickets/success', params: { eventId: String(eventId) } });
+    } catch (e) {
+      Alert.alert('Could not save ticket', getErrorMessage(e));
     } finally {
       setIsSaving(false);
     }
@@ -112,6 +122,3 @@ export default function TicketDetails() {
     </Screen>
   );
 }
-
-
-

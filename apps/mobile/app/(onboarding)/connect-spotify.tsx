@@ -8,7 +8,6 @@ import { ProgressDots } from '../../components/onboarding/ProgressDots';
 import { Button } from '../../components/ui/Button';
 import { Screen } from '../../components/ui/Screen';
 import { apiClient } from '../../lib/api/client';
-import { updateProfile } from '../../lib/local/repo/profileRepo';
 import { colors, spacing, fontFamilies } from '../../lib/theme';
 import { useSession } from '../../hooks/useSession';
 import { useOnboardingStore } from '../../stores/onboardingStore';
@@ -22,7 +21,8 @@ export default function ConnectSpotifyOnboarding() {
 
   const finish = async (connected: boolean) => {
     if (!user) return;
-    await updateProfile(user.id, { connectedMusic: connected });
+    // The onboarding store persists this locally; the Spotify link itself
+    // lives server-side (surfaced via /auth/me hasSpotify).
     setSpotifyConnected(connected);
     await refresh();
     router.push('/(onboarding)/select-artists');

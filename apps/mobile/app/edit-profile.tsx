@@ -19,7 +19,6 @@ import { updateProfile as updateRemoteProfile, uploadAvatar } from '../lib/api/p
 import { useProfile } from '../hooks/useProfile';
 import { useSession } from '../hooks/useSession';
 import { useSessionStore } from '../stores/sessionStore';
-import { updateProfile as updateLocalProfile } from '../lib/local/repo/profileRepo';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
 import { colors, radius, spacing, fontFamilies } from '../lib/theme';
 
@@ -97,15 +96,6 @@ export default function EditProfileScreen() {
         bio: bio.trim() || undefined,
         city: city.trim() || undefined,
         avatarUrl: finalAvatarUrl || undefined,
-      });
-
-      // Keep local profile in sync (used by onboarding/local flows)
-      await updateLocalProfile(user.id, {
-        displayName: displayName.trim() || null,
-        username: normalizedUsername || null,
-        bio: bio.trim() || null,
-        city: city.trim() || null,
-        avatarUrl: finalAvatarUrl || null,
       });
 
       await refreshSession();
@@ -241,6 +231,7 @@ const styles = StyleSheet.create({
     color: colors.textMid,
   },
   headerTitle: {
+    fontFamily: fontFamilies.displayItalic,
     fontSize: 28,
     fontWeight: '400',
     letterSpacing: -0.6,

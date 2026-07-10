@@ -55,6 +55,19 @@ export async function removeInterested(eventId: string): Promise<void> {
   await apiClient.delete(`/events/${eventId}/interested`);
 }
 
+// Import (or find) an event by artist/venue/date — used by the manual "create show" flow
+export async function importEvent(data: {
+  artistName: string;
+  venueName: string;
+  venueCity: string;
+  venueCountry?: string;
+  date: string; // ISO string
+  title?: string;
+}): Promise<{ id: string }> {
+  const response = await apiClient.post('/events/import', data);
+  return response.data;
+}
+
 // Get setlist (stubbed server-side for now)
 export async function getSetlist(eventId: string): Promise<any> {
   const response = await apiClient.get(`/events/${eventId}/setlist`);

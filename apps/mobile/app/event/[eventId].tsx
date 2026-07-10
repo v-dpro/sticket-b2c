@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -11,13 +11,12 @@ import { PhotosSection } from '../../components/event/PhotosSection';
 import { SetlistSection } from '../../components/event/SetlistSection';
 import { MomentsSection } from '../../components/event/MomentsSection';
 import { EventComments } from '../../components/event/EventComments';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 import { useEvent } from '../../hooks/useEvent';
 import { useEventPhotos } from '../../hooks/useEventPhotos';
 import { useEventComments } from '../../hooks/useEventComments';
 import { markInterested, removeInterested } from '../../lib/api/events';
-import { useSession } from '../../hooks/useSession';
-import { getLogForUserEvent } from '../../lib/local/repo/logsRepo';
 import type { ShareCardData } from '../../types/share';
 import { createEventLink } from '../../lib/share/deepLinks';
 import { ShareButton } from '../../components/share/ShareButton';
@@ -30,7 +29,6 @@ type Tab = typeof TABS[number];
 export default function EventScreen() {
   const router = useRouter();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
-  const { user } = useSession();
 
   const id = String(eventId || '');
 
@@ -39,7 +37,6 @@ export default function EventScreen() {
   const { comments, loading: commentsLoading, posting, addComment, removeComment, refresh: refreshComments } = useEventComments(id);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [localLogId, setLocalLogId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('Photos');
   const goBack = useSafeBack();
 
@@ -50,19 +47,7 @@ export default function EventScreen() {
     return dt < new Date();
   }, [event?.date]);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!user?.id || !id) return;
-    getLogForUserEvent(user.id, id).then((log) => {
-      if (cancelled) return;
-      setLocalLogId(log?.id ?? null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [id, user?.id]);
-
-  const isLogged = !!localLogId || !!event?.userLog;
+  const isLogged = !!event?.userLog;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -134,7 +119,7 @@ export default function EventScreen() {
     return (
       <View style={styles.errorContainer}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Text style={styles.errorText}>{error || 'Event not found'}</Text>
+        <ErrorState title="Couldn't load event" message={error || 'Event not found'} onRetry={refetch} />
       </View>
     );
   }

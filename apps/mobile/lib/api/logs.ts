@@ -16,7 +16,19 @@ export async function createLog(payload: {
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
 }) {
   const res = await apiClient.post('/logs', payload);
-  return res.data as { id: string; newBadges?: Badge[] };
+  return res.data as {
+    id: string;
+    newBadges?: Badge[];
+    xpGain?: number;
+    xpBefore?: number;
+    xpAfter?: number;
+    leveledUp?: boolean;
+  };
+}
+
+export async function deleteLog(logId: string) {
+  const res = await apiClient.delete(`/logs/${logId}`);
+  return res.data as { success: boolean };
 }
 
 export async function updateLog(

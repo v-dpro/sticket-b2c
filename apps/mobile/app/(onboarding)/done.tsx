@@ -5,7 +5,6 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import { Screen } from '../../components/ui/Screen';
 import { colors, accentSets, spacing, radius, shadows, fontFamilies } from '../../lib/theme';
 import { Confetti } from '../../components/ui/Confetti';
-import { updateProfile } from '../../lib/local/repo/profileRepo';
 import { useSession } from '../../hooks/useSession';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useStamp } from '../../lib/motion';
@@ -88,7 +87,8 @@ export default function DoneOnboarding() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await updateProfile(user.id, { onboardingCompleted: true });
+      // Onboarding completion is persisted by the onboarding store
+      // (AsyncStorage) — app/index.tsx reads it alongside session state.
       await completeOnboarding();
       await refresh();
       router.replace('/(tabs)/feed');

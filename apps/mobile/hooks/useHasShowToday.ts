@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useSession } from './useSession';
-import { getTicketsForDate } from '../lib/local/repo/ticketsRepo';
+import { getTickets } from '../lib/api/tickets';
 
 type TodayTicket = {
   id: string;
@@ -29,10 +29,15 @@ export function useHasShowToday() {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    getTicketsForDate(user.id, today, tomorrow)
+    getTickets({ upcoming: true })
       .then((tickets) => {
-        if (tickets.length > 0) {
-          const ticket = tickets[0];
+        const todays = tickets.filter((t) => {
+          const d = new Date(t.event?.date ?? '');
+          return !Number.isNaN(d.getTime()) && d >= today && d < tomorrow;
+        });
+
+        if (todays.length > 0) {
+          const ticket = todays[0];
           setHasShowToday(true);
           setTodayTicket({
             id: ticket.id,
@@ -54,6 +59,3 @@ export function useHasShowToday() {
 
   return { hasShowToday, todayTicket, loading };
 }
-
-
-

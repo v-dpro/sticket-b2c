@@ -1,12 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Button } from '../../components/ui/Button';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
-import { deleteTicket, getTicketById, updateTicket, type TicketStatus } from '../../lib/local/repo/ticketsRepo';
+import { deleteTicket, getTicket, updateTicket } from '../../lib/api/tickets';
+import { getErrorMessage } from '../../lib/api/errorUtils';
+import type { TicketStatus } from '../../types/ticket';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 const statuses: TicketStatus[] = ['KEEPING', 'SELLING', 'SOLD'];
@@ -18,6 +21,7 @@ export default function EditTicket() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [eventTitle, setEventTitle] = useState('');
   const [status, setStatus] = useState<TicketStatus>('KEEPING');
@@ -26,45 +30,43 @@ export default function EditTicket() {
   const [seat, setSeat] = useState('');
   const [barcode, setBarcode] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadTicket = useCallback(async () => {
     if (!ticketId) return;
-
     setIsLoading(true);
-    getTicketById(String(ticketId))
-      .then((t) => {
-        if (cancelled) return;
-        if (!t) return;
-        setEventTitle(`${t.event.artist.name} — ${t.event.venue.name}`);
-        setStatus(t.status);
-        setSection(t.section ?? '');
-        setRow(t.row ?? '');
-        setSeat(t.seat ?? '');
-        setBarcode(t.barcode ?? '');
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    setLoadError(null);
+    try {
+      const t = await getTicket(String(ticketId));
+      setEventTitle(`${t.event.artist.name} — ${t.event.venue.name}`);
+      setStatus(t.status);
+      setSection(t.section ?? '');
+      setRow(t.row ?? '');
+      setSeat(t.seat ?? '');
+      setBarcode(t.barcode ?? '');
+    } catch (e) {
+      setLoadError(getErrorMessage(e));
+    } finally {
+      setIsLoading(false);
+    }
   }, [ticketId]);
+
+  useEffect(() => {
+    void loadTicket();
+  }, [loadTicket]);
 
   const onSave = async () => {
     if (!ticketId) return;
     setIsSaving(true);
     try {
-      await updateTicket({
-        id: String(ticketId),
+      await updateTicket(String(ticketId), {
         status,
-        section: section.trim() || null,
-        row: row.trim() || null,
-        seat: seat.trim() || null,
-        barcode: barcode.trim() || null,
+        section: section.trim(),
+        row: row.trim(),
+        seat: seat.trim(),
+        barcode: barcode.trim(),
       });
       goBack();
+    } catch (e) {
+      Alert.alert('Could not save ticket', getErrorMessage(e));
     } finally {
       setIsSaving(false);
     }
@@ -78,12 +80,26 @@ export default function EditTicket() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deleteTicket(String(ticketId));
-          router.replace('/wallet');
+          try {
+            await deleteTicket(String(ticketId));
+            router.replace('/wallet');
+          } catch (e) {
+            Alert.alert('Could not delete ticket', getErrorMessage(e));
+          }
         },
       },
     ]);
   };
+
+  if (loadError) {
+    return (
+      <Screen>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ErrorState title="Couldn't load ticket" message={loadError} onRetry={loadTicket} />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -139,7 +155,3 @@ export default function EditTicket() {
     </Screen>
   );
 }
-
-
-
-

@@ -2,38 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getEvent } from '../lib/api/events';
 import type { EventDetails } from '../types/event';
-import { getEventById as getLocalEventById, type Event as LocalEvent } from '../lib/local/repo/eventsRepo';
 import { getErrorMessage } from '../lib/api/errorUtils';
-
-function localEventToDetails(e: LocalEvent): EventDetails {
-  return {
-    id: e.id,
-    name: e.name,
-    date: e.date,
-    imageUrl: e.imageUrl ?? undefined,
-    artist: {
-      id: e.artist.id,
-      name: e.artist.name,
-      imageUrl: e.artist.imageUrl ?? undefined,
-      genres: e.artist.genres,
-    },
-    venue: {
-      id: e.venue.id,
-      name: e.venue.name,
-      city: e.venue.city,
-      state: e.venue.state ?? undefined,
-      country: e.venue.country,
-    },
-    logCount: 0,
-    interestedCount: 0,
-    isInterested: false,
-    userLog: null,
-    friendsWhoWent: [],
-    friendsInterested: [],
-    setlist: [],
-    moments: [],
-  };
-}
 
 export function useEvent(eventId: string) {
   const [event, setEvent] = useState<EventDetails | null>(null);
@@ -50,17 +19,6 @@ export function useEvent(eventId: string) {
       const data = await getEvent(eventId);
       setEvent(data);
     } catch (err: any) {
-      // Fallback to local DB (logged shows) when the remote event doesn't exist.
-      try {
-        const local = await getLocalEventById(eventId);
-        if (local) {
-          setEvent(localEventToDetails(local));
-          return;
-        }
-      } catch {
-        // ignore
-      }
-
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
@@ -91,6 +49,3 @@ export function useEvent(eventId: string) {
     updateInterested,
   };
 }
-
-
-

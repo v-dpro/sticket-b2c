@@ -6,7 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
-import { createOrGetArtistByName, createOrGetEvent, createOrGetVenue } from '../../lib/local/repo/eventsRepo';
+import { importEvent } from '../../lib/api/events';
+import { getErrorMessage } from '../../lib/api/errorUtils';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 function toIsoDate(dateStr: string) {
@@ -43,24 +44,17 @@ export default function CreateShow() {
 
     setIsSaving(true);
     try {
-      const artist = await createOrGetArtistByName(artistNameState);
-      const venue = await createOrGetVenue({
-        name: venueName,
-        city,
-        state: state.trim() || null,
-        country: 'USA',
-      });
-
-      const event = await createOrGetEvent({
-        artistId: artist.id,
-        venueId: venue.id,
-        artistName: artist.name,
-        dateIso,
+      const event = await importEvent({
+        artistName: artistNameState.trim(),
+        venueName: venueName.trim(),
+        venueCity: city.trim(),
+        venueCountry: 'US',
+        date: dateIso,
       });
 
       router.replace({ pathname: '/log/details', params: { eventId: event.id } });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create show');
+      setError(getErrorMessage(e));
     } finally {
       setIsSaving(false);
     }

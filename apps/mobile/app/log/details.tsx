@@ -1,14 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { Button } from '../../components/ui/Button';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
-import { createLog as createRemoteLog } from '../../lib/api/logs';
-import { createOrUpdateLog, deleteLogById, getLogForUserEvent } from '../../lib/local/repo/logsRepo';
-import { getDb } from '../../lib/local/db';
+import { createLog, deleteLog, updateLog } from '../../lib/api/logs';
+import { getEvent } from '../../lib/api/events';
+import { getErrorMessage } from '../../lib/api/errorUtils';
 import { useSession } from '../../hooks/useSession';
 
 export default function LogDetails() {
@@ -24,6 +25,7 @@ export default function LogDetails() {
   const [seat, setSeat] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isPrefilling, setIsPrefilling] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const parsedRating = useMemo(() => {
     const n = Number(rating);
@@ -34,91 +36,94 @@ export default function LogDetails() {
 
   const [eventName, setEventName] = useState<string>('');
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadEvent = useCallback(async () => {
     if (!eventId) return;
-    (async () => {
-      const db = await getDb();
-      const row = await db.getFirstAsync<{ name: string }>('SELECT name FROM events WHERE id = ? LIMIT 1', String(eventId));
-      if (cancelled) return;
-      setEventName(row?.name ?? '');
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!user?.id || !eventId) return;
-
     setIsPrefilling(true);
-    getLogForUserEvent(user.id, String(eventId))
-      .then((log) => {
-        if (cancelled) return;
-        if (!log) {
-          setExistingLogId(null);
-          return;
-        }
+    setLoadError(null);
+    try {
+      // /events/:id also carries the signed-in user's log for prefill.
+      const event = await getEvent(String(eventId));
+      setEventName(event.name ?? '');
+
+      const log = event.userLog;
+      if (log) {
         setExistingLogId(log.id);
         setRating(typeof log.rating === 'number' ? String(log.rating) : '');
         setNote(log.note ?? '');
         setSection(log.section ?? '');
         setRow(log.row ?? '');
         setSeat(log.seat ?? '');
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIsPrefilling(false);
-      });
+      } else {
+        setExistingLogId(null);
+      }
+    } catch (e) {
+      setLoadError(getErrorMessage(e));
+    } finally {
+      setIsPrefilling(false);
+    }
+  }, [eventId]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId, user?.id]);
+  useEffect(() => {
+    void loadEvent();
+  }, [loadEvent]);
 
   const onSave = async () => {
     if (!user || !eventId) return;
     setIsSaving(true);
     try {
-      await createOrUpdateLog({
-        userId: user.id,
-        eventId: String(eventId),
-        rating: parsedRating,
-        note: note.trim() || null,
-        section: section.trim() || null,
-        row: row.trim() || null,
-        seat: seat.trim() || null,
-      });
+      if (existingLogId) {
+        await updateLog(existingLogId, {
+          rating: parsedRating,
+          note: note.trim() || null,
+          section: section.trim() || null,
+          row: row.trim() || null,
+          seat: seat.trim() || null,
+        });
 
-      let newBadgeIds: string[] = [];
-      // If this is an API-backed user (not local-only), also create the log remotely so badges can be awarded server-side.
-      if (!existingLogId && !user.id.startsWith('user_')) {
-        try {
-          const res = await createRemoteLog({
-            eventId: String(eventId),
-            rating: parsedRating ?? undefined,
-            note: note.trim() || undefined,
-            section: section.trim() || undefined,
-            row: row.trim() || undefined,
-            seat: seat.trim() || undefined,
-            visibility: 'PUBLIC',
-          });
-          newBadgeIds = (res.newBadges || []).map((b) => b.id);
-        } catch (apiErr: any) {
-          // Ignore \"Already logged\" on API side.
-          if (apiErr?.response?.status !== 409) throw apiErr;
-        }
+        await refresh();
+        router.replace({ pathname: '/log/success', params: { eventId: String(eventId) } });
+        return;
       }
 
+      const res = await createLog({
+        eventId: String(eventId),
+        rating: parsedRating ?? undefined,
+        note: note.trim() || undefined,
+        section: section.trim() || undefined,
+        row: row.trim() || undefined,
+        seat: seat.trim() || undefined,
+        visibility: 'PUBLIC',
+      });
+
       await refresh();
+
+      // Pass the server-computed rewards to the reveal screen. The screen
+      // falls back to a client-side preview when these are absent.
+      const badges = (res.newBadges ?? []).map((b) => ({
+        id: b.id,
+        name: b.name,
+        icon: b.icon,
+        description: b.description,
+      }));
+
       router.replace({
         pathname: '/log/success',
         params: {
           eventId: String(eventId),
-          ...(newBadgeIds.length ? { newBadges: newBadgeIds.join(',') } : {}),
+          ...(typeof res.xpGain === 'number' ? { xpGain: String(res.xpGain) } : {}),
+          ...(typeof res.xpAfter === 'number' ? { xpAfter: String(res.xpAfter) } : {}),
+          ...(res.leveledUp ? { leveledUp: '1' } : {}),
+          ...(badges.length ? { badges: JSON.stringify(badges) } : {}),
         },
       });
+    } catch (apiErr: any) {
+      // Already logged on the API side — treat as success and let the user edit.
+      if (apiErr?.response?.status === 409) {
+        await refresh();
+        router.replace({ pathname: '/log/success', params: { eventId: String(eventId) } });
+        return;
+      }
+      Alert.alert('Could not save log', getErrorMessage(apiErr));
     } finally {
       setIsSaving(false);
     }
@@ -132,13 +137,27 @@ export default function LogDetails() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deleteLogById(existingLogId);
-          await refresh();
-          router.replace({ pathname: '/event/[eventId]', params: { eventId: String(eventId) } });
+          try {
+            await deleteLog(existingLogId);
+            await refresh();
+            router.replace({ pathname: '/event/[eventId]', params: { eventId: String(eventId) } });
+          } catch (e) {
+            Alert.alert('Could not delete log', getErrorMessage(e));
+          }
         },
       },
     ]);
   };
+
+  if (loadError) {
+    return (
+      <Screen>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ErrorState title="Couldn't load show" message={loadError} onRetry={loadEvent} />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -179,6 +198,3 @@ export default function LogDetails() {
     </Screen>
   );
 }
-
-
-

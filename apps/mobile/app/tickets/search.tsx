@@ -5,12 +5,12 @@ import { Pressable, Text, View } from 'react-native';
 import { Screen } from '../../components/ui/Screen';
 import { TextField } from '../../components/ui/TextField';
 import { colors, spacing } from '../../lib/theme';
-import { searchArtists, type Artist } from '../../lib/local/repo/eventsRepo';
+import { searchArtistsSpotify, type SearchArtist } from '../../lib/api/logShow';
 
 export default function TicketsSearchArtist() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Artist[]>([]);
+  const [results, setResults] = useState<SearchArtist[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const q = useMemo(() => query.trim(), [query]);
@@ -19,22 +19,26 @@ export default function TicketsSearchArtist() {
     let cancelled = false;
     if (q.length < 2) {
       setResults([]);
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    searchArtists(q)
-      .then((r) => {
-        if (cancelled) return;
-        setResults(r);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIsLoading(false);
-      });
+    const timer = setTimeout(() => {
+      searchArtistsSpotify(q)
+        .then((r) => {
+          if (cancelled) return;
+          setResults(r);
+        })
+        .finally(() => {
+          if (cancelled) return;
+          setIsLoading(false);
+        });
+    }, 300);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [q]);
 
@@ -54,7 +58,12 @@ export default function TicketsSearchArtist() {
           {results.map((a) => (
             <Pressable
               key={a.id}
-              onPress={() => router.push({ pathname: '/tickets/select-event', params: { artistId: a.id } })}
+              onPress={() =>
+                router.push({
+                  pathname: '/tickets/select-event',
+                  params: { artistId: a.id, artistName: a.name, artistImage: a.imageUrl || '' },
+                })
+              }
               style={({ pressed }) => ({
                 padding: 14,
                 borderRadius: 12,
@@ -70,11 +79,12 @@ export default function TicketsSearchArtist() {
               ) : null}
             </Pressable>
           ))}
+
+          {q.length >= 2 && !isLoading && results.length === 0 ? (
+            <Text style={{ color: colors.textLo, fontSize: 14 }}>No artists found.</Text>
+          ) : null}
         </View>
       </View>
     </Screen>
   );
 }
-
-
-
