@@ -2,6 +2,12 @@ export interface FeedPhoto {
   id: string;
   photoUrl: string;
   thumbnailUrl?: string;
+  /** "image" | "video" — mirrors LogPhoto.mediaKind; absent = image */
+  mediaKind?: 'image' | 'video';
+  /** Video duration in seconds (mediaKind === 'video') */
+  duration?: number;
+  /** Video poster frame (mediaKind === 'video') */
+  thumbUrl?: string;
 }
 
 export interface FeedComment {
@@ -57,6 +63,17 @@ export interface FeedItem {
   comments: FeedComment[]; // preview
   wasThereCount: number;
   userWasThere: boolean;
+
+  // Like data inlined by the feed serializer (absent on older API builds —
+  // FeedCard falls back to a lazy GET /logs/:id/likes when missing).
+  likeCount?: number;
+  likedByMe?: boolean;
+  recentLikers?: {
+    id: string;
+    username: string;
+    displayName?: string;
+    avatarUrl?: string;
+  }[];
 }
 
 export interface LogDetail extends FeedItem {

@@ -43,6 +43,39 @@ export async function removeWasThere(logId: string): Promise<void> {
   await apiClient.delete(`/logs/${logId}/was-there`);
 }
 
+// ─── Likes (LogLike) ───────────────────────────────────────────────
+
+export type LogLikeUser = {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+};
+
+export type LogLikesResponse = {
+  likes: { id: string; createdAt: string; user: LogLikeUser }[];
+  nextCursor?: string | null;
+};
+
+// Like a log
+export async function likeLog(logId: string): Promise<void> {
+  await apiClient.post(`/logs/${logId}/like`);
+}
+
+// Remove like from a log
+export async function unlikeLog(logId: string): Promise<void> {
+  await apiClient.delete(`/logs/${logId}/like`);
+}
+
+// Get likes for a log (paginated)
+export async function getLogLikes(
+  logId: string,
+  options?: { limit?: number; cursor?: string }
+): Promise<LogLikesResponse> {
+  const response = await apiClient.get(`/logs/${logId}/likes`, { params: options });
+  return response.data;
+}
+
 // Get comments for a log
 export async function getLogComments(
   logId: string,

@@ -1,9 +1,91 @@
 // Motion — shared animation primitives for Sticket.
 // React Native equivalents of the web motion.jsx.
-// Uses react-native Animated API for broad compatibility.
+// Legacy hooks below use the RN Animated API; new primitives (springs,
+// durations, haptics, useShake) target Reanimated worklets per INTERACTIONS.md.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing } from 'react-native';
+import { Animated, Easing, Platform } from 'react-native';
+import * as ExpoHaptics from 'expo-haptics';
+import {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+
+// ─── Spring configs (INTERACTIONS.md) ─────────────────────────────
+// Pass to Reanimated `withSpring(target, springs.x)`.
+export const springs = {
+  /** Tap release: spring back (stiffness 260, damping 20) */
+  press: { stiffness: 260, damping: 20 },
+  /** Stamp / heart pop overshoot */
+  pop: { stiffness: 260, damping: 18, mass: 0.8 },
+  /** Default UI chase (reveals, expands) */
+  gentle: { stiffness: 180, damping: 22 },
+  /** SpringNumber count ticks — critically damped, no overshoot */
+  number: { stiffness: 110, damping: 26 },
+  /** Heart-burst overlay scale */
+  burst: { stiffness: 200, damping: 14 },
+} as const;
+
+// ─── Durations (ms, INTERACTIONS.md) ──────────────────────────────
+export const motionDurations = {
+  pressDown: 80, // tap down scale(0.97)
+  heartPop: 240, // like heart 1 → 1.35 → 1
+  flash: 200, // red flash overlay in/out
+  heartBurst: 600, // double-tap media burst
+  expand: 300, // who-was-here height auto-animate
+  rowStagger: 40, // per-row stagger delay
+  starStagger: 40, // star rating stagger-pop
+  shake: 340, // disabled-tap jitter
+  refreshSpin: 800, // pull-to-refresh wordmark rotation
+  crossfade: 160,
+} as const;
+
+// ─── Haptics table (INTERACTIONS.md, native only) ─────────────────
+// Light: card tap, toggle, carousel snap · Medium: like, save, step
+// complete · Heavy: reveal stamp, level-up · Error: disabled tap.
+function safeHaptic(fn: () => Promise<void>) {
+  if (Platform.OS === 'web') return;
+  fn().catch(() => {
+    // haptics unavailable — ignore
+  });
+}
+
+export const haptics = {
+  light: () => safeHaptic(() => ExpoHaptics.impactAsync(ExpoHaptics.ImpactFeedbackStyle.Light)),
+  medium: () => safeHaptic(() => ExpoHaptics.impactAsync(ExpoHaptics.ImpactFeedbackStyle.Medium)),
+  heavy: () => safeHaptic(() => ExpoHaptics.impactAsync(ExpoHaptics.ImpactFeedbackStyle.Heavy)),
+  error: () => safeHaptic(() => ExpoHaptics.notificationAsync(ExpoHaptics.NotificationFeedbackType.Error)),
+  success: () => safeHaptic(() => ExpoHaptics.notificationAsync(ExpoHaptics.NotificationFeedbackType.Success)),
+} as const;
+
+// ─── useShake: disabled-tap feedback (Reanimated) ─────────────────
+// ±6px horizontal jitter, 4 cycles, ~340ms, settles at 0.
+// Returns a style for an Animated.View and a `shake()` trigger.
+export function useShake() {
+  const translateX = useSharedValue(0);
+
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const shake = useCallback(() => {
+    translateX.value = withSequence(
+      withTiming(6, { duration: 42 }),
+      withTiming(-6, { duration: 42 }),
+      withTiming(6, { duration: 42 }),
+      withTiming(-6, { duration: 42 }),
+      withTiming(4, { duration: 42 }),
+      withTiming(-4, { duration: 42 }),
+      withTiming(2, { duration: 44 }),
+      withTiming(0, { duration: 44 }),
+    );
+    haptics.error();
+  }, [translateX]);
+
+  return { shakeStyle, shake };
+}
 
 // ─── useSpring: tween a value toward a target with damping ──────
 // Returns an Animated.Value that chases `target`.

@@ -1,50 +1,57 @@
-import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+// FeedSkeleton — loading placeholder matching the ShowCard layout:
+// full-bleed post with 56px header, square media, action row, caption.
 
-import { colors, radius } from '../../lib/theme';
+import { useEffect } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+
+import { colors } from '../../lib/theme';
 
 export function FeedSkeleton() {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  const { width } = useWindowDimensions();
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.65, duration: 800, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
+    progress.value = withRepeat(withTiming(1, { duration: 800 }), -1, true);
+  }, [progress]);
+
+  const pulse = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0.35, 0.65]),
+  }));
 
   return (
-    <View style={styles.container}>
-      {[1, 2, 3].map((i) => (
-        <Animated.View key={i} style={[styles.card, { opacity }]}>
+    <View style={styles.container} accessibilityLabel="Loading feed">
+      {[1, 2].map((i) => (
+        <Animated.View key={i} style={[styles.card, pulse]}>
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.avatar} />
             <View style={styles.headerText}>
+              <View style={styles.eyebrowLine} />
               <View style={styles.nameLine} />
-              <View style={styles.usernameLine} />
+              <View style={styles.metaLine} />
             </View>
           </View>
 
-          <View style={styles.content}>
-            <View style={styles.artistImage} />
-            <View style={styles.contentText}>
-              <View style={styles.artistLine} />
-              <View style={styles.venueLine} />
-              <View style={styles.dateLine} />
-            </View>
-          </View>
+          {/* Square media */}
+          <View style={[styles.media, { height: Math.min(width, 480) }]} />
 
-          <View style={styles.photoPlaceholder} />
-
+          {/* Action row */}
           <View style={styles.actions}>
-            <View style={styles.actionButton} />
-            <View style={styles.actionButton} />
-            <View style={styles.actionButton} />
+            <View style={styles.actionDot} />
+            <View style={styles.actionDot} />
+            <View style={styles.actionDot} />
           </View>
+
+          {/* Caption */}
+          <View style={styles.captionTitle} />
+          <View style={styles.captionLine} />
         </Animated.View>
       ))}
     </View>
@@ -53,96 +60,82 @@ export function FeedSkeleton() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 16,
-    paddingHorizontal: 16,
+    paddingTop: 4,
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    marginBottom: 16,
-    padding: 16,
-    borderWidth: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: colors.hairline,
+    marginBottom: 12,
+    paddingBottom: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    height: 56,
+    paddingHorizontal: 14,
+    marginVertical: 4,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.hairline,
-    marginRight: 12,
+    marginRight: 10,
   },
   headerText: {
     flex: 1,
+    gap: 5,
+  },
+  eyebrowLine: {
+    width: 70,
+    height: 7,
+    borderRadius: 3,
+    backgroundColor: colors.hairline,
   },
   nameLine: {
-    width: 120,
-    height: 14,
-    backgroundColor: colors.hairline,
+    width: 110,
+    height: 11,
     borderRadius: 4,
-    marginBottom: 6,
-  },
-  usernameLine: {
-    width: 80,
-    height: 12,
-    backgroundColor: colors.hairline,
-    borderRadius: 4,
-  },
-  content: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  artistImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
     backgroundColor: colors.hairline,
   },
-  contentText: {
-    flex: 1,
-  },
-  artistLine: {
-    width: '70%',
-    height: 16,
+  metaLine: {
+    width: 150,
+    height: 8,
+    borderRadius: 3,
     backgroundColor: colors.hairline,
-    borderRadius: 4,
-    marginBottom: 8,
   },
-  venueLine: {
-    width: '50%',
-    height: 12,
-    backgroundColor: colors.hairline,
-    borderRadius: 4,
-    marginBottom: 6,
-  },
-  dateLine: {
-    width: '40%',
-    height: 10,
-    backgroundColor: colors.hairline,
-    borderRadius: 4,
-  },
-  photoPlaceholder: {
-    height: 200,
-    backgroundColor: colors.hairline,
-    borderRadius: radius.md,
-    marginTop: 16,
+  media: {
+    width: '100%',
+    backgroundColor: colors.elevated,
   },
   actions: {
     flexDirection: 'row',
-    marginTop: 16,
     gap: 16,
+    paddingHorizontal: 14,
+    paddingTop: 14,
   },
-  actionButton: {
-    width: 80,
-    height: 24,
+  actionDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.hairline,
-    borderRadius: 12,
+  },
+  captionTitle: {
+    width: '55%',
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: colors.hairline,
+    marginHorizontal: 14,
+    marginTop: 14,
+  },
+  captionLine: {
+    width: '80%',
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: colors.hairline,
+    marginHorizontal: 14,
+    marginTop: 8,
   },
 });
-
-
-

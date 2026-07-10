@@ -8,6 +8,7 @@ import { Avatar } from '../../../components/ui/Avatar';
 import { MonoLabel } from '../../../components/ui/MonoLabel';
 import { PillButton } from '../../../components/ui/PillButton';
 import { ScreenTitle } from '../../../components/ui/ScreenTitle';
+import { SpringNumber } from '../../../components/ui/SpringNumber';
 import { TimelineView } from '../../../components/profile/TimelineView';
 import { ProfileStatsView } from '../../../components/profile/ProfileStatsView';
 import { colors, spacing, fonts, radius, fontFamilies } from '../../../lib/theme';
@@ -26,7 +27,8 @@ function StatDivider() {
 function Stat({ value, label, color }: { value: number; label: string; color: string }) {
   return (
     <View style={styles.statItem}>
-      <Text style={styles.statValue}>{value}</Text>
+      {/* INTERACTIONS.md — Profile stats count up from 0 over 900ms on mount */}
+      <SpringNumber value={value} mode="timing" duration={900} style={styles.statValue} />
       <Text style={[styles.statLabel, { color }]}>{label}</Text>
     </View>
   );
@@ -83,6 +85,10 @@ export default function ProfileScreen() {
 
   const handleSettings = () => {
     router.push('/settings');
+  };
+
+  const handleConcertLife = () => {
+    router.push('/(tabs)/my-artists');
   };
 
   if (sessionLoading || profileLoading) {
@@ -210,6 +216,14 @@ export default function ProfileScreen() {
         title={profile?.displayName || profile?.username || ''}
         right={
           <View style={styles.headerActions}>
+            <Pressable
+              onPress={handleConcertLife}
+              style={styles.settingsButton}
+              accessibilityRole="button"
+              accessibilityLabel="Concert Life"
+            >
+              <Ionicons name="grid-outline" size={16} color={colors.textHi} />
+            </Pressable>
             <ShareButton data={statsShareData} link={createUserLink(profile.username)} />
             <Pressable onPress={handleSettings} style={styles.settingsButton} accessibilityRole="button">
               <Ionicons name="settings-outline" size={16} color={colors.textHi} />

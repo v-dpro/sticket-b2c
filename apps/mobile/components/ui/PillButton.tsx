@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { colors } from '../../lib/theme';
+import { SpringPressable } from './SpringPressable';
 
 type PillButtonProps = {
   title: string;
@@ -17,6 +18,14 @@ type PillButtonProps = {
   accentColor?: string;
   disabled?: boolean;
   icon?: ReactNode;
+  /**
+   * Opt-in spec tap feedback (INTERACTIONS.md): 80ms scale-down,
+   * spring-back release, shake on disabled tap. Default false so
+   * existing screens keep the plain pressed-state behavior.
+   */
+  springFeedback?: boolean;
+  /** Haptic on press when springFeedback is on. Default 'none'. */
+  haptic?: 'light' | 'medium' | 'heavy' | 'none';
 };
 
 const HEIGHT: Record<string, number> = { sm: 30, md: 38, lg: 46 };
@@ -31,6 +40,8 @@ export function PillButton({
   accentColor = colors.brandCyan,
   disabled = false,
   icon,
+  springFeedback = false,
+  haptic = 'none',
 }: PillButtonProps) {
   const h = HEIGHT[size];
   const fontSize = FONT_SIZE[size];
@@ -82,17 +93,40 @@ export function PillButton({
     containerStyle.push({ opacity: 0.4 });
   }
 
+  const content = (
+    <>
+      {icon && <View style={styles.icon}>{icon}</View>}
+      <Text style={textStyle}>{title}</Text>
+    </>
+  );
+
+  if (springFeedback) {
+    return (
+      <SpringPressable
+        onPress={onPress}
+        disabled={disabled}
+        haptic={haptic}
+        style={containerStyle}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+      >
+        {content}
+      </SpringPressable>
+    );
+  }
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={title}
       style={({ pressed }) => [
         ...containerStyle,
         pressed && { transform: [{ scale: 0.97 }] },
       ]}
     >
-      {icon && <View style={styles.icon}>{icon}</View>}
-      <Text style={textStyle}>{title}</Text>
+      {content}
     </Pressable>
   );
 }

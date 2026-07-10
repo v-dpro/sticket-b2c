@@ -1,65 +1,73 @@
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 import { Screen } from '../../../components/ui/Screen';
-import { EmptyState } from '../../../components/ui/EmptyState';
-import { SectionHead } from '../../../components/ui/SectionHead';
-import { colors, fontFamilies, spacing } from '../../../lib/theme';
+import { colors, fontFamilies } from '../../../lib/theme';
 import { useFeed } from '../../../hooks/useFeed';
-import { usePublicFeed } from '../../../hooks/usePublicFeed';
 import { useFeedActions } from '../../../hooks/useFeedActions';
 import { useSession } from '../../../hooks/useSession';
-import { FeedCard } from '../../../components/feed/FeedCard';
+import { FeedCard, invalidateFeedLikeCache } from '../../../components/feed/FeedCard';
+import { invalidateWhoWasHereCache } from '../../../components/feed/WhoWasHere';
 import { EmptyFeed } from '../../../components/feed/EmptyFeed';
 import { FeedSkeleton } from '../../../components/feed/FeedSkeleton';
+import { FeedRefreshWordmark } from '../../../components/feed/FeedRefreshWordmark';
 import { NotificationBellButton } from '../../../components/notifications/NotificationBellButton';
-import { FeedTabBar } from '../../../components/feed/FeedTabBar';
 import type { FeedItem } from '../../../types/feed';
+
+// Spec (SCREENS.md §1): single friends feed, no Friends/Public tab bar.
 
 export default function FeedScreen() {
   const router = useRouter();
-  const { user } = useSession();
-  const [activeTab, setActiveTab] = useState<'friends' | 'public'>('friends');
+  const { user, profile } = useSession();
 
-  const friendsFeed = useFeed();
-  const publicFeed = usePublicFeed();
+  const {
+    items,
+    loading,
+    refreshing,
+    loadingMore,
+    hasMore,
+    hasNoFriends,
+    error,
+    requiresAuth,
+    refresh,
+    loadMore,
+    addCommentToItem,
+  } = useFeed();
 
-  // Refresh feed when screen comes into focus (e.g., after signing in)
+  const { submitComment } = useFeedActions();
+
+  // Refresh feed when screen comes into focus (e.g., after signing in).
+  // Held in a ref so the focus effect doesn't re-fire on every render.
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
   useFocusEffect(
     useCallback(() => {
       // Small delay to ensure token is stored after sign-in
       const timer = setTimeout(() => {
-        if (activeTab === 'friends') {
-          void friendsFeed.refresh();
-        } else {
-          void publicFeed.refresh();
-        }
+        void refreshRef.current();
       }, 100);
       return () => clearTimeout(timer);
-    }, [activeTab, friendsFeed, publicFeed])
+    }, [])
   );
 
-  const activeFeed = activeTab === 'friends' ? friendsFeed : publicFeed;
-  const { items, loading, refreshing, loadingMore, hasMore, hasNoFriends, error, requiresAuth, refresh, loadMore, updateItem, addCommentToItem } = activeFeed;
-  const { toggleWasThere, submitComment } = useFeedActions();
-
-  const handleWasThere = useCallback(
-    async (logId: string, current: boolean) => {
-      const success = await toggleWasThere(logId, current);
-      if (success) {
-        const currentItem = items.find((i) => i.log.id === logId);
-        const prevCount = currentItem?.wasThereCount ?? 0;
-        updateItem(logId, {
-          userWasThere: !current,
-          wasThereCount: Math.max(0, prevCount + (current ? -1 : 1)),
-        } as any);
-      }
-      return success;
+  // Pull distance drives the rotating-wordmark refresh indicator.
+  const pullY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      pullY.value = e.contentOffset.y;
     },
-    [items, toggleWasThere, updateItem]
-  );
+  });
 
   const handleComment = useCallback(
     async (logId: string, text: string) => {
@@ -71,10 +79,17 @@ export default function FeedScreen() {
   const renderItem = useCallback(
     ({ item }: { item: FeedItem }) => (
       <View style={styles.cardWrapper}>
-        <FeedCard item={item} onWasThere={handleWasThere} onComment={handleComment} onCommentAdded={addCommentToItem} />
+        <FeedCard
+          item={item}
+          currentUserId={user?.id}
+          viewerAvatarUrl={profile?.avatarUrl}
+          viewerName={profile?.displayName || profile?.username}
+          onComment={handleComment}
+          onCommentAdded={addCommentToItem}
+        />
       </View>
     ),
-    [addCommentToItem, handleComment, handleWasThere]
+    [addCommentToItem, handleComment, profile?.avatarUrl, profile?.displayName, profile?.username, user?.id]
   );
 
   const keyExtractor = useCallback((item: FeedItem) => item.id, []);
@@ -88,36 +103,14 @@ export default function FeedScreen() {
     );
   };
 
-  const listHeader = useMemo(
-    () => (
-      <View style={styles.sectionHeadWrapper}>
-        <SectionHead eyebrow="LATEST LOGS" title="Tonight's dispatches" />
-      </View>
-    ),
-    []
-  );
-
-  const emptyMessage = useMemo(() => {
-    if (activeTab !== 'friends') return null;
-
-    // If there's an error, always show it
-    if (error) {
-      return error;
-    }
-
-    // Only show "Sign in" if requiresAuth is true AND there's no user
-    // If user exists, we should never show "Sign in" - show error instead
-    if (requiresAuth && !user) {
-      return 'Sign in to view your friends feed.';
-    }
-
-    // If user exists but requiresAuth is true (shouldn't happen, but safety check)
-    if (user && requiresAuth) {
-      return 'Unable to load feed. Please try again.';
-    }
-
+  const emptyMessage = (() => {
+    // A transient refresh failure shouldn't blank an already-loaded feed.
+    if (items.length > 0) return null;
+    if (error) return error;
+    if (requiresAuth && !user) return 'Sign in to view your friends feed.';
+    if (user && requiresAuth) return 'Unable to load feed. Please try again.';
     return null;
-  }, [activeTab, error, requiresAuth, user]);
+  })();
 
   return (
     <Screen padded={false}>
@@ -131,24 +124,14 @@ export default function FeedScreen() {
         </View>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabBarContainer}>
-        <FeedTabBar
-          activeTab={activeTab === 'friends' ? 'friends' : 'discover'}
-          onTabChange={(t) => setActiveTab(t === 'friends' ? 'friends' : 'public')}
-        />
-      </View>
-
       {loading && items.length === 0 ? (
         <FeedSkeleton />
       ) : emptyMessage ? (
         <View style={styles.center}>
-          <Ionicons name={user ? "refresh-outline" : "lock-closed-outline"} size={48} color={colors.textLo} />
+          <Ionicons name={user ? 'refresh-outline' : 'lock-closed-outline'} size={48} color={colors.textLo} />
           <Text style={styles.errorText}>{emptyMessage}</Text>
           {user ? (
-            // User is signed in but feed failed - check if they need to sign in online
             error?.includes('online account') || error?.includes('session expired') ? (
-              // User needs to sign in with email/password to get API token
               <>
                 <Pressable onPress={() => router.replace('/(auth)/sign-in')} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
                   <Text style={[styles.retryText, styles.primaryButtonText]}>Sign In Online</Text>
@@ -158,7 +141,6 @@ export default function FeedScreen() {
                 </Pressable>
               </>
             ) : (
-              // Other error - show retry
               <>
                 <Pressable onPress={refresh} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
                   <Text style={[styles.retryText, styles.primaryButtonText]}>Try Again</Text>
@@ -169,7 +151,6 @@ export default function FeedScreen() {
               </>
             )
           ) : (
-            // No user - show sign in option
             <>
               <Pressable onPress={() => router.replace('/(auth)/welcome')} style={[styles.retryButton, styles.primaryButton]} accessibilityRole="button">
                 <Text style={[styles.retryText, styles.primaryButtonText]}>Sign In</Text>
@@ -192,32 +173,42 @@ export default function FeedScreen() {
           </Pressable>
         </View>
       ) : items.length === 0 ? (
-        activeTab === 'friends' ? (
-          <EmptyFeed hasNoFriends={Boolean(hasNoFriends)} />
-        ) : (
-          <EmptyState
-            icon="globe-outline"
-            title="Nothing in Discover yet"
-            description="Public activity will show up here."
-            actionLabel="Explore"
-            onAction={() => router.replace('/(tabs)/discover')}
-          />
-        )
+        <EmptyFeed hasNoFriends={Boolean(hasNoFriends)} />
       ) : (
-      <FlatList
-        data={items}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ListHeaderComponent={listHeader}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brandCyan} colors={[colors.brandCyan]} />}
-        onEndReached={() => {
-          if (hasMore) loadMore();
-        }}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={renderFooter}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+        <View style={styles.listHost}>
+          <Animated.FlatList
+            data={items}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  // Explicit pull — also refetch per-card social data.
+                  invalidateFeedLikeCache();
+                  invalidateWhoWasHereCache();
+                  void refresh();
+                }}
+                // iOS: hide the system spinner — the rotating wordmark
+                // overlay is the indicator. Android has no over-scroll
+                // offset, so keep a themed system spinner there.
+                tintColor={Platform.OS === 'ios' ? 'transparent' : undefined}
+                colors={[colors.brandCyan]}
+                progressBackgroundColor={colors.elevated}
+              />
+            }
+            onEndReached={() => {
+              if (hasMore) loadMore();
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+          {Platform.OS === 'ios' ? <FeedRefreshWordmark pullY={pullY} refreshing={refreshing} /> : null}
+        </View>
       )}
     </Screen>
   );
@@ -243,20 +234,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  tabBarContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 4,
-  },
-  sectionHeadWrapper: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+  listHost: {
+    flex: 1,
   },
   cardWrapper: {
-    paddingHorizontal: 0,
-    paddingBottom: 14,
+    paddingBottom: 12,
   },
   listContent: {
+    paddingTop: 4,
     paddingBottom: 110,
   },
   footer: {
