@@ -1,56 +1,69 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View, ActivityIndicator } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { format } from 'date-fns';
+// LOG FLOW · STEP 1b — pick the night. Bandsintown events for the chosen
+// artist, split UPCOMING / PAST, with mono date metadata and a manual
+// escape hatch. Route contract:
+//   in:  { artistId?, artistName?, artistImage? }   (temp_ id → name search)
+//   out: push /log/details { eventId, eventName, eventDate, artistId,
+//         artistName, artistImage, venueId, venueName, venueCity,
+//         venueState, source, externalId }
 
-import { Screen } from '../../components/ui/Screen';
-import { colors, radius, spacing } from '../../lib/theme';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+
+import { FlowHeader } from '../../components/log/FlowHeader';
+import { LogRow } from '../../components/log/LogRow';
+import { PillButton } from '../../components/ui/PillButton';
 import { getArtistEventsBandsintown, searchEventsByArtist, type SearchEvent } from '../../lib/api/logShow';
+import { durations } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { useTheme } from '../../lib/theme-context';
+
+function monoDate(iso: string): { top: string; bottom: string } {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { top: '—', bottom: '' };
+  const top = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return { top, bottom: String(d.getFullYear()) };
+}
 
 export default function SelectEventScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const pad = tokens.density.pad;
+
   const params = useLocalSearchParams<{
     artistId?: string;
     artistName?: string;
     artistImage?: string;
   }>();
 
+  const artistName = params.artistName || 'Artist';
+  const artistImage = params.artistImage ? String(params.artistImage) : null;
+
   const [events, setEvents] = useState<SearchEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPast, setShowPast] = useState(true);
 
-  const artistName = params.artistName || 'Artist';
-  const artistImage = params.artistImage || null;
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    let data: SearchEvent[] = [];
+    // Both fns swallow network errors and return [] — the empty state below
+    // covers failures too, and offers a retry.
+    if (params.artistId && !String(params.artistId).startsWith('temp_')) {
+      data = await getArtistEventsBandsintown(String(params.artistId), true);
+    } else if (params.artistName) {
+      data = await searchEventsByArtist(String(params.artistName), true);
+    }
+    setEvents(data);
+    setLoading(false);
+  }, [params.artistId, params.artistName]);
 
   useEffect(() => {
-    async function fetchEvents() {
-      setLoading(true);
-      try {
-        let data: SearchEvent[] = [];
-
-        if (params.artistId && !String(params.artistId).startsWith('temp_')) {
-          // We have a real artist ID, use it
-          data = await getArtistEventsBandsintown(String(params.artistId), showPast);
-        } else if (params.artistName) {
-          // No ID, search by name
-          data = await searchEventsByArtist(String(params.artistName), showPast);
-        }
-
-        setEvents(data);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch events:', error);
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchEvents();
-  }, [params.artistId, params.artistName, showPast]);
+    void fetchEvents();
+  }, [fetchEvents]);
 
   const selectEvent = (event: SearchEvent) => {
     router.push({
@@ -72,168 +85,171 @@ export default function SelectEventScreen() {
     });
   };
 
-  const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date());
-  const pastEvents = events.filter((e) => new Date(e.date) < new Date());
+  const now = Date.now();
+  const upcoming = useMemo(
+    () => events.filter((e) => new Date(e.date).getTime() >= now),
+    [events, now],
+  );
+  const past = useMemo(
+    () =>
+      events
+        .filter((e) => new Date(e.date).getTime() < now)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [events, now],
+  );
+
+  const goManual = () =>
+    router.push({ pathname: '/log/create-show', params: { q: artistName } });
 
   return (
-    <Screen padded={false}>
-      {/* Header */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <FlowHeader icon="back" label="Pick the night" onPress={goBack} />
+
+      {/* Artist identity */}
       <View
         style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.md,
+          paddingHorizontal: pad,
+          paddingTop: 8,
+          paddingBottom: 18,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 12,
+          gap: 14,
         }}
       >
-        <Pressable accessibilityRole="button" onPress={goBack}>
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
-        </Pressable>
-
-        {artistImage ? <Image source={{ uri: String(artistImage) }} style={{ width: 40, height: 40, borderRadius: 20 }} /> : null}
-
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: c.card2,
+            overflow: 'hidden',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {artistImage ? (
+            <Image source={{ uri: artistImage }} style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <Ionicons name="person-outline" size={20} color={c.mute} />
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text style={{ color: c.fg, fontSize: 22, fontWeight: '800' }} numberOfLines={1}>
             {artistName}
           </Text>
-          <Text style={{ color: colors.textLo, fontSize: 13 }}>Select a show to log</Text>
+          <Text style={{ color: c.mute, fontSize: 14, fontWeight: '400' }}>
+            Which show were you at?
+          </Text>
         </View>
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={colors.brandCyan} />
-          <Text style={{ color: colors.textLo, marginTop: 12 }}>Finding shows...</Text>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+          <ActivityIndicator size="small" color={c.mute} />
+          <Text
+            style={{
+              fontFamily: tokens.fontFamilies.mono,
+              fontSize: 11,
+              fontWeight: '600',
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              color: c.mute,
+            }}
+          >
+            Finding shows…
+          </Text>
         </View>
       ) : events.length === 0 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl }}>
-          <Ionicons name="calendar-outline" size={48} color={colors.textLo} />
-          <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, gap: 6 }}>
+          <Text style={{ color: c.fg, fontSize: 17, fontWeight: '600', textAlign: 'center' }}>
             No shows found
           </Text>
-          <Text style={{ color: colors.textLo, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
-            We couldn't find any shows for this artist. You can add it manually.
+          <Text style={{ color: c.mute, fontSize: 14, fontWeight: '400', textAlign: 'center' }}>
+            We couldn’t find any dates for {artistName}. Add yours manually — it takes ten seconds.
           </Text>
-          <Pressable
-            onPress={() => router.push({ pathname: '/log/create-show', params: { q: artistName } })}
-            style={{
-              marginTop: 24,
-              backgroundColor: colors.brandPurple,
-              paddingHorizontal: 24,
-              paddingVertical: 12,
-              borderRadius: radius.md,
-            }}
-          >
-            <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '600' }}>Add Manually</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+            <PillButton title="Add it manually" variant="primary" size="md" springFeedback haptic="light" onPress={goManual} />
+            <PillButton title="Retry" variant="ghost" size="md" springFeedback haptic="light" onPress={() => void fetchEvents()} />
+          </View>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing['2xl'] }}>
-          {/* Upcoming Shows */}
-          {upcomingEvents.length > 0 ? (
-            <View style={{ marginBottom: spacing.xl }}>
-              <Text style={{ color: colors.textMid, fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Upcoming Shows</Text>
-              <View style={{ gap: 8 }}>
-                {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} onSelect={selectEvent} />
-                ))}
-              </View>
-            </View>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 48 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {past.length > 0 ? (
+            <EventSection title="Past" events={past} onSelect={selectEvent} />
+          ) : null}
+          {upcoming.length > 0 ? (
+            <EventSection title="Upcoming" events={upcoming} onSelect={selectEvent} />
           ) : null}
 
-          {/* Past Shows */}
-          {pastEvents.length > 0 ? (
-            <View style={{ marginBottom: spacing.xl }}>
-              <Text style={{ color: colors.textMid, fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Past Shows</Text>
-              <View style={{ gap: 8 }}>
-                {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} onSelect={selectEvent} isPast />
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          {/* Manual Entry */}
-          <Pressable
-            onPress={() => router.push({ pathname: '/log/create-show', params: { q: artistName } })}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: radius.lg,
-              padding: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              borderWidth: 1,
-              borderColor: colors.hairline,
-              borderStyle: 'dashed',
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={24} color={colors.brandCyan} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '600' }}>Add Different Show</Text>
-              <Text style={{ color: colors.textLo, fontSize: 13 }}>Show not listed? Enter details manually</Text>
-            </View>
-          </Pressable>
+          <View style={{ marginTop: 20 }}>
+            <LogRow
+              title="Show not listed?"
+              subtitle="Add the details yourself"
+              icon="add"
+              round={false}
+              chevron
+              separator={false}
+              onPress={goManual}
+            />
+          </View>
         </ScrollView>
       )}
-    </Screen>
+    </SafeAreaView>
   );
 }
 
-function EventCard({
-  event,
+function EventSection({
+  title,
+  events,
   onSelect,
-  isPast = false,
 }: {
-  event: SearchEvent;
+  title: string;
+  events: SearchEvent[];
   onSelect: (e: SearchEvent) => void;
-  isPast?: boolean;
 }) {
-  const date = new Date(event.date);
-  const formattedDate = format(date, 'MMM d, yyyy');
-  const formattedTime = format(date, 'h:mm a');
-
+  const { tokens } = useTheme();
   return (
-    <Pressable
-      onPress={() => onSelect(event)}
-      style={({ pressed }) => ({
-        backgroundColor: colors.surface,
-        borderRadius: radius.lg,
-        padding: 14,
-        opacity: pressed ? 0.92 : isPast ? 0.8 : 1,
-        borderWidth: 1,
-        borderColor: colors.hairline,
+    <View style={{ marginBottom: 20 }}>
+      <Text
+        style={{
+          fontFamily: tokens.fontFamilies.mono,
+          fontSize: 10.5,
+          fontWeight: '600',
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: tokens.colors.mute,
+          marginBottom: 4,
+        }}
+      >
+        {title}
+      </Text>
+      {events.map((event, i) => {
+        const d = monoDate(event.date);
+        const openers =
+          event.lineup && event.lineup.length > 1 ? `with ${event.lineup.slice(1).join(', ')}` : undefined;
+        return (
+          <Animated.View
+            key={event.id}
+            entering={FadeInDown.duration(220).delay(Math.min(i, 8) * durations.stagger)}
+          >
+            <LogRow
+              title={event.venue.name}
+              subtitle={
+                [event.venue.city, event.venue.state].filter(Boolean).join(', ') +
+                (openers ? `  ·  ${openers}` : '')
+              }
+              meta={d.top}
+              metaSub={d.bottom}
+              separator={i < events.length - 1}
+              onPress={() => onSelect(event)}
+            />
+          </Animated.View>
+        );
       })}
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
-            {event.venue.name}
-          </Text>
-          <Text style={{ color: colors.textMid, fontSize: 13, marginTop: 2 }}>
-            {event.venue.city}
-            {event.venue.state ? `, ${event.venue.state}` : ''}
-          </Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: isPast ? colors.textLo : colors.brandCyan, fontSize: 13, fontWeight: '600' }}>
-            {formattedDate}
-          </Text>
-          <Text style={{ color: colors.textLo, fontSize: 12 }}>{formattedTime}</Text>
-        </View>
-      </View>
-
-      {event.lineup && event.lineup.length > 1 ? (
-        <Text style={{ color: colors.textLo, fontSize: 12, marginTop: 8 }} numberOfLines={1}>
-          with {event.lineup.slice(1).join(', ')}
-        </Text>
-      ) : null}
-    </Pressable>
+    </View>
   );
 }
-
-
-
-

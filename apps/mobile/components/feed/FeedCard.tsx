@@ -1,7 +1,12 @@
-// FeedCard — the ShowCard (SCREENS.md §1, INTERACTIONS.md "Feed — ShowCard").
+// FeedCard v2 — the ShowCard (SCREENS.md §1, INTERACTIONS.md "Feed — ShowCard").
 // Full-bleed IG-style post: header → media carousel → action row (likes) →
-// liked-by line → caption (artist display-italic + mono tour/rating) →
-// who-was-here expandable → links row → comments → pinned composer.
+// liked-by line → caption (artist 800 + score chip) → who-was-here
+// expandable → links row → comments → pinned composer.
+//
+// "Encore, muted" restyle: fully tokenized via useTheme(); monochrome
+// actions (heart fills semantic error-red when liked); weight-led system
+// type with mono reserved for numbers/dates/labels. Interactions (heart
+// pop, double-tap burst, carousel snap) are preserved verbatim.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
@@ -28,18 +33,16 @@ import {
   unlikeLog,
   type LogLikeUser,
 } from '../../lib/api/feed';
-import { accentSets, colors, fontFamilies, radius } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations, springs } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 import { AvatarStack } from '../ui/AvatarStack';
-import { RatingStars } from '../ui/RatingStars';
 import { SpringNumber } from '../ui/SpringNumber';
 import { SpringPressable } from '../ui/SpringPressable';
 import { FeedCardPhotos } from './FeedCardPhotos';
 import { PinnedComposer, type PinnedComposerHandle } from './PinnedComposer';
 import { WhoWasHere } from './WhoWasHere';
-
-const accent = accentSets.cyan;
 
 interface FeedCardProps {
   item: FeedItem;
@@ -82,6 +85,11 @@ function relTime(dateStr: string): string {
   }
 }
 
+/** Log ratings are stored on a 1–10 scale (see log/details.tsx). */
+function formatScore(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
 export function FeedCard({
   item,
   currentUserId,
@@ -91,6 +99,9 @@ export function FeedCard({
   onCommentAdded,
 }: FeedCardProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const styles = useThemedStyles(buildStyles);
   const composerRef = useRef<PinnedComposerHandle>(null);
 
   // ── Likes ──
@@ -245,7 +256,7 @@ export function FeedCard({
       if (!comment) return false;
       // New comment pops in at top of list + count bumps (SpringNumber).
       setComments((prev) => [comment, ...prev]);
-      setCommentCount((c) => c + 1);
+      setCommentCount((n) => n + 1);
       onCommentAdded(item.log.id, comment);
       return true;
     },
@@ -297,9 +308,13 @@ export function FeedCard({
 
   const visibleComments = allExpanded ? comments : comments.slice(0, 2);
 
+  const score =
+    typeof item.log.rating === 'number' && item.log.rating > 0 ? item.log.rating : null;
+  const highScore = score != null && score >= 9;
+
   return (
     <Animated.View layout={LinearTransition.duration(motionDurations.expand)} style={styles.card}>
-      {/* ── 1. Header — 56px ── */}
+      {/* ── 1. Header ── */}
       <View style={styles.header}>
         <Pressable
           onPress={openProfile}
@@ -307,11 +322,11 @@ export function FeedCard({
           accessibilityRole="button"
           accessibilityLabel={`View @${item.user.username}'s profile`}
         >
-          <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={44} />
+          <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={36} />
           <View style={styles.headerInfo}>
-            <Text style={styles.eyebrow}>logged a show</Text>
-            <Text style={styles.username} numberOfLines={1}>
-              @{item.user.username}
+            <Text style={styles.headerTitleLine} numberOfLines={1}>
+              <Text style={styles.username}>{item.user.username}</Text>
+              <Text style={styles.loggedLabel}>  logged a show</Text>
             </Text>
             <Text style={styles.headerMeta} numberOfLines={1}>
               {item.event.venue.name} · {formatDate(item.event.date)}
@@ -324,7 +339,7 @@ export function FeedCard({
           accessibilityRole="button"
           accessibilityLabel="More options"
         >
-          <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMid} />
+          <Ionicons name="ellipsis-horizontal" size={18} color={c.mute} />
         </SpringPressable>
       </View>
 
@@ -342,7 +357,7 @@ export function FeedCard({
           accessibilityRole="button"
           accessibilityLabel="Open show log"
         >
-          <Ionicons name="musical-notes" size={40} color={colors.textLo} />
+          <Ionicons name="musical-notes" size={40} color={c.muteSoft} />
         </Pressable>
       )}
 
@@ -361,7 +376,7 @@ export function FeedCard({
               <Ionicons
                 name={like.liked ? 'heart' : 'heart-outline'}
                 size={22}
-                color={like.liked ? colors.red : colors.textHi}
+                color={like.liked ? c.error : c.fg}
               />
             </Animated.View>
           </View>
@@ -376,7 +391,7 @@ export function FeedCard({
           accessibilityRole="button"
           accessibilityLabel="Comment"
         >
-          <Ionicons name="chatbubble-outline" size={20} color={colors.textHi} />
+          <Ionicons name="chatbubble-outline" size={20} color={c.fg} />
           {commentCount > 0 ? (
             <SpringNumber value={commentCount} animateOnMount={false} style={styles.actionCount} />
           ) : null}
@@ -388,7 +403,7 @@ export function FeedCard({
           accessibilityRole="button"
           accessibilityLabel="Share"
         >
-          <Ionicons name="arrow-redo-outline" size={20} color={colors.textHi} />
+          <Ionicons name="arrow-redo-outline" size={20} color={c.fg} />
         </SpringPressable>
 
         <View style={{ flex: 1 }} />
@@ -400,7 +415,7 @@ export function FeedCard({
           accessibilityRole="button"
           accessibilityLabel="Save — coming soon"
         >
-          <Ionicons name="bookmark-outline" size={20} color={colors.textLo} />
+          <Ionicons name="bookmark-outline" size={20} color={c.muteSoft} />
         </SpringPressable>
       </View>
 
@@ -430,24 +445,30 @@ export function FeedCard({
 
       {/* ── 5. Caption ── */}
       <View style={styles.caption}>
-        <Pressable onPress={openArtist} accessibilityRole="button" accessibilityLabel={`View ${item.event.artist.name}`}>
-          <Text style={styles.artistName} numberOfLines={2}>
-            {item.event.artist.name}
-          </Text>
-        </Pressable>
-        <View style={styles.metaLine}>
-          {item.event.name ? (
-            <Text style={styles.tourText} numberOfLines={1}>
-              {item.event.name}
+        <View style={styles.captionTopRow}>
+          <Pressable
+            style={styles.captionArtistWrap}
+            onPress={openArtist}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${item.event.artist.name}`}
+          >
+            <Text style={styles.artistName} numberOfLines={2}>
+              {item.event.artist.name}
             </Text>
-          ) : null}
-          {item.log.rating ? (
-            <>
-              {item.event.name ? <Text style={styles.metaDot}>·</Text> : null}
-              <RatingStars rating={item.log.rating} size={11} color={accent.hex} />
-            </>
+          </Pressable>
+          {score != null ? (
+            <View style={styles.scoreChip} accessibilityLabel={`Rated ${formatScore(score)} out of 10`}>
+              <Text style={[styles.scoreText, highScore && { color: c.accent }]}>
+                {formatScore(score)}
+              </Text>
+            </View>
           ) : null}
         </View>
+        {item.event.name ? (
+          <Text style={styles.tourText} numberOfLines={1}>
+            {item.event.name}
+          </Text>
+        ) : null}
         {item.log.note ? <Text style={styles.note}>{item.log.note}</Text> : null}
       </View>
 
@@ -480,25 +501,25 @@ export function FeedCard({
       {/* ── 8. Comments ── */}
       {visibleComments.length > 0 || commentCount > 0 ? (
         <Animated.View layout={LinearTransition.duration(motionDurations.expand)} style={styles.comments}>
-          {visibleComments.map((c, i) => (
+          {visibleComments.map((cm, i) => (
             <Animated.View
-              key={c.id}
+              key={cm.id}
               entering={FadeInDown.delay(Math.min(i, 5) * motionDurations.rowStagger).duration(200)}
               layout={LinearTransition.duration(200)}
               style={styles.commentRow}
             >
               <Pressable
-                onPress={() => router.push({ pathname: '/profile/[id]', params: { id: c.user.id } })}
+                onPress={() => router.push({ pathname: '/profile/[id]', params: { id: cm.user.id } })}
                 accessibilityRole="button"
-                accessibilityLabel={`View @${c.user.username}'s profile`}
+                accessibilityLabel={`View @${cm.user.username}'s profile`}
               >
-                <Avatar uri={c.user.avatarUrl} name={c.user.displayName || c.user.username} size={22} />
+                <Avatar uri={cm.user.avatarUrl} name={cm.user.displayName || cm.user.username} size={22} />
               </Pressable>
               <View style={styles.commentBody}>
                 <Text style={styles.commentText}>
-                  <Text style={styles.commentUser}>{c.user.username}</Text> {c.text}
+                  <Text style={styles.commentUser}>{cm.user.username}</Text> {cm.text}
                 </Text>
-                <Text style={styles.commentTime}>{relTime(c.createdAt)}</Text>
+                <Text style={styles.commentTime}>{relTime(cm.createdAt)}</Text>
               </View>
             </Animated.View>
           ))}
@@ -526,210 +547,217 @@ export function FeedCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.hairline,
-    overflow: 'hidden',
-  },
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: tokens.colors.card,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: tokens.colors.hairline,
+      overflow: 'hidden',
+    },
 
-  /* Header */
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 56,
-    paddingHorizontal: 14,
-    marginVertical: 4,
-  },
-  headerUser: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  eyebrow: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 8,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: accent.hex,
-  },
-  username: {
-    fontFamily: fontFamilies.uiSemi,
-    fontSize: 13,
-    color: colors.textHi,
-    marginTop: 1,
-  },
-  headerMeta: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 9,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.textLo,
-    marginTop: 1,
-  },
-  menuBtn: {
-    padding: 8,
-  },
+    /* Header */
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 56,
+      paddingHorizontal: 14,
+      marginVertical: 4,
+    },
+    headerUser: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    headerTitleLine: {
+      fontSize: 14,
+    },
+    username: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: tokens.colors.fg,
+    },
+    loggedLabel: {
+      fontSize: 13,
+      fontWeight: '400',
+      color: tokens.colors.mute,
+    },
+    headerMeta: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 11,
+      letterSpacing: 0.2,
+      color: tokens.colors.mute,
+      marginTop: 3,
+    },
+    menuBtn: {
+      padding: 8,
+    },
 
-  /* Media fallback */
-  mediaFallback: {
-    width: '100%',
-    aspectRatio: 16 / 10,
-    backgroundColor: colors.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    /* Media fallback */
+    mediaFallback: {
+      width: '100%',
+      aspectRatio: 16 / 10,
+      backgroundColor: tokens.colors.card2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  /* Action row */
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    gap: 16,
-  },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionCount: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 12,
-    color: colors.textMid,
-  },
-  heartFlash: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    right: -6,
-    bottom: -6,
-    borderRadius: radius.full,
-    backgroundColor: colors.red,
-  },
+    /* Action row */
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      gap: 16,
+    },
+    actionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    actionCount: {
+      fontFamily: tokens.fontFamilies.monoSemi,
+      fontSize: 12,
+      color: tokens.colors.mute,
+    },
+    heartFlash: {
+      position: 'absolute',
+      top: -6,
+      left: -6,
+      right: -6,
+      bottom: -6,
+      borderRadius: tokens.radius.full,
+      backgroundColor: tokens.colors.error,
+    },
 
-  /* Liked by */
-  likedByRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingTop: 8,
-  },
-  likedByText: {
-    flex: 1,
-    fontFamily: fontFamilies.ui,
-    fontSize: 12,
-    color: colors.textMid,
-  },
-  likedByName: {
-    fontFamily: fontFamilies.uiSemi,
-    color: colors.textHi,
-  },
+    /* Liked by */
+    likedByRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingTop: 8,
+    },
+    likedByText: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '400',
+      color: tokens.colors.mute,
+    },
+    likedByName: {
+      fontWeight: '600',
+      color: tokens.colors.fg,
+    },
 
-  /* Caption */
-  caption: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-  },
-  artistName: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-    color: colors.textHi,
-    lineHeight: 25,
-  },
-  metaLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  tourText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: colors.textMid,
-    flexShrink: 1,
-  },
-  metaDot: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10,
-    color: colors.textLo,
-  },
-  note: {
-    fontFamily: fontFamilies.ui,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSoft,
-    marginTop: 8,
-  },
+    /* Caption */
+    caption: {
+      paddingHorizontal: 14,
+      paddingTop: 10,
+    },
+    captionTopRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    captionArtistWrap: {
+      flex: 1,
+    },
+    artistName: {
+      fontSize: 20,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+      color: tokens.colors.fg,
+      lineHeight: 25,
+    },
+    scoreChip: {
+      minWidth: 34,
+      paddingHorizontal: 8,
+      height: 28,
+      borderRadius: tokens.radius.md,
+      backgroundColor: tokens.colors.card2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 1,
+    },
+    scoreText: {
+      fontFamily: tokens.fontFamilies.monoBold,
+      fontSize: 15,
+      letterSpacing: 0.2,
+      color: tokens.colors.fg,
+    },
+    tourText: {
+      fontSize: 13,
+      fontWeight: '400',
+      color: tokens.colors.mute,
+      marginTop: 4,
+    },
+    note: {
+      fontSize: 14,
+      fontWeight: '400',
+      lineHeight: 20,
+      color: tokens.colors.textSoft,
+      marginTop: 8,
+    },
 
-  /* Links row */
-  linksRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.elevated,
-  },
-  chipText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 9,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: colors.textMid,
-  },
+    /* Links row */
+    linksRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+    },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: tokens.radius.full,
+      backgroundColor: tokens.colors.card2,
+    },
+    chipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: tokens.colors.mute,
+    },
 
-  /* Comments */
-  comments: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    gap: 8,
-  },
-  commentRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  commentBody: {
-    flex: 1,
-  },
-  commentText: {
-    fontFamily: fontFamilies.ui,
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.textSoft,
-  },
-  commentUser: {
-    fontFamily: fontFamilies.uiSemi,
-    color: colors.textHi,
-  },
-  commentTime: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 9,
-    letterSpacing: 0.4,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  viewAll: {
-    fontFamily: fontFamilies.uiMedium,
-    fontSize: 12,
-    color: colors.textMid,
-    paddingVertical: 2,
-  },
-});
+    /* Comments */
+    comments: {
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      gap: 8,
+    },
+    commentRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    commentBody: {
+      flex: 1,
+    },
+    commentText: {
+      fontSize: 13,
+      fontWeight: '400',
+      lineHeight: 18,
+      color: tokens.colors.textSoft,
+    },
+    commentUser: {
+      fontWeight: '600',
+      color: tokens.colors.fg,
+    },
+    commentTime: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 9,
+      letterSpacing: 0.4,
+      color: tokens.colors.muteSoft,
+      marginTop: 2,
+    },
+    viewAll: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: tokens.colors.mute,
+      paddingVertical: 2,
+    },
+  });

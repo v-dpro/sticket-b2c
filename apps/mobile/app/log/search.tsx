@@ -1,91 +1,68 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Image, Pressable, ScrollView, Text, TextInput, View, ActivityIndicator } from 'react-native';
+// LOG FLOW · STEP 1a — "What show?" Artist search (Spotify-backed) with
+// recents, your-Spotify suggestions, and a manual-entry escape hatch.
+// Route contract (entry points: FAB, timeline empty state, onboarding):
+//   /log/search → push /log/select-event { artistId, artistName, artistImage }
+//               → push /log/create-show { q }
+
 import Ionicons from '@expo/vector-icons/Ionicons';
-import debounce from 'lodash/debounce';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Screen } from '../../components/ui/Screen';
-import { colors, radius, spacing } from '../../lib/theme';
+import { FlowHeader } from '../../components/log/FlowHeader';
+import { LogRow } from '../../components/log/LogRow';
+import { PillButton } from '../../components/ui/PillButton';
 import { searchArtistsSpotify, type SearchArtist } from '../../lib/api/logShow';
-import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
+import { durations } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { useTheme } from '../../lib/theme-context';
+import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
 
-function HighlightedText({ text, query }: { text: string; query: string }) {
-  const q = query.trim();
-  if (!q) return <Text style={{ color: colors.textHi, fontWeight: '700', fontSize: 15 }}>{text}</Text>;
-  const lower = text.toLowerCase();
-  const idx = lower.indexOf(q.toLowerCase());
-  if (idx < 0) return <Text style={{ color: colors.textHi, fontWeight: '700', fontSize: 15 }}>{text}</Text>;
-  const before = text.slice(0, idx);
-  const match = text.slice(idx, idx + q.length);
-  const after = text.slice(idx + q.length);
-  return (
-    <Text style={{ color: colors.textHi, fontWeight: '700', fontSize: 15 }}>
-      {before}
-      <Text style={{ color: colors.brandCyan }}>{match}</Text>
-      {after}
-    </Text>
-  );
-}
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function LogSearchArtist() {
   const router = useRouter();
+  const goBack = useSafeBack();
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const pad = tokens.density.pad;
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchArtist[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const goBack = useSafeBack();
-
-  // Get user's Spotify top artists for suggestions
-  const { artists: spotifyArtists, loading: spotifyLoading } = useSpotifyArtists();
+  const [recents, setRecents] = useState<string[]>([]);
 
   const q = useMemo(() => query.trim(), [query]);
 
-  // Debounced search
-  const doSearch = useCallback(
-    debounce(async (searchQuery: string) => {
-      if (searchQuery.length < 2) {
-        setResults([]);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const data = await searchArtistsSpotify(searchQuery);
-        setResults(data);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Search error:', error);
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300),
-    []
-  );
-
+  // Debounced Spotify artist search.
   useEffect(() => {
     if (q.length < 2) {
       setResults([]);
       setIsLoading(false);
       return;
     }
-
     setIsLoading(true);
-    doSearch(q);
-
+    let alive = true;
+    const timer = setTimeout(async () => {
+      const data = await searchArtistsSpotify(q); // returns [] on error
+      if (!alive) return;
+      setResults(data);
+      setIsLoading(false);
+    }, SEARCH_DEBOUNCE_MS);
     return () => {
-      doSearch.cancel();
+      alive = false;
+      clearTimeout(timer);
     };
-  }, [q, doSearch]);
+  }, [q]);
+
+  const { artists: spotifyArtists } = useSpotifyArtists();
+  const suggested = useMemo(() => spotifyArtists.slice(0, 5), [spotifyArtists]);
 
   const selectArtist = (artist: SearchArtist) => {
-    // Save to recent searches
-    setRecentSearches((prev) => [artist.name, ...prev.filter((x) => x !== artist.name)].slice(0, 8));
-
-    // Navigate to event selection with artist info
+    setRecents((prev) => [artist.name, ...prev.filter((x) => x !== artist.name)].slice(0, 8));
     router.push({
       pathname: '/log/select-event',
       params: {
@@ -96,220 +73,179 @@ export default function LogSearchArtist() {
     });
   };
 
-  const selectRecent = (text: string) => {
-    setQuery(text);
-  };
-
-  // Suggested artists from Spotify
-  const suggestedArtists = useMemo(() => {
-    if (spotifyLoading || !spotifyArtists) return [];
-    return spotifyArtists.slice(0, 5);
-  }, [spotifyArtists, spotifyLoading]);
-
   return (
-    <Screen padded={false}>
-      {/* Header */}
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable accessibilityRole="button" onPress={goBack} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' })}>
-          <Ionicons name="close" size={24} color={colors.textHi} />
-        </Pressable>
-        <Text style={{ color: colors.textHi, fontSize: 18, fontWeight: '700' }}>Log a Show</Text>
-        <View style={{ width: 24, height: 24 }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <FlowHeader icon="close" label="Log a show" onPress={goBack} />
+
+      <View style={{ paddingHorizontal: pad, paddingTop: 8, paddingBottom: 16, gap: 6 }}>
+        <Text style={{ color: c.fg, fontSize: 32, fontWeight: '800', letterSpacing: -0.5 }}>
+          What show?
+        </Text>
+        <Text style={{ color: c.mute, fontSize: 15, fontWeight: '400' }}>Start with the artist.</Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing['2xl'] }} keyboardShouldPersistTaps="handled">
-        {/* Search Bar */}
-        <View style={{ marginBottom: spacing.lg }}>
-          <View
-            style={{
-              height: 52,
-              backgroundColor: colors.surface,
-              borderRadius: radius.lg,
-              borderWidth: 1,
-              borderColor: isFocused ? colors.brandCyan : colors.hairline,
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons
-              name="search"
-              size={20}
-              color={colors.textLo}
-              style={{ position: 'absolute', left: 16, top: 16 }}
-            />
-            <TextInput
-              placeholder="Search artist..."
-              placeholderTextColor={colors.textLo}
-              value={query}
-              onChangeText={setQuery}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              style={{ height: 52, paddingLeft: 48, paddingRight: 16, color: colors.textHi, fontSize: 16 }}
-              autoCorrect={false}
-              autoCapitalize="none"
-              returnKeyType="search"
-            />
-            {isLoading ? <ActivityIndicator size="small" color={colors.brandCyan} style={{ position: 'absolute', right: 16 }} /> : null}
-          </View>
+      {/* Search field */}
+      <View style={{ paddingHorizontal: pad, marginBottom: 8 }}>
+        <View
+          style={{
+            height: 52,
+            backgroundColor: c.card,
+            borderRadius: tokens.radius.lg,
+            borderWidth: 1,
+            borderColor: isFocused ? c.accentLine : c.hairline,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            gap: 10,
+          }}
+        >
+          <Ionicons name="search" size={18} color={c.mute} />
+          <TextInput
+            placeholder="Search artists"
+            placeholderTextColor={c.muteSoft}
+            selectionColor={c.accent}
+            value={query}
+            onChangeText={setQuery}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            style={{ flex: 1, height: 52, color: c.fg, fontSize: 16, fontWeight: '400' }}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoFocus
+            returnKeyType="search"
+          />
+          {isLoading ? <ActivityIndicator size="small" color={c.mute} /> : null}
         </View>
+      </View>
 
-        {/* Search Results */}
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 48 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {q.length >= 2 ? (
-          <>
-            {results.length > 0 ? (
-              <View style={{ gap: 8, marginBottom: spacing.lg }}>
-                {results.map((a) => (
-                  <Pressable
-                    key={a.id}
+          results.length > 0 ? (
+            <View>
+              {results.map((a, i) => (
+                <Animated.View
+                  key={a.id}
+                  entering={FadeInDown.duration(220).delay(Math.min(i, 8) * durations.stagger)}
+                >
+                  <LogRow
+                    title={a.name}
+                    subtitle={a.genres?.slice(0, 3).join(', ') || undefined}
+                    imageUrl={a.imageUrl}
+                    icon="person-outline"
+                    chevron
+                    separator={i < results.length - 1}
                     onPress={() => selectArtist(a)}
-                    style={({ pressed }) => ({
-                      backgroundColor: colors.surface,
-                      borderRadius: radius.lg,
-                      padding: 12,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                      opacity: pressed ? 0.92 : 1,
-                    })}
-                  >
-                    <View style={{ width: 48, height: 48, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.elevated }}>
-                      {a.imageUrl ? (
-                        <Image source={{ uri: a.imageUrl }} style={{ width: '100%', height: '100%' }} />
-                      ) : (
-                        <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                          <Ionicons name="person" size={24} color={colors.textLo} />
-                        </View>
-                      )}
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <HighlightedText text={a.name} query={q} />
-                      {a.genres && a.genres.length > 0 ? (
-                        <Text style={{ color: colors.textLo, fontSize: 13 }} numberOfLines={1}>
-                          {a.genres.slice(0, 3).join(', ')}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
-                  </Pressable>
+                  />
+                </Animated.View>
+              ))}
+            </View>
+          ) : !isLoading ? (
+            <View style={{ paddingVertical: 56, alignItems: 'center', gap: 6 }}>
+              <Text style={{ color: c.fg, fontSize: 16, fontWeight: '600' }}>
+                Nothing for “{q}”
+              </Text>
+              <Text style={{ color: c.mute, fontSize: 14, fontWeight: '400', textAlign: 'center' }}>
+                Some artists never make the databases.
+              </Text>
+              <View style={{ marginTop: 16 }}>
+                <PillButton
+                  title="Add it manually"
+                  variant="ghost"
+                  size="md"
+                  springFeedback
+                  haptic="light"
+                  onPress={() => router.push({ pathname: '/log/create-show', params: { q } })}
+                />
+              </View>
+            </View>
+          ) : null
+        ) : (
+          <View style={{ gap: 28, paddingTop: 8 }}>
+            {recents.length > 0 ? (
+              <View>
+                <SectionLabel text="Recent" />
+                {recents.map((name, i) => (
+                  <LogRow
+                    key={name}
+                    title={name}
+                    icon="time-outline"
+                    chevron
+                    separator={i < recents.length - 1}
+                    onPress={() => setQuery(name)}
+                  />
                 ))}
               </View>
-            ) : !isLoading ? (
-              <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-                <Text style={{ color: colors.textLo, fontSize: 14 }}>No artists found</Text>
-                <Pressable onPress={() => router.push({ pathname: '/log/create-show', params: { q } })} style={{ marginTop: 16 }}>
-                  <Text style={{ color: colors.brandCyan, fontSize: 14, fontWeight: '600' }}>Add "{q}" manually →</Text>
-                </Pressable>
-              </View>
             ) : null}
-          </>
-        ) : (
-          <>
-            {/* Recent Searches */}
-            {recentSearches.length > 0 ? (
-              <View style={{ marginBottom: spacing.lg }}>
-                <Text style={{ color: colors.textMid, fontSize: 14, marginBottom: 12 }}>Recent Searches</Text>
-                <View style={{ gap: 8 }}>
-                  {recentSearches.map((name) => (
-                    <Pressable
-                      key={name}
-                      onPress={() => selectRecent(name)}
-                      style={({ pressed }) => ({
-                        backgroundColor: colors.surface,
-                        borderRadius: radius.lg,
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 12,
-                        opacity: pressed ? 0.92 : 1,
-                      })}
-                    >
-                      <Ionicons name="time-outline" size={16} color={colors.textLo} />
-                      <Text style={{ color: colors.textHi, fontSize: 15, flex: 1 }}>{name}</Text>
-                    </Pressable>
-                  ))}
-                </View>
+
+            {suggested.length > 0 ? (
+              <View>
+                <SectionLabel text="From your Spotify" />
+                {suggested.map((a, i) => (
+                  <LogRow
+                    key={a.id || a.name}
+                    title={a.name}
+                    subtitle={a.genres?.slice(0, 2).join(', ') || undefined}
+                    imageUrl={a.images?.[0]?.url}
+                    icon="person-outline"
+                    chevron
+                    separator={i < suggested.length - 1}
+                    onPress={() =>
+                      // Spotify top artists carry Spotify IDs, not our DB ids —
+                      // the temp_ prefix routes the next screen to the
+                      // name-based Bandsintown search.
+                      router.push({
+                        pathname: '/log/select-event',
+                        params: {
+                          artistId: a.id ? `temp_${a.id}` : undefined,
+                          artistName: a.name,
+                          artistImage: a.images?.[0]?.url || '',
+                        },
+                      })
+                    }
+                  />
+                ))}
               </View>
             ) : null}
 
-            {/* Suggested Artists from Spotify */}
-            {suggestedArtists.length > 0 ? (
-              <View style={{ marginBottom: spacing.lg }}>
-                <Text style={{ color: colors.textMid, fontSize: 14, marginBottom: 4 }}>From Your Spotify</Text>
-                <Text style={{ color: colors.textLo, fontSize: 12, marginBottom: 12 }}>Artists you listen to</Text>
-                <View style={{ gap: 8 }}>
-                  {suggestedArtists.map((a) => (
-                    <Pressable
-                      key={a.id || a.name}
-                      onPress={() => {
-                        // Spotify top artists are Spotify IDs (not our DB ids) — pass a temp id so the next screen
-                        // uses the name-based Bandsintown search endpoint.
-                        router.push({
-                          pathname: '/log/select-event',
-                          params: {
-                            artistId: a.id ? `temp_${a.id}` : undefined,
-                            artistName: a.name,
-                            artistImage: a.images?.[0]?.url || '',
-                          },
-                        });
-                      }}
-                      style={({ pressed }) => ({
-                        backgroundColor: colors.surface,
-                        borderRadius: radius.lg,
-                        padding: 12,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 12,
-                        opacity: pressed ? 0.92 : 1,
-                      })}
-                    >
-                      <View style={{ width: 48, height: 48, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.elevated }}>
-                        {a.images?.[0]?.url ? (
-                          <Image source={{ uri: a.images[0].url }} style={{ width: '100%', height: '100%' }} />
-                        ) : (
-                          <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                            <Ionicons name="person" size={24} color={colors.textLo} />
-                          </View>
-                        )}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '700' }}>{a.name}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {/* Manual Entry Option */}
-            <Pressable
-              onPress={() => router.push('/log/create-show')}
-              style={({ pressed }) => ({
-                backgroundColor: colors.surface,
-                borderRadius: radius.lg,
-                padding: 16,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                opacity: pressed ? 0.92 : 1,
-                borderWidth: 1,
-                borderColor: colors.hairline,
-                borderStyle: 'dashed',
-              })}
-            >
-              <Ionicons name="add-circle-outline" size={24} color={colors.brandCyan} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textHi, fontSize: 15, fontWeight: '600' }}>Add Show Manually</Text>
-                <Text style={{ color: colors.textLo, fontSize: 13 }}>Can't find it? Enter details yourself</Text>
-              </View>
-            </Pressable>
-          </>
+            <View>
+              <SectionLabel text="Or" />
+              <LogRow
+                title="Add a show manually"
+                subtitle="Can’t find it? Enter the details yourself"
+                icon="add"
+                round={false}
+                chevron
+                separator={false}
+                onPress={() => router.push('/log/create-show')}
+              />
+            </View>
+          </View>
         )}
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }
 
-
-
-
+function SectionLabel({ text }: { text: string }) {
+  const { tokens } = useTheme();
+  return (
+    <Text
+      style={{
+        fontFamily: tokens.fontFamilies.mono,
+        fontSize: 10.5,
+        fontWeight: '600',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        color: tokens.colors.mute,
+        marginBottom: 4,
+      }}
+    >
+      {text}
+    </Text>
+  );
+}

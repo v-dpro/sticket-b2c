@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { accentSets, colors, fontFamilies, radius } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 export type FeedTab = 'friends' | 'discover';
 
@@ -10,14 +11,13 @@ interface FeedTabBarProps {
   onTabChange: (tab: FeedTab) => void;
 }
 
-const accent = accentSets.cyan;
-
 const TABS: { key: FeedTab; label: string }[] = [
   { key: 'friends', label: 'Friends' },
   { key: 'discover', label: 'Public' },
 ];
 
 export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
+  const styles = useThemedStyles(buildStyles);
   return (
     <View style={styles.track}>
       {TABS.map((tab) => {
@@ -26,20 +26,9 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
           <Pressable
             key={tab.key}
             onPress={() => onTabChange(tab.key)}
-            style={({ pressed }) => [
-              styles.pill,
-              active && styles.pillActive,
-              pressed && { opacity: 0.85 },
-            ]}
+            style={({ pressed }) => [styles.pill, active && styles.pillActive, pressed && { opacity: 0.85 }]}
           >
-            <Text
-              style={[
-                styles.pillText,
-                active && styles.pillTextActive,
-              ]}
-            >
-              {tab.label}
-            </Text>
+            <Text style={[styles.pillText, active && styles.pillTextActive]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -47,32 +36,32 @@ export function FeedTabBar({ activeTab, onTabChange }: FeedTabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  track: {
-    flexDirection: 'row',
-    alignSelf: 'flex-start',
-    padding: 4,
-    backgroundColor: colors.surface,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  pill: {
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-  },
-  pillActive: {
-    backgroundColor: accent.hex,
-  },
-  pillText: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 12,
-    color: colors.textMid,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  pillTextActive: {
-    color: colors.ink,
-  },
-});
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    track: {
+      flexDirection: 'row',
+      alignSelf: 'flex-start',
+      padding: 4,
+      backgroundColor: tokens.colors.card2,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+    },
+    pill: {
+      paddingVertical: 8,
+      paddingHorizontal: 18,
+      borderRadius: 999,
+    },
+    pillActive: {
+      backgroundColor: tokens.colors.inverseBg,
+    },
+    pillText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: tokens.colors.mute,
+    },
+    pillTextActive: {
+      color: tokens.colors.inverseFg,
+      fontWeight: '700',
+    },
+  });

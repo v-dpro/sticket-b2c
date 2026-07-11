@@ -1,8 +1,9 @@
 // WhoWasHere — expandable attendees block (SCREENS.md §1.6).
-// Collapsed: mono summary line + count. Tap expands with auto-height
+// Collapsed: label + count summary line. Tap expands with auto-height
 // layout animation (300ms) and 40ms stagger-fade per row
 // (INTERACTIONS.md "Who was here expand"). Rows: avatar + name +
-// rating + Follow CTA.
+// rating + Follow CTA. Retokened to useTheme() (card2 surface, mute
+// labels, monochrome Follow pill).
 
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -19,7 +20,8 @@ import Animated, {
 
 import { getLogDetail } from '../../lib/api/feed';
 import { followUser } from '../../lib/api/profile';
-import { colors, fontFamilies, radius } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 import { RatingStars } from '../ui/RatingStars';
@@ -49,6 +51,9 @@ interface WhoWasHereProps {
 }
 
 function FollowButton({ userId }: { userId: string }) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const styles = useThemedStyles(buildStyles);
   const [state, setState] = useState<'idle' | 'busy' | 'following'>('idle');
 
   const handleFollow = useCallback(async () => {
@@ -67,7 +72,7 @@ function FollowButton({ userId }: { userId: string }) {
   if (state === 'following') {
     return (
       <View style={[styles.followBtn, styles.followingBtn]}>
-        <Text style={styles.followingText}>FOLLOWING</Text>
+        <Text style={styles.followingText}>Following</Text>
       </View>
     );
   }
@@ -80,9 +85,9 @@ function FollowButton({ userId }: { userId: string }) {
       accessibilityLabel="Follow"
     >
       {state === 'busy' ? (
-        <ActivityIndicator size="small" color={colors.brandCyan} />
+        <ActivityIndicator size="small" color={c.fg} />
       ) : (
-        <Text style={styles.followText}>FOLLOW</Text>
+        <Text style={styles.followText}>Follow</Text>
       )}
     </SpringPressable>
   );
@@ -90,6 +95,10 @@ function FollowButton({ userId }: { userId: string }) {
 
 export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHereProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const styles = useThemedStyles(buildStyles);
+
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[] | null>(attendeeCache.get(logId) ?? null);
@@ -141,10 +150,7 @@ export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHerePr
     if (next && !attendees) void loadAttendees();
   }, [attendees, chevron, expanded, loadAttendees]);
 
-  const summary =
-    wasThereCount > 0
-      ? `${wasThereCount} ALSO WENT`
-      : 'SEE WHO ELSE WENT';
+  const summary = wasThereCount > 0 ? `${wasThereCount} also went` : 'See who else went';
 
   return (
     <Animated.View layout={LinearTransition.duration(motionDurations.expand)} style={styles.block}>
@@ -155,10 +161,10 @@ export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHerePr
         accessibilityState={{ expanded }}
         accessibilityLabel={`Who was here. ${summary.toLowerCase()}`}
       >
-        <Text style={styles.eyebrow}>who was here</Text>
+        <Text style={styles.label}>Who was here</Text>
         <Text style={styles.summary}>{summary}</Text>
         <Animated.View style={chevronStyle}>
-          <Ionicons name="chevron-down" size={14} color={colors.textLo} />
+          <Ionicons name="chevron-down" size={16} color={c.mute} />
         </Animated.View>
       </Pressable>
 
@@ -166,7 +172,7 @@ export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHerePr
         <View style={styles.body}>
           {loading ? (
             <Animated.View entering={FadeInDown.duration(180)} style={styles.loadingRow}>
-              <ActivityIndicator size="small" color={colors.brandCyan} />
+              <ActivityIndicator size="small" color={c.mute} />
             </Animated.View>
           ) : error ? (
             <Animated.View entering={FadeInDown.duration(180)}>
@@ -194,7 +200,14 @@ export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHerePr
                     {a.tagged ? (
                       <Text style={styles.rowMeta}>TAGGED</Text>
                     ) : a.rating ? (
-                      <RatingStars rating={a.rating} size={9} animated={false} gap={1} />
+                      <RatingStars
+                        rating={a.rating > 5 ? a.rating / 2 : a.rating}
+                        size={9}
+                        animated={false}
+                        gap={1}
+                        color={c.fg}
+                        emptyColor={c.muteSoft}
+                      />
                     ) : (
                       <Text style={styles.rowMeta}>WENT TOO</Text>
                     )}
@@ -214,94 +227,93 @@ export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHerePr
   );
 }
 
-const styles = StyleSheet.create({
-  block: {
-    marginHorizontal: 14,
-    marginTop: 10,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.elevated,
-    overflow: 'hidden',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  eyebrow: {
-    flex: 1,
-    fontFamily: fontFamilies.mono,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: colors.textMid,
-  },
-  summary: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.brandCyan,
-  },
-  body: {
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-  },
-  loadingRow: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-    gap: 10,
-  },
-  rowInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  rowName: {
-    fontFamily: fontFamilies.uiSemi,
-    fontSize: 13,
-    color: colors.textHi,
-  },
-  rowMeta: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: colors.textLo,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textMid,
-    paddingVertical: 8,
-  },
-  followBtn: {
-    height: 26,
-    paddingHorizontal: 12,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(0,212,255,0.35)',
-    backgroundColor: 'rgba(0,212,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  followText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: colors.brandCyan,
-  },
-  followingBtn: {
-    backgroundColor: 'transparent',
-    borderColor: colors.hairline,
-  },
-  followingText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: colors.textLo,
-  },
-});
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    block: {
+      marginHorizontal: 14,
+      marginTop: 10,
+      borderRadius: tokens.radius.md,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      backgroundColor: tokens.colors.card2,
+      overflow: 'hidden',
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      gap: 8,
+    },
+    label: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600',
+      color: tokens.colors.mute,
+    },
+    summary: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 11,
+      letterSpacing: 0.4,
+      color: tokens.colors.muteSoft,
+    },
+    body: {
+      paddingHorizontal: 12,
+      paddingBottom: 10,
+    },
+    loadingRow: {
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 7,
+      gap: 10,
+    },
+    rowInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    rowName: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: tokens.colors.fg,
+    },
+    rowMeta: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 9,
+      letterSpacing: 1,
+      color: tokens.colors.muteSoft,
+    },
+    emptyText: {
+      fontSize: 14,
+      fontWeight: '400',
+      color: tokens.colors.mute,
+      paddingVertical: 8,
+    },
+    followBtn: {
+      height: 28,
+      paddingHorizontal: 14,
+      borderRadius: tokens.radius.full,
+      backgroundColor: tokens.colors.card,
+      borderWidth: 1,
+      borderColor: tokens.colors.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    followText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: tokens.colors.fg,
+    },
+    followingBtn: {
+      backgroundColor: 'transparent',
+      borderColor: tokens.colors.hairline,
+    },
+    followingText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: tokens.colors.muteSoft,
+    },
+  });

@@ -1,5 +1,6 @@
-// FeedSkeleton — loading placeholder matching the ShowCard layout:
-// full-bleed post with 56px header, square media, action row, caption.
+// FeedSkeleton — loading placeholder matching the ShowCard v2 layout:
+// full-bleed post with 36px avatar header, square media, action row,
+// caption title + line. Retokened to useTheme() (card / card2 / line).
 
 import { useEffect } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -11,10 +12,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 export function FeedSkeleton() {
   const { width } = useWindowDimensions();
+  const styles = useThemedStyles(buildStyles);
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -22,7 +25,7 @@ export function FeedSkeleton() {
   }, [progress]);
 
   const pulse = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [0.35, 0.65]),
+    opacity: interpolate(progress.value, [0, 1], [0.4, 0.8]),
   }));
 
   return (
@@ -33,7 +36,6 @@ export function FeedSkeleton() {
           <View style={styles.header}>
             <View style={styles.avatar} />
             <View style={styles.headerText}>
-              <View style={styles.eyebrowLine} />
               <View style={styles.nameLine} />
               <View style={styles.metaLine} />
             </View>
@@ -58,84 +60,79 @@ export function FeedSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: 4,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.hairline,
-    marginBottom: 12,
-    paddingBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 56,
-    paddingHorizontal: 14,
-    marginVertical: 4,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.hairline,
-    marginRight: 10,
-  },
-  headerText: {
-    flex: 1,
-    gap: 5,
-  },
-  eyebrowLine: {
-    width: 70,
-    height: 7,
-    borderRadius: 3,
-    backgroundColor: colors.hairline,
-  },
-  nameLine: {
-    width: 110,
-    height: 11,
-    borderRadius: 4,
-    backgroundColor: colors.hairline,
-  },
-  metaLine: {
-    width: 150,
-    height: 8,
-    borderRadius: 3,
-    backgroundColor: colors.hairline,
-  },
-  media: {
-    width: '100%',
-    backgroundColor: colors.elevated,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 14,
-    paddingTop: 14,
-  },
-  actionDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.hairline,
-  },
-  captionTitle: {
-    width: '55%',
-    height: 18,
-    borderRadius: 4,
-    backgroundColor: colors.hairline,
-    marginHorizontal: 14,
-    marginTop: 14,
-  },
-  captionLine: {
-    width: '80%',
-    height: 10,
-    borderRadius: 4,
-    backgroundColor: colors.hairline,
-    marginHorizontal: 14,
-    marginTop: 8,
-  },
-});
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    container: {
+      paddingTop: 4,
+    },
+    card: {
+      backgroundColor: tokens.colors.card,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: tokens.colors.hairline,
+      marginBottom: 12,
+      paddingBottom: 16,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 56,
+      paddingHorizontal: 14,
+      marginVertical: 4,
+      gap: 10,
+    },
+    avatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: tokens.colors.card2,
+    },
+    headerText: {
+      flex: 1,
+      gap: 6,
+    },
+    nameLine: {
+      width: 130,
+      height: 12,
+      borderRadius: 4,
+      backgroundColor: tokens.colors.card2,
+    },
+    metaLine: {
+      width: 150,
+      height: 9,
+      borderRadius: 3,
+      backgroundColor: tokens.colors.card2,
+    },
+    media: {
+      width: '100%',
+      backgroundColor: tokens.colors.card2,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 16,
+      paddingHorizontal: 14,
+      paddingTop: 14,
+    },
+    actionDot: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: tokens.colors.card2,
+    },
+    captionTitle: {
+      width: '55%',
+      height: 20,
+      borderRadius: 6,
+      backgroundColor: tokens.colors.card2,
+      marginHorizontal: 14,
+      marginTop: 14,
+    },
+    captionLine: {
+      width: '80%',
+      height: 12,
+      borderRadius: 4,
+      backgroundColor: tokens.colors.card2,
+      marginHorizontal: 14,
+      marginTop: 8,
+    },
+  });

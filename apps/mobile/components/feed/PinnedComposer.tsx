@@ -6,7 +6,8 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, fontFamilies, radius } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 import { SpringPressable } from '../ui/SpringPressable';
@@ -24,6 +25,10 @@ interface PinnedComposerProps {
 
 export const PinnedComposer = forwardRef<PinnedComposerHandle, PinnedComposerProps>(
   function PinnedComposer({ avatarUrl, name, onSubmit }, ref) {
+    const { tokens } = useTheme();
+    const c = tokens.colors;
+    const styles = useThemedStyles(buildStyles);
+
     // Structurally typed — RN 0.81's generated TextInputInstance type
     // isn't re-exported, so we only keep what we call.
     const inputRef = useRef<{ focus: () => void } | null>(null);
@@ -62,7 +67,7 @@ export const PinnedComposer = forwardRef<PinnedComposerHandle, PinnedComposerPro
           }}
           style={styles.input}
           placeholder="add a comment…"
-          placeholderTextColor={colors.textLo}
+          placeholderTextColor={c.muteSoft}
           value={text}
           onChangeText={setText}
           maxLength={500}
@@ -80,7 +85,7 @@ export const PinnedComposer = forwardRef<PinnedComposerHandle, PinnedComposerPro
           accessibilityLabel="Post comment"
         >
           {submitting ? (
-            <ActivityIndicator size="small" color={colors.brandCyan} />
+            <ActivityIndicator size="small" color={c.fg} />
           ) : (
             <Text style={[styles.postText, !canPost && styles.postTextDisabled]}>Post</Text>
           )}
@@ -90,41 +95,43 @@ export const PinnedComposer = forwardRef<PinnedComposerHandle, PinnedComposerPro
   },
 );
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.hairline,
-  },
-  input: {
-    flex: 1,
-    fontFamily: fontFamilies.ui,
-    fontSize: 13,
-    color: colors.textHi,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: colors.elevated,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  postBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    minWidth: 36,
-    alignItems: 'center',
-  },
-  postText: {
-    fontFamily: fontFamilies.uiSemi,
-    fontSize: 13,
-    color: colors.brandCyan,
-  },
-  postTextDisabled: {
-    color: colors.textLo,
-  },
-});
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: tokens.colors.hairline,
+    },
+    input: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '400',
+      color: tokens.colors.fg,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: tokens.colors.card2,
+      borderRadius: tokens.radius.full,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+    },
+    postBtn: {
+      paddingHorizontal: 6,
+      paddingVertical: 6,
+      minWidth: 36,
+      alignItems: 'center',
+    },
+    postText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: tokens.colors.fg,
+    },
+    postTextDisabled: {
+      color: tokens.colors.muteSoft,
+      fontWeight: '600',
+    },
+  });

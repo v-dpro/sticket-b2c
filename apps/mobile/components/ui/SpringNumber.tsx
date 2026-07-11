@@ -34,10 +34,20 @@ type SpringNumberProps = {
   duration?: number;
   /** Insert thousands separators. Default true. */
   grouped?: boolean;
+  /** Fixed fraction digits (e.g. 1 for "8.7"). Default 0 (integers). */
+  decimals?: number;
 };
 
-function format(n: number, prefix: string, suffix: string, grouped: boolean): string {
+function format(n: number, prefix: string, suffix: string, grouped: boolean, decimals: number): string {
   'worklet';
+  if (decimals > 0) {
+    let body = Math.abs(n).toFixed(decimals);
+    if (grouped) {
+      const dot = body.indexOf('.');
+      body = body.slice(0, dot).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + body.slice(dot);
+    }
+    return `${n < 0 ? '-' : ''}${prefix}${body}${suffix}`;
+  }
   const rounded = Math.round(n);
   const raw = Math.abs(rounded).toString();
   const body = grouped ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : raw;
@@ -53,6 +63,7 @@ export function SpringNumber({
   mode = 'spring',
   duration = 900,
   grouped = true,
+  decimals = 0,
 }: SpringNumberProps) {
   const mounted = useRef(false);
   const progress = useSharedValue(animateOnMount ? 0 : value);
@@ -71,10 +82,10 @@ export function SpringNumber({
   }, [value, mode, duration]);
 
   const animatedProps = useAnimatedProps(() => {
-    return { text: format(progress.value, prefix, suffix, grouped) } as any;
+    return { text: format(progress.value, prefix, suffix, grouped, decimals) } as any;
   });
 
-  const finalText = format(value, prefix, suffix, grouped);
+  const finalText = format(value, prefix, suffix, grouped, decimals);
 
   return (
     <View accessible accessibilityLabel={finalText}>
@@ -84,7 +95,7 @@ export function SpringNumber({
       </Text>
       <AnimatedTextInput
         editable={false}
-        defaultValue={format(animateOnMount ? 0 : value, prefix, suffix, grouped)}
+        defaultValue={format(animateOnMount ? 0 : value, prefix, suffix, grouped, decimals)}
         animatedProps={animatedProps}
         style={[styles.input, style, styles.overlay]}
         underlineColorAndroid="transparent"

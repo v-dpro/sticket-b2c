@@ -18,7 +18,8 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { colors } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 import { motionDurations } from '../../lib/motion';
 
 interface FeedRefreshWordmarkProps {
@@ -30,6 +31,7 @@ interface FeedRefreshWordmarkProps {
 const PULL_DISTANCE = 70;
 
 export function FeedRefreshWordmark({ pullY, refreshing }: FeedRefreshWordmarkProps) {
+  const styles = useThemedStyles(buildStyles);
   const spin = useSharedValue(0);
 
   useEffect(() => {
@@ -69,30 +71,31 @@ export function FeedRefreshWordmark({ pullY, refreshing }: FeedRefreshWordmarkPr
   );
 }
 
-const styles = StyleSheet.create({
-  host: {
-    position: 'absolute',
-    top: 14,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  badge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.elevated,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordmark: {
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    color: colors.textHi,
-    marginTop: -2,
-  },
-});
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    host: {
+      position: 'absolute',
+      top: 14,
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    badge: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: tokens.colors.card2,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    wordmark: {
+      fontSize: 15,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+      color: tokens.colors.fg,
+      marginTop: -2,
+    },
+  });

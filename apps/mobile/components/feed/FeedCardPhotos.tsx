@@ -1,7 +1,10 @@
 // FeedCardPhotos — ShowCard media carousel (SCREENS.md §1.2):
-// square 1:1, horizontal snap-swipe, mixed image + video, counter pill
-// top-right ("2/5"), dots below, double-tap heart burst, light haptic
-// on carousel snap.
+// square 1:1 (or 4:5 hero), horizontal snap-swipe, mixed image + video,
+// counter pill top-right ("2/5"), dots below, double-tap heart burst,
+// light haptic on carousel snap.
+//
+// Behavior is preserved verbatim; only the palette is retokened to
+// useTheme() (card2 chips, mute text, active dot = fg, heart burst = error).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -26,7 +29,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { FeedPhoto } from '../../types/feed';
-import { colors, fontFamilies, radius } from '../../lib/theme';
+import type { ThemeTokens } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations, springs } from '../../lib/motion';
 
 const DOUBLE_TAP_MS = 260;
@@ -37,7 +41,7 @@ interface FeedCardPhotosProps {
   onPressMedia: () => void;
   /** Double tap anywhere on media — like. Burst overlay renders here. */
   onDoubleTapLike: () => void;
-  /** Media aspect ratio. Spec = 1 (square). */
+  /** Media aspect ratio (height / width). Spec = 1 (square); hero = 5/4. */
   aspectRatio?: number;
 }
 
@@ -54,6 +58,10 @@ export function FeedCardPhotos({
   onDoubleTapLike,
   aspectRatio = 1,
 }: FeedCardPhotosProps) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const styles = useThemedStyles(buildStyles);
+
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const lastTapRef = useRef(0);
@@ -176,14 +184,20 @@ export function FeedCardPhotos({
         </Pressable>
       );
     },
-    [handleDoubleTapLike, handleTap, height, index, width],
+    [handleDoubleTapLike, handleTap, height, index, styles.media, width],
   );
 
   if (!count) return null;
 
   return (
     <View onLayout={onLayout}>
-      <View style={{ width: width || '100%', height: width ? height : undefined, aspectRatio: width ? undefined : aspectRatio }}>
+      <View
+        style={{
+          width: width || '100%',
+          height: width ? height : undefined,
+          aspectRatio: width ? undefined : aspectRatio,
+        }}
+      >
         {width > 0 ? (
           <FlatList
             data={photos}
@@ -203,7 +217,7 @@ export function FeedCardPhotos({
             scrollEnabled={count > 1}
           />
         ) : (
-          <View style={[styles.media, { backgroundColor: colors.elevated }]} />
+          <View style={[styles.media, { backgroundColor: c.card2 }]} />
         )}
 
         {/* Counter pill — top right */}
@@ -217,7 +231,7 @@ export function FeedCardPhotos({
 
         {/* Heart burst overlay */}
         <Animated.View style={[styles.burst, burstStyle]} pointerEvents="none">
-          <Ionicons name="heart" size={96} color={colors.red} />
+          <Ionicons name="heart" size={96} color={c.error} />
         </Animated.View>
       </View>
 
@@ -249,6 +263,10 @@ function VideoSlide({
   active: boolean;
   onDoubleTap: () => void;
 }) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const styles = useThemedStyles(buildStyles);
+
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const lastTapRef = useRef(0);
@@ -319,13 +337,13 @@ function VideoSlide({
       {!playing ? (
         <View style={styles.playOverlay} pointerEvents="none">
           <View style={styles.playCircle}>
-            <Ionicons name="play" size={26} color={colors.white} style={{ marginLeft: 3 }} />
+            <Ionicons name="play" size={26} color={c.fg} style={{ marginLeft: 3 }} />
           </View>
         </View>
       ) : null}
       {!playing ? (
         <View style={styles.durationBadge} pointerEvents="none">
-          <Ionicons name="videocam" size={10} color={colors.white} />
+          <Ionicons name="videocam" size={10} color={c.mute} />
           <Text style={styles.durationText}>{formatDuration(item.duration)}</Text>
         </View>
       ) : null}
@@ -333,79 +351,84 @@ function VideoSlide({
   );
 }
 
-const styles = StyleSheet.create({
-  media: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.elevated,
-  },
-  counterPill: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(5,5,11,0.65)',
-    borderRadius: radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  counterText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10,
-    letterSpacing: 0.8,
-    color: colors.textHi,
-  },
-  burst: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(5,5,11,0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  durationBadge: {
-    position: 'absolute',
-    left: 10,
-    bottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(5,5,11,0.65)',
-    borderRadius: radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  durationText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10,
-    color: colors.textHi,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 5,
-    paddingTop: 8,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.line,
-  },
-  dotActive: {
-    backgroundColor: colors.brandCyan,
-    width: 14,
-  },
-});
+const buildStyles = (tokens: ThemeTokens) =>
+  StyleSheet.create({
+    media: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: tokens.colors.card2,
+    },
+    counterPill: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      backgroundColor: tokens.colors.card2,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      borderRadius: tokens.radius.full,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+    },
+    counterText: {
+      fontFamily: tokens.fontFamilies.monoSemi,
+      fontSize: 10,
+      letterSpacing: 0.8,
+      color: tokens.colors.mute,
+    },
+    burst: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    playOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    playCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: tokens.colors.card2,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    durationBadge: {
+      position: 'absolute',
+      left: 10,
+      bottom: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: tokens.colors.card2,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      borderRadius: tokens.radius.full,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    durationText: {
+      fontFamily: tokens.fontFamilies.monoSemi,
+      fontSize: 10,
+      color: tokens.colors.mute,
+    },
+    dotsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 5,
+      paddingTop: 8,
+    },
+    dot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: tokens.colors.line,
+    },
+    dotActive: {
+      backgroundColor: tokens.colors.fg,
+      width: 14,
+    },
+  });
