@@ -13,19 +13,61 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
-// ─── Spring configs (INTERACTIONS.md) ─────────────────────────────
-// Pass to Reanimated `withSpring(target, springs.x)`.
+// ─── MOTION CONTRACT ("Encore, muted") ────────────────────────────
+// The app-wide motion rules. Every new surface follows these; deviations
+// are design decisions, not accidents.
+//
+//   1. PRESS      — every pressable scales to 0.97 on press-down (80ms
+//                   ease-out) and springs back on release (springs.press).
+//   2. TRANSITION — screen transitions are a fade-through: 200ms
+//                   (durations.fadeThrough), outgoing fades before
+//                   incoming.
+//   3. LISTS      — list/grid items stagger in at 40ms per row
+//                   (durations.stagger).
+//   4. REVEAL     — the log-show reveal choreography fires at
+//                   0.3s / 1.2s / 1.8s / 2.4s / 3.2s
+//                   (durations.reveal.{intro,stamp,details,stats,cta}).
+//   5. SHEETS     — bottom sheets / modals enter with springs.sheet;
+//                   ambient floating elements idle with springs.float.
+//
+// Spring configs pass straight into Reanimated `withSpring(target, springs.x)`.
 export const springs = {
   /** Tap release: spring back (stiffness 260, damping 20) */
   press: { stiffness: 260, damping: 20 },
   /** Stamp / heart pop overshoot */
   pop: { stiffness: 260, damping: 18, mass: 0.8 },
+  /** Bottom sheets / modals: brisk, settles without wobble */
+  sheet: { stiffness: 320, damping: 30 },
+  /** Ambient float (badges, milestone chips): slow, soft drift */
+  float: { stiffness: 120, damping: 16 },
   /** Default UI chase (reveals, expands) */
   gentle: { stiffness: 180, damping: 22 },
   /** SpringNumber count ticks — critically damped, no overshoot */
   number: { stiffness: 110, damping: 26 },
   /** Heart-burst overlay scale */
   burst: { stiffness: 200, damping: 14 },
+} as const;
+
+// ─── Durations (ms) — canonical timing table ──────────────────────
+// Named per the motion contract above. `motionDurations` (below) keeps
+// the older interaction-level timings; both are current.
+export const durations = {
+  /** Press-down scale(0.97) */
+  press: 80,
+  /** Screen transition fade-through */
+  fadeThrough: 200,
+  /** Per-item list/grid stagger */
+  stagger: 40,
+  /** Reveal choreography checkpoints (log-show reveal) */
+  reveal: {
+    intro: 300,
+    stamp: 1200,
+    details: 1800,
+    stats: 2400,
+    cta: 3200,
+  },
+  /** Milestone brand-gradient flash — the ONLY sanctioned gradient moment */
+  milestoneFlash: 1000,
 } as const;
 
 // ─── Durations (ms, INTERACTIONS.md) ──────────────────────────────

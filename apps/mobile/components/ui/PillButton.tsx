@@ -1,3 +1,16 @@
+// PillButton — the monochrome "Encore, muted" button system.
+//
+// Buttons are MONOCHROME by design mandate:
+//   primary   → ink-on-bg inversion (white pill / near-black label in dark
+//               mode; black pill / white label in light mode)
+//   secondary → soft card2 pill with primary text
+//   ghost     → transparent, hairline border, ink text
+// NEVER gradient-filled or purple-filled (explicitly rejected direction).
+//
+// Legacy variants remain as compile-safe aliases:
+//   'solid' → primary · 'mono' → secondary · 'accentGhost' → secondary
+//   shell with accent-tinted label (accent = small usages only).
+
 import React, { type ReactNode } from 'react';
 import {
   Pressable,
@@ -7,14 +20,29 @@ import {
   type TextStyle,
   View,
 } from 'react-native';
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 import { SpringPressable } from './SpringPressable';
+
+type PillButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  /** @deprecated use 'primary' */
+  | 'solid'
+  /** @deprecated use 'secondary' (accent fills are no longer allowed) */
+  | 'accentGhost'
+  /** @deprecated use 'secondary' */
+  | 'mono';
 
 type PillButtonProps = {
   title: string;
   onPress: () => void;
-  variant?: 'solid' | 'ghost' | 'accentGhost' | 'mono';
+  variant?: PillButtonVariant;
   size?: 'sm' | 'md' | 'lg';
+  /**
+   * Accent tint. Only affects the deprecated 'accentGhost' variant's label;
+   * monochrome variants ignore it (no accent-filled buttons).
+   */
   accentColor?: string;
   disabled?: boolean;
   icon?: ReactNode;
@@ -32,17 +60,31 @@ const HEIGHT: Record<string, number> = { sm: 30, md: 38, lg: 46 };
 const FONT_SIZE: Record<string, number> = { sm: 12, md: 14, lg: 15 };
 const PADDING_H: Record<string, number> = { sm: 14, md: 18, lg: 24 };
 
+function normalizeVariant(variant: PillButtonVariant): 'primary' | 'secondary' | 'ghost' | 'accentGhost' {
+  switch (variant) {
+    case 'solid':
+      return 'primary';
+    case 'mono':
+      return 'secondary';
+    default:
+      return variant;
+  }
+}
+
 export function PillButton({
   title,
   onPress,
-  variant = 'solid',
+  variant = 'primary',
   size = 'md',
-  accentColor = colors.brandCyan,
+  accentColor,
   disabled = false,
   icon,
   springFeedback = false,
   haptic = 'none',
 }: PillButtonProps) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+
   const h = HEIGHT[size];
   const fontSize = FONT_SIZE[size];
   const px = PADDING_H[size];
@@ -54,38 +96,28 @@ export function PillButton({
 
   const textStyle: TextStyle[] = [{ fontSize, fontWeight: '600' }];
 
-  switch (variant) {
-    case 'solid':
-      containerStyle.push({ backgroundColor: accentColor });
-      textStyle.push({ color: colors.ink });
+  switch (normalizeVariant(variant)) {
+    case 'primary':
+      // Ink inversion — the sole "loud" button. Monochrome, never accent.
+      containerStyle.push({ backgroundColor: c.inverseBg });
+      textStyle.push({ color: c.inverseFg });
+      break;
+    case 'secondary':
+      containerStyle.push({ backgroundColor: c.card2 });
+      textStyle.push({ color: c.text });
       break;
     case 'ghost':
       containerStyle.push({
         backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: colors.hairline,
+        borderColor: c.line,
       });
-      textStyle.push({ color: colors.textHi });
+      textStyle.push({ color: c.fg });
       break;
-    case 'accentGhost': {
-      // Derive soft bg and line from accent color
-      const softBg = accentColor + '1F'; // ~12% opacity
-      const lineBorder = accentColor + '59'; // ~35% opacity
-      containerStyle.push({
-        backgroundColor: softBg,
-        borderWidth: 1,
-        borderColor: lineBorder,
-      });
-      textStyle.push({ color: accentColor });
-      break;
-    }
-    case 'mono':
-      containerStyle.push({ backgroundColor: colors.surface });
-      textStyle.push({
-        color: colors.textHi,
-        textTransform: 'uppercase',
-        letterSpacing: 1.5,
-      });
+    case 'accentGhost':
+      // Deprecated: secondary shell, accent-tinted label (small usage).
+      containerStyle.push({ backgroundColor: c.card2 });
+      textStyle.push({ color: accentColor ?? c.accent });
       break;
   }
 

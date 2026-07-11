@@ -17,7 +17,7 @@ import { initAnalytics, identify, reset as resetAnalytics } from '../lib/analyti
 import { initSentry, setUser as setSentryUser } from '../lib/errorTracking/sentry';
 import { setupDeepLinkHandler } from '../lib/share/deepLinks';
 import { useSession } from '../hooks/useSession';
-import { colors } from '../lib/theme';
+import { ThemeProvider, useTheme } from '../lib/theme-context';
 
 // Suppress navigation-related warnings and errors in development
 // These are known issues when navigating from deep links or when there's no navigation history
@@ -79,9 +79,22 @@ initSentry();
 void initAnalytics();
 
 export default function RootLayout() {
+  // ThemeProvider withholds children until the persisted theme mode is
+  // hydrated (import-time AsyncStorage read), so RootShell — and therefore
+  // the splash-hide effect — only runs with the correct palette. No
+  // flash-of-wrong-theme.
+  return (
+    <ThemeProvider>
+      <RootShell />
+    </ThemeProvider>
+  );
+}
+
+function RootShell() {
   usePushNotifications();
   const router = useRouter();
   const { user, profile, isLoading } = useSession();
+  const { tokens, resolvedMode } = useTheme();
 
   const [fontsLoaded] = useFonts({
     'InstrumentSerif': InstrumentSerif_400Regular,
@@ -124,10 +137,12 @@ export default function RootLayout() {
   }, [isLoading, fontsLoaded]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+    <View style={[styles.container, { backgroundColor: tokens.colors.bg }]}>
+      <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <ErrorBoundary>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }} />
+        <Stack
+          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tokens.colors.bg } }}
+        />
       </ErrorBoundary>
     </View>
   );
@@ -136,7 +151,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.ink,
   },
 });
 
