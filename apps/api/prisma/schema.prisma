@@ -84,6 +84,8 @@ model User {
   xpEntries        XpEntry[]
   checkins         UserCheckin[]
   hangMessages     HangMessage[]
+  logComparisons   LogComparison[]
+  logCoAuthorships LogCoAuthor[]
 }
 
 enum PrivacySetting {
@@ -116,6 +118,26 @@ model Artist {
 
   events    Event[]
   followers UserArtistFollow[]
+  tours     Tour[]
+}
+
+model Tour {
+  id        String    @id @default(cuid())
+  name      String
+  year      Int?
+  startDate DateTime?
+  endDate   DateTime?
+  imageUrl  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id])
+
+  events Event[]
+
+  @@unique([artistId, name])
+  @@index([artistId])
 }
 
 model Venue {
@@ -149,9 +171,11 @@ model Event {
   updatedAt  DateTime @updatedAt
 
   artistId String
-  artist   Artist @relation(fields: [artistId], references: [id])
+  artist   Artist  @relation(fields: [artistId], references: [id])
   venueId  String
-  venue    Venue  @relation(fields: [venueId], references: [id])
+  venue    Venue   @relation(fields: [venueId], references: [id])
+  tourId   String?
+  tour     Tour?   @relation(fields: [tourId], references: [id])
 
   logs       UserLog[]
   tickets    UserTicket[]
@@ -164,6 +188,7 @@ model Event {
   hangThread HangThread?
 
   @@unique([artistId, venueId, date])
+  @@index([tourId])
 }
 
 model UserLog {
@@ -171,23 +196,33 @@ model UserLog {
   section    String?
   row        String?
   seat       String?
-  rating     Float?
+  rating     Float? // legacy 5-star-style rating; untouched by the score system below
   note       String?
   visibility PrivacySetting @default(PUBLIC)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
+
+  // Beli-derived comparison score (0-10, one decimal place) + insertion-order
+  // rank key used for stable sorting while scores can tie. sharedAt is null
+  // for a "log only" entry and set once the user posts it as a memory.
+  score     Float?
+  scoreRank Float?
+  sharedAt  DateTime?
 
   userId  String
   user    User   @relation(fields: [userId], references: [id])
   eventId String
   event   Event  @relation(fields: [eventId], references: [id])
 
-  photos    LogPhoto[]
-  comments  Comment[]
-  tags      LogTag[]
-  wasThere  WasThere[]
-  likes     LogLike[]
-  xpEntries XpEntry[]
+  photos              LogPhoto[]
+  comments            Comment[]
+  tags                LogTag[]
+  wasThere            WasThere[]
+  likes               LogLike[]
+  xpEntries           XpEntry[]
+  comparisons         LogComparison[] @relation("ComparisonLog")
+  opponentComparisons LogComparison[] @relation("ComparisonOpponent")
+  coAuthors           LogCoAuthor[]
 
   @@unique([userId, eventId])
 }
@@ -545,6 +580,7 @@ model SeatView {
   row          String?
   photoUrl     String
   thumbnailUrl String?
+  rating       Int? // 1-5, "how's the view from here"
   createdAt    DateTime @default(now())
 
   userId  String
@@ -610,4 +646,59 @@ model HangMessage {
   text      String
   pinned    Boolean    @default(false)
   createdAt DateTime   @default(now())
+}
+
+// ==================== SCORING (Beli-style compare-to-rank) ====================
+
+enum ComparisonResult {
+  WIN
+  LOSS
+  TIE
+}
+
+// Audit trail of every compare answer a user gives while placing a new log
+// into their ranked list. `round` is the 1-indexed sequence number of the
+// comparison for a given `logId` (first question asked = round 1).
+model LogComparison {
+  id        String           @id @default(cuid())
+  result    ComparisonResult
+  round     Int
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  logId String
+  log   UserLog @relation("ComparisonLog", fields: [logId], references: [id], onDelete: Cascade)
+
+  opponentLogId String
+  opponentLog   UserLog @relation("ComparisonOpponent", fields: [opponentLogId], references: [id], onDelete: Cascade)
+
+  @@index([logId])
+  @@index([opponentLogId])
+  @@index([userId])
+}
+
+enum CoAuthorStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+}
+
+// Lets a log be jointly credited to friends who were also there (e.g. tagged
+// into someone else's memory and asked to co-sign it).
+model LogCoAuthor {
+  id          String         @id @default(cuid())
+  status      CoAuthorStatus @default(INVITED)
+  invitedAt   DateTime       @default(now())
+  respondedAt DateTime?
+
+  logId String
+  log   UserLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([logId, userId])
+  @@index([userId])
 }

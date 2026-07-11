@@ -22,7 +22,7 @@ import { getUserIdFromRequest } from './lib/auth.js';
 import { AppError } from './lib/errors.js';
 import { BADGES } from './lib/badges/badgeDefinitions.js';
 import { checkBadges, getBadgeProgress, getEarnedBadges } from './lib/badges/badgeChecker.js';
-import { computeLogXp, buildXpReason, levelFor, monthRange, XP_PHOTO } from './lib/xp.js';
+import { computeLogXp, buildXpReason, levelFor, monthRange, monthKey, XP_PHOTO } from './lib/xp.js';
 import {
   generateTokens,
   verifyToken,
@@ -234,6 +234,117 @@ function buildLogVisibilityWhere(
   // - Otherwise only PUBLIC.
   if (!viewerFollowsTarget) return { visibility: 'PUBLIC' as const };
   return { visibility: { in: ['PUBLIC', 'FRIENDS'] } };
+}
+
+// ==================== SCORING (compare-to-rank) HELPERS ====================
+//
+// A new log is placed into a user's score-ranked list via a Beli-style
+// binary search over their already-scored logs (highest score first). Each
+// POST /logs/:id/compare answer narrows the [lo, hi) insertion-index window
+// for the log being placed; GET /logs/:id/next-opponent replays that window
+// from the LogComparison audit trail and hands back its midpoint candidate.
+
+async function getScoredCandidates(userId: string, excludeLogId: string) {
+  return prisma.userLog.findMany({
+    where: { userId, score: { not: null }, id: { not: excludeLogId } },
+    orderBy: [{ score: 'desc' }, { scoreRank: 'desc' }],
+    select: {
+      id: true,
+      score: true,
+      scoreRank: true,
+      event: { select: { id: true, name: true, date: true } },
+      photos: {
+        where: { visibility: 'PUBLIC', isFlagged: false },
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: { photoUrl: true },
+      },
+    },
+  });
+}
+
+type ScoreCandidate = Awaited<ReturnType<typeof getScoredCandidates>>[number];
+
+type Placement = {
+  candidates: ScoreCandidate[];
+  resolved: boolean;
+  lo: number;
+  hi: number;
+  tieIndex: number | null;
+};
+
+/**
+ * Replays this log's LogComparison rows (in the order they were answered)
+ * against the user's current scored-logs list to determine the insertion
+ * window [lo, hi). WIN narrows the ceiling, LOSS narrows the floor, TIE
+ * resolves placement immediately, adjacent to the tied opponent.
+ */
+async function computePlacement(userId: string, logId: string): Promise<Placement> {
+  const candidates = await getScoredCandidates(userId, logId);
+
+  if (candidates.length === 0) {
+    return { candidates, resolved: true, lo: 0, hi: 0, tieIndex: null };
+  }
+
+  const comparisons = await prisma.logComparison.findMany({
+    where: { logId },
+    orderBy: { round: 'asc' },
+    select: { opponentLogId: true, result: true },
+  });
+
+  let lo = 0;
+  let hi = candidates.length;
+  let tieIndex: number | null = null;
+
+  for (const c of comparisons) {
+    const idx = candidates.findIndex((cand) => cand.id === c.opponentLogId);
+    if (idx === -1) continue; // opponent fell out of the candidate pool (e.g. deleted) — ignore stale answer
+    if (c.result === 'TIE') {
+      tieIndex = idx;
+      break;
+    } else if (c.result === 'WIN') {
+      // This log beat the opponent -> it ranks above it, so the insertion index is <= idx.
+      hi = Math.min(hi, idx);
+    } else {
+      // LOSS -> this log ranks below the opponent, so the insertion index is > idx.
+      lo = Math.max(lo, idx + 1);
+    }
+  }
+
+  const resolved = tieIndex !== null || lo >= hi;
+  return { candidates, resolved, lo, hi, tieIndex };
+}
+
+/** The server-picked next opponent: the midpoint of the still-ambiguous [lo, hi) window. */
+function pickMidpointCandidate(placement: Placement): ScoreCandidate | null {
+  if (placement.resolved || placement.candidates.length === 0) return null;
+  const midIdx = Math.floor((placement.lo + placement.hi) / 2);
+  return placement.candidates[midIdx] ?? null;
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** score = round(((scoreAbove + scoreBelow) / 2) * 10) / 10, with top/bottom clamped edge cases. */
+function computeInsertionScore(pos: number, candidates: ScoreCandidate[]): number {
+  if (pos <= 0) {
+    const top = candidates[0]!.score as number;
+    return round1(Math.min(10, top + 0.3));
+  }
+  if (pos >= candidates.length) {
+    const bottom = candidates[candidates.length - 1]!.score as number;
+    return round1(Math.max(0.1, bottom - 0.3));
+  }
+  const scoreAbove = candidates[pos - 1]!.score as number;
+  const scoreBelow = candidates[pos]!.score as number;
+  return round1((scoreAbove + scoreBelow) / 2);
+}
+
+/** scoreRank midpoint for stable ordering: top = maxRank+1000, bottom = minRank-1000, else the midpoint. */
+function computeInsertionRank(pos: number, candidates: ScoreCandidate[]): number {
+  if (candidates.length === 0) return 0;
+  if (pos <= 0) return (candidates[0]!.scoreRank as number) + 1000;
+  if (pos >= candidates.length) return (candidates[candidates.length - 1]!.scoreRank as number) - 1000;
+  return ((candidates[pos - 1]!.scoreRank as number) + (candidates[pos]!.scoreRank as number)) / 2;
 }
 
 // ==================== AUTH ROUTES ====================
@@ -1961,6 +2072,214 @@ app.get('/users/:id/logs', async (req) => {
     })),
     _count: log._count ? { comments: log._count.comments } : undefined,
   }));
+});
+
+// GET /users/:id/timeline - aggregated timeline: upcoming (tickets +
+// interested/tracked events, owner-only since that's private intent data)
+// plus month-bucketed past/logged shows, cursor-paginated on event date.
+app.get('/users/:id/timeline', async (req) => {
+  const viewerId = getUserIdFromRequest(req);
+  const { id: targetUserId } = req.params as { id: string };
+  const q = (req.query ?? {}) as { cursor?: string; limit?: string };
+  const limit = Math.max(1, Math.min(50, Number(q.limit ?? 30)));
+  const cursor = typeof q.cursor === 'string' ? q.cursor : undefined;
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, privacySetting: true },
+  });
+  if (!target) throw new AppError('User not found', 404);
+
+  const isOwner = Boolean(viewerId && viewerId === targetUserId);
+  // Mirrors /feed + buildLogVisibilityWhere: "friends" = viewer follows the
+  // owner (one-directional), not mutual follows.
+  const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
+  const visibilityWhere = buildLogVisibilityWhere(viewerId, targetUserId, target.privacySetting, viewerFollowsTarget);
+
+  const cursorWhere: Prisma.UserLogWhereInput = {};
+  if (cursor) {
+    const d = new Date(cursor);
+    if (!Number.isNaN(d.getTime())) cursorWhere.event = { date: { lt: d } };
+  }
+
+  const where: Prisma.UserLogWhereInput = {
+    userId: targetUserId,
+    ...visibilityWhere,
+    ...cursorWhere,
+  };
+
+  const logs = await prisma.userLog.findMany({
+    where,
+    include: {
+      event: {
+        include: {
+          artist: { select: { id: true, name: true, imageUrl: true } },
+          venue: { select: { id: true, name: true, city: true } },
+        },
+      },
+      photos: {
+        where: { visibility: 'PUBLIC', isFlagged: false },
+        take: 1,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, photoUrl: true, thumbUrl: true },
+      },
+      _count: { select: { likes: true, comments: true } },
+    },
+    orderBy: { event: { date: 'desc' } },
+    take: limit + 1,
+  });
+
+  const hasMore = logs.length > limit;
+  const slice = logs.slice(0, limit);
+
+  const logIds = slice.map((l) => l.id);
+  const coAuthorRows = logIds.length
+    ? await prisma.logCoAuthor.findMany({
+        where: { logId: { in: logIds }, status: 'ACCEPTED' },
+        include: { user: { select: { id: true, username: true, avatarUrl: true } } },
+      })
+    : [];
+  const coAuthorsByLog = new Map<string, { id: string; username: string; avatarUrl?: string }[]>();
+  for (const c of coAuthorRows) {
+    const list = coAuthorsByLog.get(c.logId) ?? [];
+    list.push({ id: c.user.id, username: c.user.username, avatarUrl: c.user.avatarUrl ?? undefined });
+    coAuthorsByLog.set(c.logId, list);
+  }
+
+  const monthsMap = new Map<
+    string,
+    Array<{
+      logId: string;
+      score: number | null;
+      sharedAt: string | null;
+      visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+      note?: string;
+      event: { id: string; name: string; date: string };
+      artist: { id: string; name: string; imageUrl?: string };
+      venue: { id: string; name: string; city: string };
+      photos: { id: string; photoUrl: string; thumbnailUrl: string }[];
+      coAuthors: { id: string; username: string; avatarUrl?: string }[];
+      likeCount: number;
+      commentCount: number;
+    }>
+  >();
+
+  for (const log of slice) {
+    // Unshared (log-only) entries are visible to non-owners as compact
+    // markers only — no photos/caption — as long as visibility permits;
+    // the owner always sees everything.
+    const canSeeFull = isOwner || log.sharedAt !== null;
+    const key = monthKey(log.event.date);
+
+    const entry = {
+      logId: log.id,
+      score: log.score ?? null,
+      sharedAt: log.sharedAt ? log.sharedAt.toISOString() : null,
+      visibility: log.visibility,
+      note: canSeeFull ? (log.note ?? undefined) : undefined,
+      event: {
+        id: log.event.id,
+        name: log.event.name,
+        date: log.event.date.toISOString(),
+      },
+      artist: {
+        id: log.event.artist.id,
+        name: log.event.artist.name,
+        imageUrl: log.event.artist.imageUrl ?? undefined,
+      },
+      venue: {
+        id: log.event.venue.id,
+        name: log.event.venue.name,
+        city: log.event.venue.city,
+      },
+      photos: canSeeFull
+        ? log.photos.map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.thumbUrl ?? p.photoUrl }))
+        : [],
+      coAuthors: coAuthorsByLog.get(log.id) ?? [],
+      likeCount: log._count.likes,
+      commentCount: log._count.comments,
+    };
+
+    if (!monthsMap.has(key)) monthsMap.set(key, []);
+    monthsMap.get(key)!.push(entry);
+  }
+
+  const months = Array.from(monthsMap.entries()).map(([key, entries]) => ({ key, entries }));
+
+  // Upcoming section (tickets/interested/tracked) is private-intent data —
+  // only the owner sees it, consistent with there being no other route that
+  // exposes another user's tickets or tracking.
+  let upcoming: Array<Record<string, unknown>> = [];
+  if (isOwner) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const eventSelect = {
+      include: {
+        artist: { select: { id: true, name: true, imageUrl: true } },
+        venue: { select: { id: true, name: true, city: true } },
+      },
+    } as const;
+
+    const [tickets, interested, tracking] = await Promise.all([
+      prisma.userTicket.findMany({
+        where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
+        include: { event: eventSelect },
+        orderBy: { event: { date: 'asc' } },
+      }),
+      prisma.userInterested.findMany({
+        where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
+        include: { event: eventSelect },
+        orderBy: { event: { date: 'asc' } },
+      }),
+      prisma.userEventTracking.findMany({
+        where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
+        include: { event: eventSelect },
+        orderBy: { event: { date: 'asc' } },
+      }),
+    ]);
+
+    const toEventSummary = (e: { id: string; name: string; date: Date; artist: any; venue: any }) => ({
+      id: e.id,
+      name: e.name,
+      date: e.date.toISOString(),
+      artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
+      venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
+    });
+
+    upcoming = [
+      ...tickets.map((t) => ({
+        type: 'ticket' as const,
+        id: t.id,
+        date: t.event.date.toISOString(),
+        event: toEventSummary(t.event),
+        section: t.section ?? undefined,
+        row: t.row ?? undefined,
+        seat: t.seat ?? undefined,
+        status: t.status,
+      })),
+      ...interested.map((i) => ({
+        type: 'interested' as const,
+        id: i.id,
+        date: i.event.date.toISOString(),
+        event: toEventSummary(i.event),
+        notifyOnSale: i.notifyOnSale,
+      })),
+      ...tracking.map((tr) => ({
+        type: 'tracking' as const,
+        id: tr.id,
+        date: tr.event.date.toISOString(),
+        event: toEventSummary(tr.event),
+        status: tr.status,
+        maxPrice: tr.maxPrice ?? undefined,
+      })),
+      // 'hang' / party placeholder intentionally omitted for Wave-1.
+    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.event.date.toISOString() : null;
+
+  return { upcoming, months, nextCursor };
 });
 
 app.get('/users/:id/venues', async (req) => {
@@ -4547,6 +4866,47 @@ app.get('/artists/:id/events', async (req, reply) => {
   }
 });
 
+// GET /artists/:id/tours - tours with event counts + computed avg score
+// (avg of UserLog.score over the tour's events), newest tour first.
+app.get('/artists/:id/tours', async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+
+    const tours = await prisma.tour.findMany({
+      where: { artistId: id },
+      include: { _count: { select: { events: true } } },
+      orderBy: [{ year: 'desc' }, { startDate: 'desc' }],
+    });
+
+    const scoreAggs = await Promise.all(
+      tours.map((t) =>
+        prisma.userLog.aggregate({
+          where: { event: { tourId: t.id }, score: { not: null } },
+          _avg: { score: true },
+          _count: { score: true },
+        })
+      )
+    );
+
+    return tours.map((t, i) => ({
+      id: t.id,
+      name: t.name,
+      year: t.year ?? undefined,
+      startDate: t.startDate ? t.startDate.toISOString() : undefined,
+      endDate: t.endDate ? t.endDate.toISOString() : undefined,
+      imageUrl: t.imageUrl ?? undefined,
+      eventCount: t._count.events,
+      avgScore: scoreAggs[i]!._avg.score ?? undefined,
+      scoredLogCount: scoreAggs[i]!._count.score,
+    }));
+  } catch (error) {
+    if (isDbUnavailable(error)) return [];
+    req.log.error({ error }, 'Get artist tours error');
+    reply.status(500);
+    return { error: 'Failed to load artist tours' };
+  }
+});
+
 function toSafeIdPart(input: string) {
   return input
     .trim()
@@ -5227,10 +5587,15 @@ app.post('/logs', async (req, reply) => {
     // Server-authoritative XP inputs, derived from the user's real history
     // *before* this log exists — so "new venue / new artist / first log of
     // the month" bonuses reflect prior state only.
-    const [venueLogCount, artistLogCount, monthLogCount] = await Promise.all([
+    const [venueLogCount, artistLogCount, monthLogCount, scoredLogCount] = await Promise.all([
       prisma.userLog.count({ where: { userId, event: { venueId: event.venueId } } }),
       prisma.userLog.count({ where: { userId, event: { artistId: event.artistId } } }),
       prisma.userLog.count({ where: { userId, event: { date: { gte: monthStart, lt: monthEnd } } } }),
+      // Whether the user already has any scored logs — tells the client
+      // whether the post-create flow should start the compare loop
+      // (GET next-opponent -> POST compare -> POST score) or go straight to
+      // the first-ever "vibe" score via POST /logs/:id/score.
+      prisma.userLog.count({ where: { userId, score: { not: null } } }),
     ]);
 
     const xpInputs = {
@@ -5287,6 +5652,7 @@ app.post('/logs', async (req, reply) => {
       xpBefore,
       xpAfter,
       leveledUp,
+      hasScoredHistory: scoredLogCount > 0,
     };
   } catch (error) {
     // Handle "already logged" nicely
@@ -5306,11 +5672,29 @@ app.patch('/logs/:id', async (req) => {
     row?: string | null;
     seat?: string | null;
     visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+    // Posting a "log only" entry as a shared memory. `share: true` stamps
+    // sharedAt = now(); `sharedAt` also accepts an explicit ISO string or
+    // null (to un-share / revert to a log-only entry).
+    share?: boolean;
+    sharedAt?: string | null;
   };
 
   const existing = await prisma.userLog.findUnique({ where: { id }, select: { userId: true } });
   if (!existing) throw new AppError('Log not found', 404);
   if (existing.userId !== userId) throw new AppError('Forbidden', 403);
+
+  let sharedAtUpdate: Date | null | undefined;
+  if (body.share === true) {
+    sharedAtUpdate = new Date();
+  } else if (body.sharedAt !== undefined) {
+    if (body.sharedAt === null) {
+      sharedAtUpdate = null;
+    } else {
+      const d = new Date(body.sharedAt);
+      if (Number.isNaN(d.getTime())) throw new AppError('sharedAt must be a valid ISO date', 400);
+      sharedAtUpdate = d;
+    }
+  }
 
   const updated = await prisma.userLog.update({
     where: { id },
@@ -5321,10 +5705,157 @@ app.patch('/logs/:id', async (req) => {
       ...(body.row !== undefined && { row: typeof body.row === 'string' ? body.row : null }),
       ...(body.seat !== undefined && { seat: typeof body.seat === 'string' ? body.seat : null }),
       ...(body.visibility !== undefined && { visibility: body.visibility }),
+      ...(sharedAtUpdate !== undefined && { sharedAt: sharedAtUpdate }),
     },
   });
 
   return { id: updated.id };
+});
+
+// ==================== LOG SCORING (compare-to-rank) ROUTES ====================
+
+// GET /logs/:id/next-opponent - the server-picked binary-search midpoint
+// candidate to compare this (unscored) log against, or null once placement
+// is fully resolved (either exact by binary search convergence, or by a TIE).
+app.get('/logs/:id/next-opponent', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+
+  const log = await prisma.userLog.findUnique({ where: { id }, select: { id: true, userId: true, score: true } });
+  if (!log) throw new AppError('Log not found', 404);
+  if (log.userId !== userId) throw new AppError('Forbidden', 403);
+  if (typeof log.score === 'number') return { opponent: null }; // already placed — nothing left to resolve
+
+  const placement = await computePlacement(userId, id);
+  const candidate = pickMidpointCandidate(placement);
+
+  if (!candidate) return { opponent: null };
+
+  return {
+    opponent: {
+      id: candidate.id,
+      score: candidate.score,
+      event: {
+        id: candidate.event.id,
+        name: candidate.event.name,
+        date: candidate.event.date.toISOString(),
+      },
+      photo: candidate.photos[0]?.photoUrl,
+    },
+  };
+});
+
+// POST /logs/:id/compare - body { opponentLogId, result: 'win'|'loss'|'tie' }
+// Records an audit-trail LogComparison row. Owner-only; the opponent must be
+// one of the same user's own logs and must already have a score.
+app.post('/logs/:id/compare', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  const body = (req.body ?? {}) as { opponentLogId?: string; result?: 'win' | 'loss' | 'tie' };
+
+  const opponentLogId = body.opponentLogId;
+  if (!opponentLogId) throw new AppError('opponentLogId is required', 400);
+  if (opponentLogId === id) throw new AppError('opponentLogId must differ from the log being scored', 400);
+
+  const resultMap = { win: 'WIN', loss: 'LOSS', tie: 'TIE' } as const;
+  const result = body.result ? resultMap[body.result] : undefined;
+  if (!result) throw new AppError("result must be 'win', 'loss', or 'tie'", 400);
+
+  const [log, opponent] = await Promise.all([
+    prisma.userLog.findUnique({ where: { id }, select: { id: true, userId: true, score: true } }),
+    prisma.userLog.findUnique({ where: { id: opponentLogId }, select: { id: true, userId: true, score: true } }),
+  ]);
+
+  if (!log) throw new AppError('Log not found', 404);
+  if (log.userId !== userId) throw new AppError('Forbidden', 403);
+  if (typeof log.score === 'number') throw new AppError('Log is already scored', 409);
+
+  if (!opponent) throw new AppError('Opponent log not found', 404);
+  if (opponent.userId !== userId) throw new AppError('Opponent log must be one of your own logs', 403);
+  if (typeof opponent.score !== 'number') throw new AppError('Opponent log must already have a score', 400);
+
+  const priorCount = await prisma.logComparison.count({ where: { logId: id } });
+  const round = priorCount + 1;
+
+  const created = await prisma.logComparison.create({
+    data: { userId, logId: id, opponentLogId, result, round },
+  });
+
+  const placementAfter = await computePlacement(userId, id);
+
+  return {
+    id: created.id,
+    round: created.round,
+    result: body.result,
+    resolved: placementAfter.resolved,
+  };
+});
+
+// POST /logs/:id/score - finalizes the score by insertion.
+// First-ever scored log: body { vibe: 'bad'|'fine'|'great' } -> 3.0 | 6.5 | 8.5.
+// Otherwise: placement is derived from this log's LogComparison rows (see
+// computePlacement above) and must already be resolved.
+app.post('/logs/:id/score', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  const body = (req.body ?? {}) as { vibe?: 'bad' | 'fine' | 'great' };
+
+  const log = await prisma.userLog.findUnique({ where: { id }, select: { id: true, userId: true, score: true } });
+  if (!log) throw new AppError('Log not found', 404);
+  if (log.userId !== userId) throw new AppError('Forbidden', 403);
+  if (typeof log.score === 'number') throw new AppError('Log is already scored', 409);
+
+  const placement = await computePlacement(userId, id);
+
+  if (placement.candidates.length === 0) {
+    const VIBE_SCORES: Record<'bad' | 'fine' | 'great', number> = { bad: 3.0, fine: 6.5, great: 8.5 };
+    const vibe = body.vibe;
+    if (!vibe || !(vibe in VIBE_SCORES)) {
+      throw new AppError("vibe is required ('bad' | 'fine' | 'great') for your first scored log", 400);
+    }
+
+    const updated = await prisma.userLog.update({
+      where: { id },
+      data: { score: VIBE_SCORES[vibe], scoreRank: 0 },
+      select: { id: true, score: true, scoreRank: true },
+    });
+
+    return { id: updated.id, score: updated.score, scoreRank: updated.scoreRank, rank: 1, totalScored: 1 };
+  }
+
+  if (!placement.resolved) {
+    throw new AppError(
+      'Placement is not resolved yet — call GET /logs/:id/next-opponent and POST /logs/:id/compare until it returns null',
+      409
+    );
+  }
+
+  let pos: number;
+  let score: number;
+  if (placement.tieIndex !== null) {
+    const opponent = placement.candidates[placement.tieIndex]!;
+    score = opponent.score as number;
+    pos = placement.tieIndex + 1; // adjacent to (just below) the tied opponent
+  } else {
+    pos = placement.lo; // === placement.hi once resolved
+    score = computeInsertionScore(pos, placement.candidates);
+  }
+
+  const scoreRank = computeInsertionRank(pos, placement.candidates);
+
+  const updated = await prisma.userLog.update({
+    where: { id },
+    data: { score, scoreRank },
+    select: { id: true, score: true, scoreRank: true },
+  });
+
+  return {
+    id: updated.id,
+    score: updated.score,
+    scoreRank: updated.scoreRank,
+    rank: pos + 1,
+    totalScored: placement.candidates.length + 1,
+  };
 });
 
 // GET /logs/:id - log detail (for social feed)
