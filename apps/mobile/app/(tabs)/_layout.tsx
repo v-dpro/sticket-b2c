@@ -1,48 +1,20 @@
-// Tab shell — the new Sticket IA.
+// Tab shell — the Sticket IA, frequency-first.
 //
-//   Home · Explore · [LOG] · Upcoming · You
+//   Feed · Explore · Upcoming · You
 //
 // Monochrome by mandate: active = ink (tokens.fg), inactive = mute.
-// No per-tab accent colors, no gradient or pink fills. The center LOG
-// action is an ink-inversion circle (inverseBg/inverseFg) that springs
-// on press and opens the log flow.
+// No FAB: logging is an episodic (per-show) action, so it lives in
+// context — the You timeline header, event pages, empty states, and
+// show-day prompts — not in permanent chrome.
 
 import React from 'react';
-import { Redirect, Tabs, useRouter } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useSession } from '../../hooks/useSession';
 import { useTheme } from '../../lib/theme-context';
-
-const FAB_SIZE = 58;
-
-function LogButton() {
-  const router = useRouter();
-  const { tokens } = useTheme();
-  const c = tokens.colors;
-
-  return (
-    <View style={styles.fabSlot} pointerEvents="box-none">
-      <SpringPressable
-        haptic="medium"
-        onPress={() => router.push('/log/search')}
-        hitSlop={10}
-        accessibilityRole="button"
-        accessibilityLabel="Log a show"
-        style={[
-          styles.fab,
-          tokens.shadows.elevated,
-          { backgroundColor: c.inverseBg, borderColor: c.bg },
-        ]}
-      >
-        <Ionicons name="add" size={30} color={c.inverseFg} />
-      </SpringPressable>
-    </View>
-  );
-}
 
 export default function TabsLayout() {
   const { user, profile, isLoading } = useSession();
@@ -83,9 +55,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: 'Feed',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'albums' : 'albums-outline'} size={24} color={color} />
           ),
         }}
       />
@@ -100,15 +72,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Center LOG action — never a routed screen, just the button. */}
-      <Tabs.Screen
-        name="log-fab"
-        options={{
-          title: '',
-          tabBarButton: () => <LogButton />,
-        }}
-      />
-
       <Tabs.Screen
         name="upcoming"
         options={{
@@ -119,7 +82,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* You — the timeline tab (owned by the concurrent timeline wave). */}
       <Tabs.Screen
         name="you"
         options={{
@@ -153,20 +115,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  fabSlot: {
-    top: -14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 72,
-  },
-  fab: {
-    width: FAB_SIZE,
-    height: FAB_SIZE,
-    borderRadius: FAB_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-  },
   avatar: {
     width: 27,
     height: 27,

@@ -434,6 +434,7 @@ export default function YouScreen() {
       }}
       onSettings={openSettings}
       onEdit={openEditProfile}
+      onLog={() => router.push('/log/search')}
     />
   );
 

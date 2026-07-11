@@ -26,6 +26,8 @@ type TimelineHeaderProps = {
   stats: TimelineHeaderStats;
   onSettings: () => void;
   onEdit: () => void;
+  /** Primary log entry point — the FAB was removed from the tab bar. */
+  onLog: () => void;
 };
 
 const AVATAR_SIZE = 56;
@@ -43,6 +45,7 @@ export function TimelineHeader({
   stats,
   onSettings,
   onEdit,
+  onLog,
 }: TimelineHeaderProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
@@ -160,6 +163,7 @@ export function TimelineHeader({
         </View>
 
         <View style={styles.actions}>
+          <PillButton title="+ Log" variant="primary" size="sm" onPress={onLog} springFeedback haptic="medium" />
           <PillButton title="Edit" variant="secondary" size="sm" onPress={onEdit} springFeedback />
           <SpringPressable
             onPress={onSettings}
