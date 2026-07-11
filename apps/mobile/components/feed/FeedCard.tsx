@@ -41,6 +41,7 @@ import { AvatarStack } from '../ui/AvatarStack';
 import { SpringNumber } from '../ui/SpringNumber';
 import { SpringPressable } from '../ui/SpringPressable';
 import { FeedCardPhotos } from './FeedCardPhotos';
+import { LikersSheet } from './LikersSheet';
 import { PinnedComposer, type PinnedComposerHandle } from './PinnedComposer';
 import { WhoWasHere } from './WhoWasHere';
 
@@ -103,6 +104,12 @@ export function FeedCard({
   const c = tokens.colors;
   const styles = useThemedStyles(buildStyles);
   const composerRef = useRef<PinnedComposerHandle>(null);
+
+  // Self-post treatment: this is the viewer's own logged show.
+  const isSelf = Boolean(currentUserId && item.user.id === currentUserId);
+
+  // Likers sheet (opened from the "Liked by …" row).
+  const [likersOpen, setLikersOpen] = useState(false);
 
   // ── Likes ──
   const [like, setLike] = useState<LikeState>(
@@ -270,8 +277,10 @@ export function FeedCard({
   }, [item.log.id, router]);
 
   const openProfile = useCallback(() => {
-    router.push({ pathname: '/profile/[id]', params: { id: item.user.id } });
-  }, [item.user.id, router]);
+    // Own posts route to the You tab; everyone else to their profile.
+    if (isSelf) router.push('/(tabs)/you');
+    else router.push({ pathname: '/profile/[id]', params: { id: item.user.id } });
+  }, [isSelf, item.user.id, router]);
 
   const openArtist = useCallback(() => {
     router.push({ pathname: '/artist/[artistId]', params: { artistId: item.event.artist.id } });
@@ -320,12 +329,12 @@ export function FeedCard({
           onPress={openProfile}
           style={styles.headerUser}
           accessibilityRole="button"
-          accessibilityLabel={`View @${item.user.username}'s profile`}
+          accessibilityLabel={isSelf ? 'View your timeline' : `View @${item.user.username}'s profile`}
         >
           <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={36} />
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitleLine} numberOfLines={1}>
-              <Text style={styles.username}>{item.user.username}</Text>
+              <Text style={styles.username}>{isSelf ? 'you' : item.user.username}</Text>
               <Text style={styles.loggedLabel}>  logged a show</Text>
             </Text>
             <Text style={styles.headerMeta} numberOfLines={1}>
@@ -334,10 +343,10 @@ export function FeedCard({
           </View>
         </Pressable>
         <SpringPressable
-          onPress={handleShare}
+          onPress={isSelf ? openLog : handleShare}
           style={styles.menuBtn}
           accessibilityRole="button"
-          accessibilityLabel="More options"
+          accessibilityLabel={isSelf ? 'View memory' : 'More options'}
         >
           <Ionicons name="ellipsis-horizontal" size={18} color={c.mute} />
         </SpringPressable>
@@ -421,7 +430,15 @@ export function FeedCard({
 
       {/* ── 4. Liked by ── */}
       {like.count > 0 && firstLiker ? (
-        <View style={styles.likedByRow}>
+        <Pressable
+          style={styles.likedByRow}
+          onPress={() => {
+            haptics.light();
+            setLikersOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`See everyone who liked this — ${like.count} ${like.count === 1 ? 'like' : 'likes'}`}
+        >
           {likedBy.length > 0 ? (
             <AvatarStack
               avatars={likedBy.slice(0, 3).map((u) => ({ uri: u.avatarUrl ?? null, name: u.username }))}
@@ -440,7 +457,7 @@ export function FeedCard({
               </>
             ) : null}
           </Text>
-        </View>
+        </Pressable>
       ) : null}
 
       {/* ── 5. Caption ── */}
@@ -543,6 +560,17 @@ export function FeedCard({
           onSubmit={handleComposerSubmit}
         />
       </Animated.View>
+
+      {/* Likers sheet — mounts only while open so it fetches on demand. */}
+      {likersOpen ? (
+        <LikersSheet
+          visible={likersOpen}
+          onClose={() => setLikersOpen(false)}
+          logId={item.log.id}
+          currentUserId={currentUserId}
+          totalCount={like.count}
+        />
+      ) : null}
     </Animated.View>
   );
 }

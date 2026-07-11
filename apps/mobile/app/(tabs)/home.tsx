@@ -18,7 +18,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { EmptyFeed } from '../../components/feed/EmptyFeed';
 import { FeedCard, invalidateFeedLikeCache } from '../../components/feed/FeedCard';
+import { FeedScopeToggle } from '../../components/feed/FeedScopeToggle';
 import { FeedSkeleton } from '../../components/feed/FeedSkeleton';
+import { FindPeopleCard } from '../../components/feed/FindPeopleCard';
 import { invalidateWhoWasHereCache } from '../../components/feed/WhoWasHere';
 import { NotificationBellButton } from '../../components/notifications/NotificationBellButton';
 import { PillButton } from '../../components/ui/PillButton';
@@ -46,6 +48,19 @@ export default function HomeScreen() {
       fontWeight: '800',
       letterSpacing: -0.5,
       color: t.colors.fg,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    scopeCaption: {
+      paddingHorizontal: t.density.pad,
+      paddingBottom: 8,
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 0.2,
+      color: t.colors.mute,
     },
     cardWrapper: { paddingBottom: 12 },
     listContent: { paddingTop: 4, paddingBottom: 110 },
@@ -82,6 +97,8 @@ export default function HomeScreen() {
     hasNoFriends,
     error,
     requiresAuth,
+    scope,
+    setScope,
     refresh,
     loadMore,
     addCommentToItem,
@@ -196,6 +213,7 @@ export default function HomeScreen() {
           if (hasMore) loadMore();
         }}
         onEndReachedThreshold={0.5}
+        ListHeaderComponent={hasNoFriends ? <FindPeopleCard /> : null}
         ListFooterComponent={
           loadingMore ? (
             <View style={styles.footer}>
@@ -213,8 +231,14 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.wordmark}>sticket</Text>
-        <NotificationBellButton color={tokens.colors.fg} />
+        <View style={styles.headerRight}>
+          <FeedScopeToggle scope={scope} onChange={setScope} />
+          <NotificationBellButton color={tokens.colors.fg} />
+        </View>
       </View>
+      {scope === 'fof' ? (
+        <Text style={styles.scopeCaption}>Including friends of friends’ public posts</Text>
+      ) : null}
       {body}
     </SafeAreaView>
   );

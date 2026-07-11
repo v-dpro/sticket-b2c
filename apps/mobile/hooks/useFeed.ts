@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { getFeed } from '../lib/api/feed';
+import { getFeed, type FeedScope } from '../lib/api/feed';
 import * as SecureStore from '../lib/storage/secureStore';
 import type { FeedComment, FeedItem } from '../types/feed';
 import { getErrorMessage } from '../lib/api/errorUtils';
 import { useSession } from './useSession';
 
 const LIMIT = 20;
+
+/** Persisted feed-audience choice (see FeedScopeToggle in the header). */
+const FEED_SCOPE_KEY = 'sticket.feed-scope';
+
+export type { FeedScope };
 
 async function hasApiToken(): Promise<boolean> {
   const token =
@@ -28,11 +34,42 @@ export function useFeed() {
   const [error, setError] = useState<string | null>(null);
   const [requiresAuth, setRequiresAuth] = useState(false);
 
+  // Audience scope: 'friends' (default) or 'fof'. Hydrated once from
+  // AsyncStorage; we hold the first fetch until then so we don't fetch
+  // 'friends' and immediately refetch the persisted choice.
+  const [scope, setScopeState] = useState<FeedScope>('friends');
+  const [scopeHydrated, setScopeHydrated] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(FEED_SCOPE_KEY);
+        if (active && (saved === 'fof' || saved === 'friends')) setScopeState(saved);
+      } catch {
+        // fall back to default 'friends'
+      } finally {
+        if (active) setScopeHydrated(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const setScope = useCallback((next: FeedScope) => {
+    setScopeState((prev) => {
+      if (prev === next) return prev;
+      AsyncStorage.setItem(FEED_SCOPE_KEY, next).catch(() => {});
+      return next;
+    });
+  }, []);
+
   const fetchIdRef = useRef(0);
 
   const fetchFeed = useCallback(
     async (isRefresh = false) => {
-      if (sessionLoading) return;
+      if (sessionLoading || !scopeHydrated) return;
 
       const id = ++fetchIdRef.current;
       if (isRefresh) setRefreshing(true);
@@ -71,7 +108,7 @@ export function useFeed() {
       }
 
       try {
-        const data = await getFeed({ limit: LIMIT });
+        const data = await getFeed({ limit: LIMIT, scope });
         if (id !== fetchIdRef.current) return;
         setItems(data.items ?? []);
         setNextCursor(data.nextCursor ?? null);
@@ -88,7 +125,7 @@ export function useFeed() {
         }
       }
     },
-    [user, sessionLoading],
+    [user, sessionLoading, scope, scopeHydrated],
   );
 
   const loadMore = useCallback(async () => {
@@ -97,7 +134,7 @@ export function useFeed() {
 
     setLoadingMore(true);
     try {
-      const data = await getFeed({ limit: LIMIT, before: nextCursor });
+      const data = await getFeed({ limit: LIMIT, before: nextCursor, scope });
       setItems((prev) => [...prev, ...(data.items ?? [])]);
       setNextCursor(data.nextCursor ?? null);
       setHasMore(Boolean(data.nextCursor));
@@ -106,7 +143,7 @@ export function useFeed() {
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, nextCursor]);
+  }, [hasMore, loadingMore, nextCursor, scope]);
 
   useEffect(() => {
     void fetchFeed();
@@ -141,6 +178,8 @@ export function useFeed() {
     hasNoFriends,
     error,
     requiresAuth,
+    scope,
+    setScope,
     refresh: () => fetchFeed(true),
     loadMore,
     updateItem,

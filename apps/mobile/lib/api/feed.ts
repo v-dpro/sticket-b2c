@@ -7,10 +7,18 @@ export type FeedResponse = {
   hasNoFriends?: boolean;
 };
 
+/**
+ * Feed audience scope.
+ * - 'friends' — your own posts + people you follow (PUBLIC | FRIENDS).
+ * - 'fof' — additionally includes friends-of-friends' PUBLIC posts.
+ */
+export type FeedScope = 'friends' | 'fof';
+
 // Get social feed
 export async function getFeed(options?: {
   limit?: number;
   before?: string; // cursor for pagination
+  scope?: FeedScope;
 }): Promise<FeedResponse> {
   const response = await apiClient.get('/feed', { params: options });
   return response.data;

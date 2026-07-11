@@ -5426,10 +5426,13 @@ app.get('/feed/public', async (req) => {
 // GET /feed - Social feed (friends' logs)
 app.get('/feed', async (req) => {
   const userId = requireAccessUserId(req as any);
-  const q = (req.query ?? {}) as { limit?: string; before?: string };
+  const q = (req.query ?? {}) as { limit?: string; before?: string; scope?: string };
 
   const limit = Math.max(1, Math.min(50, Number(q.limit ?? 20)));
   const before = typeof q.before === 'string' ? q.before : undefined;
+  // Feed audience: 'friends' (default) = you + people you follow;
+  // 'fof' additionally pulls friends-of-friends, but only their PUBLIC posts.
+  const scope = q.scope === 'fof' ? 'fof' : 'friends';
 
   const following = await prisma.follow.findMany({
     where: { followerId: userId },
@@ -5437,14 +5440,26 @@ app.get('/feed', async (req) => {
   });
   const friendIds = following.map((f) => f.followingId);
 
-  if (!friendIds.length) {
-    return { items: [], nextCursor: null, hasNoFriends: true };
+  // Instagram model: your own posts appear in your feed too.
+  const innerCircle = [userId, ...friendIds];
+  const audience: Prisma.UserLogWhereInput[] = [
+    { userId: { in: innerCircle }, visibility: { in: ['PUBLIC', 'FRIENDS'] } },
+  ];
+
+  if (scope === 'fof' && friendIds.length) {
+    const secondHop = await prisma.follow.findMany({
+      where: { followerId: { in: friendIds } },
+      select: { followingId: true },
+      take: 2000,
+    });
+    const inner = new Set(innerCircle);
+    const fofIds = [...new Set(secondHop.map((f) => f.followingId))].filter((id) => !inner.has(id));
+    if (fofIds.length) {
+      audience.push({ userId: { in: fofIds }, visibility: 'PUBLIC' });
+    }
   }
 
-  const where: Prisma.UserLogWhereInput = {
-    userId: { in: friendIds },
-    visibility: { in: ['PUBLIC', 'FRIENDS'] },
-  };
+  const where: Prisma.UserLogWhereInput = { OR: audience };
 
   if (before) {
     const d = new Date(before);
@@ -5572,7 +5587,7 @@ app.get('/feed', async (req) => {
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 
-  return { items, nextCursor, hasNoFriends: false };
+  return { items, nextCursor, hasNoFriends: friendIds.length === 0 };
 });
 
 // ==================== LOG ROUTES ====================
