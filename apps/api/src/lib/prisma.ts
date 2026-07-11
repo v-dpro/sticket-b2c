@@ -18,7 +18,12 @@ if (!globalForPrisma.prismaPgPool) {
 
 if (!globalForPrisma.prisma) {
   const adapter = new PrismaPg(globalForPrisma.prismaPgPool);
-  globalForPrisma.prisma = new PrismaClient({ adapter });
+  globalForPrisma.prisma = new PrismaClient({
+    adapter,
+    // Batched upserts (badge catalog, seeds) can exceed the 5s default over
+    // WAN latency to Neon; give interactive transactions real headroom.
+    transactionOptions: { timeout: 60_000, maxWait: 10_000 },
+  });
 }
 
 export const prisma = globalForPrisma.prisma;

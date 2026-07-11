@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:catalog": "tsx prisma/seed-catalog.ts"
+    "db:seed:catalog": "tsx prisma/seed-catalog.ts",
+    "db:seed:playground": "tsx prisma/seed-playground.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
