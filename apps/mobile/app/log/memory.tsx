@@ -27,7 +27,7 @@ import { SpringPressable } from '../../components/ui/SpringPressable';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { getEvent } from '../../lib/api/events';
 import { updateLog, uploadLogPhoto } from '../../lib/api/logs';
-import { submitVenueRatings, submitVenueTip } from '../../lib/api/venues';
+import { submitSeatRating, submitVenueRatings, submitVenueTip } from '../../lib/api/venues';
 import { haptics } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 import type { EventDetails } from '../../types/event';
@@ -114,6 +114,8 @@ export default function LogMemory() {
   const [seat, setSeat] = useState(params.seat ? String(params.seat) : '');
   const [caption, setCaption] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('PUBLIC');
+
+  const [seatStars, setSeatStars] = useState(0);
 
   const [venueStars, setVenueStars] = useState(0);
   const [venueTags, setVenueTags] = useState<string[]>([]);
@@ -221,12 +223,23 @@ export default function LogMemory() {
         share: true,
       });
 
-      // Venue rating + tip: best-effort, never block the (already shared) post.
+      // Venue rating + tip + seat rating: best-effort, never block the
+      // (already shared) post.
       const tasks: Promise<unknown>[] = [];
       const ratings = buildVenueRatings();
       if (venueId && Object.keys(ratings).length) tasks.push(submitVenueRatings(venueId, ratings));
       if (venueId && venueTip.trim()) {
         tasks.push(submitVenueTip(venueId, { text: venueTip.trim(), category: 'general' }));
+      }
+      if (venueId && section.trim() && seatStars > 0) {
+        tasks.push(
+          submitSeatRating(venueId, {
+            section: section.trim(),
+            row: row.trim() || undefined,
+            rating: seatStars,
+            eventId: eventId || undefined,
+          })
+        );
       }
       if (tasks.length) await Promise.allSettled(tasks);
 
@@ -306,9 +319,12 @@ export default function LogMemory() {
               >
                 How was the view · helps people pick seats
               </Text>
-              {/* Server has no photo-less seat-view rating route yet — disabled. */}
-              <StarRow value={0} disabled size={26} />
-              <Text style={{ color: c.muteSoft, fontSize: 11.5, fontWeight: '400' }}>Seat rating — coming soon</Text>
+              <StarRow value={seatStars} onChange={setSeatStars} disabled={!section.trim()} size={26} />
+              {!section.trim() ? (
+                <Text style={{ color: c.muteSoft, fontSize: 11.5, fontWeight: '400' }}>
+                  add your section to rate the seat
+                </Text>
+              ) : null}
             </View>
           </MemoryCard>
 

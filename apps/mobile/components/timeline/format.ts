@@ -24,6 +24,13 @@ export function monthLabel(key: string): string {
   return `${abbr} ${year ?? ''}`.trim();
 }
 
+/** "2026-07" → "JUL" (map view month tiles — year lives in the section header). */
+export function monthAbbr(key: string): string {
+  const [, month] = key.split('-');
+  const idx = Number(month) - 1;
+  return MONTH_ABBR[idx] ?? '???';
+}
+
 /** ISO date → "Jul 14" (card metadata lines). */
 export function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr);

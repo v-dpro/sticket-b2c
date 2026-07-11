@@ -10,6 +10,7 @@ import {
   ScrollView,
   Text,
   View,
+  type FlatList,
   type ListRenderItemInfo,
   type ViewStyle,
 } from 'react-native';
@@ -17,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
+  FadeIn,
   FadeInDown,
   interpolate,
   useAnimatedScrollHandler,
@@ -40,6 +42,8 @@ import { MemoryCard } from '../../components/timeline/MemoryCard';
 import { MonthMarker } from '../../components/timeline/MonthMarker';
 import { PlanCard } from '../../components/timeline/PlanCard';
 import { TimelineHeader } from '../../components/timeline/TimelineHeader';
+import { TimelineMapView } from '../../components/timeline/TimelineMapView';
+import { TimelineViewToggle, type TimelineViewMode } from '../../components/timeline/TimelineViewToggle';
 import { TodayDivider } from '../../components/timeline/TodayDivider';
 import { monthLabel } from '../../components/timeline/format';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -48,6 +52,9 @@ import { PillButton } from '../../components/ui/PillButton';
 const PAGE_SIZE = 30;
 // Rows past this index skip the entrance stagger (they mount mid-scroll).
 const STAGGER_CUTOFF = 12;
+// Map view backfills the rest of history when opened (it's only meaningful
+// complete) — hard cap on how many extra pages it may pull.
+const MAP_BACKFILL_MAX_PAGES = 10;
 
 // ─── Flattened list rows ───────────────────────────────────────────
 
@@ -214,6 +221,14 @@ export default function YouScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
 
+  // View mode — per-session only (deliberately not persisted).
+  const [viewMode, setViewMode] = useState<TimelineViewMode>('scroll');
+  const listRef = useRef<FlatList<Row>>(null);
+  // Row key a map-marker tap wants the scroll view to land on.
+  const pendingScrollKey = useRef<string | null>(null);
+  // Pages pulled by the map's backfill loop (counts toward the hard cap).
+  const mapBackfillPages = useRef(0);
+
   // Scroll offset shared value — drives every FloatCard worklet.
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((event) => {
@@ -239,6 +254,14 @@ export default function YouScreen() {
     entryWrap: { marginBottom: t.density.gap },
     footer: { paddingVertical: 20, alignItems: 'center' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    // Scroll/Map chips — right-aligned strip just below the header (the
+    // header's top row already carries + Log / Edit / gear).
+    toggleBar: {
+      paddingHorizontal: t.density.pad,
+      paddingTop: 10,
+      alignItems: 'flex-end',
+    },
+    viewFill: { flex: 1 },
   }));
 
   // ── Data ──────────────────────────────────────────────────────
@@ -257,6 +280,7 @@ export default function YouScreen() {
       setUpcoming(timeline.value.upcoming ?? []);
       setMonths(timeline.value.months ?? []);
       setNextCursor(timeline.value.nextCursor ?? null);
+      mapBackfillPages.current = 0; // fresh history — the map may backfill again
       // Stats are a nice-to-have for the header — degrade to "—" on failure.
       setStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
       setErrorMsg(null);
@@ -306,6 +330,18 @@ export default function YouScreen() {
       setLoadingMore(false);
     }
   }, [userId, nextCursor]);
+
+  // MAP BACKFILL — the one-page map is only meaningful complete. While the
+  // map is open and history remains behind the cursor, keep paging: each
+  // completed page changes `nextCursor`/`loadingMore`, re-running this
+  // effect for the next one. Failures retry on the next run; the page
+  // counter hard-caps total attempts.
+  useEffect(() => {
+    if (viewMode !== 'map' || !nextCursor || loadingMore) return;
+    if (mapBackfillPages.current >= MAP_BACKFILL_MAX_PAGES) return;
+    mapBackfillPages.current += 1;
+    void loadMore();
+  }, [viewMode, nextCursor, loadingMore, loadMore]);
 
   // ── Derived ───────────────────────────────────────────────────
 
@@ -357,6 +393,44 @@ export default function YouScreen() {
   const openLogFlow = useCallback(() => router.push('/log/search'), [router]);
   const openSettings = useCallback(() => router.push('/settings'), [router]);
   const openEditProfile = useCallback(() => router.push('/edit-profile'), [router]);
+
+  // ── Map ⇄ Scroll fly-to ───────────────────────────────────────
+
+  // Map markers carry the scroll view's row keys — a tap stashes the target
+  // and flips the mode; the effect below lands the jump once the list is up.
+  const flyToRow = useCallback((rowKey: string) => {
+    pendingScrollKey.current = rowKey;
+    setViewMode('scroll');
+  }, []);
+
+  useEffect(() => {
+    if (viewMode !== 'scroll') return;
+    const key = pendingScrollKey.current;
+    if (!key) return;
+    pendingScrollKey.current = null;
+    const index = rows.findIndex((row) => row.key === key);
+    if (index < 0) return;
+    // Give the remounted list a beat (the fade-through) before animating.
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.2 });
+    }, durations.fadeThrough);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires on mode flips only
+  }, [viewMode]);
+
+  // Deep rows aren't measured yet — jump near by estimate, then re-aim.
+  const onScrollToIndexFailed = useCallback(
+    (info: { index: number; averageItemLength: number }) => {
+      listRef.current?.scrollToOffset({
+        offset: info.averageItemLength * info.index,
+        animated: true,
+      });
+      setTimeout(() => {
+        listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.2 });
+      }, 400);
+    },
+    [],
+  );
 
   // ── Rows ──────────────────────────────────────────────────────
 
@@ -499,33 +573,56 @@ export default function YouScreen() {
     );
   }
 
+  // Backfill still running (or pending) — the map shows an inline spinner.
+  const mapLoadingAll =
+    loadingMore || (nextCursor !== null && mapBackfillPages.current < MAP_BACKFILL_MAX_PAGES);
+
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       {header}
-      <Animated.FlatList
-        data={rows}
-        renderItem={renderRow}
-        keyExtractor={(row: Row) => row.key}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        refreshControl={refreshControl}
-        onEndReached={() => void loadMore()}
-        onEndReachedThreshold={0.4}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        contentContainerStyle={{
-          paddingHorizontal: tokens.density.pad,
-          paddingTop: 16,
-          paddingBottom: 48,
-        }}
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={styles.footer}>
-              <ActivityIndicator color={tokens.colors.mute} />
-            </View>
-          ) : null
-        }
-      />
+      <View style={styles.toggleBar}>
+        <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
+      </View>
+      {viewMode === 'map' ? (
+        // Quick fade-through into the zoomed-out map (motion contract §2).
+        <Animated.View key="map" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
+          <TimelineMapView
+            upcoming={upcoming}
+            months={months}
+            loadingAll={mapLoadingAll}
+            onPressMarker={flyToRow}
+          />
+        </Animated.View>
+      ) : (
+        <Animated.View key="scroll" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
+          <Animated.FlatList
+            ref={listRef}
+            data={rows}
+            renderItem={renderRow}
+            keyExtractor={(row: Row) => row.key}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            refreshControl={refreshControl}
+            onEndReached={() => void loadMore()}
+            onEndReachedThreshold={0.4}
+            onScrollToIndexFailed={onScrollToIndexFailed}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            contentContainerStyle={{
+              paddingHorizontal: tokens.density.pad,
+              paddingTop: 16,
+              paddingBottom: 48,
+            }}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={styles.footer}>
+                  <ActivityIndicator color={tokens.colors.mute} />
+                </View>
+              ) : null
+            }
+          />
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }

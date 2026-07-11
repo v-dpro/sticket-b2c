@@ -62,6 +62,26 @@ export async function getSeatViews(venueId: string, options?: { section?: string
   return response.data;
 }
 
+// Submit seat rating (photo-less quick 1-5 rating)
+export interface SeatRatingSubmission {
+  section: string;
+  row?: string;
+  rating: number;
+  eventId?: string;
+}
+
+export interface SeatRating {
+  id: string;
+  section: string;
+  row?: string;
+  rating: number;
+}
+
+export async function submitSeatRating(venueId: string, data: SeatRatingSubmission): Promise<SeatRating> {
+  const response = await apiClient.post(`/venues/${venueId}/seat-ratings`, data);
+  return response.data;
+}
+
 // Submit seat view (multipart)
 export async function submitSeatView(
   venueId: string,
