@@ -1,3 +1,8 @@
+// ArtistHeader — hero-image header. All text/icons/scrims below sit DIRECTLY
+// over the hero photo, so they keep FIXED light-on-dark colors (rather than
+// theme tokens) to stay legible in both light and dark mode. This mirrors the
+// standard "dark-scrimmed hero art" pattern; do not theme these.
+
 import React from 'react';
 import {
   View,
@@ -11,7 +16,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 320;
@@ -58,9 +62,9 @@ export function ArtistHeader({
         <View style={[styles.backgroundImage, styles.placeholderBg]} />
       )}
 
-      {/* Gradient Overlay */}
+      {/* Gradient Overlay — scrim darkens hero for legibility (fixed) */}
       <LinearGradient
-        colors={['rgba(10, 11, 30, 0.2)', 'rgba(10, 11, 30, 0.8)', colors.ink]}
+        colors={['rgba(10, 11, 30, 0.2)', 'rgba(10, 11, 30, 0.8)', '#0B0B10']}
         style={styles.gradient}
       />
 
@@ -68,12 +72,12 @@ export function ArtistHeader({
       <View style={styles.topBar}>
         <Pressable onPress={onBackPress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </BlurView>
         </Pressable>
         <Pressable onPress={onSharePress} style={styles.iconButton}>
           <BlurView intensity={50} style={styles.blurButton}>
-            <Ionicons name="share-outline" size={22} color={colors.textHi} />
+            <Ionicons name="share-outline" size={22} color="#FFFFFF" />
           </BlurView>
         </Pressable>
       </View>
@@ -101,12 +105,12 @@ export function ArtistHeader({
           >
             {isFollowing ? (
               <>
-                <Ionicons name="notifications" size={18} color={colors.brandPurple} />
+                <Ionicons name="notifications" size={18} color="#7C5CFF" />
                 <Text style={styles.followingText}>Following</Text>
               </>
             ) : (
               <LinearGradient
-                colors={[colors.brandPurple, colors.brandPink]}
+                colors={['#7C5CFF', '#EFA1EF']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.followGradient}
@@ -114,7 +118,7 @@ export function ArtistHeader({
                 <Ionicons
                   name="notifications-outline"
                   size={18}
-                  color={colors.textHi}
+                  color="#FFFFFF"
                 />
                 <Text style={styles.followText}>Follow</Text>
               </LinearGradient>
@@ -146,6 +150,9 @@ export function ArtistHeader({
   );
 }
 
+// NOTE: colors are intentionally FIXED (not theme tokens) — everything here
+// renders over the hero image + dark scrim, so it must read as light-on-dark
+// in both light and dark mode.
 const styles = StyleSheet.create({
   container: {
     height: HEADER_HEIGHT,
@@ -157,7 +164,7 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   placeholderBg: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#16161E',
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
@@ -194,19 +201,19 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: colors.brandPurple,
+    borderColor: '#7C5CFF',
     marginBottom: 16,
   },
   name: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.textHi,
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 4,
   },
   genres: {
     fontSize: 14,
-    color: colors.textMid,
+    color: '#A7A7B4',
     marginBottom: 16,
   },
   actions: {
@@ -228,14 +235,14 @@ const styles = StyleSheet.create({
   followText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textHi,
+    color: '#FFFFFF',
   },
   followingButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderWidth: 1,
-    borderColor: colors.brandPurple,
+    borderColor: '#7C5CFF',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 24,
@@ -244,7 +251,7 @@ const styles = StyleSheet.create({
   followingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.brandPurple,
+    color: '#7C5CFF',
   },
   streamingLinks: {
     flexDirection: 'row',
@@ -254,13 +261,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface,
+    backgroundColor: '#16161E',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.hairline,
+    borderColor: '#1C1C26',
   },
 });
-
-
-

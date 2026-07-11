@@ -1,63 +1,102 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+// ONBOARDING · PRESALE PREVIEW — sells the presale-intel feature with a
+// realistic mock match, reusing components/entity/PresaleCard (import-only)
+// for the presale window/code. Continue best-effort persists follows and
+// marks the step, then → log-first-show.
+
+import React, { useMemo, useState } from 'react';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { format } from 'date-fns';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { radius, spacing, colors } from '../../lib/theme';
-import { useOnboardingStore } from '../../stores/onboardingStore';
+import { ProgressDots } from '../../components/onboarding/ProgressDots';
+import { PillButton } from '../../components/ui/PillButton';
+import { PresaleCard } from '../../components/entity/PresaleCard';
 import { apiClient } from '../../lib/api/client';
-import { StatusPill } from '../../components/shared/StatusPill';
-import { CodeDisplay } from '../../components/shared/CodeDisplay';
-import { SignupWarning } from '../../components/shared/SignupWarning';
-import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import type { EventPresale } from '../../lib/api/events';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { useOnboardingStore } from '../../stores/onboardingStore';
 
-interface PresalePreview {
-  id: string;
-  artistName: string;
-  tourName?: string;
-  venueName: string;
-  venueCity: string;
-  presaleType: string;
-  presaleStart: string;
-  code?: string;
-  signupUrl?: string;
-  signupDeadline?: string;
-}
+const DAY = 86_400_000;
 
 export default function PresalePreviewScreen() {
   const router = useRouter();
-  const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const selectedArtists = useOnboardingStore((s) => s.selectedArtists);
+  const city = useOnboardingStore((s) => s.city);
   const markPresalePreviewShown = useOnboardingStore((s) => s.markPresalePreviewShown);
-  const setNotificationPermissionAsked = useOnboardingStore((s) => s.setNotificationPermissionAsked);
 
-  const artistNames = useMemo(() => selectedArtists.map((a) => a.name), [selectedArtists]);
-
-  const [presales, setPresales] = useState<PresalePreview[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPresales = async () => {
-      try {
-        const response = await apiClient.post('/onboarding/presale-preview', { artistNames });
-        setPresales(response.data.presales ?? []);
-      } catch (err: any) {
-        setError('Failed to load presales');
-        // eslint-disable-next-line no-console
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const headliner = selectedArtists[0];
+  const artistName = headliner?.name ?? 'Your favorite artist';
+  const artistImage = headliner?.imageUrl;
 
-    void fetchPresales();
-  }, [artistNames]);
+  const mockPresales: EventPresale[] = useMemo(() => {
+    const now = Date.now();
+    return [
+      {
+        id: 'preview-presale',
+        artistName,
+        tourName: 'World Tour 2026',
+        venueName: 'Madison Square Garden',
+        venueCity: city ?? 'New York',
+        venueState: null,
+        eventDate: new Date(now + 62 * DAY).toISOString(),
+        presaleType: 'Artist',
+        presaleStart: new Date(now + 2 * DAY).toISOString(),
+        presaleEnd: new Date(now + 3 * DAY).toISOString(),
+        onsaleStart: new Date(now + 4 * DAY).toISOString(),
+        code: 'ENCORE26',
+        signupUrl: null,
+        ticketUrl: null,
+        notes: 'Your code unlocks the fan presale 24h before general sale.',
+      },
+    ];
+  }, [artistName, city]);
+
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    header: { paddingHorizontal: t.density.pad, paddingTop: 8, paddingBottom: 4 },
+    body: { paddingHorizontal: t.density.pad, paddingTop: 24, gap: 12 },
+    title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    subtitle: { fontSize: 15, fontWeight: '400', color: t.colors.mute, lineHeight: 21, marginBottom: 6 },
+    matchCard: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: t.density.cardPad,
+      gap: 12,
+    },
+    eyebrow: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      fontWeight: '600',
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+      color: t.colors.accent,
+    },
+    matchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: t.colors.card2 },
+    avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+    avatarInitial: { fontSize: 20, fontWeight: '700', color: t.colors.mute },
+    artist: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, color: t.colors.fg },
+    tour: { fontSize: 13, fontWeight: '400', color: t.colors.mute, marginTop: 2 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    meta: { fontSize: 13, fontWeight: '500', color: t.colors.textSoft },
+    note: { fontSize: 13, fontWeight: '400', color: t.colors.mute, lineHeight: 19, textAlign: 'center', marginTop: 4 },
+    footer: { paddingHorizontal: t.density.pad, paddingTop: 12, paddingBottom: 12 },
+  }));
+
+  const eventDateLabel = useMemo(() => {
+    const d = new Date(mockPresales[0].eventDate);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }, [mockPresales]);
 
   const persistFollowsIfNeeded = async () => {
+    if (selectedArtists.length === 0) return;
     // Idempotent: server uses upserts.
     await apiClient.post('/users/me/artists/bulk-follow', {
       artists: selectedArtists.map((a) => ({
@@ -85,249 +124,65 @@ export default function PresalePreviewScreen() {
     }
   };
 
-  const handleEnableNotifications = async () => {
-    // TODO: Actually request push permission (we track that we asked).
-    setNotificationPermissionAsked(true);
-    await handleContinue();
-  };
-
-  const renderPresale = ({ item }: { item: PresalePreview }) => {
-    const startDate = new Date(item.presaleStart);
-
-    return (
-      <View style={styles.presaleCard}>
-        <View style={styles.presaleHeader}>
-          <Text style={styles.presaleArtist}>{item.artistName}</Text>
-          {item.tourName ? <Text style={styles.presaleTour}>{item.tourName}</Text> : null}
-        </View>
-
-        <View style={styles.presaleVenue}>
-          <Ionicons name="location-outline" size={14} color={colors.textLo} />
-          <Text style={styles.presaleVenueText}>
-            {item.venueName}, {item.venueCity}
-          </Text>
-        </View>
-
-        <View style={styles.presaleDetails}>
-          <StatusPill type="presale" label={item.presaleType} />
-          <Text style={styles.presaleTime}>{format(startDate, "MMM d 'at' h:mm a")}</Text>
-        </View>
-
-        {item.code ? <CodeDisplay code={item.code} /> : null}
-
-        {item.signupDeadline ? <SignupWarning deadline={format(new Date(item.signupDeadline), 'MMM d')} /> : null}
-      </View>
-    );
-  };
-
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
-        </Pressable>
-        <Text style={styles.stepText}>Step 4 of 6</Text>
+        <ProgressDots total={6} current={3} />
       </View>
 
-      <View style={styles.content}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.brandPurple} />
-            <Text style={styles.loadingText}>Finding presales for your artists...</Text>
-          </View>
-        ) : presales.length > 0 ? (
-          <>
-            <View style={styles.titleContainer}>
-              <Text style={styles.emoji}>🎉</Text>
-              <Text style={styles.title}>Good news!</Text>
-              <Text style={styles.subtitle}>
-                We found {presales.length} upcoming presale{presales.length > 1 ? 's' : ''} for your artists
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <Animated.Text entering={FadeInDown.duration(300)} style={styles.title}>
+          Never miss a presale
+        </Animated.Text>
+        <Animated.Text entering={FadeInDown.delay(60).duration(300)} style={styles.subtitle}>
+          The moment tickets for your artists open, we surface the window and the code. Here’s what
+          that looks like.
+        </Animated.Text>
+
+        <Animated.View entering={FadeInDown.delay(120).duration(300)} style={styles.matchCard}>
+          <Text style={styles.eyebrow}>Presale match</Text>
+          <View style={styles.matchRow}>
+            {artistImage ? (
+              <Image source={{ uri: artistImage }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarInitial}>{artistName.trim()[0]?.toUpperCase() ?? '?'}</Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.artist} numberOfLines={1}>
+                {artistName}
               </Text>
+              <Text style={styles.tour}>{mockPresales[0].tourName}</Text>
             </View>
-
-            <FlatList
-              data={presales}
-              keyExtractor={(item) => item.id}
-              renderItem={renderPresale}
-              contentContainerStyle={styles.list}
-              showsVerticalScrollIndicator={false}
-            />
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="ticket-outline" size={64} color={colors.textLo} />
-            <Text style={styles.emptyTitle}>No presales right now</Text>
-            <Text style={styles.emptyText}>We'll notify you when your artists announce shows</Text>
           </View>
-        )}
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={14} color={tokens.colors.mute} />
+            <Text style={styles.meta} numberOfLines={1}>
+              {mockPresales[0].venueName}, {mockPresales[0].venueCity} · {eventDateLabel}
+            </Text>
+          </View>
+        </Animated.View>
 
-        {error ? <Text style={{ color: colors.textLo, marginTop: 8 }}>{error}</Text> : null}
-      </View>
+        <Animated.View entering={FadeInDown.delay(180).duration(300)}>
+          <PresaleCard presales={mockPresales} />
+        </Animated.View>
+
+        <Animated.Text entering={FadeInDown.delay(240).duration(300)} style={styles.note}>
+          You’ll get a heads-up the moment this goes live.
+        </Animated.Text>
+      </ScrollView>
 
       <View style={styles.footer}>
-        {presales.length > 0 ? (
-          <Pressable style={[styles.notifyButton, saving && { opacity: 0.6 }]} onPress={handleEnableNotifications} disabled={saving} accessibilityRole="button">
-            <Ionicons name="notifications" size={20} color={colors.textHi} />
-            <Text style={styles.notifyButtonText}>{saving ? 'Saving…' : 'Notify me for these presales'}</Text>
-          </Pressable>
-        ) : null}
-
-        <Pressable style={styles.skipButton} onPress={handleContinue} disabled={saving} accessibilityRole="button">
-          <Text style={styles.skipButtonText}>{presales.length > 0 ? 'Skip for now' : saving ? 'Saving…' : 'Continue'}</Text>
-          <Ionicons name="arrow-forward" size={20} color={colors.textMid} />
-        </Pressable>
+        <PillButton
+          title={saving ? 'Setting up…' : 'Continue'}
+          size="lg"
+          springFeedback
+          haptic="light"
+          disabled={saving}
+          onPress={() => void handleContinue()}
+        />
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    marginRight: spacing.md,
-  },
-  stepText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textLo,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  titleContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.textHi,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textMid,
-    textAlign: 'center',
-  },
-  list: {
-    paddingBottom: spacing.xl,
-  },
-  presaleCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  presaleHeader: {
-    marginBottom: spacing.sm,
-  },
-  presaleArtist: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  presaleTour: {
-    fontSize: 13,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  presaleVenue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: spacing.md,
-  },
-  presaleVenueText: {
-    fontSize: 13,
-    color: colors.textMid,
-  },
-  presaleDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  presaleTime: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.brandCyan,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: spacing.md,
-    fontSize: 14,
-    color: colors.textMid,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.textHi,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: colors.textMid,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  footer: {
-    padding: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.hairline,
-    gap: spacing.sm,
-  },
-  notifyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.brandPurple,
-    paddingVertical: 16,
-    borderRadius: radius.lg,
-    gap: spacing.sm,
-  },
-  notifyButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  skipButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: spacing.xs,
-  },
-  skipButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textMid,
-  },
-});
-
-

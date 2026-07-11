@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import type { ContactMatch } from '../../types/friends';
 import { followUser, unfollowUser } from '../../lib/api/users';
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
 
 type ContactCardProps = {
@@ -15,6 +16,64 @@ type ContactCardProps = {
 
 export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.inkAlt,
+      borderRadius: radius.md,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    info: {
+      flex: 1,
+    },
+    displayName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: t.colors.textHi,
+    },
+    username: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 1,
+    },
+    contactBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+      gap: 4,
+    },
+    contactName: {
+      fontSize: 12,
+      color: t.colors.brandCyan,
+      flex: 1,
+    },
+    followButton: {
+      backgroundColor: t.colors.brandPurple,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      minWidth: 96,
+      alignItems: 'center',
+    },
+    followingButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: t.colors.brandPurple,
+    },
+    followText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: t.colors.onAccent, // label over the filled purple button
+    },
+    followingText: {
+      color: t.colors.brandPurple,
+    },
+  }));
+
   const [loading, setLoading] = useState(false);
 
   const handlePress = () => {
@@ -52,7 +111,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
         </Text>
 
         <View style={styles.contactBadge}>
-          <Ionicons name="person" size={10} color={colors.brandCyan} />
+          <Ionicons name="person" size={10} color={tokens.colors.brandCyan} />
           <Text style={styles.contactName} numberOfLines={1}>
             {contact.contactName} in contacts
           </Text>
@@ -69,7 +128,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
         hitSlop={6}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={contact.isFollowing ? colors.brandPurple : colors.textHi} />
+          <ActivityIndicator size="small" color={contact.isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, contact.isFollowing && styles.followingText]}>
             {contact.isFollowing ? 'Following' : 'Follow'}
@@ -79,64 +138,3 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.inkAlt,
-    borderRadius: radius.md,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  info: {
-    flex: 1,
-  },
-  displayName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  username: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 1,
-  },
-  contactBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
-  },
-  contactName: {
-    fontSize: 12,
-    color: colors.brandCyan,
-    flex: 1,
-  },
-  followButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    minWidth: 96,
-    alignItems: 'center',
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.brandPurple,
-  },
-  followText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  followingText: {
-    color: colors.brandPurple,
-  },
-});
-
-
-
-

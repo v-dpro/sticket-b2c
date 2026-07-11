@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface ArtistStatsProps {
   followerCount: number;
@@ -10,10 +10,46 @@ interface ArtistStatsProps {
 }
 
 export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStatsProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface,
+      borderRadius: 16,
+      marginHorizontal: 16,
+      marginTop: 16,
+      paddingVertical: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    stat: {
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: t.colors.textHi,
+      marginTop: 4,
+    },
+    statLabel: {
+      fontSize: 11,
+      color: t.colors.textLo,
+      marginTop: 2,
+    },
+    divider: {
+      width: 1,
+      height: 40,
+      backgroundColor: t.colors.hairline,
+    },
+  }));
+
   return (
     <View style={styles.container}>
       <View style={styles.stat}>
-        <Ionicons name="people" size={20} color={colors.brandPurple} />
+        <Ionicons name="people" size={20} color={tokens.colors.brandPurple} />
         <Text style={styles.statValue}>{formatNumber(followerCount)}</Text>
         <Text style={styles.statLabel}>followers</Text>
       </View>
@@ -21,7 +57,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
       <View style={styles.divider} />
 
       <View style={styles.stat}>
-        <Ionicons name="musical-notes" size={20} color={colors.brandCyan} />
+        <Ionicons name="musical-notes" size={20} color={tokens.colors.brandCyan} />
         <Text style={styles.statValue}>{formatNumber(totalLogs)}</Text>
         <Text style={styles.statLabel}>times logged</Text>
       </View>
@@ -30,7 +66,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
         <>
           <View style={styles.divider} />
           <View style={styles.stat}>
-            <Ionicons name="star" size={20} color={colors.warning} />
+            <Ionicons name="star" size={20} color={tokens.colors.warning} />
             <Text style={styles.statValue}>{avgRating.toFixed(1)}</Text>
             <Text style={styles.statLabel}>avg rating</Text>
           </View>
@@ -45,41 +81,6 @@ function formatNumber(num: number): string {
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toString();
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  stat: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.textHi,
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.hairline,
-  },
-});
 
 
 

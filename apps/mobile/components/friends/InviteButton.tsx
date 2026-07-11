@@ -1,13 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Share, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, Share, Text, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type InviteButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
 export function InviteButton({ style }: InviteButtonProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(139, 92, 246, 0.1)',
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: t.colors.brandPurple,
+      borderStyle: 'dashed',
+    },
+    text: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: t.colors.brandPurple,
+    },
+  }));
+
   const handleInvite = async () => {
     try {
       await Share.share({
@@ -22,32 +44,8 @@ export function InviteButton({ style }: InviteButtonProps) {
 
   return (
     <Pressable style={[styles.container, style]} onPress={() => void handleInvite()}>
-      <Ionicons name="paper-plane" size={18} color={colors.brandPurple} />
+      <Ionicons name="paper-plane" size={18} color={tokens.colors.brandPurple} />
       <Text style={styles.text}>Invite Friends</Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.brandPurple,
-    borderStyle: 'dashed',
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.brandPurple,
-  },
-});
-
-
-
-

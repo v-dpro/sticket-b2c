@@ -1,10 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Screen } from '../../components/ui/Screen';
-import { colors, spacing } from '../../lib/theme';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { PillButton } from '../../components/ui/PillButton';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useBadges } from '../../hooks/useBadges';
 import type { Badge, BadgeCategory } from '../../types/badge';
 import { BadgeCategory as BadgeCategorySection } from '../../components/badges/BadgeCategory';
@@ -26,35 +28,66 @@ const CATEGORY_ORDER: BadgeCategory[] = ['milestone', 'streak', 'loyalty', 'expl
 export default function BadgesScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const { earnedBadges, progress, badgesByCategory, loading, error, totalPoints, earnedCount, totalCount, refresh } = useBadges();
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingTop: 12,
+      paddingBottom: 12,
+    },
+    backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+    title: { color: t.colors.fg, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 12 },
+    muted: { color: t.colors.mute },
+    scrollContent: { paddingHorizontal: t.density.pad, paddingBottom: 24 },
+    stats: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      paddingVertical: 18,
+      marginBottom: t.spacing.lg,
+    },
+    stat: { alignItems: 'center', minWidth: 90 },
+    statValue: { fontFamily: t.fontFamilies.monoBold, fontSize: 22, fontWeight: '700', color: t.colors.fg },
+    statLabel: { fontSize: 12, color: t.colors.mute, marginTop: 4, fontWeight: '500' },
+    divider: { width: 1, height: 40, backgroundColor: t.colors.line },
+  }));
 
   const onBadgePress = (badge: Badge) => {
     router.push({ pathname: '/badges/[id]', params: { id: badge.id } });
   };
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={24} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.title}>Badges</Text>
-        <Pressable onPress={() => void refresh()} style={styles.backButton}>
-          <Ionicons name="refresh" size={20} color={colors.textMid} />
-        </Pressable>
+        <SpringPressable onPress={() => void refresh()} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="refresh" size={20} color={tokens.colors.mute} />
+        </SpringPressable>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.brandPurple} />
+          <ActivityIndicator size="large" color={tokens.colors.mute} />
           <Text style={styles.muted}>{'Loading badges…'}</Text>
         </View>
       ) : error ? (
         <View style={styles.center}>
           <Text style={[styles.muted, { textAlign: 'center' }]}>{error}</Text>
-          <Pressable onPress={() => void refresh()} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
-          </Pressable>
+          <PillButton title="Retry" variant="secondary" onPress={() => void refresh()} springFeedback haptic="light" />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -71,7 +104,7 @@ export default function BadgesScreen() {
             <View style={styles.divider} />
             <View style={styles.stat}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="star" size={16} color={colors.warning} />
+                <Ionicons name="star" size={16} color={tokens.colors.warning} />
                 <Text style={styles.statValue}>{totalPoints}</Text>
               </View>
               <Text style={styles.statLabel}>Points</Text>
@@ -97,89 +130,6 @@ export default function BadgesScreen() {
           <View style={{ height: 60 }} />
         </ScrollView>
       )}
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    color: colors.textHi,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  muted: {
-    color: colors.textMid,
-  },
-  retryButton: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surface,
-  },
-  retryText: {
-    color: colors.textHi,
-    fontWeight: '900',
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  stats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    paddingVertical: 18,
-    marginBottom: spacing.lg,
-  },
-  stat: {
-    alignItems: 'center',
-    minWidth: 90,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 4,
-    fontWeight: '700',
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.hairline,
-  },
-});
-
-
-

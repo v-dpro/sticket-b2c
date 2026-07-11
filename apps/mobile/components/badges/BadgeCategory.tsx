@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { Badge, BadgeProgress, UserBadge } from '../../types/badge';
-import { colors, spacing } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 import { BadgeGrid } from './BadgeGrid';
 
 export function BadgeCategory({
@@ -18,6 +18,11 @@ export function BadgeCategory({
   progress: BadgeProgress[];
   onBadgePress?: (badge: Badge) => void;
 }) {
+  const styles = useThemedStyles((t) => ({
+    section: { marginBottom: t.spacing.xl },
+    title: { fontSize: 16, fontWeight: '800', color: t.colors.fg, marginBottom: 14, letterSpacing: -0.3 },
+  }));
+
   if (!badges?.length) return null;
 
   return (
@@ -27,18 +32,3 @@ export function BadgeCategory({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  section: {
-    marginBottom: spacing.xl,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textHi,
-    marginBottom: 14,
-  },
-});
-
-
-

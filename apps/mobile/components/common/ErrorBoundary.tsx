@@ -1,9 +1,10 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { captureException } from '../../lib/errorTracking/sentry';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type Props = {
   children: ReactNode;
@@ -36,56 +37,63 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 
-      return (
-        <View style={styles.container}>
-          <Ionicons name="warning" size={56} color={colors.error} />
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>We’ve been notified and are working on a fix.</Text>
-          <Pressable style={styles.button} onPress={this.handleReset} accessibilityRole="button">
-            <Text style={styles.buttonText}>Try Again</Text>
-          </Pressable>
-        </View>
-      );
+      return <ErrorFallback onReset={this.handleReset} />;
     }
 
     return this.props.children;
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textHi,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textLo,
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 14,
-    borderRadius: radius.md,
-  },
-  buttonText: {
-    color: colors.textHi,
-    fontWeight: '800',
-    fontSize: 15,
-  },
-});
+// Functional fallback so the error UI can read active-theme tokens (a class
+// component cannot call hooks).
+function ErrorFallback({ onReset }: { onReset: () => void }) {
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flex: 1,
+      backgroundColor: t.colors.ink,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: t.colors.textHi,
+      textAlign: 'center',
+    },
+    message: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: t.colors.textLo,
+      textAlign: 'center',
+    },
+    button: {
+      marginTop: spacing.sm,
+      backgroundColor: t.colors.brandPurple,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: 14,
+      borderRadius: radius.md,
+    },
+    buttonText: {
+      color: t.colors.onAccent, // text over the brandPurple button fill
+      fontWeight: '800',
+      fontSize: 15,
+    },
+  }));
+  const { tokens } = useTheme();
+
+  return (
+    <View style={styles.container}>
+      <Ionicons name="warning" size={56} color={tokens.colors.error} />
+      <Text style={styles.title}>Something went wrong</Text>
+      <Text style={styles.message}>We’ve been notified and are working on a fix.</Text>
+      <Pressable style={styles.button} onPress={onReset} accessibilityRole="button">
+        <Text style={styles.buttonText}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 
 

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { colors, fonts, radius } from '../../lib/theme';
+import { fonts, radius, type ThemeColors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 type PillVariant = 'cyan' | 'purple' | 'pink' | 'gold' | 'success' | 'warning' | 'outlined';
 
@@ -10,7 +11,9 @@ type PillProps = {
   style?: ViewStyle;
 };
 
-const variantMap: Record<PillVariant, { bg: string; border: string; text: string }> = {
+const makeVariantMap = (
+  colors: ThemeColors,
+): Record<PillVariant, { bg: string; border: string; text: string }> => ({
   cyan: { bg: 'rgba(0, 212, 255, 0.10)', border: 'rgba(0, 212, 255, 0.30)', text: colors.brandCyan },
   purple: { bg: 'rgba(139, 92, 246, 0.10)', border: 'rgba(139, 92, 246, 0.30)', text: colors.brandPurple },
   pink: { bg: 'rgba(232, 121, 249, 0.10)', border: 'rgba(232, 121, 249, 0.30)', text: colors.brandPink },
@@ -18,10 +21,11 @@ const variantMap: Record<PillVariant, { bg: string; border: string; text: string
   success: { bg: 'rgba(34, 197, 94, 0.10)', border: 'rgba(34, 197, 94, 0.30)', text: colors.success },
   warning: { bg: 'rgba(245, 158, 11, 0.10)', border: 'rgba(245, 158, 11, 0.30)', text: colors.warning },
   outlined: { bg: 'transparent', border: colors.hairline, text: colors.textMid },
-};
+});
 
 export function Pill({ children, variant = 'cyan', style }: PillProps) {
-  const v = variantMap[variant];
+  const { tokens } = useTheme();
+  const v = makeVariantMap(tokens.colors)[variant];
 
   return (
     <View

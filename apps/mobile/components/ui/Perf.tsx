@@ -1,11 +1,13 @@
 import { View, StyleSheet } from 'react-native';
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
-export function Perf({ color = colors.hairline }: { color?: string }) {
+export function Perf({ color }: { color?: string }) {
+  const { tokens } = useTheme();
+  const dotColor = color ?? tokens.colors.hairline;
   return (
     <View style={styles.row}>
       {Array.from({ length: 40 }).map((_, i) => (
-        <View key={i} style={[styles.dot, { backgroundColor: color }]} />
+        <View key={i} style={[styles.dot, { backgroundColor: dotColor }]} />
       ))}
     </View>
   );

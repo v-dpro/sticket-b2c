@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import type { ArtistShow } from '../../types/artist';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface UpcomingShowsProps {
   shows: ArtistShow[];
@@ -12,6 +12,89 @@ interface UpcomingShowsProps {
 }
 
 export function UpcomingShows({ shows, onShowPress, onInterestedPress }: UpcomingShowsProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      marginTop: 24,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      paddingHorizontal: 16,
+      marginBottom: 12,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      gap: 12,
+    },
+    showCard: {
+      backgroundColor: t.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      width: 200,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    dateBadge: {
+      backgroundColor: t.colors.brandPurple,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      alignSelf: 'flex-start',
+      marginBottom: 12,
+    },
+    dateMonth: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: 'rgba(255, 255, 255, 0.8)', // on purple date badge
+      textAlign: 'center',
+    },
+    dateDay: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: t.colors.onAccent, // on purple date badge
+      textAlign: 'center',
+    },
+    showInfo: {
+      flex: 1,
+    },
+    venueName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      marginBottom: 2,
+    },
+    venueCity: {
+      fontSize: 12,
+      color: t.colors.textLo,
+    },
+    friendsBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      gap: 4,
+    },
+    friendsText: {
+      fontSize: 11,
+      color: t.colors.brandCyan,
+    },
+    interestedButton: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: t.colors.ink,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    interestedActive: {
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    },
+  }));
+
   if (shows.length === 0) {
     return null;
   }
@@ -40,7 +123,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
 
               {show.friendsGoing > 0 && (
                 <View style={styles.friendsBadge}>
-                  <Ionicons name="people" size={12} color={colors.brandCyan} />
+                  <Ionicons name="people" size={12} color={tokens.colors.brandCyan} />
                   <Text style={styles.friendsText}>
                     {show.friendsGoing} friend{show.friendsGoing !== 1 ? 's' : ''} going
                   </Text>
@@ -59,7 +142,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
               <Ionicons
                 name={show.isInterested ? 'heart' : 'heart-outline'}
                 size={18}
-                color={show.isInterested ? colors.error : colors.textLo}
+                color={show.isInterested ? tokens.colors.error : tokens.colors.textLo}
               />
             </Pressable>
           </Pressable>
@@ -68,88 +151,3 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginTop: 24,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  showCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    width: 200,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  dateBadge: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  dateMonth: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-  },
-  dateDay: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textHi,
-    textAlign: 'center',
-  },
-  showInfo: {
-    flex: 1,
-  },
-  venueName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginBottom: 2,
-  },
-  venueCity: {
-    fontSize: 12,
-    color: colors.textLo,
-  },
-  friendsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
-  },
-  friendsText: {
-    fontSize: 11,
-    color: colors.brandCyan,
-  },
-  interestedButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  interestedActive: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-});
-
-
-

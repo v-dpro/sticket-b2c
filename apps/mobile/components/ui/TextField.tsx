@@ -1,7 +1,8 @@
 import type { ComponentProps } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 type TextFieldProps = ComponentProps<typeof TextInput> & {
   label?: string;
@@ -9,6 +10,8 @@ type TextFieldProps = ComponentProps<typeof TextInput> & {
 };
 
 export function TextField({ label, errorText, style, ...props }: TextFieldProps) {
+  const { tokens } = useTheme();
+  const { colors } = tokens;
   return (
     <View style={{ gap: 6 }}>
       {label ? <Text style={{ color: colors.textMid, fontSize: 14 }}>{label}</Text> : null}
@@ -34,6 +37,3 @@ export function TextField({ label, errorText, style, ...props }: TextFieldProps)
     </View>
   );
 }
-
-
-

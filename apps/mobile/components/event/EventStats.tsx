@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
 import { StatPill } from '../ui/StatPill';
 
 interface EventStatsProps {

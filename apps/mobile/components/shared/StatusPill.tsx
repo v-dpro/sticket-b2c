@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../lib/theme';
+import type { ThemeColors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 export type StatusType = 'ticket' | 'presale' | 'upcoming' | 'tracking';
 
@@ -10,7 +11,7 @@ interface StatusPillProps {
   label: string;
 }
 
-const config = {
+const makeConfig = (colors: ThemeColors) => ({
   ticket: {
     bg: 'rgba(0, 212, 255, 0.15)',
     color: colors.brandCyan,
@@ -31,10 +32,11 @@ const config = {
     color: colors.warning,
     icon: 'eye-outline' as const,
   },
-};
+});
 
 export function StatusPill({ type, label }: StatusPillProps) {
-  const { bg, color, icon } = config[type];
+  const { tokens } = useTheme();
+  const { bg, color, icon } = makeConfig(tokens.colors)[type];
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -58,5 +60,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-

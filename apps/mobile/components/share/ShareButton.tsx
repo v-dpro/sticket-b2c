@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 import type { ShareCardData } from '../../types/share';
 
@@ -17,8 +17,24 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ data, link, message, renderTrigger }: ShareButtonProps) {
+  const { tokens } = useTheme();
   const [sheetVisible, setSheetVisible] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const styles = useThemedStyles((t) => ({
+    button: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: t.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    hiddenContainer: {
+      position: 'absolute',
+      left: -9999,
+      top: -9999,
+    },
+  }));
 
   const { cardRef, captureCard, sharePng, shareInstagram, saveToGallery, copy } = useShare();
   const { renderCard } = useShareCard();
@@ -49,7 +65,7 @@ export function ShareButton({ data, link, message, renderTrigger }: ShareButtonP
         renderTrigger(openSheet)
       ) : (
         <Pressable style={styles.button} onPress={openSheet} accessibilityRole="button">
-          <Ionicons name="share-outline" size={22} color={colors.textHi} />
+          <Ionicons name="share-outline" size={22} color={tokens.colors.textHi} />
         </Pressable>
       )}
 
@@ -97,22 +113,6 @@ export function ShareButton({ data, link, message, renderTrigger }: ShareButtonP
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  hiddenContainer: {
-    position: 'absolute',
-    left: -9999,
-    top: -9999,
-  },
-});
 
 
 

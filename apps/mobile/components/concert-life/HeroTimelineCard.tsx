@@ -3,7 +3,8 @@ import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type HeroTimelineCardProps = {
   // Core
@@ -53,6 +54,127 @@ export function HeroTimelineCard({
   onPressComments,
   onPressShare,
 }: HeroTimelineCardProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    shell: {
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      overflow: 'hidden',
+    },
+    heroPressable: {
+      width: '100%',
+    },
+    hero: {
+      height: 260,
+      width: '100%',
+      justifyContent: 'flex-end',
+    },
+    heroImage: {
+      resizeMode: 'cover',
+    },
+    // Hero image fallback + overlaid text/chips are FIXED light-on-dark —
+    // they render over the hero photo/scrim in both themes.
+    heroFallback: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: '#1F1F2A',
+    },
+    heroOverlay: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    heroInfo: {
+      padding: spacing.lg,
+    },
+    heroArtist: {
+      color: '#FFFFFF',
+      fontSize: 20,
+      fontWeight: '800',
+      marginBottom: 4,
+    },
+    heroTour: {
+      color: 'rgba(255,255,255,0.8)',
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    heroVenueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    heroVenueText: {
+      color: 'rgba(255,255,255,0.72)',
+      fontSize: 13,
+      fontWeight: '600',
+      flex: 1,
+    },
+    dateChip: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+    },
+    dateChipText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    upcomingPill: {
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0, 212, 255, 0.9)',
+    },
+    upcomingPillText: {
+      color: '#FFFFFF',
+      fontSize: 11,
+      fontWeight: '900',
+      letterSpacing: 0.6,
+    },
+    // Footer sits on the card surface — themed.
+    footer: {
+      padding: spacing.lg,
+      gap: 10,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      gap: 2,
+    },
+    note: {
+      color: t.colors.textHi,
+      fontSize: 14,
+      fontStyle: 'italic',
+      lineHeight: 20,
+    },
+    actionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 18,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: t.colors.hairline,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    actionCount: {
+      color: t.colors.textLo,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+  }));
+
   return (
     <View style={styles.shell}>
       <Pressable onPress={onPress} style={styles.heroPressable} accessibilityRole="button">
@@ -87,6 +209,7 @@ export function HeroTimelineCard({
               </Text>
             ) : null}
             <View style={styles.heroVenueRow}>
+              {/* Icon over hero image — fixed light */}
               <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.75)" />
               <Text style={styles.heroVenueText} numberOfLines={1}>
                 {venue}, {city}
@@ -100,7 +223,7 @@ export function HeroTimelineCard({
         {typeof rating === 'number' ? (
           <View style={styles.ratingRow}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <Ionicons key={i} name="star" size={16} color={i < Math.round(rating) ? colors.gold : '#3D3D5C'} />
+              <Ionicons key={i} name="star" size={16} color={i < Math.round(rating) ? tokens.colors.gold : '#3D3D5C'} />
             ))}
           </View>
         ) : null}
@@ -120,8 +243,8 @@ export function HeroTimelineCard({
             style={styles.actionButton}
             accessibilityRole="button"
           >
-            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? colors.pink : colors.textLo} />
-            {likesCount > 0 ? <Text style={[styles.actionCount, isLiked && { color: colors.pink }]}>{likesCount}</Text> : null}
+            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? tokens.colors.pink : tokens.colors.textLo} />
+            {likesCount > 0 ? <Text style={[styles.actionCount, isLiked && { color: tokens.colors.pink }]}>{likesCount}</Text> : null}
           </Pressable>
 
           <Pressable
@@ -132,7 +255,7 @@ export function HeroTimelineCard({
             style={styles.actionButton}
             accessibilityRole="button"
           >
-            <Ionicons name="chatbubble-outline" size={20} color={colors.textLo} />
+            <Ionicons name="chatbubble-outline" size={20} color={tokens.colors.textLo} />
             {commentsCount > 0 ? <Text style={styles.actionCount}>{commentsCount}</Text> : null}
           </Pressable>
 
@@ -144,129 +267,10 @@ export function HeroTimelineCard({
             style={[styles.actionButton, { marginLeft: 'auto' }]}
             accessibilityRole="button"
           >
-            <Ionicons name="share-social-outline" size={20} color={colors.textLo} />
+            <Ionicons name="share-social-outline" size={20} color={tokens.colors.textLo} />
           </Pressable>
         </View>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  shell: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    overflow: 'hidden',
-  },
-  heroPressable: {
-    width: '100%',
-  },
-  hero: {
-    height: 260,
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-  heroImage: {
-    resizeMode: 'cover',
-  },
-  heroFallback: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.elevated,
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  heroInfo: {
-    padding: spacing.lg,
-  },
-  heroArtist: {
-    color: colors.textHi,
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  heroTour: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  heroVenueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroVenueText: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 13,
-    fontWeight: '600',
-    flex: 1,
-  },
-  dateChip: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  dateChipText: {
-    color: colors.textHi,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  upcomingPill: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0, 212, 255, 0.9)',
-  },
-  upcomingPillText: {
-    color: colors.textHi,
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
-  footer: {
-    padding: spacing.lg,
-    gap: 10,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  note: {
-    color: colors.textHi,
-    fontSize: 14,
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 18,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.hairline,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionCount: {
-    color: colors.textLo,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});
-
-

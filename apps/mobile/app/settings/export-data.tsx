@@ -1,17 +1,46 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Screen } from '../../components/ui/Screen';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { exportUserData } from '../../lib/api/settings';
-import { colors, radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ExportDataScreen() {
-  const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const [loading, setLoading] = useState(false);
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingTop: t.spacing.md,
+      paddingBottom: 12,
+    },
+    backButton: { width: 40, height: 40, justifyContent: 'center' },
+    title: { fontSize: 20, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.3 },
+    scrollView: { flex: 1, paddingHorizontal: t.density.pad },
+    card: {
+      marginTop: t.spacing.lg,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: t.density.cardPad,
+      gap: 10,
+    },
+    cardTitle: { color: t.colors.fg, fontSize: 16, fontWeight: '700' },
+    cardBody: { color: t.colors.textSoft, fontSize: 14, fontWeight: '400', lineHeight: 20 },
+    buttonWrap: { marginTop: t.spacing.md },
+  }));
 
   const onExport = async () => {
     setLoading(true);
@@ -45,13 +74,13 @@ export default function ExportDataScreen() {
   };
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.title}>Export Data</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -63,76 +92,21 @@ export default function ExportDataScreen() {
             We’ll prepare a download that includes your profile, logs, photos, tickets, and settings.
           </Text>
 
-          <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={() => void onExport()} disabled={loading} accessibilityRole="button">
-            {loading ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.buttonText}>Export My Data</Text>}
-          </Pressable>
+          <View style={styles.buttonWrap}>
+            <PillButton
+              title={loading ? 'Requesting…' : 'Export My Data'}
+              variant="primary"
+              size="lg"
+              onPress={() => void onExport()}
+              disabled={loading}
+              springFeedback
+              haptic="medium"
+            />
+          </View>
         </View>
 
         <View style={{ height: 80 }} />
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  card: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: 16,
-    gap: 10,
-  },
-  cardTitle: {
-    color: colors.textHi,
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  cardBody: {
-    color: colors.textMid,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  button: {
-    marginTop: spacing.md,
-    backgroundColor: colors.brandPurple,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: colors.textHi,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-});
-
-
-

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
+import { Pressable, Text, TextInput, type TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { fonts, radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -32,6 +33,52 @@ export function Input({
 }: InputProps) {
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      marginBottom: spacing.lg,
+    },
+    label: {
+      fontSize: fonts.bodySmall,
+      fontWeight: fonts.medium,
+      color: t.colors.textHi,
+      marginBottom: spacing.sm,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      paddingHorizontal: spacing.lg,
+    },
+    inputFocused: {
+      borderColor: t.colors.brandCyan,
+      shadowColor: t.colors.brandCyan,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    inputError: {
+      borderColor: t.colors.error,
+    },
+    leftIcon: {
+      marginRight: spacing.sm,
+    },
+    input: {
+      flex: 1,
+      height: 48,
+      fontSize: fonts.body,
+      color: t.colors.textHi,
+    },
+    error: {
+      fontSize: fonts.caption,
+      color: t.colors.error,
+      marginTop: spacing.xs,
+    },
+  }));
 
   const isPassword = !!secureTextEntry;
   const actualSecure = isPassword && !showPassword;
@@ -49,13 +96,13 @@ export function Input({
         ]}
       >
         {leftIcon ? (
-          <Ionicons name={leftIcon as any} size={20} color={colors.textMuted} style={styles.leftIcon} />
+          <Ionicons name={leftIcon as any} size={20} color={tokens.colors.textMuted} style={styles.leftIcon} />
         ) : null}
 
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor={colors.textMuted}
-          selectionColor={colors.brandCyan}
+          placeholderTextColor={tokens.colors.textMuted}
+          selectionColor={tokens.colors.brandCyan}
           onFocus={(e) => {
             setFocused(true);
             props.onFocus?.(e);
@@ -70,11 +117,11 @@ export function Input({
 
         {isPassword ? (
           <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={10}>
-            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
+            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={tokens.colors.textMuted} />
           </Pressable>
         ) : rightIcon ? (
           <Pressable onPress={onRightIconPress} hitSlop={10}>
-            <Ionicons name={rightIcon as any} size={20} color={colors.textMuted} />
+            <Ionicons name={rightIcon as any} size={20} color={tokens.colors.textMuted} />
           </Pressable>
         ) : null}
       </View>
@@ -85,53 +132,3 @@ export function Input({
 }
 
 export default Input;
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.lg,
-  },
-  label: {
-    fontSize: fonts.bodySmall,
-    fontWeight: fonts.medium,
-    color: colors.textHi,
-    marginBottom: spacing.sm,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    paddingHorizontal: spacing.lg,
-  },
-  inputFocused: {
-    borderColor: colors.brandCyan,
-    shadowColor: colors.brandCyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  inputError: {
-    borderColor: colors.error,
-  },
-  leftIcon: {
-    marginRight: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    height: 48,
-    fontSize: fonts.body,
-    color: colors.textHi,
-  },
-  error: {
-    fontSize: fonts.caption,
-    color: colors.error,
-    marginTop: spacing.xs,
-  },
-});
-
-
-
-

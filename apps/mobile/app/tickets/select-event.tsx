@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ErrorState } from '../../components/ui/ErrorState';
-import { Screen } from '../../components/ui/Screen';
-import { colors, spacing } from '../../lib/theme';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useThemedStyles } from '../../lib/theme-context';
 import { getArtistEventsBandsintown, searchEventsByArtist, type SearchEvent } from '../../lib/api/logShow';
 
 export default function TicketsSelectEvent() {
@@ -14,6 +14,22 @@ export default function TicketsSelectEvent() {
   const [events, setEvents] = useState<SearchEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg, paddingHorizontal: 24 },
+    title: { color: t.colors.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
+    subtitle: { color: t.colors.mute, fontSize: 16 },
+    row: {
+      padding: 14,
+      borderRadius: t.radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      backgroundColor: t.colors.card,
+    },
+    rowTitle: { color: t.colors.fg, fontSize: 16, fontWeight: '700' },
+    rowMeta: { color: t.colors.mute, marginTop: 2 },
+    empty: { color: t.colors.muteSoft, fontSize: 14 },
+  }));
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -38,13 +54,11 @@ export default function TicketsSelectEvent() {
   }, [fetchEvents]);
 
   return (
-    <Screen>
-      <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
-        <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textHi, fontSize: 24, fontWeight: '800' }}>Select the event</Text>
-          <Text style={{ color: colors.textMid, fontSize: 16 }}>
-            {isLoading ? 'Loading…' : 'Choose your ticket event.'}
-          </Text>
+    <View style={styles.screen}>
+      <View style={{ paddingTop: 24, gap: 24 }}>
+        <View style={{ gap: 8 }}>
+          <Text style={styles.title}>Select the event</Text>
+          <Text style={styles.subtitle}>{isLoading ? 'Loading…' : 'Choose your ticket event.'}</Text>
         </View>
 
         {error ? (
@@ -52,31 +66,26 @@ export default function TicketsSelectEvent() {
         ) : (
           <View style={{ gap: 8 }}>
             {events.map((e) => (
-              <Pressable
+              <SpringPressable
                 key={e.id}
                 onPress={() => router.push({ pathname: '/tickets/details', params: { eventId: e.id } })}
-                style={({ pressed }) => ({
-                  padding: 14,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.hairline,
-                  backgroundColor: colors.surface,
-                  opacity: pressed ? 0.85 : 1,
-                })}
+                haptic="light"
+                style={styles.row}
+                accessibilityRole="button"
               >
-                <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '700' }}>{e.venue.name}</Text>
-                <Text style={{ color: colors.textMid, marginTop: 2 }}>
+                <Text style={styles.rowTitle}>{e.venue.name}</Text>
+                <Text style={styles.rowMeta}>
                   {e.venue.city}{e.venue.state ? `, ${e.venue.state}` : ''} • {new Date(e.date).toLocaleDateString()}
                 </Text>
-              </Pressable>
+              </SpringPressable>
             ))}
 
             {!isLoading && events.length === 0 ? (
-              <Text style={{ color: colors.textLo, fontSize: 14 }}>No shows found for this artist.</Text>
+              <Text style={styles.empty}>No shows found for this artist.</Text>
             ) : null}
           </View>
         )}
       </View>
-    </Screen>
+    </View>
   );
 }

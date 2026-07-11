@@ -1,8 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { colors, radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { SpringPressable } from '../ui/SpringPressable';
 
 type DangerButtonProps = {
   icon?: string;
@@ -13,51 +14,52 @@ type DangerButtonProps = {
 };
 
 export function DangerButton({ icon, label, onPress, loading = false, isDestructive = false }: DangerButtonProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      paddingVertical: 14,
+      marginHorizontal: t.density.pad,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    destructive: {
+      backgroundColor: t.isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(220, 38, 38, 0.08)',
+      borderColor: t.isDark ? 'rgba(239, 68, 68, 0.30)' : 'rgba(220, 38, 38, 0.28)',
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: t.colors.fg,
+    },
+    labelDestructive: {
+      color: t.colors.error,
+    },
+  }));
+
+  const tint = isDestructive ? tokens.colors.error : tokens.colors.fg;
+
   return (
-    <Pressable
+    <SpringPressable
       style={[styles.container, isDestructive && styles.destructive]}
       onPress={onPress}
       disabled={loading}
+      haptic="light"
       accessibilityRole="button"
     >
       {loading ? (
-        <ActivityIndicator size="small" color={isDestructive ? colors.error : colors.textHi} />
+        <ActivityIndicator size="small" color={tint} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon as any} size={18} color={isDestructive ? colors.error : colors.textHi} /> : null}
+          {icon ? <Ionicons name={icon as any} size={18} color={tint} /> : null}
           <Text style={[styles.label, isDestructive && styles.labelDestructive]}>{label}</Text>
         </>
       )}
-    </Pressable>
+    </SpringPressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    marginHorizontal: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  destructive: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  labelDestructive: {
-    color: colors.error,
-  },
-});
-
-
-

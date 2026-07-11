@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { LogEntry } from '../../types/profile';
 import { YearFilter } from './YearFilter';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface ProfileStatsViewProps {
   headerComponent?: React.ReactNode;
@@ -27,11 +27,56 @@ function StatCard({
   subtitle?: string;
   icon: keyof typeof Ionicons.glyphMap;
 }) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    card: {
+      width: '48%',
+      backgroundColor: t.colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: 12,
+    },
+    cardTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 10,
+    },
+    iconCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: t.colors.elevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    cardTitle: {
+      color: t.colors.textMid,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    cardValue: {
+      color: t.colors.textHi,
+      fontSize: 22,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+    },
+    cardSubtitle: {
+      color: t.colors.textLo,
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+  }));
+
   return (
     <View style={styles.card}>
       <View style={styles.cardTop}>
         <View style={styles.iconCircle}>
-          <Ionicons name={icon} size={16} color={colors.textHi} />
+          <Ionicons name={icon} size={16} color={tokens.colors.textHi} />
         </View>
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
@@ -42,6 +87,59 @@ function StatCard({
 }
 
 export function ProfileStatsView({ headerComponent, logs, years, selectedYear, onYearSelect, loading, onRefresh }: ProfileStatsViewProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingBottom: 100,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: 16,
+      gap: 10,
+    },
+    breakdown: {
+      marginTop: 16,
+      marginHorizontal: 16,
+      padding: 14,
+      backgroundColor: t.colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    sectionTitle: {
+      color: t.colors.textHi,
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 10,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderTopWidth: 1,
+      borderTopColor: t.colors.hairline,
+    },
+    rowYear: {
+      color: t.colors.textHi,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    rowCount: {
+      color: t.colors.textMid,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    emptyText: {
+      color: t.colors.textLo,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+  }));
+
   const computed = useMemo(() => {
     const artistIds = new Set<string>();
     const venueIds = new Set<string>();
@@ -75,7 +173,7 @@ export function ProfileStatsView({ headerComponent, logs, years, selectedYear, o
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={colors.brandPurple} />}
+      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} />}
     >
       {headerComponent}
       <YearFilter years={years} selectedYear={selectedYear} onSelect={onYearSelect} />
@@ -109,99 +207,3 @@ export function ProfileStatsView({ headerComponent, logs, years, selectedYear, o
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 100,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  card: {
-    width: '48%',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: 12,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  iconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  cardTitle: {
-    color: colors.textMid,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  cardValue: {
-    color: colors.textHi,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-  },
-  cardSubtitle: {
-    color: colors.textLo,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  breakdown: {
-    marginTop: 16,
-    marginHorizontal: 16,
-    padding: 14,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  sectionTitle: {
-    color: colors.textHi,
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 10,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(42, 43, 77, 0.6)',
-  },
-  rowYear: {
-    color: colors.textHi,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  rowCount: {
-    color: colors.textMid,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  emptyText: {
-    color: colors.textLo,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-});
-
-
-

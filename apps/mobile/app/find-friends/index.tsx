@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ContactCard } from '../../components/friends/ContactCard';
@@ -15,7 +15,8 @@ import { UserSearchResult } from '../../components/friends/UserSearchResult';
 import { useContactsSync } from '../../hooks/useContactsSync';
 import { useSuggestions } from '../../hooks/useSuggestions';
 import { useUserSearch } from '../../hooks/useUserSearch';
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function FindFriendsScreen() {
@@ -42,24 +43,117 @@ export default function FindFriendsScreen() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
 
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flex: 1,
+      backgroundColor: t.colors.ink,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: t.colors.textHi,
+    },
+    emptyList: {
+      flexGrow: 1,
+    },
+    loading: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 40,
+    },
+    quickActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: 16,
+      marginHorizontal: 16,
+      backgroundColor: t.colors.inkAlt,
+      borderRadius: radius.lg,
+      marginBottom: 24,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    quickAction: {
+      alignItems: 'center',
+      padding: 8,
+    },
+    quickActionIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: 'rgba(139, 92, 246, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    quickActionText: {
+      fontSize: 12,
+      color: t.colors.textMid,
+      fontWeight: '600',
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: t.colors.textHi,
+      paddingHorizontal: 16,
+      marginBottom: 12,
+    },
+    suggestionsScroll: {
+      paddingHorizontal: 16,
+      paddingBottom: 4,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: t.colors.ink,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    modalClose: {
+      fontSize: 16,
+      color: t.colors.brandPurple,
+      fontWeight: '800',
+    },
+  }));
+
   const isSearching = query.trim().length > 0;
 
   const renderSearchEmpty = useMemo(() => {
     if (searchLoading) {
       return (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color={colors.brandPurple} />
+          <ActivityIndicator size="large" color={tokens.colors.brandPurple} />
         </View>
       );
     }
     return <EmptySearch query={query} searched={searched} />;
-  }, [query, searched, searchLoading]);
+  }, [query, searched, searchLoading, styles, tokens]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={24} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Find Friends</Text>
         <View style={{ width: 40 }} />
@@ -83,14 +177,14 @@ export default function FindFriendsScreen() {
           <View style={styles.quickActions}>
             <Pressable style={styles.quickAction} onPress={() => setShowQRCode(true)}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="qr-code" size={24} color={colors.brandPurple} />
+                <Ionicons name="qr-code" size={24} color={tokens.colors.brandPurple} />
               </View>
               <Text style={styles.quickActionText}>My QR Code</Text>
             </Pressable>
 
             <Pressable style={styles.quickAction} onPress={() => setShowScanner(true)}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="scan" size={24} color={colors.brandPurple} />
+                <Ionicons name="scan" size={24} color={tokens.colors.brandPurple} />
               </View>
               <Text style={styles.quickActionText}>Scan Code</Text>
             </Pressable>
@@ -98,9 +192,9 @@ export default function FindFriendsScreen() {
             <Pressable style={styles.quickAction} onPress={() => void syncContacts()} disabled={contactsLoading}>
               <View style={styles.quickActionIcon}>
                 {contactsLoading ? (
-                  <ActivityIndicator color={colors.brandPurple} />
+                  <ActivityIndicator color={tokens.colors.brandPurple} />
                 ) : (
-                  <Ionicons name="people" size={24} color={colors.brandPurple} />
+                  <Ionicons name="people" size={24} color={tokens.colors.brandPurple} />
                 )}
               </View>
               <Text style={styles.quickActionText}>Contacts</Text>
@@ -120,7 +214,7 @@ export default function FindFriendsScreen() {
 
           {suggestionsLoading ? (
             <View style={{ paddingVertical: 12 }}>
-              <ActivityIndicator color={colors.brandPurple} />
+              <ActivityIndicator color={tokens.colors.brandPurple} />
             </View>
           ) : suggestions.length > 0 ? (
             <View style={styles.section}>
@@ -166,98 +260,6 @@ export default function FindFriendsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  emptyList: {
-    flexGrow: 1,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    backgroundColor: colors.inkAlt,
-    borderRadius: radius.lg,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  quickAction: {
-    alignItems: 'center',
-    padding: 8,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: colors.textMid,
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textHi,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  suggestionsScroll: {
-    paddingHorizontal: 16,
-    paddingBottom: 4,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  modalClose: {
-    fontSize: 16,
-    color: colors.brandPurple,
-    fontWeight: '800',
-  },
-});
 
 
 

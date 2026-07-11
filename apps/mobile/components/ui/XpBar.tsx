@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../../lib/theme';
+import { View, Text } from 'react-native';
+import { useThemedStyles } from '../../lib/theme-context';
 import { levelFor } from '../../lib/game';
 
 type XpBarProps = {
@@ -10,6 +10,36 @@ type XpBarProps = {
 
 export function XpBar({ xp, showLabel = false }: XpBarProps) {
   const level = levelFor(xp);
+  const styles = useThemedStyles((t) => ({
+    track: {
+      height: 8,
+      backgroundColor: t.colors.surface,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: 8,
+      borderRadius: 999,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 6,
+    },
+    label: {
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+    },
+    xpCount: {
+      fontSize: 11,
+      fontWeight: '500',
+      letterSpacing: 1.5,
+      color: t.colors.textLo,
+      textTransform: 'uppercase',
+    },
+  }));
 
   return (
     <View>
@@ -35,34 +65,3 @@ export function XpBar({ xp, showLabel = false }: XpBarProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  track: {
-    height: 8,
-    backgroundColor: colors.surface,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: 8,
-    borderRadius: 999,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  xpCount: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 1.5,
-    color: colors.textLo,
-    textTransform: 'uppercase',
-  },
-});

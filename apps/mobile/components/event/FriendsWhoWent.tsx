@@ -1,8 +1,9 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { FriendAttendee } from '../../types/event';
-import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
+import { radius, fontFamilies } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface FriendsWhoWentProps {
   friends: FriendAttendee[];
@@ -11,6 +12,79 @@ interface FriendsWhoWentProps {
 }
 
 export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: FriendsWhoWentProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    section: {
+      marginTop: 24,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      marginBottom: 10,
+    },
+    sectionLabel: {
+      fontFamily: fontFamilies.monoMedium,
+      fontSize: 10.5,
+      fontWeight: '500',
+      letterSpacing: 2,
+      color: t.colors.textLo,
+    },
+    seeAll: {
+      fontSize: 13,
+      color: t.colors.cyan,
+    },
+    card: {
+      marginHorizontal: 16,
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      paddingVertical: 14,
+    },
+    scrollContent: {
+      paddingHorizontal: 14,
+      gap: 14,
+    },
+    friendItem: {
+      alignItems: 'center',
+      width: 64,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      marginBottom: 6,
+    },
+    avatarPlaceholder: {
+      backgroundColor: t.colors.elevated,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarInitial: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: t.colors.textMid,
+    },
+    name: {
+      fontSize: 11,
+      color: t.colors.textMid,
+      textAlign: 'center',
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 3,
+      gap: 2,
+    },
+    ratingText: {
+      fontSize: 10,
+      color: t.colors.warning,
+      fontWeight: '600',
+    },
+  }));
+
   if (!friends.length) return null;
 
   return (
@@ -42,7 +116,7 @@ export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: Friend
               </Text>
               {typeof friend.rating === 'number' ? (
                 <View style={styles.ratingRow}>
-                  <Ionicons name="star" size={9} color={colors.warning} />
+                  <Ionicons name="star" size={9} color={tokens.colors.warning} />
                   <Text style={styles.ratingText}>{friend.rating}</Text>
                 </View>
               ) : null}
@@ -53,75 +127,3 @@ export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: Friend
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  section: {
-    marginTop: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-  sectionLabel: {
-    fontFamily: fontFamilies.monoMedium,
-    fontSize: 10.5,
-    fontWeight: '500',
-    letterSpacing: 2,
-    color: colors.textLo,
-  },
-  seeAll: {
-    fontSize: 13,
-    color: accentSets.cyan.hex,
-  },
-  card: {
-    marginHorizontal: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    paddingVertical: 14,
-  },
-  scrollContent: {
-    paddingHorizontal: 14,
-    gap: 14,
-  },
-  friendItem: {
-    alignItems: 'center',
-    width: 64,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginBottom: 6,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitial: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textMid,
-  },
-  name: {
-    fontSize: 11,
-    color: colors.textMid,
-    textAlign: 'center',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 3,
-    gap: 2,
-  },
-  ratingText: {
-    fontSize: 10,
-    color: colors.warning,
-    fontWeight: '600',
-  },
-});

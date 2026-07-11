@@ -4,26 +4,26 @@ import {
   Text,
   TextInput,
   ScrollView,
-  StyleSheet,
-  Pressable,
   Switch,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useAddTicket } from '../../hooks/useAddTicket';
 import type { BarcodeFormat } from '../../types/ticket';
 import { ensureTicketRemindersScheduled } from '../../lib/notifications/ticketReminders';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 export default function AddTicketScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const params = useLocalSearchParams<{ barcode?: string; barcodeFormat?: BarcodeFormat }>();
   const { loading, searchResults, searching, searchEvents, submitTicket, clearSearch } = useAddTicket();
 
@@ -48,6 +48,120 @@ export default function AddTicketScreen() {
   const [confirmationNumber, setConfirmationNumber] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [notes, setNotes] = useState('');
+
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingTop: t.spacing.md,
+      paddingBottom: 12,
+    },
+    backButton: { width: 40, height: 40, justifyContent: 'center' },
+    title: { fontSize: 18, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.3 },
+    scrollView: { flex: 1, paddingHorizontal: t.density.pad },
+    section: { marginTop: 24 },
+    sectionTitle: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11,
+      fontWeight: '600',
+      color: t.colors.mute,
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      marginBottom: 12,
+    },
+    input: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      color: t.colors.fg,
+      fontSize: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    selectedEvent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: t.colors.accent,
+    },
+    selectedEventInfo: { flex: 1 },
+    selectedArtist: { fontSize: 16, fontWeight: '700', color: t.colors.fg },
+    selectedVenue: { fontSize: 14, color: t.colors.mute, marginTop: 2 },
+    selectedDate: { fontFamily: t.fontFamilies.mono, fontSize: 12, color: t.colors.muteSoft, marginTop: 2 },
+    searchingIndicator: { marginVertical: 12 },
+    searchResults: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      overflow: 'hidden',
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    searchResult: { padding: 16, borderBottomWidth: 1, borderBottomColor: t.colors.hairline },
+    resultArtist: { fontSize: 15, fontWeight: '600', color: t.colors.fg },
+    resultDetails: { fontSize: 13, color: t.colors.mute, marginTop: 2 },
+    manualLink: { fontSize: 14, color: t.colors.accent, textAlign: 'center', fontWeight: '600' },
+    dateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    dateButtonText: { fontSize: 16, color: t.colors.fg },
+    searchInstead: { fontSize: 14, color: t.colors.accent, textAlign: 'center', fontWeight: '600' },
+    gaToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    gaLabel: { fontSize: 16, color: t.colors.fg, fontWeight: '500' },
+    seatInputs: { flexDirection: 'row', gap: 12 },
+    seatInput: { flex: 1 },
+    hint: { fontSize: 12, color: t.colors.muteSoft, marginTop: -4 },
+    notesInput: { height: 80, textAlignVertical: 'top' },
+    footer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 16,
+      paddingBottom: 34,
+      backgroundColor: t.colors.bg,
+      borderTopWidth: 1,
+      borderTopColor: t.colors.hairline,
+    },
+    submitButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 52,
+      borderRadius: t.radius.full,
+      backgroundColor: t.colors.inverseBg,
+      gap: 8,
+    },
+    submitText: { fontSize: 16, fontWeight: '600', color: t.colors.inverseFg },
+  }));
 
   const scanned = useMemo(() => {
     const b = typeof params.barcode === 'string' ? params.barcode : '';
@@ -116,19 +230,19 @@ export default function AddTicketScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton}>
-          <Ionicons name="close" size={24} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="close" size={24} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.title}>Add Ticket</Text>
-        <Pressable onPress={() => router.push('/wallet/scan-ticket')}>
-          <Ionicons name="scan" size={24} color={colors.brandPurple} />
-        </Pressable>
+        <SpringPressable onPress={() => router.push('/wallet/scan-ticket')} haptic="light" accessibilityRole="button">
+          <Ionicons name="scan" size={24} color={tokens.colors.fg} />
+        </SpringPressable>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Event Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Event</Text>
@@ -140,30 +254,30 @@ export default function AddTicketScreen() {
                 <Text style={styles.selectedVenue}>{selectedEvent.venue.name}</Text>
                 <Text style={styles.selectedDate}>{new Date(selectedEvent.date).toLocaleDateString()}</Text>
               </View>
-              <Pressable onPress={() => setSelectedEvent(null)}>
-                <Ionicons name="close-circle" size={24} color={colors.textLo} />
-              </Pressable>
+              <SpringPressable onPress={() => setSelectedEvent(null)} haptic="light" accessibilityRole="button">
+                <Ionicons name="close-circle" size={24} color={tokens.colors.muteSoft} />
+              </SpringPressable>
             </View>
           ) : showManualEntry ? (
-            <View style={styles.manualEntry}>
+            <View>
               <TextInput
                 style={styles.input}
                 placeholder="Artist name"
-                placeholderTextColor={colors.textLo}
+                placeholderTextColor={tokens.colors.muteSoft}
                 value={artistName}
                 onChangeText={setArtistName}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Venue name"
-                placeholderTextColor={colors.textLo}
+                placeholderTextColor={tokens.colors.muteSoft}
                 value={venueName}
                 onChangeText={setVenueName}
               />
-              <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+              <SpringPressable style={styles.dateButton} onPress={() => setShowDatePicker(true)} haptic="light" accessibilityRole="button">
                 <Text style={styles.dateButtonText}>{eventDate.toLocaleDateString()}</Text>
-                <Ionicons name="calendar" size={20} color={colors.brandPurple} />
-              </Pressable>
+                <Ionicons name="calendar" size={20} color={tokens.colors.mute} />
+              </SpringPressable>
               {showDatePicker && (
                 <DateTimePicker
                   value={eventDate}
@@ -174,35 +288,35 @@ export default function AddTicketScreen() {
                   }}
                 />
               )}
-              <Pressable onPress={() => setShowManualEntry(false)}>
+              <SpringPressable onPress={() => setShowManualEntry(false)} haptic="light" accessibilityRole="button">
                 <Text style={styles.searchInstead}>Search for event instead</Text>
-              </Pressable>
+              </SpringPressable>
             </View>
           ) : (
             <>
               <TextInput
                 style={styles.input}
                 placeholder="Search for event..."
-                placeholderTextColor={colors.textLo}
+                placeholderTextColor={tokens.colors.muteSoft}
                 value={eventSearch}
                 onChangeText={handleEventSearch}
               />
-              {searching && <ActivityIndicator style={styles.searchingIndicator} />}
+              {searching && <ActivityIndicator style={styles.searchingIndicator} color={tokens.colors.mute} />}
               {searchResults.length > 0 && (
                 <View style={styles.searchResults}>
                   {searchResults.map((event) => (
-                    <Pressable key={event.id} style={styles.searchResult} onPress={() => handleSelectEvent(event)}>
+                    <SpringPressable key={event.id} style={styles.searchResult} onPress={() => handleSelectEvent(event)} haptic="light" accessibilityRole="button">
                       <Text style={styles.resultArtist}>{event.artist.name}</Text>
                       <Text style={styles.resultDetails}>
                         {event.venue.name} • {new Date(event.date).toLocaleDateString()}
                       </Text>
-                    </Pressable>
+                    </SpringPressable>
                   ))}
                 </View>
               )}
-              <Pressable onPress={() => setShowManualEntry(true)}>
+              <SpringPressable onPress={() => setShowManualEntry(true)} haptic="light" accessibilityRole="button">
                 <Text style={styles.manualLink}>Enter event manually</Text>
-              </Pressable>
+              </SpringPressable>
             </>
           )}
         </View>
@@ -216,8 +330,9 @@ export default function AddTicketScreen() {
             <Switch
               value={isGA}
               onValueChange={setIsGA}
-              trackColor={{ false: colors.hairline, true: colors.brandPurple }}
-              thumbColor={colors.textHi}
+              trackColor={{ false: tokens.colors.card2, true: tokens.colors.success }}
+              thumbColor={tokens.colors.white}
+              ios_backgroundColor={tokens.colors.card2}
             />
           </View>
 
@@ -226,21 +341,21 @@ export default function AddTicketScreen() {
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Section"
-                placeholderTextColor={colors.textLo}
+                placeholderTextColor={tokens.colors.muteSoft}
                 value={section}
                 onChangeText={setSection}
               />
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Row"
-                placeholderTextColor={colors.textLo}
+                placeholderTextColor={tokens.colors.muteSoft}
                 value={row}
                 onChangeText={setRow}
               />
               <TextInput
                 style={[styles.input, styles.seatInput]}
                 placeholder="Seat"
-                placeholderTextColor={colors.textLo}
+                placeholderTextColor={tokens.colors.muteSoft}
                 value={seat}
                 onChangeText={setSeat}
                 keyboardType="numeric"
@@ -255,7 +370,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Enter barcode number"
-            placeholderTextColor={colors.textLo}
+            placeholderTextColor={tokens.colors.muteSoft}
             value={barcode}
             onChangeText={setBarcode}
           />
@@ -269,7 +384,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Confirmation number"
-            placeholderTextColor={colors.textLo}
+            placeholderTextColor={tokens.colors.muteSoft}
             value={confirmationNumber}
             onChangeText={setConfirmationNumber}
           />
@@ -277,7 +392,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={styles.input}
             placeholder="Purchase price"
-            placeholderTextColor={colors.textLo}
+            placeholderTextColor={tokens.colors.muteSoft}
             value={purchasePrice}
             onChangeText={setPurchasePrice}
             keyboardType="decimal-pad"
@@ -286,7 +401,7 @@ export default function AddTicketScreen() {
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder="Notes"
-            placeholderTextColor={colors.textLo}
+            placeholderTextColor={tokens.colors.muteSoft}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -299,209 +414,17 @@ export default function AddTicketScreen() {
 
       {/* Submit Button */}
       <View style={styles.footer}>
-        <Pressable style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
-          <LinearGradient
-            colors={[colors.brandPurple, colors.brandPink]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradient}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.textHi} />
-            ) : (
-              <>
-                <Ionicons name="ticket" size={20} color={colors.textHi} />
-                <Text style={styles.submitText}>Add Ticket</Text>
-              </>
-            )}
-          </LinearGradient>
-        </Pressable>
+        <SpringPressable style={styles.submitButton} onPress={handleSubmit} disabled={loading} haptic="medium" accessibilityRole="button">
+          {loading ? (
+            <ActivityIndicator color={tokens.colors.inverseFg} />
+          ) : (
+            <>
+              <Ionicons name="ticket" size={20} color={tokens.colors.inverseFg} />
+              <Text style={styles.submitText}>Add Ticket</Text>
+            </>
+          )}
+        </SpringPressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  section: {
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: colors.textHi,
-    fontSize: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  selectedEvent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.brandPurple,
-  },
-  selectedEventInfo: {
-    flex: 1,
-  },
-  selectedArtist: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  selectedVenue: {
-    fontSize: 14,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  selectedDate: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  searchingIndicator: {
-    marginVertical: 12,
-  },
-  searchResults: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  searchResult: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  resultArtist: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.textHi,
-  },
-  resultDetails: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  manualLink: {
-    fontSize: 14,
-    color: colors.brandPurple,
-    textAlign: 'center',
-  },
-  manualEntry: {},
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: colors.textHi,
-  },
-  searchInstead: {
-    fontSize: 14,
-    color: colors.brandPurple,
-    textAlign: 'center',
-  },
-  gaToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  gaLabel: {
-    fontSize: 16,
-    color: colors.textHi,
-  },
-  seatInputs: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  seatInput: {
-    flex: 1,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: -4,
-  },
-  notesInput: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    paddingBottom: 34,
-    backgroundColor: colors.ink,
-  },
-  submitButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  gradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    gap: 8,
-  },
-  submitText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-});
-
-
-

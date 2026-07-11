@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { SearchResults, SearchTab } from '../../types/search';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 interface SearchTabsProps {
   activeTab: SearchTab;
@@ -19,6 +20,56 @@ const TABS: { key: SearchTab; label: string }[] = [
 ];
 
 export function SearchTabs({ activeTab, onChangeTab, results }: SearchTabsProps) {
+  const styles = useThemedStyles((t) => ({
+    container: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      gap: spacing.sm,
+    },
+    tab: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.full,
+      backgroundColor: t.colors.inkAlt,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      gap: 6,
+    },
+    tabActive: {
+      backgroundColor: t.colors.brandPurple,
+      borderColor: t.colors.brandPurple,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: t.colors.textMid,
+    },
+    tabTextActive: {
+      color: t.colors.onAccent, // over the purple-filled active tab
+    },
+    badge: {
+      backgroundColor: t.colors.hairline,
+      borderRadius: radius.full,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      minWidth: 20,
+      alignItems: 'center',
+    },
+    badgeActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)', // white scrim over the purple active tab
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: t.colors.textLo,
+    },
+    badgeTextActive: {
+      color: t.colors.onAccent, // over the purple-filled active tab
+    },
+  }));
+
   const getCount = (tab: SearchTab): number => {
     switch (tab) {
       case 'artists':
@@ -61,56 +112,3 @@ export function SearchTabs({ activeTab, onChangeTab, results }: SearchTabsProps)
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.inkAlt,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    gap: 6,
-  },
-  tabActive: {
-    backgroundColor: colors.brandPurple,
-    borderColor: colors.brandPurple,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textMid,
-  },
-  tabTextActive: {
-    color: colors.textHi,
-  },
-  badge: {
-    backgroundColor: colors.hairline,
-    borderRadius: radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  badgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textLo,
-  },
-  badgeTextActive: {
-    color: colors.textHi,
-  },
-});
-
-
-

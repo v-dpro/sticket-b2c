@@ -2,26 +2,129 @@ import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import { useRouter, Stack } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Screen } from '../../components/ui/Screen';
 import { DangerButton, ServiceConnection, SettingsRow, SettingsSection } from '../../components/settings';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useAccountActions } from '../../hooks/useAccountActions';
 import { useSettings } from '../../hooks/useSettings';
 import { useSession } from '../../hooks/useSession';
 import { isAdminUser } from '../../lib/admin/isAdmin';
-import { colors, spacing, fontFamilies } from '../../lib/theme';
+import { useTheme, useThemedStyles, type ThemePreference } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+
+const APPEARANCE_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
+  { value: 'system', label: 'System' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Light' },
+];
+
+function AppearancePicker() {
+  const { mode, setMode } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    row: {
+      flexDirection: 'row',
+      gap: 8,
+      padding: t.spacing.sm,
+    },
+    segment: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderRadius: t.radius.md,
+      backgroundColor: t.colors.card2,
+    },
+    segmentSelected: {
+      backgroundColor: t.colors.inverseBg,
+    },
+    text: {
+      color: t.colors.text,
+      fontWeight: '600',
+      fontSize: 13,
+    },
+    textSelected: {
+      color: t.colors.inverseFg,
+    },
+  }));
+
+  return (
+    <View style={styles.row}>
+      {APPEARANCE_OPTIONS.map((opt) => {
+        const active = mode === opt.value;
+        return (
+          <SpringPressable
+            key={opt.value}
+            onPress={() => setMode(opt.value)}
+            haptic="light"
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.segment, active && styles.segmentSelected]}
+          >
+            <Text style={[styles.text, active && styles.textSelected]}>{opt.label}</Text>
+          </SpringPressable>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const { user } = useSession();
   const { settings, refresh } = useSettings();
   const { logout, loading: logoutLoading } = useAccountActions();
 
   const appVersion = (Constants.expoConfig as any)?.version || '1.0.0';
+
+  const styles = useThemedStyles((t) => ({
+    screen: {
+      flex: 1,
+      backgroundColor: t.colors.bg,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingTop: t.spacing.md,
+      paddingBottom: 12,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 34,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+      color: t.colors.fg,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    version: {
+      alignItems: 'center',
+      marginTop: t.spacing.xl,
+      paddingBottom: t.spacing.lg,
+    },
+    versionText: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 12,
+      color: t.colors.mute,
+      fontWeight: '500',
+    },
+    versionSubtext: {
+      fontSize: 12,
+      color: t.colors.muteSoft,
+      marginTop: 4,
+      fontWeight: '400',
+    },
+  }));
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -31,14 +134,14 @@ export default function SettingsScreen() {
   };
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-        </Pressable>
-        <Text style={styles.title}>Settings.</Text>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.fg} />
+        </SpringPressable>
+        <Text style={styles.title}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -47,6 +150,10 @@ export default function SettingsScreen() {
           <SettingsRow icon="person" label="Edit Profile" onPress={() => router.push('/edit-profile')} />
           <SettingsRow icon="mail" label="Email" value={user?.email} onPress={() => router.push('/settings/change-email')} />
           <SettingsRow icon="lock-closed" label="Password" value="••••••••" onPress={() => router.push('/settings/change-password')} isLast />
+        </SettingsSection>
+
+        <SettingsSection title="Appearance">
+          <AppearancePicker />
         </SettingsSection>
 
         <SettingsSection title="Connected Services">
@@ -126,11 +233,11 @@ export default function SettingsScreen() {
           <SettingsRow icon="code" label="Open Source Licenses" onPress={() => router.push('/settings/licenses')} isLast />
         </SettingsSection>
 
-        <View style={{ marginTop: spacing.xl }}>
+        <View style={{ marginTop: tokens.spacing.xl }}>
           <DangerButton icon="log-out" label="Log Out" onPress={handleLogout} loading={logoutLoading} />
         </View>
 
-        <View style={{ marginTop: spacing.md }}>
+        <View style={{ marginTop: tokens.spacing.md }}>
           <DangerButton icon="trash" label="Delete Account" onPress={() => router.push('/settings/delete-account')} isDestructive />
         </View>
 
@@ -141,52 +248,6 @@ export default function SettingsScreen() {
 
         <View style={{ height: 50 }} />
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 28,
-    fontWeight: '400',
-    letterSpacing: -0.6,
-    color: colors.textHi,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  version: {
-    alignItems: 'center',
-    marginTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  versionText: {
-    fontSize: 13,
-    color: colors.textLo,
-    fontWeight: '500',
-    fontFamily: fontFamilies.mono,
-  },
-  versionSubtext: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 4,
-    fontWeight: '400',
-  },
-});
-
-
-

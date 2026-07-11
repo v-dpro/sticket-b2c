@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { StatusPill } from '../shared/StatusPill';
 import { CodeDisplay } from '../shared/CodeDisplay';
 import { SignupWarning } from '../shared/SignupWarning';
-import { colors } from '../../lib/theme';
+import type { ThemeColors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 export type TimelineCardType = 'log' | 'ticket' | 'tracking' | 'presale';
 
@@ -28,7 +29,7 @@ interface TimelineCardProps {
   onPress?: () => void;
 }
 
-const typeConfig = {
+const makeTypeConfig = (colors: ThemeColors) => ({
   log: {
     color: colors.success,
     badgeLabel: 'Attended',
@@ -49,7 +50,7 @@ const typeConfig = {
     badgeLabel: 'Presale',
     badgeType: 'presale' as const,
   },
-};
+});
 
 export function TimelineCard({
   type,
@@ -69,6 +70,87 @@ export function TimelineCard({
   isToday = false,
   onPress,
 }: TimelineCardProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      backgroundColor: t.colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: 16,
+    },
+    content: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    indicator: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginTop: 4,
+    },
+    mainContent: {
+      flex: 1,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginBottom: 4,
+    },
+    artist: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '700',
+      color: t.colors.textHi,
+    },
+    venue: {
+      fontSize: 14,
+      color: t.colors.textMid,
+      marginBottom: 4,
+    },
+    date: {
+      fontSize: 13,
+      color: t.colors.textMid,
+      marginBottom: 8,
+    },
+    today: {
+      color: t.colors.brandCyan,
+      fontWeight: '700',
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      gap: 2,
+      marginBottom: 8,
+    },
+    note: {
+      fontSize: 13,
+      color: t.colors.textMid,
+      fontStyle: 'italic',
+    },
+    seatInfo: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.colors.brandCyan,
+    },
+    maxPrice: {
+      fontSize: 13,
+      color: t.colors.textMid,
+    },
+    maxPriceValue: {
+      color: t.colors.textHi,
+      fontWeight: '700',
+    },
+    codeWrapper: {
+      marginTop: 12,
+    },
+    warningWrapper: {
+      marginTop: 8,
+    },
+  }));
+
+  const typeConfig = makeTypeConfig(tokens.colors);
   const cfg = typeConfig[type];
   const badgeLabel = type === 'presale' && presaleType ? presaleType : cfg.badgeLabel;
 
@@ -97,7 +179,7 @@ export function TimelineCard({
           {type === 'log' && typeof rating === 'number' ? (
             <View style={styles.ratingRow}>
               {Array.from({ length: 5 }).map((_, i) => (
-                <Ionicons key={i} name="star" size={16} color={i < Math.round(rating) ? colors.gold : '#3D3D5C'} />
+                <Ionicons key={i} name="star" size={16} color={i < Math.round(rating) ? tokens.colors.gold : '#3D3D5C'} />
               ))}
             </View>
           ) : null}
@@ -135,89 +217,8 @@ export function TimelineCard({
           ) : null}
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
+        <Ionicons name="chevron-forward" size={20} color={tokens.colors.textLo} />
       </View>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: 16,
-  },
-  content: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  indicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  mainContent: {
-    flex: 1,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
-  },
-  artist: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  venue: {
-    fontSize: 14,
-    color: colors.textMid,
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 13,
-    color: colors.textMid,
-    marginBottom: 8,
-  },
-  today: {
-    color: colors.brandCyan,
-    fontWeight: '700',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    gap: 2,
-    marginBottom: 8,
-  },
-  note: {
-    fontSize: 13,
-    color: colors.textMid,
-    fontStyle: 'italic',
-  },
-  seatInfo: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.brandCyan,
-  },
-  maxPrice: {
-    fontSize: 13,
-    color: colors.textMid,
-  },
-  maxPriceValue: {
-    color: colors.textHi,
-    fontWeight: '700',
-  },
-  codeWrapper: {
-    marginTop: 12,
-  },
-  warningWrapper: {
-    marginTop: 8,
-  },
-});
-
-

@@ -1,8 +1,11 @@
+// PhotoLightbox — full-screen photo modal on an intentionally BLACK backdrop.
+// The backdrop and everything layered over it keep FIXED light-on-dark colors
+// (not theme tokens) in both light and dark mode.
+
 import React from 'react';
 import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventPhoto } from '../../types/event';
-import { colors } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -16,7 +19,7 @@ export function PhotoLightbox({ photo, onClose }: PhotoLightboxProps) {
     <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.lightbox}>
         <Pressable style={styles.closeButton} onPress={onClose}>
-          <Ionicons name="close" size={28} color={colors.textHi} />
+          <Ionicons name="close" size={28} color="#FFFFFF" />
         </Pressable>
 
         {photo ? (
@@ -42,6 +45,8 @@ export function PhotoLightbox({ photo, onClose }: PhotoLightboxProps) {
   );
 }
 
+// NOTE: colors are intentionally FIXED — the lightbox sits on a black backdrop
+// in every theme, so overlaid text/icons read as light-on-dark in both modes.
 const styles = StyleSheet.create({
   lightbox: {
     flex: 1,
@@ -77,25 +82,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.hairline,
+    backgroundColor: '#1C1C26',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: colors.textLo,
+    color: '#5A5A6C',
   },
   userName: {
     fontSize: 14,
-    color: colors.textHi,
+    color: '#FFFFFF',
   },
   sectionText: {
     fontSize: 12,
-    color: colors.textLo,
+    color: '#5A5A6C',
     marginTop: 4,
   },
 });
-
-
-

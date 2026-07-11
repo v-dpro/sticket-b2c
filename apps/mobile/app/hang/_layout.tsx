@@ -1,13 +1,14 @@
 import { Stack } from 'expo-router';
 
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 export default function HangLayout() {
+  const { tokens } = useTheme();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.ink },
+        contentStyle: { backgroundColor: tokens.colors.bg },
       }}
     />
   );

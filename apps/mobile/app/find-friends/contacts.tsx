@@ -1,18 +1,42 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ContactCard } from '../../components/friends/ContactCard';
 import { useContactsSync } from '../../hooks/useContactsSync';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function FindFriendsContactsScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
   const { matches, loading, error, sync, updateFollowStatus } = useContactsSync();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.ink },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    backButton: { width: 40, height: 40, justifyContent: 'center' },
+    title: { fontSize: 18, fontWeight: '800', color: t.colors.textHi },
+    syncButton: {
+      height: 52,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: t.colors.brandCyan,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(17, 10, 58, 0.35)',
+    },
+    syncButtonText: { color: t.colors.brandCyan, fontSize: 16, fontWeight: '800' },
+    error: { color: t.colors.error, marginTop: 10, textAlign: 'center' },
+  }));
 
   useEffect(() => {
     // Auto-trigger once when opened.
@@ -24,7 +48,7 @@ export default function FindFriendsContactsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={24} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Contacts</Text>
         <View style={{ width: 40 }} />
@@ -32,7 +56,7 @@ export default function FindFriendsContactsScreen() {
 
       <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
         <Pressable style={styles.syncButton} onPress={() => void sync()} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.brandCyan} /> : <Text style={styles.syncButtonText}>Sync Contacts</Text>}
+          {loading ? <ActivityIndicator color={tokens.colors.brandCyan} /> : <Text style={styles.syncButtonText}>Sync Contacts</Text>}
         </Pressable>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
@@ -42,7 +66,7 @@ export default function FindFriendsContactsScreen() {
           <ContactCard key={contact.id} contact={contact} onFollowChange={updateFollowStatus} />
         ))}
         {!loading && matches.length === 0 ? (
-          <Text style={{ color: colors.textLo, textAlign: 'center', paddingTop: 24 }}>
+          <Text style={{ color: tokens.colors.textLo, textAlign: 'center', paddingTop: 24 }}>
             No matches found from your contacts yet.
           </Text>
         ) : null}
@@ -50,30 +74,6 @@ export default function FindFriendsContactsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.ink },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
-  title: { fontSize: 18, fontWeight: '800', color: colors.textHi },
-  syncButton: {
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.brandCyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(17, 10, 58, 0.35)',
-  },
-  syncButtonText: { color: colors.brandCyan, fontSize: 16, fontWeight: '800' },
-  error: { color: colors.error, marginTop: 10, textAlign: 'center' },
-});
 
 
 

@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { Image, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, radius, shadows } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type CardProps = {
   children?: ReactNode;
@@ -18,9 +18,43 @@ type CardProps = {
 };
 
 export function Card({ children, style, onPress, elevated = false, heroImage, heroHeight = 200, noBorder = false }: CardProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    card: {
+      backgroundColor: t.colors.surface,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      overflow: 'hidden',
+    },
+    noBorder: {
+      borderWidth: 0,
+    },
+    pressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.98 }],
+    },
+    heroContainer: {
+      width: '100%',
+      position: 'relative',
+    },
+    heroImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    heroOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '60%',
+    },
+  }));
+
   const cardStyles: StyleProp<ViewStyle>[] = [
     styles.card,
-    elevated && shadows.elevated,
+    elevated && tokens.shadows.elevated,
     noBorder && styles.noBorder,
     style,
   ];
@@ -31,7 +65,7 @@ export function Card({ children, style, onPress, elevated = false, heroImage, he
         <View style={[styles.heroContainer, { height: heroHeight }]}>
           <Image source={{ uri: heroImage }} style={styles.heroImage} />
           <LinearGradient
-            colors={['transparent', `${colors.ink}80`, colors.ink]}
+            colors={['transparent', `${tokens.colors.bg}80`, tokens.colors.bg]}
             style={styles.heroOverlay}
           />
         </View>
@@ -53,36 +87,3 @@ export function Card({ children, style, onPress, elevated = false, heroImage, he
 
   return <View style={cardStyles}>{content}</View>;
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    overflow: 'hidden',
-  },
-  noBorder: {
-    borderWidth: 0,
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
-  },
-  heroContainer: {
-    width: '100%',
-    position: 'relative',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '60%',
-  },
-});

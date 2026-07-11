@@ -1,7 +1,7 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { useNotificationStore } from '../../stores/notificationStore';
-import { colors } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 interface NotificationBadgeProps {
   size?: 'small' | 'medium';
@@ -9,6 +9,40 @@ interface NotificationBadgeProps {
 
 export function NotificationBadge({ size = 'small' }: NotificationBadgeProps) {
   const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const styles = useThemedStyles((t) => ({
+    badge: {
+      backgroundColor: t.colors.error,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'absolute',
+    },
+    badgeSmall: {
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      top: -4,
+      right: -4,
+    },
+    badgeMedium: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      paddingHorizontal: 6,
+      top: -6,
+      right: -6,
+    },
+    text: {
+      color: t.colors.onAccent, // white count over the red badge fill
+      fontWeight: '900',
+    },
+    textSmall: {
+      fontSize: 10,
+    },
+    textMedium: {
+      fontSize: 12,
+    },
+  }));
 
   if (unreadCount === 0) return null;
 
@@ -21,41 +55,3 @@ export function NotificationBadge({ size = 'small' }: NotificationBadgeProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    backgroundColor: colors.error,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-  },
-  badgeSmall: {
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    top: -4,
-    right: -4,
-  },
-  badgeMedium: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    top: -6,
-    right: -6,
-  },
-  text: {
-    color: colors.textHi,
-    fontWeight: '900',
-  },
-  textSmall: {
-    fontSize: 10,
-  },
-  textMedium: {
-    fontSize: 12,
-  },
-});
-
-
-

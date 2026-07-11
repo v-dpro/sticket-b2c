@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MapView, { Callout, Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 
 import type { VenueMarker } from '../../types/profile';
 import { getUserVenueMarkers } from '../../lib/api/profile';
-import { colors } from '../../lib/theme';
+import type { ThemeColors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -14,8 +15,8 @@ interface ProfileMapViewProps {
   onVenuePress: (venueId: string) => void;
 }
 
-// Custom map style for dark theme
-const mapStyle = [
+// Custom map style, tinted to the active theme surfaces.
+const makeMapStyle = (colors: ThemeColors) => [
   { elementType: 'geometry', stylers: [{ color: colors.ink }] },
   { elementType: 'labels.text.fill', stylers: [{ color: colors.textLo }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: colors.ink }] },
@@ -37,11 +38,12 @@ const mapStyle = [
   {
     featureType: 'water',
     elementType: 'geometry',
-    stylers: [{ color: '#17263c' }],
+    stylers: [{ color: '#17263c' }], // deliberate deep-blue water fill
   },
 ];
 
 export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
+  const { tokens } = useTheme();
   const [markers, setMarkers] = useState<VenueMarker[]>([]);
   const [loading, setLoading] = useState(true);
   const [region, setRegion] = useState({
@@ -50,6 +52,114 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
     latitudeDelta: 50,
     longitudeDelta: 50,
   });
+
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flex: 1,
+    },
+    map: {
+      width,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      color: t.colors.textLo,
+      fontSize: 16,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      marginTop: 16,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    markerContainer: {
+      alignItems: 'center',
+    },
+    marker: {
+      backgroundColor: t.colors.brandPurple,
+      borderRadius: 16,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      minWidth: 28,
+      alignItems: 'center',
+    },
+    markerCount: {
+      color: t.colors.onAccent, // text on accent-filled marker
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    markerArrow: {
+      width: 0,
+      height: 0,
+      borderLeftWidth: 6,
+      borderRightWidth: 6,
+      borderTopWidth: 8,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderTopColor: t.colors.brandPurple,
+      marginTop: -1,
+    },
+    callout: {
+      backgroundColor: t.colors.surface,
+      borderRadius: 12,
+      padding: 12,
+      minWidth: 150,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    calloutTitle: {
+      color: t.colors.textHi,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    calloutCity: {
+      color: t.colors.textMid,
+      fontSize: 12,
+      marginBottom: 4,
+    },
+    calloutCount: {
+      color: t.colors.brandPurple,
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    calloutLast: {
+      color: t.colors.textLo,
+      fontSize: 11,
+      marginTop: 4,
+    },
+    statsOverlay: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      backgroundColor: 'rgba(18, 19, 45, 0.9)', // fixed dark overlay chip over map
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    statsText: {
+      color: t.colors.white, // over dark overlay chip
+      fontSize: 12,
+      fontWeight: '500',
+    },
+  }));
+
+  const mapStyle = useMemo(() => makeMapStyle(tokens.colors), [tokens.colors]);
 
   useEffect(() => {
     void loadMarkers();
@@ -111,7 +221,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   if (markers.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="map-outline" size={64} color={colors.textLo} />
+        <Ionicons name="map-outline" size={64} color={tokens.colors.textLo} />
         <Text style={styles.emptyTitle}>No venues to show</Text>
         <Text style={styles.emptyText}>Log some shows to see them on the map!</Text>
       </View>
@@ -162,113 +272,3 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: colors.textLo,
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textLo,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  markerContainer: {
-    alignItems: 'center',
-  },
-  marker: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 28,
-    alignItems: 'center',
-  },
-  markerCount: {
-    color: colors.textHi,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  markerArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: colors.brandPurple,
-    marginTop: -1,
-  },
-  callout: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    minWidth: 150,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  calloutTitle: {
-    color: colors.textHi,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  calloutCity: {
-    color: colors.textMid,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  calloutCount: {
-    color: colors.brandPurple,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  calloutLast: {
-    color: colors.textLo,
-    fontSize: 11,
-    marginTop: 4,
-  },
-  statsOverlay: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: 'rgba(18, 19, 45, 0.9)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  statsText: {
-    color: colors.textHi,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-});
-
-
-
-

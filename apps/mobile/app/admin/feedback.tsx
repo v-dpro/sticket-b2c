@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
 import { apiClient } from '../../lib/api/client';
 import { isAdminUser } from '../../lib/admin/isAdmin';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
@@ -24,6 +25,75 @@ export default function AdminFeedbackScreen() {
   const goBack = useSafeBack();
   const { user } = useSession();
   const allowed = isAdminUser(user);
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: t.colors.textHi,
+    },
+    refresh: {
+      width: 40,
+      height: 40,
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+    },
+    denied: {
+      marginTop: spacing.lg,
+      color: t.colors.textLo,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    empty: {
+      color: t.colors.textLo,
+      fontWeight: '800',
+      textAlign: 'center',
+      paddingTop: spacing.lg,
+    },
+    card: {
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    cardTitle: {
+      color: t.colors.brandPurple,
+      fontWeight: '900',
+      fontSize: 12,
+      marginBottom: 6,
+    },
+    meta: {
+      color: t.colors.textLo,
+      fontWeight: '800',
+      fontSize: 12,
+    },
+    message: {
+      marginTop: spacing.sm,
+      color: t.colors.textHi,
+      fontWeight: '700',
+      fontSize: 14,
+      lineHeight: 20,
+    },
+  }));
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<FeedbackRow[]>([]);
@@ -51,7 +121,7 @@ export default function AdminFeedbackScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
           <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+            <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
           </Pressable>
           <Text style={styles.title}>Feedback</Text>
           <View style={{ width: 40 }} />
@@ -67,17 +137,17 @@ export default function AdminFeedbackScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Feedback</Text>
         <Pressable onPress={() => void load()} style={styles.refresh} accessibilityRole="button">
-          <Ionicons name="refresh" size={20} color={colors.textHi} />
+          <Ionicons name="refresh" size={20} color={tokens.colors.textHi} />
         </Pressable>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.brandPurple} />
+          <ActivityIndicator color={tokens.colors.brandPurple} />
         </View>
       ) : (
         <FlatList
@@ -98,75 +168,6 @@ export default function AdminFeedbackScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  refresh: {
-    width: 40,
-    height: 40,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  denied: {
-    marginTop: spacing.lg,
-    color: colors.textLo,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  empty: {
-    color: colors.textLo,
-    fontWeight: '800',
-    textAlign: 'center',
-    paddingTop: spacing.lg,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  cardTitle: {
-    color: colors.brandPurple,
-    fontWeight: '900',
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  meta: {
-    color: colors.textLo,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  message: {
-    marginTop: spacing.sm,
-    color: colors.textHi,
-    fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-});
 
 
 

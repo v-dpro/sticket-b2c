@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import { NotificationBadge } from './NotificationBadge';
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 type NotificationBellButtonProps = {
   color?: string;
@@ -11,8 +11,10 @@ type NotificationBellButtonProps = {
   badgeSize?: 'small' | 'medium';
 };
 
-export function NotificationBellButton({ color = colors.textHi, size = 24, badgeSize = 'small' }: NotificationBellButtonProps) {
+export function NotificationBellButton({ color, size = 24, badgeSize = 'small' }: NotificationBellButtonProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const iconColor = color ?? tokens.colors.textHi;
 
   return (
     <Pressable
@@ -22,7 +24,7 @@ export function NotificationBellButton({ color = colors.textHi, size = 24, badge
       accessibilityLabel="Notifications"
     >
       <View>
-        <Ionicons name="notifications-outline" size={size} color={color} />
+        <Ionicons name="notifications-outline" size={size} color={iconColor} />
         <NotificationBadge size={badgeSize} />
       </View>
     </Pressable>

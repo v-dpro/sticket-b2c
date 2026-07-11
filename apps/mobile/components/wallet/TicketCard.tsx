@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { useRouter } from 'expo-router';
 
 import type { Ticket } from '../../types/ticket';
 import { TicketStatusBadge } from './TicketStatusBadge';
-import { colors } from '../../lib/theme';
+import { SpringPressable } from '../ui/SpringPressable';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -14,23 +15,74 @@ interface TicketCardProps {
 
 export function TicketCard({ ticket }: TicketCardProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
   const eventDate = parseISO(ticket.event.date);
   const daysUntil = differenceInDays(eventDate, new Date());
   const isUpcoming = daysUntil >= 0;
+
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      padding: 12,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    imageContainer: { position: 'relative' },
+    image: { width: 60, height: 60, borderRadius: t.radius.md },
+    imagePlaceholder: {
+      backgroundColor: t.colors.card2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    countdownBadge: {
+      position: 'absolute',
+      bottom: -4,
+      left: -4,
+      right: -4,
+      backgroundColor: t.colors.inverseBg,
+      borderRadius: t.radius.xs,
+      paddingVertical: 2,
+      alignItems: 'center',
+    },
+    countdownText: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 8,
+      fontWeight: '700',
+      color: t.colors.inverseFg,
+      letterSpacing: 0.5,
+    },
+    info: { flex: 1, marginLeft: 12, minWidth: 0 },
+    artist: { fontSize: 16, fontWeight: '700', color: t.colors.fg },
+    venue: { fontSize: 13, color: t.colors.mute, marginTop: 2 },
+    date: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 12,
+      color: t.colors.muteSoft,
+      marginTop: 4,
+    },
+    seatRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
+    seatText: { fontSize: 11, color: t.colors.muteSoft, flex: 1 },
+    right: { alignItems: 'flex-end', gap: 8 },
+  }));
 
   const handlePress = () => {
     router.push(`/wallet/${ticket.id}`);
   };
 
   return (
-    <Pressable style={styles.container} onPress={handlePress}>
+    <SpringPressable style={styles.container} onPress={handlePress} haptic="light" accessibilityRole="button">
       {/* Left: Artist Image */}
       <View style={styles.imageContainer}>
         {ticket.event.artist.imageUrl ? (
           <Image source={{ uri: ticket.event.artist.imageUrl }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="musical-notes" size={24} color={colors.brandPurple} />
+            <Ionicons name="musical-notes" size={24} color={tokens.colors.mute} />
           </View>
         )}
 
@@ -56,7 +108,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
 
         {/* Seat Info */}
         <View style={styles.seatRow}>
-          <Ionicons name="location" size={12} color={colors.textLo} />
+          <Ionicons name="location" size={12} color={tokens.colors.muteSoft} />
           <Text style={styles.seatText} numberOfLines={1}>
             {ticket.isGeneralAdmission
               ? 'General Admission'
@@ -68,88 +120,8 @@ export function TicketCard({ ticket }: TicketCardProps) {
       {/* Right: Status & Arrow */}
       <View style={styles.right}>
         {ticket.status !== 'KEEPING' && <TicketStatusBadge status={ticket.status} />}
-        <Ionicons name="chevron-forward" size={20} color={colors.textLo} />
+        <Ionicons name="chevron-forward" size={20} color={tokens.colors.muteSoft} />
       </View>
-    </Pressable>
+    </SpringPressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  imageContainer: {
-    position: 'relative',
-  },
-  image: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  countdownBadge: {
-    position: 'absolute',
-    bottom: -4,
-    left: -4,
-    right: -4,
-    backgroundColor: colors.error,
-    borderRadius: 4,
-    paddingVertical: 2,
-    alignItems: 'center',
-  },
-  countdownText: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: colors.textHi,
-  },
-  info: {
-    flex: 1,
-    marginLeft: 12,
-    minWidth: 0,
-  },
-  artist: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  venue: {
-    fontSize: 13,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  date: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 4,
-  },
-  seatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
-  },
-  seatText: {
-    fontSize: 11,
-    color: colors.textLo,
-    flex: 1,
-  },
-  right: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-});
-
-
-

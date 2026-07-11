@@ -1,9 +1,10 @@
 import { Stack, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../components/ui/Screen';
-import { colors, radius, spacing } from '../lib/theme';
+import { radius, spacing } from '../lib/theme';
+import { useTheme, useThemedStyles } from '../lib/theme-context';
 import { useNotificationPrefs } from '../hooks/useNotificationPrefs';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
 
@@ -11,13 +12,79 @@ export default function NotificationSettingsScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
   const { prefs, loading, saving, updatePref } = useNotificationPrefs();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingTop: spacing.lg,
+      paddingBottom: 12,
+      gap: 12,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: '900',
+      color: t.colors.textHi,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    section: {
+      marginTop: spacing.lg,
+      paddingHorizontal: 16,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: t.colors.textLo,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: spacing.md,
+    },
+    masterToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    masterLabel: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: t.colors.textHi,
+    },
+    masterDescription: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 2,
+    },
+    emailOptions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+  }));
 
   if (loading) {
     return (
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.brandPurple} />
+          <ActivityIndicator size="large" color={tokens.colors.brandPurple} />
         </View>
       </Screen>
     );
@@ -29,10 +96,10 @@ export default function NotificationSettingsScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Notification Settings</Text>
-        {saving ? <ActivityIndicator size="small" color={colors.brandPurple} /> : <View style={{ width: 20 }} />}
+        {saving ? <ActivityIndicator size="small" color={tokens.colors.brandPurple} /> : <View style={{ width: 20 }} />}
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -45,8 +112,8 @@ export default function NotificationSettingsScreen() {
             <Switch
               value={prefs.pushEnabled}
               onValueChange={(value) => void updatePref('pushEnabled', value)}
-              trackColor={{ false: colors.hairline, true: colors.brandPurple }}
-              thumbColor={colors.textHi}
+              trackColor={{ false: tokens.colors.hairline, true: tokens.colors.brandPurple }}
+              thumbColor={tokens.colors.textHi}
             />
           </View>
         </View>
@@ -153,6 +220,37 @@ function SettingRow({
   onChange: (value: boolean) => void;
   disabled?: boolean;
 }) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    settingDisabled: {
+      opacity: 0.5,
+    },
+    settingInfo: {
+      flex: 1,
+      marginRight: 16,
+    },
+    settingLabel: {
+      fontSize: 15,
+      color: t.colors.textHi,
+      fontWeight: '700',
+    },
+    settingDescription: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 2,
+    },
+    textDisabled: {
+      color: t.colors.textLo,
+    },
+  }));
   return (
     <View style={[styles.settingRow, disabled ? styles.settingDisabled : null]}>
       <View style={styles.settingInfo}>
@@ -162,8 +260,8 @@ function SettingRow({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: colors.hairline, true: colors.brandPurple }}
-        thumbColor={colors.textHi}
+        trackColor={{ false: tokens.colors.hairline, true: tokens.colors.brandPurple }}
+        thumbColor={tokens.colors.textHi}
         disabled={disabled}
       />
     </View>
@@ -179,128 +277,36 @@ function EmailOption({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const styles = useThemedStyles((t) => ({
+    emailOption: {
+      flex: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    emailOptionSelected: {
+      backgroundColor: 'rgba(139, 92, 246, 0.12)',
+      borderColor: t.colors.brandPurple,
+    },
+    emailOptionText: {
+      fontSize: 13,
+      color: t.colors.textMid,
+      fontWeight: '700',
+    },
+    emailOptionTextSelected: {
+      color: t.colors.brandPurple,
+    },
+  }));
   return (
     <Pressable style={[styles.emailOption, selected ? styles.emailOptionSelected : null]} onPress={onSelect} accessibilityRole="button">
       <Text style={[styles.emailOptionText, selected ? styles.emailOptionTextSelected : null]}>{label}</Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
-    gap: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  section: {
-    marginTop: spacing.lg,
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textLo,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.md,
-  },
-  masterToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  masterLabel: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  masterDescription: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  settingDisabled: {
-    opacity: 0.5,
-  },
-  settingInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  settingLabel: {
-    fontSize: 15,
-    color: colors.textHi,
-    fontWeight: '700',
-  },
-  settingDescription: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 2,
-  },
-  textDisabled: {
-    color: colors.textLo,
-  },
-  emailOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  emailOption: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  emailOptionSelected: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    borderColor: colors.brandPurple,
-  },
-  emailOptionText: {
-    fontSize: 13,
-    color: colors.textMid,
-    fontWeight: '700',
-  },
-  emailOptionTextSelected: {
-    color: colors.brandPurple,
-  },
-});
 
 
 

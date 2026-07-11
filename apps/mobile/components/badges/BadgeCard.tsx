@@ -1,9 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { Badge, BadgeProgress } from '../../types/badge';
-import { colors } from '../../lib/theme';
-import { BadgeIcon, RARITY_COLORS } from './BadgeIcon';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { SpringPressable } from '../ui/SpringPressable';
+import { BadgeIcon, getRarityColor } from './BadgeIcon';
 
 interface BadgeCardProps {
   badge: Badge;
@@ -15,11 +16,33 @@ interface BadgeCardProps {
 }
 
 export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }: BadgeCardProps) {
+  const { tokens } = useTheme();
   const iconSize = size === 'small' ? 56 : size === 'large' ? 96 : 72;
-  const rarityColor = RARITY_COLORS[badge.rarity];
+  const rarityColor = getRarityColor(tokens.colors, badge.rarity);
+
+  const styles = useThemedStyles((t) => ({
+    container: { alignItems: 'center', width: 96 },
+    iconWrap: { position: 'relative', marginBottom: 8 },
+    progressStrip: {
+      position: 'absolute',
+      left: 6,
+      right: 6,
+      bottom: 8,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor: t.colors.card2,
+      overflow: 'hidden',
+    },
+    progressFill: { height: '100%' },
+    name: { fontSize: 12, fontWeight: '700', color: t.colors.fg, textAlign: 'center' },
+    nameUnearned: { color: t.colors.mute },
+    rarityPill: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+    rarityText: { fontFamily: t.fontFamilies.mono, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    progressText: { fontFamily: t.fontFamilies.mono, fontSize: 11, color: t.colors.muteSoft, marginTop: 6 },
+  }));
 
   return (
-    <Pressable style={({ pressed }) => [styles.container, { opacity: pressed ? 0.9 : 1 }]} onPress={onPress}>
+    <SpringPressable style={styles.container} onPress={onPress} haptic="light" accessibilityRole="button">
       <View style={styles.iconWrap}>
         <BadgeIcon icon={badge.icon} earned={earned} rarity={badge.rarity} size={iconSize} />
         {!earned && progress ? (
@@ -44,58 +67,6 @@ export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }:
       ) : (
         <Text style={styles.progressText}>Locked</Text>
       )}
-    </Pressable>
+    </SpringPressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    width: 96,
-  },
-  iconWrap: {
-    position: 'relative',
-    marginBottom: 8,
-  },
-  progressStrip: {
-    position: 'absolute',
-    left: 6,
-    right: 6,
-    bottom: 8,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: colors.hairline,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-  },
-  name: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textHi,
-    textAlign: 'center',
-  },
-  nameUnearned: {
-    color: colors.textMid,
-  },
-  rarityPill: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  rarityText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  progressText: {
-    fontSize: 11,
-    color: colors.textLo,
-    marginTop: 6,
-  },
-});
-
-
-

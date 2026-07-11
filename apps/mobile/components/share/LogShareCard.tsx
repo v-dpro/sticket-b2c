@@ -2,7 +2,10 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../lib/theme';
+
+// Fixed-dark share poster: content sits over a hero image + a hardcoded dark
+// scrim gradient and is captured to a shareable image, so its palette stays
+// theme-independent (fixed dark-palette values), not the active app theme.
 
 interface LogShareCardProps {
   artistName: string;
@@ -29,7 +32,7 @@ export function LogShareCard({ artistName, artistImage, venueName, venueCity, da
       ) : artistImage ? (
         <Image source={{ uri: artistImage }} style={styles.backgroundImage} />
       ) : (
-        <LinearGradient colors={[colors.brandPurple, '#6366F1', colors.ink]} style={styles.backgroundGradient} />
+        <LinearGradient colors={['#7C5CFF', '#6366F1', '#0B0B10']} style={styles.backgroundGradient} />
       )}
 
       <LinearGradient colors={['transparent', 'rgba(10, 11, 30, 0.8)', 'rgba(10, 11, 30, 0.95)']} style={styles.overlay} />
@@ -37,7 +40,7 @@ export function LogShareCard({ artistName, artistImage, venueName, venueCity, da
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Ionicons name="ticket" size={16} color={colors.brandPurple} />
+            <Ionicons name="ticket" size={16} color="#7C5CFF" />
             <Text style={styles.logoText}>sticket</Text>
           </View>
         </View>
@@ -52,7 +55,7 @@ export function LogShareCard({ artistName, artistImage, venueName, venueCity, da
           {rating ? (
             <View style={styles.ratingRow}>
               {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons key={star} name={star <= rating ? 'star' : 'star-outline'} size={16} color={colors.warning} />
+                <Ionicons key={star} name={star <= rating ? 'star' : 'star-outline'} size={16} color="#F5A623" />
               ))}
             </View>
           ) : null}
@@ -73,7 +76,7 @@ const styles = StyleSheet.create({
     height: 450,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: colors.ink,
+    backgroundColor: '#0B0B10',
   },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textHi,
+    color: '#E8E8EE',
   },
   info: {
     gap: 4,
@@ -115,15 +118,15 @@ const styles = StyleSheet.create({
   artistName: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: colors.textHi,
+    color: '#E8E8EE',
   },
   venue: {
     fontSize: 18,
-    color: colors.textMid,
+    color: '#A7A7B4',
   },
   location: {
     fontSize: 14,
-    color: colors.textLo,
+    color: '#5A5A6C',
     marginTop: 4,
   },
   ratingRow: {
@@ -140,13 +143,10 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.brandPurple,
+    color: '#7C5CFF',
   },
   wasHere: {
     fontSize: 14,
-    color: colors.textLo,
+    color: '#5A5A6C',
   },
 });
-
-
-

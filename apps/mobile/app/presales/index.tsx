@@ -1,20 +1,87 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format, isToday, isTomorrow } from 'date-fns';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { Screen } from '../../components/ui/Screen';
-import { EmptyState } from '../../components/ui/EmptyState';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { colors, spacing, radius, fontFamilies } from '../../lib/theme';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { usePresales, type PresaleItem } from '../../hooks/usePresales';
+
+function Shimmer({ width, height, borderRadius, style }: { width: number | `${number}%`; height: number; borderRadius?: number; style?: object }) {
+  const { tokens } = useTheme();
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withRepeat(withTiming(1, { duration: 1000 }), -1, true);
+  }, [progress]);
+  const pulse = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 1], [0.4, 0.9]) }));
+  return (
+    <Animated.View
+      style={[{ width, height, borderRadius: borderRadius ?? tokens.radius.sm, backgroundColor: tokens.colors.card2 }, pulse, style]}
+    />
+  );
+}
 
 function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggleAlert: () => void }) {
   const router = useRouter();
+  const { tokens } = useTheme();
   const startDate = new Date(presale.presaleStart);
   const isStartingSoon = startDate.getTime() - Date.now() < 24 * 60 * 60 * 1000;
   const hasStarted = startDate < new Date();
+
+  const styles = useThemedStyles((t) => ({
+    card: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      padding: t.spacing.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    cardUrgent: { borderColor: t.colors.warning, borderWidth: 2 },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: t.spacing.sm },
+    cardHeaderLeft: { flex: 1 },
+    artistName: { fontSize: 17, fontWeight: '800', color: t.colors.fg },
+    tourName: { fontSize: 13, color: t.colors.mute, marginTop: 2 },
+    alertButton: { padding: 8, marginRight: -8, marginTop: -8 },
+    venueRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: t.spacing.md },
+    venueText: { fontSize: 13, color: t.colors.mute },
+    presaleInfo: { flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm },
+    presaleTypeBadge: { backgroundColor: t.colors.card2, paddingHorizontal: 10, paddingVertical: 4, borderRadius: t.radius.full },
+    presaleTypeBadgeLive: { backgroundColor: t.isDark ? 'rgba(48,209,88,0.16)' : 'rgba(52,199,89,0.14)' },
+    presaleTypeText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', color: t.colors.text, textTransform: 'uppercase', letterSpacing: 0.5 },
+    timeText: { fontFamily: t.fontFamilies.mono, fontSize: 13, fontWeight: '600', color: t.colors.mute },
+    timeTextLive: { color: t.colors.success },
+    codeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.spacing.sm,
+      marginTop: t.spacing.md,
+      paddingTop: t.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: t.colors.hairline,
+    },
+    codeLabel: { fontSize: 13, color: t.colors.mute },
+    codeBadge: { backgroundColor: t.colors.card2, paddingHorizontal: 12, paddingVertical: 6, borderRadius: t.radius.sm },
+    codeText: { fontFamily: t.fontFamilies.monoBold, fontSize: 14, fontWeight: '700', color: t.colors.fg },
+    signupWarning: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.spacing.sm,
+      marginTop: t.spacing.md,
+      padding: t.spacing.sm,
+      backgroundColor: t.isDark ? 'rgba(245,166,35,0.12)' : 'rgba(180,83,9,0.10)',
+      borderRadius: t.radius.sm,
+    },
+    signupText: { fontSize: 13, color: t.colors.warning, fontWeight: '600' },
+  }));
 
   const getTimeLabel = () => {
     if (hasStarted) return 'Live Now';
@@ -24,9 +91,10 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
   };
 
   return (
-    <Pressable
+    <SpringPressable
       style={[styles.card, isStartingSoon && styles.cardUrgent]}
       onPress={() => router.push(`/presales/${presale.id}`)}
+      haptic="light"
       accessibilityRole="button"
     >
       <View style={styles.cardHeader}>
@@ -34,17 +102,17 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
           <Text style={styles.artistName}>{presale.artistName}</Text>
           {presale.tourName ? <Text style={styles.tourName}>{presale.tourName}</Text> : null}
         </View>
-        <Pressable onPress={onToggleAlert} style={styles.alertButton} accessibilityRole="button">
+        <SpringPressable onPress={onToggleAlert} haptic="light" style={styles.alertButton} accessibilityRole="button">
           <Ionicons
             name={presale.hasAlert ? 'notifications' : 'notifications-outline'}
             size={20}
-            color={presale.hasAlert ? colors.brandCyan : colors.textLo}
+            color={presale.hasAlert ? tokens.colors.accent : tokens.colors.muteSoft}
           />
-        </Pressable>
+        </SpringPressable>
       </View>
 
       <View style={styles.venueRow}>
-        <Ionicons name="location-outline" size={14} color={colors.textMid} />
+        <Ionicons name="location-outline" size={14} color={tokens.colors.mute} />
         <Text style={styles.venueText}>
           {presale.venueName}, {presale.venueCity}
         </Text>
@@ -68,18 +136,58 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
 
       {presale.signupUrl && presale.signupDeadline ? (
         <View style={styles.signupWarning}>
-          <Ionicons name="alert-circle" size={16} color={colors.warning} />
+          <Ionicons name="alert-circle" size={16} color={tokens.colors.warning} />
           <Text style={styles.signupText}>Signup required by {format(new Date(presale.signupDeadline), 'MMM d')}</Text>
         </View>
       ) : null}
-    </Pressable>
+    </SpringPressable>
   );
 }
 
 export default function PresalesScreen() {
   const router = useRouter();
+  const { tokens } = useTheme();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'my-artists' | 'my-alerts'>('upcoming');
   const { presales, myArtistPresales, myAlerts, loading, refreshing, refresh, toggleAlert } = usePresales();
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: t.density.pad,
+      paddingTop: t.spacing.md,
+      paddingBottom: t.spacing.md,
+    },
+    title: { fontSize: 28, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.5 },
+    searchButton: { padding: 8 },
+    tabs: { flexDirection: 'row', paddingHorizontal: t.density.pad, marginBottom: t.spacing.md, gap: t.spacing.sm },
+    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: t.colors.card2, borderRadius: t.radius.md },
+    tabActive: { backgroundColor: t.colors.inverseBg },
+    tabText: { fontSize: 13, fontWeight: '600', color: t.colors.mute },
+    tabTextActive: { color: t.colors.inverseFg },
+    list: { padding: t.density.pad, gap: t.spacing.md },
+    skeletonCard: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      padding: t.spacing.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    empty: { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 32, gap: 10 },
+    emptyIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: t.colors.card2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    emptyTitle: { fontSize: 18, fontWeight: '800', color: t.colors.fg },
+    emptyDesc: { fontSize: 14, color: t.colors.mute, textAlign: 'center', lineHeight: 20 },
+  }));
 
   const data = {
     upcoming: presales,
@@ -88,14 +196,14 @@ export default function PresalesScreen() {
   }[activeTab];
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
         <Text style={styles.title}>Presales</Text>
-        <Pressable onPress={() => router.push('/presales/search')} style={styles.searchButton} accessibilityRole="button">
-          <Ionicons name="search" size={24} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={() => router.push('/presales/search')} haptic="light" style={styles.searchButton} accessibilityRole="button">
+          <Ionicons name="search" size={24} color={tokens.colors.fg} />
+        </SpringPressable>
       </View>
 
       <View style={styles.tabs}>
@@ -104,14 +212,15 @@ export default function PresalesScreen() {
           { key: 'my-artists', label: 'My Artists' },
           { key: 'my-alerts', label: 'My Alerts' },
         ].map((tab) => (
-          <Pressable
+          <SpringPressable
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key as any)}
+            haptic="light"
             accessibilityRole="button"
           >
             <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-          </Pressable>
+          </SpringPressable>
         ))}
       </View>
 
@@ -124,19 +233,19 @@ export default function PresalesScreen() {
           <RefreshControl
             refreshing={refreshing || loading}
             onRefresh={refresh}
-            tintColor={colors.brandPurple}
-            colors={[colors.brandPurple]}
+            tintColor={tokens.colors.mute}
+            colors={[tokens.colors.accent]}
           />
         }
         ListEmptyComponent={() => {
           if (loading) {
             return (
-              <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.md }}>
+              <View style={{ gap: tokens.spacing.md }}>
                 {[0, 1, 2].map((i) => (
-                  <View key={i} style={styles.card}>
-                    <Skeleton width="60%" height={18} />
-                    <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-                    <Skeleton width={120} height={22} borderRadius={999} style={{ marginTop: 14 }} />
+                  <View key={i} style={styles.skeletonCard}>
+                    <Shimmer width="60%" height={18} />
+                    <Shimmer width="80%" height={12} style={{ marginTop: 10 }} />
+                    <Shimmer width={120} height={22} borderRadius={999} style={{ marginTop: 14 }} />
                   </View>
                 ))}
               </View>
@@ -144,180 +253,22 @@ export default function PresalesScreen() {
           }
 
           return (
-            <EmptyState
-              icon="ticket-outline"
-              title="No Presales"
-              description={
-                activeTab === 'my-artists'
+            <View style={styles.empty}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="ticket-outline" size={32} color={tokens.colors.fg} />
+              </View>
+              <Text style={styles.emptyTitle}>No Presales</Text>
+              <Text style={styles.emptyDesc}>
+                {activeTab === 'my-artists'
                   ? 'Follow artists to see their presales'
                   : activeTab === 'my-alerts'
                     ? 'Set alerts on presales to track them'
-                    : 'Check back soon for upcoming presales'
-              }
-            />
+                    : 'Check back soon for upcoming presales'}
+              </Text>
+            </View>
           );
         }}
       />
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  searchButton: {
-    padding: 8,
-  },
-  tabs: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-  },
-  tabActive: {
-    backgroundColor: colors.brandPurple,
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textLo,
-  },
-  tabTextActive: {
-    color: colors.textHi,
-  },
-  list: {
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  cardUrgent: {
-    borderColor: colors.warning,
-    borderWidth: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  cardHeaderLeft: {
-    flex: 1,
-  },
-  artistName: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  tourName: {
-    fontSize: 13,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  alertButton: {
-    padding: 8,
-    marginRight: -8,
-    marginTop: -8,
-  },
-  venueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: spacing.md,
-  },
-  venueText: {
-    fontSize: 13,
-    color: colors.textMid,
-  },
-  presaleInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  presaleTypeBadge: {
-    backgroundColor: colors.elevated,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-  },
-  presaleTypeBadgeLive: {
-    backgroundColor: colors.success,
-  },
-  presaleTypeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  timeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.brandCyan,
-  },
-  timeTextLive: {
-    color: colors.success,
-  },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.hairline,
-  },
-  codeLabel: {
-    fontSize: 13,
-    color: colors.textMid,
-  },
-  codeBadge: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
-  },
-  codeText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textHi,
-    fontFamily: fontFamilies.monoBold,
-  },
-  signupWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    padding: spacing.sm,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderRadius: radius.sm,
-  },
-  signupText: {
-    fontSize: 13,
-    color: colors.warning,
-    fontWeight: '600',
-  },
-});
-
-

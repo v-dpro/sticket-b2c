@@ -1,12 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Image,
-  Platform,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,8 +11,10 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, accentSets, radius, fonts, spacing } from '../lib/theme';
-import { fontFamilies } from '../lib/fonts';
+import { SpringPressable } from '../components/ui/SpringPressable';
+import { useTheme, useThemedStyles } from '../lib/theme-context';
+
+type Tokens = ReturnType<typeof useTheme>['tokens'];
 import { useUserLogs } from '../hooks/useUserLogs';
 import { useSession } from '../hooks/useSession';
 import { useProfile } from '../hooks/useProfile';
@@ -29,9 +28,6 @@ const MONTHS = [
 ];
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-const monoFont = fontFamilies.mono;
-const displayFont = fontFamilies.display;
-
 function isFutureDate(dateStr: string): boolean {
   return new Date(dateStr) > new Date();
 }
@@ -39,7 +35,7 @@ function isFutureDate(dateStr: string): boolean {
 function renderStars(rating: number): string {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5 ? 1 : 0;
-  return '\u2605'.repeat(full) + (half ? '\u00BD' : '');
+  return '★'.repeat(full) + (half ? '½' : '');
 }
 
 type GroupedByYear = {
@@ -79,12 +75,212 @@ function groupLogsByYearMonth(logs: LogEntry[]): GroupedByYear[] {
   return result;
 }
 
+type Styles = ReturnType<typeof useTimelineStyles>;
+
+function useTimelineStyles() {
+  return useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    scroll: { flex: 1 },
+    scrollContent: { paddingBottom: 120 },
+
+    // Header
+    header: { paddingTop: 16, paddingHorizontal: t.density.pad, paddingBottom: 8 },
+    eyebrow: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 2,
+      color: t.colors.mute,
+      textTransform: 'uppercase',
+      marginBottom: 6,
+    },
+    title: { fontSize: 34, fontWeight: '800', letterSpacing: -0.8, lineHeight: 38, color: t.colors.fg },
+
+    // Stats strip
+    statsStrip: {
+      marginTop: 12,
+      marginHorizontal: t.density.pad,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      borderRadius: t.radius.md,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    statsRow: { flexDirection: 'row', alignItems: 'center' },
+    statCell: { flex: 1, alignItems: 'center' },
+    statNumber: { fontFamily: t.fontFamilies.monoBold, fontSize: 30, fontWeight: '700', letterSpacing: -1, color: t.colors.fg },
+    statLabel: { fontFamily: t.fontFamilies.mono, fontSize: 10, fontWeight: '500', letterSpacing: 1.5, marginTop: 4, color: t.colors.mute },
+    statsDivider: { width: 1, height: 36, backgroundColor: t.colors.line },
+
+    // View toggle
+    toggleContainer: { marginTop: 16, marginHorizontal: t.density.pad },
+    toggleTrack: {
+      flexDirection: 'row',
+      backgroundColor: t.colors.card2,
+      borderRadius: 999,
+      padding: 3,
+    },
+    toggleOption: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 999 },
+    toggleActive: { backgroundColor: t.colors.inverseBg },
+    toggleText: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
+    toggleTextActive: { color: t.colors.inverseFg },
+
+    // Loading / Empty
+    loadingState: { paddingTop: 60, alignItems: 'center' },
+    loadingText: { color: t.colors.mute, fontWeight: '600' },
+    emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
+    emptyTitle: { fontSize: 18, fontWeight: '700', color: t.colors.fg, marginTop: t.spacing.md, marginBottom: t.spacing.sm },
+    emptyText: { fontSize: 14, color: t.colors.mute, textAlign: 'center', paddingHorizontal: t.spacing.lg },
+
+    // Timeline shared
+    timeline: { marginTop: 20, paddingHorizontal: t.density.pad },
+
+    // ── Story view ──
+    yearDivider: { marginTop: 24, marginBottom: 16 },
+    yearRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
+    yearText: { fontSize: 48, fontWeight: '800', letterSpacing: -2, color: t.colors.fg },
+    yearCount: { fontFamily: t.fontFamilies.mono, fontSize: 10, fontWeight: '500', letterSpacing: 1.5, color: t.colors.muteSoft, textTransform: 'uppercase' },
+    yearLine: { height: 1, backgroundColor: t.colors.hairline, marginTop: 8 },
+
+    monthHeader: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 2.2,
+      color: t.colors.mute,
+      textTransform: 'uppercase',
+      marginTop: 20,
+      marginBottom: 12,
+    },
+
+    storyRow: { flexDirection: 'row', marginBottom: 16 },
+    storyLeft: { width: 52, alignItems: 'center', paddingTop: 4 },
+    storyWeekday: { fontFamily: t.fontFamilies.mono, fontSize: 9, fontWeight: '500', letterSpacing: 1, color: t.colors.muteSoft, textTransform: 'uppercase' },
+    storyDay: { fontSize: 32, fontWeight: '800', letterSpacing: -1, color: t.colors.fg, lineHeight: 38 },
+    storyRail: { flex: 1, width: 2, borderStyle: 'dashed', borderWidth: 1, borderColor: t.colors.hairline, marginTop: 4 },
+
+    storyCard: {
+      flex: 1,
+      marginLeft: 8,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    storyCover: { width: '100%', aspectRatio: 16 / 10, position: 'relative' },
+    storyCoverImage: { ...StyleSheet_absoluteFill, width: '100%', height: '100%' },
+    storyCoverFallback: { ...StyleSheet_absoluteFill, backgroundColor: t.colors.card2 },
+    storyCoverGradient: { ...StyleSheet_absoluteFill },
+    storyArtistOverlay: {
+      position: 'absolute',
+      bottom: 10,
+      left: 12,
+      right: 12,
+      fontSize: 24,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      textShadowColor: 'rgba(0,0,0,0.6)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
+    },
+    upcomingBadge: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: t.colors.inverseBg,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    upcomingBadgeText: { fontFamily: t.fontFamilies.mono, fontSize: 9, fontWeight: '700', letterSpacing: 1, color: t.colors.inverseFg, textTransform: 'uppercase' },
+    ratingBadge: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 999,
+    },
+    ratingBadgeText: { fontSize: 12, color: '#FFFFFF' },
+
+    storyMeta: { padding: 12, gap: 4 },
+    storyVenueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    storyVenueText: { fontSize: 12, color: t.colors.mute, flex: 1 },
+    storyTour: { fontFamily: t.fontFamilies.mono, fontSize: 10, color: t.colors.muteSoft, letterSpacing: 0.5 },
+    storyReview: { fontSize: 13, color: t.colors.textSoft, lineHeight: 18, marginTop: 2 },
+
+    // ── Compact view ──
+    compactYearRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, marginBottom: 12 },
+    compactYearDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: t.colors.fg },
+    compactYearText: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    compactMonthLabel: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 9,
+      fontWeight: '500',
+      letterSpacing: 1.5,
+      color: t.colors.muteSoft,
+      textTransform: 'uppercase',
+      marginTop: 12,
+      marginBottom: 6,
+      marginLeft: 16,
+    },
+    compactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 4, gap: 10, position: 'relative' },
+    compactRail: { position: 'absolute', left: 20, top: 42, bottom: -8, width: 2, borderStyle: 'dashed', borderWidth: 1, borderColor: t.colors.hairline },
+    compactDay: { fontFamily: t.fontFamilies.mono, fontSize: 13, fontWeight: '600', color: t.colors.fg, width: 28, textAlign: 'center' },
+    compactArtwork: { width: 34, height: 34, borderRadius: 6, overflow: 'hidden', backgroundColor: t.colors.card2 },
+    compactArtworkImage: { width: 34, height: 34 },
+    compactArtworkFallback: { width: 34, height: 34, backgroundColor: t.colors.card2 },
+    compactInfo: { flex: 1 },
+    compactArtist: { fontSize: 13.5, fontWeight: '700', color: t.colors.fg },
+    compactVenue: { fontSize: 11, color: t.colors.muteSoft, marginTop: 1 },
+    compactStars: { fontSize: 12, color: t.colors.fg },
+    soonBadge: { backgroundColor: t.colors.inverseBg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+    soonBadgeText: { fontFamily: t.fontFamilies.mono, fontSize: 9, fontWeight: '700', letterSpacing: 1, color: t.colors.inverseFg, textTransform: 'uppercase' },
+
+    // ── Footer ──
+    footer: {
+      marginTop: 32,
+      marginHorizontal: t.density.pad,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      borderStyle: 'dashed',
+      borderRadius: t.radius.md,
+      paddingVertical: 24,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+    },
+    footerTitle: { fontSize: 20, fontWeight: '700', color: t.colors.textSoft, marginBottom: 10 },
+    footerCta: { fontFamily: t.fontFamilies.mono, fontSize: 10, fontWeight: '500', letterSpacing: 1.5, color: t.colors.mute, textTransform: 'uppercase' },
+  }));
+}
+
+// Local absolute-fill helper (avoid importing StyleSheet just for this).
+const StyleSheet_absoluteFill = {
+  position: 'absolute' as const,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+};
+
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 
 type ViewMode = 'story' | 'compact';
 
 export default function ConcertLifeScreen() {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const s = useTimelineStyles();
   const { user } = useSession();
   const userId = user?.id ?? '';
   const { profile } = useProfile();
@@ -129,11 +325,7 @@ export default function ConcertLifeScreen() {
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.brandCyan}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={tokens.colors.mute} />
         }
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
@@ -141,9 +333,9 @@ export default function ConcertLifeScreen() {
       >
         {/* ── Header ── */}
         <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>
-            <Ionicons name="chevron-back" size={24} color={colors.textHi} />
-          </TouchableOpacity>
+          <SpringPressable onPress={() => router.back()} haptic="light" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>
+            <Ionicons name="chevron-back" size={24} color={tokens.colors.fg} />
+          </SpringPressable>
           <Text style={s.eyebrow}>CONCERT LIFE</Text>
           <Text style={s.title}>Your year in shows</Text>
         </View>
@@ -151,37 +343,33 @@ export default function ConcertLifeScreen() {
         {/* ── Stats strip ── */}
         <View style={s.statsStrip}>
           <View style={s.statsRow}>
-            <StatCell value={stats?.shows ?? 0} label="SHOWS" color={colors.textHi} />
+            <StatCell value={stats?.shows ?? 0} label="SHOWS" s={s} />
             <View style={s.statsDivider} />
-            <StatCell value={upcomingCount} label="UPCOMING" color={accentSets.lime.hex} />
+            <StatCell value={upcomingCount} label="UPCOMING" s={s} />
             <View style={s.statsDivider} />
-            <StatCell value={stats?.artists ?? 0} label="ARTISTS" color={accentSets.pink.hex} />
+            <StatCell value={stats?.artists ?? 0} label="ARTISTS" s={s} />
             <View style={s.statsDivider} />
-            <StatCell value={stats?.venues ?? 0} label="VENUES" color={accentSets.cyan.hex} />
+            <StatCell value={stats?.venues ?? 0} label="VENUES" s={s} />
           </View>
         </View>
 
         {/* ── View toggle ── */}
         <View style={s.toggleContainer}>
           <View style={s.toggleTrack}>
-            <TouchableOpacity
+            <SpringPressable
               style={[s.toggleOption, viewMode === 'story' && s.toggleActive]}
               onPress={() => setViewMode('story')}
-              activeOpacity={0.8}
+              haptic="light"
             >
-              <Text style={[s.toggleText, viewMode === 'story' && s.toggleTextActive]}>
-                STORY
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              <Text style={[s.toggleText, viewMode === 'story' && s.toggleTextActive]}>STORY</Text>
+            </SpringPressable>
+            <SpringPressable
               style={[s.toggleOption, viewMode === 'compact' && s.toggleActive]}
               onPress={() => setViewMode('compact')}
-              activeOpacity={0.8}
+              haptic="light"
             >
-              <Text style={[s.toggleText, viewMode === 'compact' && s.toggleTextActive]}>
-                COMPACT
-              </Text>
-            </TouchableOpacity>
+              <Text style={[s.toggleText, viewMode === 'compact' && s.toggleTextActive]}>COMPACT</Text>
+            </SpringPressable>
           </View>
         </View>
 
@@ -192,24 +380,22 @@ export default function ConcertLifeScreen() {
           </View>
         ) : logs.length === 0 ? (
           <View style={s.emptyState}>
-            <Ionicons name="musical-notes-outline" size={48} color={colors.textLo} />
+            <Ionicons name="musical-notes-outline" size={48} color={tokens.colors.muteSoft} />
             <Text style={s.emptyTitle}>No shows logged yet</Text>
-            <Text style={s.emptyText}>
-              Start logging concerts to build your timeline
-            </Text>
+            <Text style={s.emptyText}>Start logging concerts to build your timeline</Text>
           </View>
         ) : viewMode === 'story' ? (
-          <StoryTimeline grouped={grouped} onLogPress={handleLogPress} />
+          <StoryTimeline grouped={grouped} onLogPress={handleLogPress} s={s} tokens={tokens} />
         ) : (
-          <CompactTimeline grouped={grouped} onLogPress={handleLogPress} />
+          <CompactTimeline grouped={grouped} onLogPress={handleLogPress} s={s} />
         )}
 
         {/* ── Footer ── */}
         <View style={s.footer}>
           <Text style={s.footerTitle}>This is where it starts.</Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={s.footerCta}>LOG AN OLDER SHOW {'\u2192'}</Text>
-          </TouchableOpacity>
+          <SpringPressable haptic="light">
+            <Text style={s.footerCta}>LOG AN OLDER SHOW {'→'}</Text>
+          </SpringPressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -218,11 +404,11 @@ export default function ConcertLifeScreen() {
 
 // ─── Stat Cell ─────────────────────────────────────────────────────────────────
 
-function StatCell({ value, label, color }: { value: number; label: string; color: string }) {
+function StatCell({ value, label, s }: { value: number; label: string; s: Styles }) {
   return (
     <View style={s.statCell}>
-      <Text style={[s.statNumber, { color }]}>{value}</Text>
-      <Text style={[s.statLabel, { color }]}>{label}</Text>
+      <Text style={s.statNumber}>{value}</Text>
+      <Text style={s.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -232,9 +418,13 @@ function StatCell({ value, label, color }: { value: number; label: string; color
 function StoryTimeline({
   grouped,
   onLogPress,
+  s,
+  tokens,
 }: {
   grouped: GroupedByYear[];
   onLogPress: (log: LogEntry) => void;
+  s: Styles;
+  tokens: Tokens;
 }) {
   return (
     <View style={s.timeline}>
@@ -265,11 +455,11 @@ function StoryTimeline({
                 const isLast = idx === monthGroup.logs.length - 1;
 
                 return (
-                  <TouchableOpacity
+                  <SpringPressable
                     key={log.id}
                     style={s.storyRow}
                     onPress={() => onLogPress(log)}
-                    activeOpacity={0.85}
+                    haptic="light"
                   >
                     {/* Left column: date + rail */}
                     <View style={s.storyLeft}>
@@ -283,18 +473,11 @@ function StoryTimeline({
                       {/* Cover photo */}
                       <View style={s.storyCover}>
                         {photo ? (
-                          <Image
-                            source={{ uri: photo }}
-                            style={s.storyCoverImage}
-                            resizeMode="cover"
-                          />
+                          <Image source={{ uri: photo }} style={s.storyCoverImage} resizeMode="cover" />
                         ) : (
                           <View style={s.storyCoverFallback} />
                         )}
-                        <LinearGradient
-                          colors={['transparent', 'rgba(0,0,0,0.75)']}
-                          style={s.storyCoverGradient}
-                        />
+                        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.75)']} style={s.storyCoverGradient} />
                         <Text style={s.storyArtistOverlay} numberOfLines={1}>
                           {log.event.artist.name}
                         </Text>
@@ -309,9 +492,7 @@ function StoryTimeline({
                         {/* Rating badge */}
                         {log.rating != null && log.rating > 0 && (
                           <View style={s.ratingBadge}>
-                            <Text style={s.ratingBadgeText}>
-                              {renderStars(log.rating)}
-                            </Text>
+                            <Text style={s.ratingBadgeText}>{renderStars(log.rating)}</Text>
                           </View>
                         )}
                       </View>
@@ -319,9 +500,9 @@ function StoryTimeline({
                       {/* Meta */}
                       <View style={s.storyMeta}>
                         <View style={s.storyVenueRow}>
-                          <Ionicons name="location-sharp" size={11} color={colors.textMid} />
+                          <Ionicons name="location-sharp" size={11} color={tokens.colors.mute} />
                           <Text style={s.storyVenueText} numberOfLines={1}>
-                            {log.event.venue.name}{'\u00B7'}{log.event.venue.city}
+                            {log.event.venue.name}{'·'}{log.event.venue.city}
                           </Text>
                         </View>
                         {log.event.name && log.event.name !== log.event.artist.name ? (
@@ -336,7 +517,7 @@ function StoryTimeline({
                         ) : null}
                       </View>
                     </View>
-                  </TouchableOpacity>
+                  </SpringPressable>
                 );
               })}
             </View>
@@ -352,9 +533,11 @@ function StoryTimeline({
 function CompactTimeline({
   grouped,
   onLogPress,
+  s,
 }: {
   grouped: GroupedByYear[];
   onLogPress: (log: LogEntry) => void;
+  s: Styles;
 }) {
   return (
     <View style={s.timeline}>
@@ -369,9 +552,7 @@ function CompactTimeline({
           {yearGroup.months.map((monthGroup) => (
             <View key={monthGroup.month}>
               {/* Month label */}
-              <Text style={s.compactMonthLabel}>
-                {MONTHS[monthGroup.month].toUpperCase()}
-              </Text>
+              <Text style={s.compactMonthLabel}>{MONTHS[monthGroup.month].toUpperCase()}</Text>
 
               {monthGroup.logs.map((log, idx) => {
                 const d = new Date(log.event.date);
@@ -383,11 +564,11 @@ function CompactTimeline({
                   monthGroup === yearGroup.months[yearGroup.months.length - 1];
 
                 return (
-                  <TouchableOpacity
+                  <SpringPressable
                     key={log.id}
                     style={s.compactRow}
                     onPress={() => onLogPress(log)}
-                    activeOpacity={0.85}
+                    haptic="light"
                   >
                     {/* Rail */}
                     {!isLast && <View style={s.compactRail} />}
@@ -398,11 +579,7 @@ function CompactTimeline({
                     {/* Artwork */}
                     <View style={s.compactArtwork}>
                       {artwork ? (
-                        <Image
-                          source={{ uri: artwork }}
-                          style={s.compactArtworkImage}
-                          resizeMode="cover"
-                        />
+                        <Image source={{ uri: artwork }} style={s.compactArtworkImage} resizeMode="cover" />
                       ) : (
                         <View style={s.compactArtworkFallback} />
                       )}
@@ -426,7 +603,7 @@ function CompactTimeline({
                     ) : log.rating != null && log.rating > 0 ? (
                       <Text style={s.compactStars}>{renderStars(log.rating)}</Text>
                     ) : null}
-                  </TouchableOpacity>
+                  </SpringPressable>
                 );
               })}
             </View>
@@ -436,483 +613,3 @@ function CompactTimeline({
     </View>
   );
 }
-
-// ─── Styles ────────────────────────────────────────────────────────────────────
-
-const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 120,
-  },
-
-  // Header
-  header: {
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  eyebrow: {
-    fontFamily: monoFont,
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: accentSets.cyan.hex,
-    marginBottom: 6,
-  },
-  title: {
-    fontFamily: displayFont,
-    fontSize: 36,
-    fontWeight: '400',
-    letterSpacing: -0.8,
-    lineHeight: 36 * 1.1,
-    color: colors.textHi,
-  },
-
-  // Stats strip
-  statsStrip: {
-    marginTop: 12,
-    marginHorizontal: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: radius.md,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statCell: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontFamily: displayFont,
-    fontSize: 36,
-    fontWeight: '400',
-    letterSpacing: -1,
-    color: colors.textHi,
-  },
-  statLabel: {
-    fontFamily: monoFont,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 1.5,
-    marginTop: 2,
-  },
-  statsDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: colors.hairline,
-  },
-
-  // View toggle
-  toggleContainer: {
-    marginTop: 16,
-    marginHorizontal: 20,
-  },
-  toggleTrack: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 999,
-    padding: 3,
-  },
-  toggleOption: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  toggleActive: {
-    backgroundColor: colors.elevated,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  toggleText: {
-    fontFamily: monoFont,
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: colors.textLo,
-  },
-  toggleTextActive: {
-    color: colors.textHi,
-  },
-
-  // Loading / Empty
-  loadingState: {
-    paddingTop: 60,
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: colors.textMid,
-    fontWeight: fonts.bold,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: fonts.bold,
-    color: colors.textHi,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    fontSize: fonts.bodySmall,
-    color: colors.textMid,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-
-  // Timeline shared
-  timeline: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-  },
-
-  // ── Story view ──
-
-  // Year divider
-  yearDivider: {
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  yearRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 12,
-  },
-  yearText: {
-    fontFamily: displayFont,
-    fontSize: 56,
-    letterSpacing: -2,
-    color: colors.textHi,
-  },
-  yearCount: {
-    fontFamily: monoFont,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 1.5,
-    color: colors.textLo,
-    textTransform: 'uppercase',
-  },
-  yearLine: {
-    height: 1,
-    backgroundColor: colors.hairline,
-    marginTop: 8,
-  },
-
-  // Month header
-  monthHeader: {
-    fontFamily: monoFont,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 2.2,
-    color: accentSets.cyan.hex,
-    textTransform: 'uppercase',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-
-  // Story row
-  storyRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-
-  // Story left column (date + rail)
-  storyLeft: {
-    width: 52,
-    alignItems: 'center',
-    paddingTop: 4,
-  },
-  storyWeekday: {
-    fontFamily: monoFont,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 1,
-    color: colors.textLo,
-    textTransform: 'uppercase',
-  },
-  storyDay: {
-    fontFamily: displayFont,
-    fontSize: 36,
-    fontWeight: '400',
-    letterSpacing: -1,
-    color: colors.textHi,
-    lineHeight: 40,
-  },
-  storyRail: {
-    flex: 1,
-    width: 2,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    marginTop: 4,
-  },
-
-  // Story card
-  storyCard: {
-    flex: 1,
-    marginLeft: 8,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-
-  // Cover photo
-  storyCover: {
-    width: '100%',
-    aspectRatio: 16 / 10,
-    position: 'relative',
-  },
-  storyCoverImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-  },
-  storyCoverFallback: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.elevated,
-  },
-  storyCoverGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  storyArtistOverlay: {
-    position: 'absolute',
-    bottom: 10,
-    left: 12,
-    right: 12,
-    fontSize: 26,
-    fontWeight: fonts.bold,
-    color: colors.textHi,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-
-  // Upcoming badge
-  upcomingBadge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: accentSets.cyan.hex,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  upcomingBadgeText: {
-    fontFamily: monoFont,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: colors.ink,
-    textTransform: 'uppercase',
-  },
-
-  // Rating badge (frosted glass)
-  ratingBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    ...(Platform.OS === 'ios'
-      ? {
-          // iOS blur approximation via backdrop style
-        }
-      : {}),
-  },
-  ratingBadgeText: {
-    fontSize: 12,
-    color: colors.textHi,
-  },
-
-  // Story meta
-  storyMeta: {
-    padding: 12,
-    gap: 4,
-  },
-  storyVenueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  storyVenueText: {
-    fontSize: 12,
-    color: colors.textMid,
-    flex: 1,
-  },
-  storyTour: {
-    fontFamily: monoFont,
-    fontSize: 10,
-    color: colors.textLo,
-    letterSpacing: 0.5,
-  },
-  storyReview: {
-    fontSize: 13,
-    color: colors.textMid,
-    lineHeight: 18,
-    marginTop: 2,
-  },
-
-  // ── Compact view ──
-
-  compactYearRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  compactYearDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: accentSets.cyan.hex,
-  },
-  compactYearText: {
-    fontFamily: displayFont,
-    fontSize: 22,
-    fontWeight: '400',
-    letterSpacing: -0.5,
-    color: colors.textHi,
-  },
-
-  compactMonthLabel: {
-    fontFamily: monoFont,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 1.5,
-    color: colors.textLo,
-    textTransform: 'uppercase',
-    marginTop: 12,
-    marginBottom: 6,
-    marginLeft: 16,
-  },
-
-  compactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    gap: 10,
-    position: 'relative',
-  },
-  compactRail: {
-    position: 'absolute',
-    left: 20,
-    top: 42,
-    bottom: -8,
-    width: 2,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-
-  compactDay: {
-    fontFamily: monoFont,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textHi,
-    width: 28,
-    textAlign: 'center',
-  },
-
-  compactArtwork: {
-    width: 34,
-    height: 34,
-    borderRadius: 6,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-  },
-  compactArtworkImage: {
-    width: 34,
-    height: 34,
-  },
-  compactArtworkFallback: {
-    width: 34,
-    height: 34,
-    backgroundColor: colors.elevated,
-  },
-
-  compactInfo: {
-    flex: 1,
-  },
-  compactArtist: {
-    fontSize: 13.5,
-    fontWeight: fonts.bold,
-    color: colors.textHi,
-  },
-  compactVenue: {
-    fontSize: 11,
-    color: colors.textLo,
-    marginTop: 1,
-  },
-
-  compactStars: {
-    fontSize: 12,
-    color: colors.textHi,
-  },
-
-  soonBadge: {
-    backgroundColor: accentSets.cyan.hex,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  soonBadgeText: {
-    fontFamily: monoFont,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: colors.ink,
-    textTransform: 'uppercase',
-  },
-
-  // ── Footer ──
-
-  footer: {
-    marginTop: 32,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderStyle: 'dashed',
-    borderRadius: radius.md,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  footerTitle: {
-    fontFamily: displayFont,
-    fontSize: 20,
-    color: colors.textMid,
-    marginBottom: 10,
-  },
-  footerCta: {
-    fontFamily: monoFont,
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 1.5,
-    color: colors.textLo,
-    textTransform: 'uppercase',
-  },
-});

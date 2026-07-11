@@ -3,28 +3,26 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 
+import { SpringPressable } from '../components/ui/SpringPressable';
 import { updateProfile as updateRemoteProfile, uploadAvatar } from '../lib/api/profile';
 import { useProfile } from '../hooks/useProfile';
 import { useSession } from '../hooks/useSession';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
-import { colors, radius, spacing, fontFamilies } from '../lib/theme';
+import { useTheme, useThemedStyles } from '../lib/theme-context';
 
 export default function EditProfileScreen() {
-  const router = useRouter();
   const { user } = useSession();
+  const { tokens } = useTheme();
   const refreshSession = useSessionStore((s) => s.refresh);
   const goBack = useSafeBack();
 
@@ -37,6 +35,67 @@ export default function EditProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [newAvatar, setNewAvatar] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    loadingContainer: { flex: 1, backgroundColor: t.colors.bg, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    cancelText: { fontSize: 16, color: t.colors.mute },
+    headerTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, color: t.colors.fg },
+    saveText: { fontSize: 16, fontWeight: '700', color: t.colors.accent },
+    saveTextDisabled: { color: t.colors.muteSoft },
+    content: { flex: 1 },
+    scrollContent: { padding: 24 },
+    avatarContainer: { alignSelf: 'center', position: 'relative', marginBottom: 8 },
+    avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: t.colors.line },
+    avatarPlaceholder: { backgroundColor: t.colors.card2, justifyContent: 'center', alignItems: 'center' },
+    avatarText: { fontSize: 36, fontWeight: '800', color: t.colors.fg },
+    avatarEditBadge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: t.colors.inverseBg,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: t.colors.bg,
+    },
+    changePhotoText: { textAlign: 'center', color: t.colors.accent, fontSize: 14, fontWeight: '600', marginBottom: 32 },
+    form: { gap: 20 },
+    inputGroup: { marginBottom: 4 },
+    label: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      fontWeight: '600',
+      color: t.colors.mute,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+    },
+    input: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      color: t.colors.fg,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    bioInput: { minHeight: 80, paddingTop: 14, textAlignVertical: 'top' },
+    charCount: { fontSize: 12, color: t.colors.muteSoft, textAlign: 'right', marginTop: 4 },
+  }));
 
   useEffect(() => {
     if (!profile) return;
@@ -114,27 +173,31 @@ export default function EditProfileScreen() {
   if (profileLoading || !profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.brandCyan} />
+        <ActivityIndicator size="large" color={tokens.colors.mute} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={handleCancel}>
+        <SpringPressable onPress={handleCancel} haptic="light" accessibilityRole="button">
           <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
+        </SpringPressable>
         <Text style={styles.headerTitle}>Edit Profile</Text>
-        <Pressable onPress={handleSave} disabled={!canSave}>
-          {saving ? <ActivityIndicator size="small" color={colors.brandCyan} /> : <Text style={styles.saveText}>Save</Text>}
-        </Pressable>
+        <SpringPressable onPress={handleSave} disabled={!canSave} haptic="medium" accessibilityRole="button">
+          {saving ? (
+            <ActivityIndicator size="small" color={tokens.colors.mute} />
+          ) : (
+            <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>Save</Text>
+          )}
+        </SpringPressable>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Avatar */}
-        <Pressable style={styles.avatarContainer} onPress={handlePickAvatar}>
+        <SpringPressable style={styles.avatarContainer} onPress={handlePickAvatar} haptic="light" accessibilityRole="button">
           {newAvatar || avatarUrl ? (
             <Image source={{ uri: newAvatar || avatarUrl }} style={styles.avatar} />
           ) : (
@@ -143,9 +206,9 @@ export default function EditProfileScreen() {
             </View>
           )}
           <View style={styles.avatarEditBadge}>
-            <Ionicons name="camera" size={16} color={colors.textHi} />
+            <Ionicons name="camera" size={16} color={tokens.colors.inverseFg} />
           </View>
-        </Pressable>
+        </SpringPressable>
         <Text style={styles.changePhotoText}>Change photo</Text>
 
         {/* Form */}
@@ -157,7 +220,7 @@ export default function EditProfileScreen() {
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Your name"
-              placeholderTextColor={colors.textLo}
+              placeholderTextColor={tokens.colors.muteSoft}
               maxLength={50}
             />
           </View>
@@ -169,7 +232,7 @@ export default function EditProfileScreen() {
               value={username}
               onChangeText={(text) => setUsername(text.toLowerCase())}
               placeholder="username"
-              placeholderTextColor={colors.textLo}
+              placeholderTextColor={tokens.colors.muteSoft}
               autoCapitalize="none"
               maxLength={20}
             />
@@ -182,7 +245,7 @@ export default function EditProfileScreen() {
               value={bio}
               onChangeText={setBio}
               placeholder="Tell us about yourself..."
-              placeholderTextColor={colors.textLo}
+              placeholderTextColor={tokens.colors.muteSoft}
               multiline
               numberOfLines={3}
               maxLength={160}
@@ -197,7 +260,7 @@ export default function EditProfileScreen() {
               value={city}
               onChangeText={setCity}
               placeholder="Where are you based?"
-              placeholderTextColor={colors.textLo}
+              placeholderTextColor={tokens.colors.muteSoft}
             />
           </View>
         </View>
@@ -205,128 +268,3 @@ export default function EditProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  cancelText: {
-    fontSize: 16,
-    color: colors.textMid,
-  },
-  headerTitle: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 28,
-    fontWeight: '400',
-    letterSpacing: -0.6,
-    color: colors.textHi,
-  },
-  saveText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.brandCyan,
-  },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  avatarContainer: {
-    alignSelf: 'center',
-    position: 'relative',
-    marginBottom: 8,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: colors.brandCyan,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: colors.brandCyan,
-  },
-  avatarEditBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.brandCyan,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.ink,
-  },
-  changePhotoText: {
-    textAlign: 'center',
-    color: colors.brandCyan,
-    fontSize: 14,
-    marginBottom: 32,
-  },
-  form: {
-    gap: 20,
-  },
-  inputGroup: {
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: colors.textLo,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    fontFamily: fontFamilies.mono,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: colors.textHi,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  bioInput: {
-    minHeight: 80,
-    paddingTop: 14,
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    fontSize: 12,
-    color: colors.textLo,
-    textAlign: 'right',
-    marginTop: 4,
-  },
-});
-
-
-
-

@@ -1,11 +1,11 @@
 import React from 'react';
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, RefreshControl, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns';
 
 import type { LogEntry } from '../../types/profile';
 import { YearFilter } from './YearFilter';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface ProfileGridViewProps {
   headerComponent?: React.ReactNode;
@@ -32,6 +32,106 @@ export function ProfileGridView({
   loading,
   hasMore,
 }: ProfileGridViewProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    list: {
+      flex: 1,
+    },
+    listContent: {
+      flexGrow: 1,
+      paddingBottom: 100,
+    },
+    row: {
+      paddingHorizontal: 16,
+      gap: 10,
+    },
+    tile: {
+      flex: 1,
+      marginBottom: 12,
+      backgroundColor: t.colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      overflow: 'hidden',
+    },
+    image: {
+      width: '100%',
+      height: 150,
+    },
+    imagePlaceholder: {
+      backgroundColor: t.colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    overlayTopLeft: {
+      position: 'absolute',
+      left: 8,
+      top: 8,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0,0,0,0.55)', // dark scrim over image
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    overlayTopRight: {
+      position: 'absolute',
+      right: 8,
+      top: 8,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0,0,0,0.55)', // dark scrim over image
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    overlayPillText: {
+      color: t.colors.white, // over dark scrim pill
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    caption: {
+      padding: 10,
+    },
+    captionTitle: {
+      color: t.colors.textHi,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    captionSub: {
+      color: t.colors.textMid,
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 64,
+      paddingHorizontal: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      marginTop: 16,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    footer: {
+      padding: 16,
+      alignItems: 'center',
+    },
+    footerText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+    },
+  }));
+
   const renderHeader = () => (
     <View>
       {headerComponent}
@@ -41,7 +141,7 @@ export function ProfileGridView({
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="images-outline" size={64} color={colors.textLo} />
+      <Ionicons name="images-outline" size={64} color={tokens.colors.textLo} />
       <Text style={styles.emptyTitle}>No photos yet</Text>
       <Text style={styles.emptyText}>Add photos to your show logs to build your grid.</Text>
     </View>
@@ -72,7 +172,7 @@ export function ProfileGridView({
               <Image source={{ uri: imageUrl }} style={styles.image} />
             ) : (
               <View style={[styles.image, styles.imagePlaceholder]}>
-                <Ionicons name="musical-notes" size={22} color={colors.textLo} />
+                <Ionicons name="musical-notes" size={22} color={tokens.colors.textLo} />
               </View>
             )}
 
@@ -82,7 +182,7 @@ export function ProfileGridView({
 
             {typeof item.rating === 'number' ? (
               <View style={styles.overlayTopRight}>
-                <Ionicons name="star" size={12} color={colors.warning} />
+                <Ionicons name="star" size={12} color={tokens.colors.warning} />
                 <Text style={styles.overlayPillText}>{item.rating.toFixed(1).replace(/\.0$/, '')}</Text>
               </View>
             ) : null}
@@ -103,111 +203,9 @@ export function ProfileGridView({
       ListFooterComponent={renderFooter}
       onEndReached={onLoadMore}
       onEndReachedThreshold={0.5}
-      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={colors.brandPurple} />}
+      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} />}
       style={styles.list}
       contentContainerStyle={styles.listContent}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingBottom: 100,
-  },
-  row: {
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  tile: {
-    flex: 1,
-    marginBottom: 12,
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: 150,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  overlayTopLeft: {
-    position: 'absolute',
-    left: 8,
-    top: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  overlayTopRight: {
-    position: 'absolute',
-    right: 8,
-    top: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  overlayPillText: {
-    color: colors.textHi,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  caption: {
-    padding: 10,
-  },
-  captionTitle: {
-    color: colors.textHi,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  captionSub: {
-    color: colors.textMid,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textLo,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  footer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.textLo,
-  },
-});
-
-
-

@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
 import type { BarcodeFormat } from '../../types/ticket';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { PillButton } from '../../components/ui/PillButton';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 function mapCameraTypeToBarcodeFormat(type: string | undefined): BarcodeFormat {
   const t = String(type || '').toLowerCase();
@@ -20,10 +22,18 @@ function mapCameraTypeToBarcodeFormat(type: string | undefined): BarcodeFormat {
 export default function ScanTicketScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
   const supportedTypes = useMemo(() => ['qr', 'code128', 'pdf417', 'aztec'], []);
+
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    permissionContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 8 },
+    permissionTitle: { fontSize: 22, fontWeight: '800', color: t.colors.fg, marginTop: 16, letterSpacing: -0.4 },
+    permissionText: { fontSize: 16, color: t.colors.mute, textAlign: 'center', marginBottom: 16 },
+  }));
 
   const onBarcodeScanned = ({ data, type }: { data: string; type?: string }) => {
     if (scanned) return;
@@ -46,12 +56,10 @@ export default function ScanTicketScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={64} color={colors.brandPurple} />
+          <Ionicons name="camera-outline" size={64} color={tokens.colors.mute} />
           <Text style={styles.permissionTitle}>Camera Access</Text>
           <Text style={styles.permissionText}>We need camera access to scan barcodes</Text>
-          <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
-            <Text style={styles.permissionButtonText}>Grant Access</Text>
-          </Pressable>
+          <PillButton title="Grant Access" variant="primary" size="lg" onPress={() => void requestPermission()} springFeedback haptic="light" />
         </View>
       </View>
     );
@@ -60,35 +68,33 @@ export default function ScanTicketScreen() {
   return (
     <View style={styles.container}>
       <CameraView
-        style={styles.camera}
+        style={cameraStyles.camera}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: supportedTypes as any }}
         onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
       >
-        <Pressable style={styles.closeButton} onPress={goBack} hitSlop={10}>
-          <Ionicons name="close" size={28} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable style={cameraStyles.closeButton} onPress={goBack} haptic="light" hitSlop={10} accessibilityRole="button" accessibilityLabel="Close scanner">
+          <Ionicons name="close" size={28} color="#FFFFFF" />
+        </SpringPressable>
 
-        <View style={styles.scanFrame}>
-          <View style={styles.corner} />
-          <View style={[styles.corner, styles.cornerTopRight]} />
-          <View style={[styles.corner, styles.cornerBottomLeft]} />
-          <View style={[styles.corner, styles.cornerBottomRight]} />
+        <View style={cameraStyles.scanFrame}>
+          <View style={cameraStyles.corner} />
+          <View style={[cameraStyles.corner, cameraStyles.cornerTopRight]} />
+          <View style={[cameraStyles.corner, cameraStyles.cornerBottomLeft]} />
+          <View style={[cameraStyles.corner, cameraStyles.cornerBottomRight]} />
         </View>
 
-        <View style={styles.instructions}>
-          <Text style={styles.instructionText}>Point at a barcode or QR code</Text>
+        <View style={cameraStyles.instructions}>
+          <Text style={cameraStyles.instructionText}>Point at a barcode or QR code</Text>
         </View>
       </CameraView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
+// Camera overlay controls sit on a live video feed — fixed white / dark scrim
+// for guaranteed contrast, independent of app theme.
+const cameraStyles = StyleSheet.create({
   camera: {
     flex: 1,
     justifyContent: 'center',
@@ -114,7 +120,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: colors.brandPurple,
+    borderColor: '#FFFFFF',
     borderTopWidth: 4,
     borderLeftWidth: 4,
     top: 0,
@@ -151,41 +157,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   instructionText: {
-    color: colors.textHi,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  permissionTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textHi,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  permissionText: {
-    fontSize: 16,
-    color: colors.textMid,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  permissionButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
-  permissionButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
 });
-
-
-

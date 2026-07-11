@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, Text } from 'react-native';
 
-import { colors } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 interface YearFilterProps {
   years: number[];
@@ -10,6 +10,34 @@ interface YearFilterProps {
 }
 
 export function YearFilter({ years, selectedYear, onSelect }: YearFilterProps) {
+  const styles = useThemedStyles((t) => ({
+    container: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    chipSelected: {
+      backgroundColor: t.colors.brandPurple,
+      borderColor: t.colors.brandPurple,
+    },
+    chipText: {
+      fontSize: 14,
+      color: t.colors.textMid,
+    },
+    chipTextSelected: {
+      color: t.colors.onAccent, // text on accent-filled chip
+      fontWeight: '500',
+    },
+  }));
+
   if (years.length === 0) return null;
 
   return (
@@ -26,35 +54,3 @@ export function YearFilter({ years, selectedYear, onSelect }: YearFilterProps) {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  chipSelected: {
-    backgroundColor: colors.brandPurple,
-    borderColor: colors.brandPurple,
-  },
-  chipText: {
-    fontSize: 14,
-    color: colors.textMid,
-  },
-  chipTextSelected: {
-    color: colors.textHi,
-    fontWeight: '500',
-  },
-});
-
-
-
-

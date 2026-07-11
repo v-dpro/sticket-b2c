@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, SectionList, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { LogEntry } from '../../types/profile';
@@ -8,7 +8,7 @@ import { YearHeaderCard, type YearHeaderCardData } from './YearHeaderCard';
 import { FeaturedLogCard } from './FeaturedLogCard';
 import { CompactLogCard } from './CompactLogCard';
 import { MilestoneCard, type Milestone } from './MilestoneCard';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface TimelineViewProps {
   headerComponent?: React.ReactNode;
@@ -125,6 +125,50 @@ export function TimelineView({
   loading,
   hasMore,
 }: TimelineViewProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    list: {
+      flex: 1,
+    },
+    listContent: {
+      flexGrow: 1,
+      paddingBottom: 100,
+    },
+    pairRow: {
+      marginHorizontal: 16,
+      marginBottom: 12,
+      flexDirection: 'row',
+      gap: 10,
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 64,
+      paddingHorizontal: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      marginTop: 16,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    footer: {
+      padding: 16,
+      alignItems: 'center',
+    },
+    footerText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+    },
+  }));
+
   const sections = React.useMemo(() => buildSections(logs), [logs]);
 
   const renderHeader = () => (
@@ -136,7 +180,7 @@ export function TimelineView({
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="musical-notes-outline" size={64} color={colors.textLo} />
+      <Ionicons name="musical-notes-outline" size={64} color={tokens.colors.textLo} />
       <Text style={styles.emptyTitle}>No shows logged yet</Text>
       <Text style={styles.emptyText}>Start logging your concert experiences!</Text>
     </View>
@@ -183,55 +227,12 @@ export function TimelineView({
       ListFooterComponent={renderFooter}
       onEndReached={onLoadMore}
       onEndReachedThreshold={0.5}
-      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={colors.brandPurple} />}
+      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} />}
       style={styles.list}
       contentContainerStyle={styles.listContent}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingBottom: 100,
-  },
-  pairRow: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textLo,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  footer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.textLo,
-  },
-});
 
 
 

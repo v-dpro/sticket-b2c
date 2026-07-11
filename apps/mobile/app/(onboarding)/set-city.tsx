@@ -1,189 +1,112 @@
+// ONBOARDING · SET CITY — a clean city input. Feeds the onboarding store's
+// `city` (which the app/index gate reads) and best-effort persists to the
+// profile. Skip advances without setting a city.
+
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { colors, accentSets, spacing, radius, shadows, fontFamilies } from '../../lib/theme';
+import { ProgressDots } from '../../components/onboarding/ProgressDots';
+import { PillButton } from '../../components/ui/PillButton';
+import { updateProfile } from '../../lib/api/profile';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useOnboardingStore } from '../../stores/onboardingStore';
-import { useSafeBack } from '../../lib/navigation/safeNavigation';
-
-type OrbitOption = 'friends' | 'fof' | 'taste';
-
-const ORBIT_OPTIONS: { key: OrbitOption; label: string; description: string }[] = [
-  {
-    key: 'friends',
-    label: 'FRIENDS',
-    description: 'Only people you follow. Tight circle, zero noise.',
-  },
-  {
-    key: 'fof',
-    label: 'FRIENDS+FOF',
-    description: 'Friends and their friends. Wider net, still curated.',
-  },
-  {
-    key: 'taste',
-    label: 'TASTE GRAPH',
-    description: 'Anyone who shares your music taste. Maximum discovery.',
-  },
-];
 
 export default function SetCityOnboarding() {
   const router = useRouter();
-  const goBack = useSafeBack();
-  const [selected, setSelected] = useState<OrbitOption>('fof');
+  const { tokens } = useTheme();
+  const setCity = useOnboardingStore((s) => s.setCity);
+  const existingCity = useOnboardingStore((s) => s.city);
 
-  const activeOption = ORBIT_OPTIONS.find((o) => o.key === selected)!;
+  const [value, setValue] = useState(existingCity ?? '');
+  const [focused, setFocused] = useState(false);
+  const trimmed = value.trim();
+
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    header: { paddingHorizontal: t.density.pad, paddingTop: 8, paddingBottom: 4 },
+    body: { flex: 1, paddingHorizontal: t.density.pad, paddingTop: 28, gap: 10 },
+    title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    subtitle: { fontSize: 15, fontWeight: '400', color: t.colors.mute, lineHeight: 21, marginBottom: 14 },
+    field: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      height: 54,
+      paddingHorizontal: 14,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      backgroundColor: t.colors.card,
+    },
+    fieldFocused: { borderColor: t.colors.accent },
+    input: { flex: 1, fontSize: 16, fontWeight: '500', color: t.colors.fg, padding: 0 },
+    footer: { paddingHorizontal: t.density.pad, paddingBottom: 12, gap: 10 },
+  }));
+
+  const goNext = () => router.push('/(onboarding)/connect-spotify');
 
   const onContinue = () => {
-    // Store orbit preference (reusing city store slot or adding new field)
-    router.push('/(onboarding)/done');
+    if (!trimmed) return;
+    setCity(trimmed);
+    // Server persist is a nice-to-have; the store already unblocks the gate.
+    void updateProfile({ city: trimmed }).catch(() => {});
+    goNext();
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-        </Pressable>
-      </View>
-
-      <View style={styles.content}>
-        {/* Title */}
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>Your orbit.</Text>
-          <Text style={styles.subtitle}>How wide a net?</Text>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.header}>
+          <ProgressDots total={6} current={0} />
         </View>
 
-        {/* Segmented control */}
-        <View style={styles.segmentedTrack}>
-          {ORBIT_OPTIONS.map((option) => {
-            const isActive = selected === option.key;
-            return (
-              <Pressable
-                key={option.key}
-                onPress={() => setSelected(option.key)}
-                style={[styles.segmentedItem, isActive && styles.segmentedItemActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-              >
-                <Text
-                  style={[
-                    styles.segmentedLabel,
-                    isActive ? styles.segmentedLabelActive : styles.segmentedLabelInactive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.body}>
+          <Animated.Text entering={FadeInDown.duration(300)} style={styles.title}>
+            Where do you catch shows?
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.delay(60).duration(300)} style={styles.subtitle}>
+            We use your city to surface nearby shows and local presales.
+          </Animated.Text>
+
+          <Animated.View
+            entering={FadeInDown.delay(120).duration(300)}
+            style={[styles.field, focused && styles.fieldFocused]}
+          >
+            <Ionicons name="location-outline" size={20} color={tokens.colors.mute} />
+            <TextInput
+              style={styles.input}
+              placeholder="City"
+              placeholderTextColor={tokens.colors.textLo}
+              selectionColor={tokens.colors.accent}
+              value={value}
+              onChangeText={setValue}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              autoFocus
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={onContinue}
+            />
+          </Animated.View>
         </View>
 
-        {/* Description */}
-        <Text style={styles.description}>{activeOption.description}</Text>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Pressable
-          onPress={onContinue}
-          style={({ pressed }) => [
-            styles.ctaButton,
-            pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
-          ]}
-          accessibilityRole="button"
-        >
-          <Text style={styles.ctaText}>Looks good &rarr;</Text>
-        </Pressable>
-      </View>
+        <View style={styles.footer}>
+          <PillButton
+            title="Continue"
+            size="lg"
+            springFeedback
+            haptic="light"
+            disabled={!trimmed}
+            onPress={onContinue}
+          />
+          <PillButton title="Skip for now" variant="ghost" size="lg" springFeedback onPress={goNext} />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    padding: 4,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  titleBlock: {
-    marginBottom: spacing['2xl'],
-  },
-  title: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 38,
-    letterSpacing: -0.8,
-    color: colors.textHi,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textMid,
-  },
-  segmentedTrack: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: 3,
-    marginBottom: spacing.lg,
-  },
-  segmentedItem: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentedItemActive: {
-    backgroundColor: accentSets.cyan.hex,
-  },
-  segmentedLabel: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  segmentedLabelActive: {
-    color: '#FFFFFF',
-  },
-  segmentedLabelInactive: {
-    color: colors.textMid,
-  },
-  description: {
-    fontFamily: fontFamilies.ui,
-    fontSize: 15,
-    color: colors.textMid,
-    lineHeight: 22,
-  },
-  footer: {
-    padding: spacing.lg,
-  },
-  ctaButton: {
-    backgroundColor: accentSets.cyan.hex,
-    paddingVertical: 16,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.card,
-  },
-  ctaText: {
-    fontFamily: fontFamilies.uiBold,
-    color: '#FFFFFF',
-    fontSize: 15,
-  },
-});

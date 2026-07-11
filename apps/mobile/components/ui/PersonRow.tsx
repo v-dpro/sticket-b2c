@@ -1,24 +1,40 @@
 import React from 'react';
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
-import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
+import { View, Text, Pressable, Image } from 'react-native';
+import { fontFamilies } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 // ── MatchPill ──────────────────────────────────────────────
 
 function MatchPill({ score }: { score: number }) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    matchPill: {
+      borderRadius: 4,
+      paddingVertical: 2,
+      paddingHorizontal: 6,
+    },
+    matchPillText: {
+      fontFamily: fontFamilies.monoBold,
+      fontSize: 9,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+  }));
   const isHigh = score >= 85;
   return (
     <View
       style={[
         styles.matchPill,
         isHigh
-          ? { backgroundColor: accentSets.cyan.hex }
-          : { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.hairline },
+          ? { backgroundColor: tokens.colors.cyan }
+          : { backgroundColor: tokens.colors.surface, borderWidth: 1, borderColor: tokens.colors.hairline },
       ]}
     >
       <Text
         style={[
           styles.matchPillText,
-          { color: isHigh ? '#FFFFFF' : colors.textLo },
+          // High-match uses white on the filled accent chip.
+          { color: isHigh ? tokens.colors.onAccent : tokens.colors.textLo },
         ]}
       >
         {score}%
@@ -58,19 +74,94 @@ export function PersonRow({
   actionPending,
   showDivider = false,
 }: PersonRowProps) {
+  const { tokens } = useTheme();
+  const { colors } = tokens;
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
+    avatarWrap: {
+      marginRight: 12,
+    },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 999,
+      backgroundColor: t.colors.elevated,
+    },
+    avatarPlaceholder: {
+      width: 40,
+      height: 40,
+      borderRadius: 999,
+      backgroundColor: t.colors.elevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    avatarInitial: {
+      color: t.colors.textMuted,
+      fontWeight: '600',
+      fontSize: 14,
+    },
+    nameSection: {
+      flex: 1,
+      marginRight: 8,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    username: {
+      fontSize: 13.5,
+      fontWeight: '700',
+      color: t.colors.textHi,
+      flexShrink: 1,
+    },
+    kindLabel: {
+      fontFamily: fontFamilies.monoMedium,
+      fontSize: 9,
+      fontWeight: '500',
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      marginTop: 2,
+    },
+    actionButton: {
+      borderRadius: 999,
+      paddingVertical: 5,
+      paddingHorizontal: 12,
+    },
+    actionButtonText: {
+      fontFamily: fontFamilies.monoBold,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: t.colors.hairline,
+      marginLeft: 66, // avatar width + padding
+    },
+  }));
+
   // Derive kind label
   let kindText = '';
   let kindColor: string = colors.textLo;
 
   if (relationship === 'friend') {
     kindText = 'FOLLOWING';
-    kindColor = accentSets.cyan.hex;
+    kindColor = colors.cyan;
   } else if (relationship === 'fof' && mutualName) {
     kindText = `VIA @${mutualName}`;
     kindColor = colors.textLo;
   } else if (matchScore !== undefined && matchScore >= 85) {
     kindText = 'MATCH';
-    kindColor = accentSets.cyan.hex;
+    kindColor = colors.cyan;
   }
 
   // Derive action button style
@@ -81,8 +172,8 @@ export function PersonRow({
     if (relationship === 'friend') {
       return { bg: 'transparent', text: colors.textHi, border: colors.hairline };
     }
-    // stranger default
-    return { bg: accentSets.cyan.hex, text: '#FFFFFF', border: 'transparent' };
+    // stranger default — white label on filled accent
+    return { bg: colors.cyan, text: colors.onAccent, border: 'transparent' };
   };
 
   const actionStyle = getActionStyle();
@@ -147,99 +238,3 @@ export function PersonRow({
     </View>
   );
 }
-
-// ── Styles ─────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-
-  // Avatar
-  avatarWrap: {
-    marginRight: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: colors.elevated,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: colors.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  avatarInitial: {
-    color: colors.textMuted,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-
-  // Name
-  nameSection: {
-    flex: 1,
-    marginRight: 8,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  username: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: colors.textHi,
-    flexShrink: 1,
-  },
-  kindLabel: {
-    fontFamily: fontFamilies.monoMedium,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
-
-  // MatchPill
-  matchPill: {
-    borderRadius: 4,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  matchPillText: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  // Action button
-  actionButton: {
-    borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-  },
-  actionButtonText: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: colors.hairline,
-    marginLeft: 66, // avatar width + padding
-  },
-});

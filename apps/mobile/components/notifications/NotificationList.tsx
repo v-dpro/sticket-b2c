@@ -1,7 +1,7 @@
-import { ActivityIndicator, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, SectionList, Text, View } from 'react-native';
 
 import type { Notification, NotificationGroup } from '../../types/notification';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { NotificationCard } from './NotificationCard';
 
 type NotificationSection = NotificationGroup & { data: Notification[] };
@@ -21,6 +21,28 @@ export function NotificationList({
   loadingMore: boolean;
   onPressNotification: (notification: Notification) => void;
 }) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    sectionHeader: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: t.colors.ink,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: t.colors.textLo,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    listContent: {
+      paddingBottom: 100,
+    },
+    footer: {
+      paddingVertical: 20,
+    },
+  }));
+
   const sections: NotificationSection[] = groups.map((g) => ({ ...g, data: g.notifications }));
 
   return (
@@ -33,13 +55,13 @@ export function NotificationList({
           <Text style={styles.sectionTitle}>{section.date}</Text>
         </View>
       )}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brandPurple} colors={[colors.brandPurple]} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} colors={[tokens.colors.brandPurple]} />}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       ListFooterComponent={
         loadingMore ? (
           <View style={styles.footer}>
-            <ActivityIndicator size="small" color={colors.brandPurple} />
+            <ActivityIndicator size="small" color={tokens.colors.brandPurple} />
           </View>
         ) : null
       }
@@ -48,27 +70,6 @@ export function NotificationList({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  sectionHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.ink,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textLo,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  footer: {
-    paddingVertical: 20,
-  },
-});
 
 
 

@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
 import { apiClient } from '../../lib/api/client';
 import { isAdminUser } from '../../lib/admin/isAdmin';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
@@ -27,6 +28,94 @@ export default function AdminUsersScreen() {
   const [items, setItems] = useState<AdminUserRow[]>([]);
 
   const allowed = isAdminUser(user);
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: t.colors.textHi,
+    },
+    denied: {
+      marginTop: spacing.lg,
+      color: t.colors.textLo,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    search: {
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: spacing.md,
+      color: t.colors.textHi,
+      fontWeight: '700',
+      marginBottom: spacing.md,
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    empty: {
+      color: t.colors.textLo,
+      fontWeight: '800',
+      textAlign: 'center',
+      paddingTop: spacing.lg,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      gap: spacing.sm,
+    },
+    rowTitle: {
+      color: t.colors.textHi,
+      fontWeight: '900',
+      fontSize: 14,
+    },
+    rowSub: {
+      marginTop: 2,
+      color: t.colors.textLo,
+      fontWeight: '800',
+      fontSize: 12,
+    },
+    action: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+      borderRadius: radius.md,
+      borderWidth: 1,
+    },
+    ban: {
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      borderColor: t.colors.error,
+    },
+    unban: {
+      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+      borderColor: t.colors.success,
+    },
+    actionText: {
+      color: t.colors.textHi,
+      fontWeight: '900',
+      fontSize: 12,
+    },
+  }));
 
   const canSearch = useMemo(() => query.trim().length >= 2, [query]);
 
@@ -80,7 +169,7 @@ export default function AdminUsersScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
           <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+            <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
           </Pressable>
           <Text style={styles.title}>Users</Text>
           <View style={{ width: 40 }} />
@@ -96,7 +185,7 @@ export default function AdminUsersScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Users</Text>
         <View style={{ width: 40 }} />
@@ -105,7 +194,7 @@ export default function AdminUsersScreen() {
       <TextInput
         style={styles.search}
         placeholder="Search by email or username (min 2 chars)…"
-        placeholderTextColor={colors.textLo}
+        placeholderTextColor={tokens.colors.textLo}
         value={query}
         onChangeText={setQuery}
         autoCapitalize="none"
@@ -113,7 +202,7 @@ export default function AdminUsersScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.brandPurple} />
+          <ActivityIndicator color={tokens.colors.brandPurple} />
         </View>
       ) : (
         <FlatList
@@ -143,94 +232,6 @@ export default function AdminUsersScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  denied: {
-    marginTop: spacing.lg,
-    color: colors.textLo,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  search: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: spacing.md,
-    color: colors.textHi,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  empty: {
-    color: colors.textLo,
-    fontWeight: '800',
-    textAlign: 'center',
-    paddingTop: spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  rowTitle: {
-    color: colors.textHi,
-    fontWeight: '900',
-    fontSize: 14,
-  },
-  rowSub: {
-    marginTop: 2,
-    color: colors.textLo,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  action: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radius.md,
-    borderWidth: 1,
-  },
-  ban: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: colors.error,
-  },
-  unban: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-    borderColor: colors.success,
-  },
-  actionText: {
-    color: colors.textHi,
-    fontWeight: '900',
-    fontSize: 12,
-  },
-});
 
 
 

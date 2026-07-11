@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
-import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
+import { View, Text, Pressable, Image } from 'react-native';
+import { radius, fontFamilies } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 import { PersonRow } from './PersonRow';
 
 // ── Types ──────────────────────────────────────────────────
@@ -30,6 +31,52 @@ function HeadlineRibbon({ people, title, subtitle }: {
   title: string;
   subtitle?: string;
 }) {
+  const styles = useThemedStyles((t) => ({
+    ribbonCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.accentSets.cyan.soft,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      gap: 12,
+    },
+    avatarStack: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    stackAvatarWrap: {
+      width: 26,
+      height: 26,
+      borderRadius: 999,
+      borderWidth: 2,
+      borderColor: t.colors.surface,
+      overflow: 'hidden',
+    },
+    stackAvatar: {
+      width: '100%',
+      height: '100%',
+    },
+    stackAvatarPlaceholder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: t.colors.elevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stackAvatarInitial: {
+      color: t.colors.textLo,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    ribbonBlurb: {
+      flex: 1,
+      fontSize: 12.5,
+      color: t.colors.textMid,
+      lineHeight: 12.5 * 1.4,
+    },
+  }));
+
   const friends = people.filter((p) => p.relationship === 'friend');
   const fof = people.filter((p) => p.relationship === 'fof');
   const displayed = people.slice(0, 5);
@@ -93,6 +140,76 @@ export function PeopleBlock({
   limit = 3,
   onViewAll,
 }: PeopleBlockProps) {
+  const styles = useThemedStyles((t) => ({
+    sectionContainer: {
+      gap: 8,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    sectionLabel: {
+      fontFamily: fontFamilies.monoSemi,
+      fontSize: 10.5,
+      fontWeight: '600',
+      color: t.colors.textLo,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+    sectionSubLabel: {
+      fontFamily: fontFamilies.monoMedium,
+      fontSize: 9,
+      fontWeight: '500',
+      color: t.colors.textLo,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    sectionCard: {
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+    },
+    viewAllButton: {
+      alignItems: 'center',
+      paddingVertical: 10,
+    },
+    viewAllText: {
+      fontFamily: fontFamilies.monoBold,
+      fontSize: 10.5,
+      fontWeight: '700',
+      color: t.accentSets.cyan.hex,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    emptyContainer: {
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      borderStyle: 'dashed',
+      borderRadius: radius.md,
+      padding: 20,
+      alignItems: 'center',
+      gap: 6,
+    },
+    emptyTitle: {
+      fontFamily: fontFamilies.monoSemi,
+      fontSize: 10.5,
+      fontWeight: '600',
+      color: t.colors.textLo,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+    emptyHint: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      lineHeight: 13 * 1.5,
+      textAlign: 'center',
+    },
+  }));
+
   // Empty state
   if (people.length === 0) {
     return (
@@ -121,7 +238,7 @@ export function PeopleBlock({
       {/* Header */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionLabel}>
-          {title} {'\u00B7'} {totalCount}
+          {title} {'·'} {totalCount}
         </Text>
         <Text style={styles.sectionSubLabel}>RANKED BY TASTE MATCH</Text>
       </View>
@@ -145,130 +262,10 @@ export function PeopleBlock({
       {totalCount > limit && onViewAll && (
         <Pressable style={styles.viewAllButton} onPress={onViewAll}>
           <Text style={styles.viewAllText}>
-            VIEW ALL {totalCount} PEOPLE {'\u2192'}
+            VIEW ALL {totalCount} PEOPLE {'→'}
           </Text>
         </Pressable>
       )}
     </View>
   );
 }
-
-// ── Styles ─────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  // ── Headline variant ──
-  ribbonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: accentSets.cyan.soft,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 12,
-  },
-  avatarStack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stackAvatarWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: colors.surface,
-    overflow: 'hidden',
-  },
-  stackAvatar: {
-    width: '100%',
-    height: '100%',
-  },
-  stackAvatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stackAvatarInitial: {
-    color: colors.textLo,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  ribbonBlurb: {
-    flex: 1,
-    fontSize: 12.5,
-    color: colors.textMid,
-    lineHeight: 12.5 * 1.4,
-  },
-
-  // ── Section variant ──
-  sectionContainer: {
-    gap: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionLabel: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: colors.textLo,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  sectionSubLabel: {
-    fontFamily: fontFamilies.monoMedium,
-    fontSize: 9,
-    fontWeight: '500',
-    color: colors.textLo,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  sectionCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-  },
-  viewAllButton: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  viewAllText: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: accentSets.cyan.hex,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-
-  // ── Empty state ──
-  emptyContainer: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderStyle: 'dashed',
-    borderRadius: radius.md,
-    padding: 20,
-    alignItems: 'center',
-    gap: 6,
-  },
-  emptyTitle: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: colors.textLo,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  emptyHint: {
-    fontSize: 13,
-    color: colors.textLo,
-    lineHeight: 13 * 1.5,
-    textAlign: 'center',
-  },
-});

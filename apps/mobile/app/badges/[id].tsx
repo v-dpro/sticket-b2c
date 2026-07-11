@@ -1,12 +1,13 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Screen } from '../../components/ui/Screen';
-import { colors, spacing } from '../../lib/theme';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useBadges } from '../../hooks/useBadges';
-import { BadgeIcon, RARITY_COLORS } from '../../components/badges/BadgeIcon';
+import { BadgeIcon, getRarityColor } from '../../components/badges/BadgeIcon';
 import { BadgeProgress } from '../../components/badges/BadgeProgress';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
@@ -17,8 +18,8 @@ function formatDate(iso: string) {
 }
 
 export default function BadgeDetailScreen() {
-  const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { allBadges, earnedBadges, getProgress, loading, error } = useBadges();
@@ -27,21 +28,69 @@ export default function BadgeDetailScreen() {
   const earned = earnedBadges.find((b) => b.badge.id === id);
   const progress = badge ? getProgress(badge.id) : undefined;
 
-  const rarityColor = badge ? RARITY_COLORS[badge.rarity] : colors.brandPurple;
+  const rarityColor = badge ? getRarityColor(tokens.colors, badge.rarity) : tokens.colors.accent;
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg, paddingHorizontal: 24 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: 8,
+      marginBottom: 8,
+    },
+    iconButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { color: t.colors.fg, fontSize: 18, fontWeight: '800' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, gap: 12 },
+    muted: { color: t.colors.mute },
+    content: { paddingTop: t.spacing.lg, paddingBottom: 24, gap: 14 },
+    hero: {
+      alignItems: 'center',
+      gap: 10,
+      padding: 16,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      backgroundColor: t.colors.card,
+    },
+    title: { fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
+    description: { color: t.colors.mute, fontSize: 14, textAlign: 'center' },
+    metaRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+      backgroundColor: t.colors.card2,
+    },
+    pillText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+    earnedAt: { marginTop: 6, color: t.colors.muteSoft, fontSize: 12, fontWeight: '500' },
+    sectionCard: {
+      padding: 16,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      backgroundColor: t.colors.card,
+    },
+    sectionTitle: { color: t.colors.fg, fontSize: 14, fontWeight: '700', marginBottom: 8 },
+    sectionText: { color: t.colors.mute, fontSize: 13, lineHeight: 18 },
+  }));
 
   return (
-    <Screen>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.iconButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.iconButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={24} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.headerTitle}>Badge</Text>
         <View style={styles.iconButton} />
       </View>
 
       {loading && !badge ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.brandPurple} />
+          <ActivityIndicator size="large" color={tokens.colors.mute} />
           <Text style={styles.muted}>Loading…</Text>
         </View>
       ) : error && !badge ? (
@@ -61,12 +110,12 @@ export default function BadgeDetailScreen() {
             <Text style={styles.description}>{badge.description}</Text>
 
             <View style={styles.metaRow}>
-              <View style={[styles.pill, { backgroundColor: `${rarityColor}20`, borderColor: `${rarityColor}40` }]}>
+              <View style={[styles.pill, { backgroundColor: `${rarityColor}20` }]}>
                 <Text style={[styles.pillText, { color: rarityColor }]}>{badge.rarity.toUpperCase()}</Text>
               </View>
               <View style={styles.pill}>
-                <Ionicons name="star" size={12} color={colors.warning} />
-                <Text style={[styles.pillText, { color: colors.warning }]}>+{badge.points} pts</Text>
+                <Ionicons name="star" size={12} color={tokens.colors.warning} />
+                <Text style={[styles.pillText, { color: tokens.colors.warning }]}>+{badge.points} pts</Text>
               </View>
             </View>
 
@@ -87,7 +136,7 @@ export default function BadgeDetailScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
-    </Screen>
+    </SafeAreaView>
   );
 }
 
@@ -123,105 +172,3 @@ function describeCriteria(criteria: any): string {
       return 'Keep logging shows to unlock this badge.';
   }
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    marginBottom: 8,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: colors.textHi,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  muted: {
-    color: colors.textMid,
-  },
-  content: {
-    paddingTop: spacing.lg,
-    paddingBottom: 24,
-    gap: 14,
-  },
-  hero: {
-    alignItems: 'center',
-    gap: 10,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surface,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  description: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 6,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.ink,
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  earnedAt: {
-    marginTop: 6,
-    color: colors.textLo,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  sectionCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surface,
-  },
-  sectionTitle: {
-    color: colors.textHi,
-    fontSize: 14,
-    fontWeight: '900',
-    marginBottom: 8,
-  },
-  sectionText: {
-    color: colors.textMid,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-});
-
-
-

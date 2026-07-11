@@ -3,7 +3,8 @@ import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-nati
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EventPhoto } from '../../types/event';
 import { PhotoLightbox } from './PhotoLightbox';
-import { colors, radius, fontFamilies } from '../../lib/theme';
+import { radius, fontFamilies } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 const { width } = Dimensions.get('window');
 const GRID_GAP = 4;
@@ -17,6 +18,85 @@ interface PhotosSectionProps {
 }
 
 export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      paddingTop: 24,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: GRID_PADDING,
+      marginBottom: 10,
+      gap: 8,
+    },
+    sectionLabel: {
+      fontFamily: fontFamilies.monoMedium,
+      fontSize: 10.5,
+      fontWeight: '500',
+      letterSpacing: 2,
+      color: t.colors.textLo,
+    },
+    count: {
+      fontSize: 12,
+      color: t.colors.textLo,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      paddingVertical: 28,
+      marginHorizontal: GRID_PADDING,
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 8,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: GRID_PADDING,
+      gap: GRID_GAP,
+    },
+    photoContainer: {
+      width: PHOTO_SIZE,
+      height: PHOTO_SIZE,
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    photo: {
+      width: '100%',
+      height: '100%',
+    },
+    moreOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    moreText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#FFFFFF', // over dark overlay on photo
+    },
+    loadMoreButton: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 12,
+      marginHorizontal: GRID_PADDING,
+      marginTop: 6,
+    },
+    loadMoreText: {
+      color: t.colors.brandCyan,
+      fontSize: 13,
+    },
+  }));
+
   const [selectedPhoto, setSelectedPhoto] = useState<EventPhoto | null>(null);
 
   if (photos.length === 0) {
@@ -24,7 +104,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       <View style={styles.container}>
         <Text style={[styles.sectionLabel, { paddingHorizontal: GRID_PADDING }]}>PHOTOS</Text>
         <View style={styles.emptyContainer}>
-          <Ionicons name="camera-outline" size={32} color={colors.textLo} />
+          <Ionicons name="camera-outline" size={32} color={tokens.colors.textLo} />
           <Text style={styles.emptyText}>No photos yet</Text>
         </View>
       </View>
@@ -54,7 +134,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       {hasMore ? (
         <Pressable style={styles.loadMoreButton} onPress={onLoadMore}>
           <Text style={styles.loadMoreText}>Load more photos</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.brandCyan} />
+          <Ionicons name="chevron-forward" size={14} color={tokens.colors.brandCyan} />
         </Pressable>
       ) : null}
 
@@ -62,81 +142,3 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: GRID_PADDING,
-    marginBottom: 10,
-    gap: 8,
-  },
-  sectionLabel: {
-    fontFamily: fontFamilies.monoMedium,
-    fontSize: 10.5,
-    fontWeight: '500',
-    letterSpacing: 2,
-    color: colors.textLo,
-  },
-  count: {
-    fontSize: 12,
-    color: colors.textLo,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 28,
-    marginHorizontal: GRID_PADDING,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: GRID_PADDING,
-    gap: GRID_GAP,
-  },
-  photoContainer: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  moreOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moreText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  loadMoreButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    marginHorizontal: GRID_PADDING,
-    marginTop: 6,
-  },
-  loadMoreText: {
-    color: colors.brandCyan,
-    fontSize: 13,
-  },
-});

@@ -3,7 +3,7 @@ import { Text, type TextStyle } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { gradients as themeGradients } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 type GradientTextProps = {
   children: ReactNode;
@@ -12,7 +12,8 @@ type GradientTextProps = {
 };
 
 export function GradientText({ children, style, colors }: GradientTextProps) {
-  const gradientColors = (colors ?? themeGradients.rainbow) as [string, string, ...string[]];
+  const { tokens } = useTheme();
+  const gradientColors = (colors ?? tokens.gradients.rainbow) as [string, string, ...string[]];
 
   return (
     <MaskedView

@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 import { motionDurations, springs } from '../../lib/motion';
 
 type RatingStarsProps = {
@@ -75,11 +75,14 @@ function Star({
 export function RatingStars({
   rating,
   size = 12,
-  color = colors.brandCyan,
-  emptyColor = colors.textLo,
+  color,
+  emptyColor,
   animated = true,
   gap = 2,
 }: RatingStarsProps) {
+  const { tokens } = useTheme();
+  const resolvedColor = color ?? tokens.colors.brandCyan;
+  const resolvedEmptyColor = emptyColor ?? tokens.colors.textLo;
   return (
     <View
       style={[styles.row, { gap }]}
@@ -94,7 +97,7 @@ export function RatingStars({
             index={i}
             icon={icon}
             size={size}
-            color={icon === 'star-outline' ? emptyColor : color}
+            color={icon === 'star-outline' ? resolvedEmptyColor : resolvedColor}
             animated={animated}
           />
         );

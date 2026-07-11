@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { PillButton } from '../../components/ui/PillButton';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, radius, spacing } from '../../lib/theme';
+import { fonts, radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ResetPasswordScreen() {
@@ -27,6 +28,83 @@ export default function ResetPasswordScreen() {
   const passwordsMatch = Boolean(newPassword) && newPassword === confirmPassword;
   const allMet = requirements.every((r) => r.met);
   const canSubmit = allMet && passwordsMatch;
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+      paddingTop: 64,
+      paddingBottom: spacing['3xl'],
+    },
+    back: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.xl,
+    },
+    backText: {
+      color: t.colors.textMid,
+      fontSize: fonts.bodySmall,
+      fontWeight: fonts.medium,
+    },
+    header: {
+      marginBottom: spacing.xl,
+      gap: spacing.sm,
+    },
+    h1: {
+      color: t.colors.textHi,
+      fontSize: 30,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+    },
+    subhead: {
+      color: t.colors.textMid,
+      fontSize: fonts.body,
+      lineHeight: 22,
+    },
+    form: {
+      gap: spacing.sm,
+    },
+    requirementsCard: {
+      backgroundColor: t.colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    requirementsTitle: {
+      color: t.colors.textMid,
+      fontSize: 13,
+      fontWeight: fonts.medium,
+      marginBottom: spacing.md,
+    },
+    reqRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    reqDot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: t.colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    reqDotMet: {
+      backgroundColor: t.colors.success,
+    },
+    reqText: {
+      fontSize: fonts.caption,
+    },
+    reqTextMet: {
+      color: t.colors.success,
+    },
+    reqTextUnmet: {
+      color: t.colors.textMuted,
+    },
+  }));
 
   return (
     <Screen padded={false}>
@@ -34,7 +112,7 @@ export default function ResetPasswordScreen() {
 
       <View style={styles.container}>
         <Pressable onPress={goBack} style={styles.back} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={colors.textMid} />
+          <Ionicons name="arrow-back" size={20} color={tokens.colors.textMid} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
@@ -67,7 +145,7 @@ export default function ResetPasswordScreen() {
               {requirements.map((req) => (
                 <View key={req.text} style={styles.reqRow}>
                   <View style={[styles.reqDot, req.met && styles.reqDotMet]}>
-                    {req.met ? <Ionicons name="checkmark" size={12} color={colors.textHi} /> : null}
+                    {req.met ? <Ionicons name="checkmark" size={12} color={tokens.colors.textHi} /> : null}
                   </View>
                   <Text style={[styles.reqText, req.met ? styles.reqTextMet : styles.reqTextUnmet]}>{req.text}</Text>
                 </View>
@@ -91,83 +169,6 @@ export default function ResetPasswordScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: 64,
-    paddingBottom: spacing['3xl'],
-  },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  backText: {
-    color: colors.textMid,
-    fontSize: fonts.bodySmall,
-    fontWeight: fonts.medium,
-  },
-  header: {
-    marginBottom: spacing.xl,
-    gap: spacing.sm,
-  },
-  h1: {
-    color: colors.textHi,
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  subhead: {
-    color: colors.textMid,
-    fontSize: fonts.body,
-    lineHeight: 22,
-  },
-  form: {
-    gap: spacing.sm,
-  },
-  requirementsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  requirementsTitle: {
-    color: colors.textMid,
-    fontSize: 13,
-    fontWeight: fonts.medium,
-    marginBottom: spacing.md,
-  },
-  reqRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  reqDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reqDotMet: {
-    backgroundColor: colors.success,
-  },
-  reqText: {
-    fontSize: fonts.caption,
-  },
-  reqTextMet: {
-    color: colors.success,
-  },
-  reqTextUnmet: {
-    color: colors.textMuted,
-  },
-});
 
 
 

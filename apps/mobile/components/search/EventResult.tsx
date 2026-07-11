@@ -1,11 +1,12 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { format, isFuture, parseISO } from 'date-fns';
 
 import type { EventResult as EventResultType } from '../../types/search';
-import { colors, spacing } from '../../lib/theme';
+import { spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface EventResultProps {
   event: EventResultType;
@@ -14,6 +15,55 @@ interface EventResultProps {
 
 export function EventResult({ event, onPress }: EventResultProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    image: {
+      width: 48,
+      height: 48,
+      borderRadius: 10,
+      marginRight: spacing.md - 4,
+    },
+    imagePlaceholder: {
+      backgroundColor: 'rgba(232, 121, 249, 0.12)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    info: {
+      flex: 1,
+    },
+    artist: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: t.colors.textHi,
+    },
+    venue: {
+      fontSize: 13,
+      color: t.colors.textMid,
+      marginTop: 2,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 4,
+      gap: 4,
+    },
+    date: {
+      fontSize: 12,
+      color: t.colors.textLo,
+    },
+    dateUpcoming: {
+      color: t.colors.success,
+      fontWeight: '600',
+    },
+  }));
 
   const eventDate = parseISO(event.date);
   const upcoming = isFuture(eventDate);
@@ -29,7 +79,7 @@ export function EventResult({ event, onPress }: EventResultProps) {
         <Image source={{ uri: event.imageUrl }} style={styles.image} />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]}>
-          <Ionicons name="musical-notes" size={20} color={colors.brandPink} />
+          <Ionicons name="musical-notes" size={20} color={tokens.colors.brandPink} />
         </View>
       )}
 
@@ -41,64 +91,12 @@ export function EventResult({ event, onPress }: EventResultProps) {
           {event.venue.name}, {event.venue.city}
         </Text>
         <View style={styles.dateRow}>
-          <Ionicons name={upcoming ? 'calendar' : 'time'} size={12} color={upcoming ? colors.success : colors.textLo} />
+          <Ionicons name={upcoming ? 'calendar' : 'time'} size={12} color={upcoming ? tokens.colors.success : tokens.colors.textLo} />
           <Text style={[styles.date, upcoming && styles.dateUpcoming]}>{format(eventDate, 'EEE, MMM d, yyyy')}</Text>
         </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
+      <Ionicons name="chevron-forward" size={18} color={tokens.colors.textLo} />
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  image: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    marginRight: spacing.md - 4,
-  },
-  imagePlaceholder: {
-    backgroundColor: 'rgba(232, 121, 249, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  info: {
-    flex: 1,
-  },
-  artist: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  venue: {
-    fontSize: 13,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
-  },
-  date: {
-    fontSize: 12,
-    color: colors.textLo,
-  },
-  dateUpcoming: {
-    color: colors.success,
-    fontWeight: '600',
-  },
-});
-
-
-

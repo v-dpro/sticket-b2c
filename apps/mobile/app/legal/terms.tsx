@@ -1,15 +1,78 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, Stack } from 'expo-router';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
-import { colors, spacing } from '../../lib/theme';
+import { spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingTop: spacing.lg,
+      paddingBottom: 12,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: t.colors.textHi,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      paddingHorizontal: 16,
+      paddingBottom: spacing.xl,
+    },
+    lastUpdated: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: t.colors.textLo,
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: t.colors.textHi,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    paragraph: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: t.colors.textMid,
+      lineHeight: 22,
+      marginBottom: spacing.sm,
+    },
+    bullet: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: t.colors.textMid,
+      lineHeight: 22,
+      marginLeft: 8,
+      marginBottom: 4,
+    },
+    contact: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: t.colors.brandPurple,
+      marginTop: 8,
+    },
+  }));
 
   return (
     <Screen padded={false}>
@@ -17,7 +80,7 @@ export default function TermsOfServiceScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Terms of Service</Text>
         <View style={{ width: 40 }} />
@@ -104,68 +167,6 @@ export default function TermsOfServiceScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: spacing.xl,
-  },
-  lastUpdated: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textLo,
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.textHi,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  paragraph: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textMid,
-    lineHeight: 22,
-    marginBottom: spacing.sm,
-  },
-  bullet: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textMid,
-    lineHeight: 22,
-    marginLeft: 8,
-    marginBottom: 4,
-  },
-  contact: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.brandPurple,
-    marginTop: 8,
-  },
-});
 
 
 

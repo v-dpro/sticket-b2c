@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, type ViewStyle } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, interpolate } from 'react-native-reanimated';
 
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 type Props = {
   width?: number | string;
@@ -12,6 +13,9 @@ type Props = {
 };
 
 export function Skeleton({ width = '100%', height = 20, borderRadius: br = radius.sm, style }: Props) {
+  const styles = useThemedStyles((t) => ({
+    skeleton: { backgroundColor: t.colors.card2 },
+  }));
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -26,6 +30,19 @@ export function Skeleton({ width = '100%', height = 20, borderRadius: br = radiu
 }
 
 export function FeedCardSkeleton() {
+  const styles = useThemedStyles((t) => ({
+    feedCard: {
+      padding: 16,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      marginBottom: 16,
+    },
+    feedHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+  }));
+
   return (
     <View style={styles.feedCard}>
       <View style={styles.feedHeader}>
@@ -40,22 +57,3 @@ export function FeedCardSkeleton() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  skeleton: {
-    backgroundColor: colors.elevated,
-  },
-  feedCard: {
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    marginBottom: 16,
-  },
-  feedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-});
-
-
-

@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../../lib/theme';
-import { fontFamilies } from '../../lib/theme';
 
+import { useTheme } from '../../lib/theme-context';
+
+// The stub is a physical "paper" ticket metaphor — a cream card that reads
+// the same in both themes, so its text is fixed dark ink. Only the punched
+// cutout holes track the live screen background behind them.
 type TicketStubProps = {
   artist: string;
   venue: string;
@@ -22,16 +25,20 @@ export function TicketStub({
   row,
   seat,
 }: TicketStubProps) {
+  const { tokens } = useTheme();
   const hasSeatInfo = section || row || seat;
+  const cutout = { backgroundColor: tokens.colors.bg };
+  const mono = tokens.fontFamilies.mono;
+  const monoBold = tokens.fontFamilies.monoBold;
 
   return (
     <View style={styles.card}>
       {/* Top section */}
       <View style={styles.topSection}>
-        <Text style={styles.date}>{date}</Text>
+        <Text style={[styles.date, { fontFamily: mono }]}>{date}</Text>
         <Text style={styles.artist}>{artist}</Text>
-        <Text style={styles.venue}>
-          {venue} {city ? `\u00B7 ${city}` : ''}
+        <Text style={[styles.venue, { fontFamily: tokens.fontFamilies.ui }]}>
+          {venue} {city ? `· ${city}` : ''}
         </Text>
       </View>
 
@@ -40,31 +47,31 @@ export function TicketStub({
         <>
           <View style={styles.perforationWrap}>
             {/* Left cutout */}
-            <View style={styles.cutoutLeft} />
+            <View style={[styles.cutoutLeft, cutout]} />
             {/* Dashed line */}
             <View style={styles.perforation} />
             {/* Right cutout */}
-            <View style={styles.cutoutRight} />
+            <View style={[styles.cutoutRight, cutout]} />
           </View>
 
           {/* Bottom section */}
           <View style={styles.bottomSection}>
             {section != null && (
               <View style={styles.seatBlock}>
-                <Text style={styles.seatLabel}>SECTION</Text>
-                <Text style={styles.seatValue}>{section}</Text>
+                <Text style={[styles.seatLabel, { fontFamily: mono }]}>SECTION</Text>
+                <Text style={[styles.seatValue, { fontFamily: monoBold }]}>{section}</Text>
               </View>
             )}
             {row != null && (
               <View style={styles.seatBlock}>
-                <Text style={styles.seatLabel}>ROW</Text>
-                <Text style={styles.seatValue}>{row}</Text>
+                <Text style={[styles.seatLabel, { fontFamily: mono }]}>ROW</Text>
+                <Text style={[styles.seatValue, { fontFamily: monoBold }]}>{row}</Text>
               </View>
             )}
             {seat != null && (
               <View style={styles.seatBlock}>
-                <Text style={styles.seatLabel}>SEAT</Text>
-                <Text style={styles.seatValue}>{seat}</Text>
+                <Text style={[styles.seatLabel, { fontFamily: mono }]}>SEAT</Text>
+                <Text style={[styles.seatValue, { fontFamily: monoBold }]}>{seat}</Text>
               </View>
             )}
           </View>
@@ -91,22 +98,20 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 10,
-    fontFamily: fontFamilies.mono,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: '#888',
     marginBottom: 6,
   },
   artist: {
-    fontSize: 28,
-    fontFamily: fontFamilies.displayItalic,
+    fontSize: 26,
+    fontWeight: '800',
     letterSpacing: -0.6,
     color: '#0B0B14',
     marginBottom: 4,
   },
   venue: {
     fontSize: 12,
-    fontFamily: fontFamilies.ui,
     color: '#555',
   },
   perforationWrap: {
@@ -128,7 +133,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: colors.ink,
     zIndex: 1,
   },
   cutoutRight: {
@@ -138,7 +142,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: colors.ink,
     zIndex: 1,
   },
   bottomSection: {
@@ -152,14 +155,12 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     fontSize: 9,
-    fontFamily: fontFamilies.mono,
     letterSpacing: 1.5,
     color: '#888',
     marginBottom: 2,
   },
   seatValue: {
     fontSize: 15,
-    fontFamily: fontFamilies.monoBold,
     color: '#0B0B14',
   },
 });

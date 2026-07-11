@@ -21,9 +21,8 @@ import { PillButton } from '../../components/ui/PillButton';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { apiClient } from '../../lib/api/client';
-import { colors, accentSets, radius, spacing, fonts, fontFamilies } from '../../lib/theme';
-
-const accent = accentSets.cyan;
+import { radius, fontFamilies } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -171,6 +170,278 @@ export default function PlannedShowCard() {
     return computeCountdown(show.presale.startsAt);
   }, [show?.presale?.startsAt]);
 
+  const { tokens } = useTheme();
+  const accent = tokens.accentSets.cyan;
+  const styles = useThemedStyles((t) => {
+    const accent = t.accentSets.cyan;
+    return {
+      container: {
+        flex: 1,
+        backgroundColor: t.colors.ink,
+      },
+      center: {
+        flex: 1,
+        backgroundColor: t.colors.ink,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+      },
+      errorText: {
+        color: t.colors.textMid,
+        fontSize: 14,
+        textAlign: 'center',
+      },
+
+      // Hero
+      hero: {
+        height: 260,
+        justifyContent: 'flex-end',
+      },
+      heroInitial: {
+        fontSize: 220,
+        fontWeight: '900',
+        color: 'rgba(255,255,255,0.08)', // fixed: faint watermark over the hero gradient
+        position: 'absolute',
+        top: -20,
+        right: -10,
+        lineHeight: 260,
+      },
+      backBtn: {
+        position: 'absolute',
+        left: 16,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.12)', // fixed: translucent control over the hero image
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+      },
+      heroBottom: {
+        paddingHorizontal: 16,
+        paddingBottom: 20,
+      },
+      heroArtist: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#FFFFFF', // fixed: white title over the hero image/scrim
+      },
+      heroVenue: {
+        fontSize: 14,
+        color: t.colors.textMid,
+        marginTop: 4,
+      },
+      heroDate: {
+        fontFamily: fontFamilies.mono,
+        fontSize: 11,
+        color: t.colors.textLo,
+        letterSpacing: 1,
+        marginTop: 6,
+        textTransform: 'uppercase',
+      },
+
+      // Countdown
+      countdownCard: {
+        marginHorizontal: 16,
+        marginTop: 16,
+        backgroundColor: t.colors.surface,
+        borderRadius: radius.md,
+        padding: 14,
+        alignItems: 'center',
+      },
+      countdownRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginTop: 4,
+        gap: 6,
+      },
+      countdownValue: {
+        fontSize: 40,
+        fontWeight: '700',
+        color: accent.hex,
+        fontVariant: ['tabular-nums'],
+      },
+      countdownUnit: {
+        fontFamily: fontFamilies.monoSemi,
+        fontSize: 12,
+        fontWeight: '600',
+        color: t.colors.textLo,
+        letterSpacing: 1.5,
+      },
+      doorsText: {
+        fontFamily: fontFamilies.mono,
+        fontSize: 10,
+        color: t.colors.textMuted,
+        marginTop: 6,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+      },
+
+      // Sections
+      section: {
+        paddingHorizontal: 16,
+        paddingTop: 24,
+        paddingBottom: 8,
+      },
+
+      // Ticket
+      ticketRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+        gap: 12,
+      },
+      ticketIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: radius.md,
+        backgroundColor: accent.soft,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      ticketLabel: {
+        fontFamily: fontFamilies.monoSemi,
+        fontSize: 12,
+        fontWeight: '600',
+        color: t.colors.textHi,
+        letterSpacing: 1,
+      },
+
+      // Presale
+      presaleInfoBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: accent.soft,
+        borderRadius: radius.md,
+        padding: 14,
+      },
+      presaleInfoText: {
+        fontSize: 14,
+        color: t.colors.textHi,
+        lineHeight: 20,
+      },
+      presaleCodeBox: {
+        marginTop: 10,
+        backgroundColor: t.colors.ink,
+        borderWidth: 1,
+        borderColor: accent.line,
+        borderStyle: 'dashed',
+        borderRadius: radius.md,
+        padding: 14,
+        alignItems: 'center',
+      },
+      presaleCode: {
+        fontFamily: fontFamilies.monoBold,
+        fontSize: 12,
+        fontWeight: '700',
+        color: accent.hex,
+        letterSpacing: 3,
+        marginTop: 6,
+      },
+
+      // Friends
+      friendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 14,
+      },
+      friendName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: t.colors.textHi,
+      },
+      friendStatus: {
+        fontFamily: fontFamilies.mono,
+        fontSize: 9.5,
+        color: t.colors.textLo,
+        letterSpacing: 1,
+        marginTop: 2,
+      },
+      messageBtn: {
+        borderWidth: 1,
+        borderColor: accent.hex,
+        borderRadius: radius.full,
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+      },
+      messageBtnText: {
+        fontFamily: fontFamilies.monoSemi,
+        fontSize: 10,
+        fontWeight: '600',
+        color: accent.hex,
+        letterSpacing: 1,
+      },
+
+      // Weather
+      weatherRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+        gap: 12,
+      },
+      weatherEmoji: {
+        fontSize: 40,
+      },
+      weatherTemp: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: t.colors.textHi,
+      },
+      weatherCondition: {
+        fontFamily: fontFamilies.mono,
+        fontSize: 10,
+        color: t.colors.textLo,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+      },
+
+      // Setlist predictions
+      setlistList: {
+        marginTop: 12,
+      },
+      setlistItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: t.colors.hairline,
+      },
+      setlistNum: {
+        fontFamily: fontFamilies.mono,
+        fontSize: 12,
+        color: t.colors.textMuted,
+        width: 28,
+      },
+      setlistSong: {
+        flex: 1,
+        fontSize: 14,
+        color: t.colors.textHi,
+      },
+      setlistPct: {
+        fontFamily: fontFamilies.monoSemi,
+        fontSize: 11,
+        color: accent.hex,
+        fontWeight: '600',
+      },
+
+      // Spoiler box
+      spoilerBox: {
+        marginTop: 12,
+        backgroundColor: t.colors.surface,
+        borderRadius: radius.md,
+        padding: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+      },
+      spoilerText: {
+        fontSize: 13,
+        color: t.colors.textMuted,
+        fontWeight: '500',
+      },
+    };
+  });
+
   // ── Loading / Error ─────────────────────────────────────────────────
   if (loading && !show) {
     return (
@@ -211,7 +482,7 @@ export default function PlannedShowCard() {
             <View style={StyleSheet.absoluteFill}>
               {/* Using a gradient placeholder behind the image */}
               <LinearGradient
-                colors={[accentSets.purple.hex, accentSets.cyan.hex]}
+                colors={[tokens.accentSets.purple.hex, tokens.accentSets.cyan.hex]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -224,7 +495,7 @@ export default function PlannedShowCard() {
             </View>
           ) : (
             <LinearGradient
-              colors={[accentSets.purple.hex, colors.ink]}
+              colors={[tokens.accentSets.purple.hex, tokens.colors.ink]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -232,7 +503,7 @@ export default function PlannedShowCard() {
               <Text style={styles.heroInitial}>{artistInitial}</Text>
             </LinearGradient>
           )}
-          {/* Scrim */}
+          {/* Scrim — fixed dark scrim over the hero image */}
           <LinearGradient
             colors={['transparent', 'rgba(11,11,20,0.9)']}
             locations={[0.3, 1]}
@@ -244,7 +515,7 @@ export default function PlannedShowCard() {
             style={[styles.backBtn, { top: insets.top + 8 }]}
             accessibilityRole="button"
           >
-            <Ionicons name="arrow-back" size={20} color={colors.textHi} />
+            <Ionicons name="arrow-back" size={20} color={tokens.colors.textHi} />
           </Pressable>
           {/* Bottom info */}
           <View style={styles.heroBottom}>
@@ -260,7 +531,7 @@ export default function PlannedShowCard() {
         {/* ── Countdown ──────────────────────────────────────── */}
         {countdown && (
           <View style={styles.countdownCard}>
-            <MonoLabel size={9.5} color={colors.textLo}>SHOW IN</MonoLabel>
+            <MonoLabel size={9.5} color={tokens.colors.textLo}>SHOW IN</MonoLabel>
             <View style={styles.countdownRow}>
               <Text style={styles.countdownValue}>{countdown.value}</Text>
               <Text style={styles.countdownUnit}>{countdown.unit}</Text>
@@ -276,7 +547,7 @@ export default function PlannedShowCard() {
         {/* ── Presale countdown (if presale has not started) ── */}
         {presaleCountdown && show.presale && (
           <View style={styles.countdownCard}>
-            <MonoLabel size={9.5} color={colors.textLo}>TICKETS DROP IN</MonoLabel>
+            <MonoLabel size={9.5} color={tokens.colors.textLo}>TICKETS DROP IN</MonoLabel>
             <View style={styles.countdownRow}>
               <Text style={styles.countdownValue}>{presaleCountdown.value}</Text>
               <Text style={styles.countdownUnit}>{presaleCountdown.unit}</Text>
@@ -328,7 +599,7 @@ export default function PlannedShowCard() {
             </View>
             {show.presale.code ? (
               <View style={styles.presaleCodeBox}>
-                <MonoLabel size={9.5} color={colors.textLo}>CODE</MonoLabel>
+                <MonoLabel size={9.5} color={tokens.colors.textLo}>CODE</MonoLabel>
                 <Text style={styles.presaleCode}>{show.presale.code}</Text>
               </View>
             ) : null}
@@ -392,7 +663,7 @@ export default function PlannedShowCard() {
               </View>
             ) : (
               <Pressable style={styles.spoilerBox} onPress={() => setSpoilerRevealed(true)}>
-                <Ionicons name="eye-off" size={24} color={colors.textMuted} />
+                <Ionicons name="eye-off" size={24} color={tokens.colors.textMuted} />
                 <Text style={styles.spoilerText}>Tap to reveal predictions</Text>
               </Pressable>
             )}
@@ -420,273 +691,3 @@ export default function PlannedShowCard() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  center: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  errorText: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-
-  // Hero
-  hero: {
-    height: 260,
-    justifyContent: 'flex-end',
-  },
-  heroInitial: {
-    fontSize: 220,
-    fontWeight: '900',
-    color: 'rgba(255,255,255,0.08)',
-    position: 'absolute',
-    top: -20,
-    right: -10,
-    lineHeight: 260,
-  },
-  backBtn: {
-    position: 'absolute',
-    left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  heroBottom: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  heroArtist: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  heroVenue: {
-    fontSize: 14,
-    color: colors.textMid,
-    marginTop: 4,
-  },
-  heroDate: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 11,
-    color: colors.textLo,
-    letterSpacing: 1,
-    marginTop: 6,
-    textTransform: 'uppercase',
-  },
-
-  // Countdown
-  countdownCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: 14,
-    alignItems: 'center',
-  },
-  countdownRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 4,
-    gap: 6,
-  },
-  countdownValue: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: accent.hex,
-    fontVariant: ['tabular-nums'],
-  },
-  countdownUnit: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textLo,
-    letterSpacing: 1.5,
-  },
-  doorsText: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10,
-    color: colors.textMuted,
-    marginTop: 6,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-
-  // Sections
-  section: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 8,
-  },
-
-  // Ticket
-  ticketRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 12,
-  },
-  ticketIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.md,
-    backgroundColor: accent.soft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ticketLabel: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textHi,
-    letterSpacing: 1,
-  },
-
-  // Presale
-  presaleInfoBox: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: accent.soft,
-    borderRadius: radius.md,
-    padding: 14,
-  },
-  presaleInfoText: {
-    fontSize: 14,
-    color: colors.textHi,
-    lineHeight: 20,
-  },
-  presaleCodeBox: {
-    marginTop: 10,
-    backgroundColor: colors.ink,
-    borderWidth: 1,
-    borderColor: accent.line,
-    borderStyle: 'dashed',
-    borderRadius: radius.md,
-    padding: 14,
-    alignItems: 'center',
-  },
-  presaleCode: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 12,
-    fontWeight: '700',
-    color: accent.hex,
-    letterSpacing: 3,
-    marginTop: 6,
-  },
-
-  // Friends
-  friendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-  },
-  friendName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  friendStatus: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 9.5,
-    color: colors.textLo,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  messageBtn: {
-    borderWidth: 1,
-    borderColor: accent.hex,
-    borderRadius: radius.full,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  messageBtnText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10,
-    fontWeight: '600',
-    color: accent.hex,
-    letterSpacing: 1,
-  },
-
-  // Weather
-  weatherRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 12,
-  },
-  weatherEmoji: {
-    fontSize: 40,
-  },
-  weatherTemp: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  weatherCondition: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10,
-    color: colors.textLo,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-
-  // Setlist predictions
-  setlistList: {
-    marginTop: 12,
-  },
-  setlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  setlistNum: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 12,
-    color: colors.textMuted,
-    width: 28,
-  },
-  setlistSong: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textHi,
-  },
-  setlistPct: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 11,
-    color: accent.hex,
-    fontWeight: '600',
-  },
-
-  // Spoiler box
-  spoilerBox: {
-    marginTop: 12,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  spoilerText: {
-    fontSize: 13,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-});

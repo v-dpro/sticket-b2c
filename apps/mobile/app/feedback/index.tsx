@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
 import { submitFeedback, type FeedbackType } from '../../lib/api/feedback';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
@@ -13,10 +14,90 @@ export default function FeedbackScreen() {
   const router = useRouter();
   const { user } = useSession();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
 
   const [type, setType] = useState<FeedbackType>('bug');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+
+  const styles = useThemedStyles((t) => ({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: t.colors.textHi,
+    },
+    subtitle: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+      fontSize: 14,
+      fontWeight: '700',
+      color: t.colors.textMid,
+      lineHeight: 20,
+    },
+    typeRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    typeChip: {
+      flex: 1,
+      backgroundColor: t.colors.inkAlt,
+      borderRadius: radius.md,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    typeChipActive: {
+      borderColor: t.colors.brandPurple,
+      backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    },
+    typeText: {
+      fontSize: 13,
+      fontWeight: '900',
+      color: t.colors.textLo,
+    },
+    typeTextActive: {
+      color: t.colors.brandPurple,
+    },
+    input: {
+      backgroundColor: t.colors.inkAlt,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      color: t.colors.textHi,
+      fontSize: 15,
+      height: 180,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      marginBottom: spacing.md,
+    },
+    submit: {
+      backgroundColor: t.colors.brandPurple,
+      borderRadius: radius.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    submitDisabled: {
+      opacity: 0.7,
+    },
+    submitText: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: t.colors.textHi,
+    },
+  }));
 
   const placeholder = useMemo(() => {
     if (type === 'bug') return 'Describe the bug you encountered…';
@@ -49,7 +130,7 @@ export default function FeedbackScreen() {
 
       <View style={styles.header}>
         <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Feedback</Text>
         <View style={{ width: 40 }} />
@@ -78,7 +159,7 @@ export default function FeedbackScreen() {
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor={colors.textLo}
+        placeholderTextColor={tokens.colors.textLo}
         value={message}
         onChangeText={setMessage}
         multiline
@@ -91,92 +172,13 @@ export default function FeedbackScreen() {
         disabled={sending}
         accessibilityRole="button"
       >
-        {sending ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Submit</Text>}
+        {sending ? <ActivityIndicator color={tokens.colors.textHi} /> : <Text style={styles.submitText}>Submit</Text>}
       </Pressable>
 
       <View style={{ height: spacing.lg }} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  subtitle: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textMid,
-    lineHeight: 20,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  typeChip: {
-    flex: 1,
-    backgroundColor: colors.inkAlt,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  typeChipActive: {
-    borderColor: colors.brandPurple,
-    backgroundColor: 'rgba(139, 92, 246, 0.18)',
-  },
-  typeText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: colors.textLo,
-  },
-  typeTextActive: {
-    color: colors.brandPurple,
-  },
-  input: {
-    backgroundColor: colors.inkAlt,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    color: colors.textHi,
-    fontSize: 15,
-    height: 180,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    marginBottom: spacing.md,
-  },
-  submit: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  submitDisabled: {
-    opacity: 0.7,
-  },
-  submitText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-});
 
 
 

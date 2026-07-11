@@ -1,21 +1,35 @@
+// ONBOARDING · LOG FIRST SHOW — enters the existing log flow (/log/search)
+// and, on a logged show, the app/index gate takes over. If the user returns
+// here already having logged one, advance to find-friends. "Later" ghost
+// skips ahead to find-friends.
+
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ProgressDots } from '../../components/onboarding/ProgressDots';
-import { Button } from '../../components/ui/Button';
-import { Screen } from '../../components/ui/Screen';
-import { colors, spacing } from '../../lib/theme';
+import { PillButton } from '../../components/ui/PillButton';
+import { durations } from '../../lib/motion';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 
+const POINTS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { icon: 'time-outline', label: 'Past shows count — go as far back as you remember' },
+  { icon: 'star-outline', label: 'Rate it and it joins your ranked canon' },
+  { icon: 'people-outline', label: 'See who else was in the room' },
+];
+
 export default function LogFirstShowOnboarding() {
   const router = useRouter();
+  const { tokens } = useTheme();
   const { hasLoggedFirstShow } = useSession();
   const setFirstShowLogged = useOnboardingStore((s) => s.setFirstShowLogged);
 
-  // If they already logged, continue.
+  // If they already logged (e.g. returning to this step), continue.
   useEffect(() => {
     if (hasLoggedFirstShow) {
       setFirstShowLogged(true);
@@ -23,57 +37,76 @@ export default function LogFirstShowOnboarding() {
     }
   }, [hasLoggedFirstShow, router, setFirstShowLogged]);
 
-  const handleSkip = async () => {
-    // Mark onboarding as complete and go to main app
-    await SecureStore.setItemAsync('onboarding_complete', 'true');
-    router.replace('/(tabs)/explore');
-  };
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    header: { paddingHorizontal: t.density.pad, paddingTop: 8, paddingBottom: 4 },
+    body: { flex: 1, paddingHorizontal: t.density.pad, paddingTop: 28, gap: 10 },
+    mark: {
+      width: 56,
+      height: 56,
+      borderRadius: t.radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.card2,
+      marginBottom: 8,
+    },
+    title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    subtitle: { fontSize: 15, fontWeight: '400', color: t.colors.mute, lineHeight: 21, marginBottom: 12 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    rowIcon: { width: 30, alignItems: 'center' },
+    rowLabel: { flex: 1, fontSize: 14.5, fontWeight: '500', color: t.colors.textSoft },
+    footer: { paddingHorizontal: t.density.pad, paddingBottom: 12, gap: 10 },
+  }));
 
   return (
-    <Screen>
-      <View style={{ flex: 1, paddingTop: spacing.lg, gap: spacing.lg, justifyContent: 'space-between' }}>
-        <View style={{ alignItems: 'center' }}>
-          <ProgressDots total={4} current={2} />
-        </View>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.header}>
+        <ProgressDots total={6} current={4} />
+      </View>
 
-        <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Log your first show</Text>
-          <Text style={{ color: colors.textMid, fontSize: 16 }}>
-            What's a show you've been to? This unlocks the app.
-          </Text>
-        </View>
+      <View style={styles.body}>
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.mark}>
+          <Ionicons name="ticket-outline" size={26} color={tokens.colors.fg} />
+        </Animated.View>
+        <Animated.Text entering={FadeInDown.delay(60).duration(300)} style={styles.title}>
+          Add your first show
+        </Animated.Text>
+        <Animated.Text entering={FadeInDown.delay(100).duration(300)} style={styles.subtitle}>
+          Log a show you’ve been to and your live-events timeline starts filling in.
+        </Animated.Text>
 
-        <View style={{ gap: spacing.md }}>
-          <Button label="Search a show" onPress={() => router.push('/log/search')} />
-          <Button label="Create show" variant="secondary" onPress={() => router.push('/log/create-show')} />
-          
-          {/* Skip Button */}
-          <Pressable
-            style={styles.skipButton}
-            onPress={handleSkip}
-            accessibilityRole="button"
-          >
-            <Text style={styles.skipButtonText}>Skip for now</Text>
-          </Pressable>
+        <View style={{ gap: 14, marginTop: 4 }}>
+          {POINTS.map((p, i) => (
+            <Animated.View
+              key={p.label}
+              entering={FadeInDown.delay(160 + i * durations.stagger).duration(280)}
+              style={styles.row}
+            >
+              <View style={styles.rowIcon}>
+                <Ionicons name={p.icon} size={19} color={tokens.colors.mute} />
+              </View>
+              <Text style={styles.rowLabel}>{p.label}</Text>
+            </Animated.View>
+          ))}
         </View>
       </View>
-    </Screen>
+
+      <Animated.View entering={FadeInDown.delay(300).duration(300)} style={styles.footer}>
+        <PillButton
+          title="Log a show"
+          size="lg"
+          springFeedback
+          haptic="light"
+          onPress={() => router.push('/log/search')}
+        />
+        <PillButton
+          title="Later"
+          variant="ghost"
+          size="lg"
+          springFeedback
+          onPress={() => router.push('/(onboarding)/find-friends')}
+        />
+      </Animated.View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  skipButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  skipButtonText: {
-    color: colors.textMid,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
-
-
-

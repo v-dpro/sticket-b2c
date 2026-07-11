@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, gradients } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 export type Milestone = {
   id: string;
@@ -17,11 +17,47 @@ interface MilestoneCardProps {
 }
 
 export function MilestoneCard({ milestone }: MilestoneCardProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    wrap: {
+      marginHorizontal: 16,
+      marginBottom: 12,
+    },
+    card: {
+      borderRadius: 16,
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    iconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(10, 11, 30, 0.25)', // dark tint over gradient card
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.25)', // light ring over gradient card
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: t.colors.white, // over rainbow gradient
+    },
+    subtitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: 'rgba(255,255,255,0.85)', // over rainbow gradient
+      marginTop: 2,
+    },
+  }));
+
   return (
     <View style={styles.wrap}>
-      <LinearGradient colors={[...gradients.rainbow]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.card}>
+      <LinearGradient colors={[...tokens.gradients.rainbow]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.card}>
         <View style={styles.iconCircle}>
-          <Ionicons name={milestone.icon || 'sparkles'} size={18} color={colors.textHi} />
+          <Ionicons name={milestone.icon || 'sparkles'} size={18} color={tokens.colors.white} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{milestone.title}</Text>
@@ -31,41 +67,3 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(10, 11, 30, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  subtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 2,
-  },
-});
-
-
-

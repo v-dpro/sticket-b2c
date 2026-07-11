@@ -1,18 +1,56 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, TextInput, View } from 'react-native';
 
-import { Button } from '../../components/ui/Button';
 import { ErrorState } from '../../components/ui/ErrorState';
-import { Screen } from '../../components/ui/Screen';
-import { TextField } from '../../components/ui/TextField';
-import { colors, spacing } from '../../lib/theme';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { deleteTicket, getTicket, updateTicket } from '../../lib/api/tickets';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import type { TicketStatus } from '../../types/ticket';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 const statuses: TicketStatus[] = ['KEEPING', 'SELLING', 'SOLD'];
+
+function Field({
+  label,
+  placeholder,
+  value,
+  onChangeText,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (t: string) => void;
+}) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    label: { color: t.colors.mute, fontSize: 13, marginBottom: 6, fontWeight: '500' },
+    input: {
+      height: 48,
+      borderRadius: t.radius.md,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      paddingHorizontal: 14,
+      color: t.colors.fg,
+      fontSize: 16,
+    },
+  }));
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={tokens.colors.muteSoft}
+        value={value}
+        onChangeText={onChangeText}
+      />
+    </View>
+  );
+}
 
 export default function EditTicket() {
   const router = useRouter();
@@ -29,6 +67,22 @@ export default function EditTicket() {
   const [row, setRow] = useState('');
   const [seat, setSeat] = useState('');
   const [barcode, setBarcode] = useState('');
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg, paddingHorizontal: 24 },
+    title: { color: t.colors.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
+    subtitle: { color: t.colors.mute },
+    segment: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 999,
+      alignItems: 'center',
+      backgroundColor: t.colors.card2,
+    },
+    segmentActive: { backgroundColor: t.colors.inverseBg },
+    segmentText: { color: t.colors.text, fontWeight: '600' },
+    segmentTextActive: { color: t.colors.inverseFg },
+  }));
 
   const loadTicket = useCallback(async () => {
     if (!ticketId) return;
@@ -93,65 +147,68 @@ export default function EditTicket() {
 
   if (loadError) {
     return (
-      <Screen>
+      <View style={styles.screen}>
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <ErrorState title="Couldn't load ticket" message={loadError} onRetry={loadTicket} />
         </View>
-      </Screen>
+      </View>
     );
   }
 
   return (
-    <Screen>
-      <View style={{ paddingTop: spacing.lg, gap: spacing.lg }}>
+    <View style={styles.screen}>
+      <View style={{ paddingTop: 24, gap: 24 }}>
         <View style={{ gap: 6 }}>
-          <Text style={{ color: colors.textHi, fontSize: 24, fontWeight: '900' }}>Edit ticket</Text>
-          <Text style={{ color: colors.textMid }}>{isLoading ? 'Loading…' : eventTitle}</Text>
+          <Text style={styles.title}>Edit ticket</Text>
+          <Text style={styles.subtitle}>{isLoading ? 'Loading…' : eventTitle}</Text>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {statuses.map((s) => {
             const active = s === status;
             return (
-              <Pressable
+              <SpringPressable
                 key={s}
                 onPress={() => setStatus(s)}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: active ? colors.brandCyan : colors.hairline,
-                  backgroundColor: active ? colors.elevated : colors.surface,
-                  opacity: pressed ? 0.85 : 1,
-                  alignItems: 'center',
-                })}
+                haptic="light"
+                style={[styles.segment, active && styles.segmentActive]}
+                accessibilityRole="button"
               >
-                <Text style={{ color: active ? colors.brandCyan : colors.textMid, fontWeight: '800' }}>{s}</Text>
-              </Pressable>
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{s}</Text>
+              </SpringPressable>
             );
           })}
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <TextField label="Section" placeholder="101" value={section} onChangeText={setSection} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <TextField label="Row" placeholder="B" value={row} onChangeText={setRow} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <TextField label="Seat" placeholder="12" value={seat} onChangeText={setSeat} />
-          </View>
+          <Field label="Section" placeholder="101" value={section} onChangeText={setSection} />
+          <Field label="Row" placeholder="B" value={row} onChangeText={setRow} />
+          <Field label="Seat" placeholder="12" value={seat} onChangeText={setSeat} />
         </View>
 
-        <TextField label="Barcode (optional)" placeholder="1234 5678 9012" value={barcode} onChangeText={setBarcode} />
+        <Field label="Barcode (optional)" placeholder="1234 5678 9012" value={barcode} onChangeText={setBarcode} />
 
-        <View style={{ marginTop: spacing.lg, gap: 12 }}>
-          <Button label={isSaving ? 'Saving…' : 'Save changes'} disabled={isSaving || isLoading} onPress={onSave} />
-          <Button label="Delete ticket" variant="danger" disabled={isSaving || isLoading} onPress={onDelete} />
+        <View style={{ marginTop: 8, gap: 12 }}>
+          <PillButton
+            title={isSaving ? 'Saving…' : 'Save changes'}
+            variant="primary"
+            size="lg"
+            disabled={isSaving || isLoading}
+            onPress={onSave}
+            springFeedback
+            haptic="medium"
+          />
+          <PillButton
+            title="Delete ticket"
+            variant="ghost"
+            size="lg"
+            disabled={isSaving || isLoading}
+            onPress={onDelete}
+            springFeedback
+            haptic="heavy"
+          />
         </View>
       </View>
-    </Screen>
+    </View>
   );
 }

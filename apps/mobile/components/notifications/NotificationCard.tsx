@@ -1,16 +1,19 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
 
 import type { Notification, NotificationType } from '../../types/notification';
-import { colors } from '../../lib/theme';
+import type { ThemeColors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface NotificationCardProps {
   notification: Notification;
   onPress: () => void;
 }
 
-const NOTIFICATION_ICONS: Record<NotificationType, { name: React.ComponentProps<typeof Ionicons>['name']; color: string }> = {
+const makeNotificationIcons = (
+  colors: ThemeColors,
+): Record<NotificationType, { name: React.ComponentProps<typeof Ionicons>['name']; color: string }> => ({
   follow: { name: 'person-add', color: colors.brandPurple },
   comment: { name: 'chatbubble', color: colors.brandCyan },
   tag: { name: 'pricetag', color: colors.warning },
@@ -20,10 +23,78 @@ const NOTIFICATION_ICONS: Record<NotificationType, { name: React.ComponentProps<
   show_reminder: { name: 'alarm', color: colors.error },
   post_show: { name: 'star', color: colors.warning },
   friend_logged: { name: 'musical-notes', color: colors.brandPurple },
-};
+});
 
 export function NotificationCard({ notification, onPress }: NotificationCardProps) {
-  const icon = NOTIFICATION_ICONS[notification.type];
+  const { tokens } = useTheme();
+  const icon = makeNotificationIcons(tokens.colors)[notification.type];
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      backgroundColor: t.colors.inkAlt,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    unread: {
+      backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    },
+    iconContainer: {
+      position: 'relative',
+      marginRight: 12,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+    },
+    iconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    typeBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: t.colors.inkAlt,
+    },
+    content: {
+      flex: 1,
+    },
+    body: {
+      fontSize: 14,
+      color: t.colors.textMid,
+      lineHeight: 20,
+    },
+    actor: {
+      fontWeight: '800',
+      color: t.colors.textHi,
+    },
+    time: {
+      fontSize: 12,
+      color: t.colors.textLo,
+      marginTop: 4,
+    },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: t.colors.brandPurple,
+      marginLeft: 8,
+      marginTop: 8,
+    },
+  }));
 
   return (
     <Pressable style={[styles.container, !notification.read && styles.unread]} onPress={onPress}>
@@ -37,7 +108,7 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
         )}
 
         <View style={[styles.typeBadge, { backgroundColor: icon.color }]}>
-          <Ionicons name={icon.name} size={10} color={colors.textHi} />
+          <Ionicons name={icon.name} size={10} color={tokens.colors.onAccent} />
         </View>
       </View>
 
@@ -55,74 +126,3 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: colors.inkAlt,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  unread: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-  },
-  iconContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  typeBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.inkAlt,
-  },
-  content: {
-    flex: 1,
-  },
-  body: {
-    fontSize: 14,
-    color: colors.textMid,
-    lineHeight: 20,
-  },
-  actor: {
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  time: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 4,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.brandPurple,
-    marginLeft: 8,
-    marginTop: 8,
-  },
-});
-
-
-

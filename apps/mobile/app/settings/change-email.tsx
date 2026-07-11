@@ -1,19 +1,54 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Screen } from '../../components/ui/Screen';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { changeEmail } from '../../lib/api/settings';
-import { colors, radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ChangeEmailScreen() {
-  const router = useRouter();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingTop: t.spacing.md,
+      paddingBottom: 12,
+    },
+    backButton: { width: 40, height: 40, justifyContent: 'center' },
+    title: { fontSize: 20, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.3 },
+    scrollView: { flex: 1, padding: t.density.pad },
+    description: {
+      fontSize: 14,
+      color: t.colors.textSoft,
+      marginBottom: t.spacing.lg,
+      fontWeight: '400',
+      lineHeight: 20,
+    },
+    inputGroup: { marginBottom: t.spacing.md },
+    label: { fontSize: 13, fontWeight: '600', color: t.colors.fg, marginBottom: 8 },
+    inputContainer: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    input: { height: 48, color: t.colors.fg, fontSize: 15, fontWeight: '500' },
+    submitWrap: { marginTop: t.spacing.lg },
+  }));
 
   const handleSubmit = async () => {
     const email = newEmail.trim().toLowerCase();
@@ -34,13 +69,13 @@ export default function ChangeEmailScreen() {
   };
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.title}>Change Email</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -54,7 +89,7 @@ export default function ChangeEmailScreen() {
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
-              placeholderTextColor={colors.textLo}
+              placeholderTextColor={tokens.colors.muteSoft}
               value={newEmail}
               onChangeText={setNewEmail}
               autoCapitalize="none"
@@ -69,7 +104,7 @@ export default function ChangeEmailScreen() {
             <TextInput
               style={styles.input}
               placeholder="Password"
-              placeholderTextColor={colors.textLo}
+              placeholderTextColor={tokens.colors.muteSoft}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -77,83 +112,20 @@ export default function ChangeEmailScreen() {
           </View>
         </View>
 
-        <Pressable style={[styles.submitButton, loading && styles.submitButtonDisabled]} onPress={() => void handleSubmit()} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.textHi} /> : <Text style={styles.submitText}>Change Email</Text>}
-        </Pressable>
+        <View style={styles.submitWrap}>
+          <PillButton
+            title={loading ? 'Changing…' : 'Change Email'}
+            variant="primary"
+            size="lg"
+            onPress={() => void handleSubmit()}
+            disabled={loading}
+            springFeedback
+            haptic="medium"
+          />
+        </View>
 
         <View style={{ height: 80 }} />
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16,
-  },
-  description: {
-    fontSize: 14,
-    color: colors.textMid,
-    marginBottom: spacing.lg,
-    fontWeight: '600',
-  },
-  inputGroup: {
-    marginBottom: spacing.md,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textHi,
-    marginBottom: 8,
-  },
-  inputContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  input: {
-    height: 48,
-    color: colors.textHi,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  submitButton: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: spacing.lg,
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-});
-
-
-

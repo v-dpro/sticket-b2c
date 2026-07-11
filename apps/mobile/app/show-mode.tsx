@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,14 +15,14 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, fontFamilies } from '../lib/theme';
+import { useTheme, useThemedStyles } from '../lib/theme-context';
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { uploadShowPhoto, getShowPhotos } from '../lib/api/showMedia';
 import { useSafeBack } from '../lib/navigation/safeNavigation';
 import { PillButton } from '../components/ui/PillButton';
 import { MonoLabel } from '../components/ui/MonoLabel';
+import { SpringPressable } from '../components/ui/SpringPressable';
 
 type MediaItem = {
   id: string;
@@ -32,6 +32,7 @@ type MediaItem = {
 };
 
 function PulsingDot() {
+  const { tokens } = useTheme();
   const opacity = useSharedValue(1);
 
   useEffect(() => {
@@ -47,15 +48,28 @@ function PulsingDot() {
   }));
 
   return (
-    <Animated.View style={[styles.pulsingDot, animStyle]} />
+    <Animated.View
+      style={[{ width: 6, height: 6, borderRadius: 3, backgroundColor: tokens.colors.error }, animStyle]}
+    />
   );
 }
 
 function CountdownCell({ value, label }: { value: string; label: string }) {
+  const { tokens } = useTheme();
   return (
-    <View style={styles.countdownCell}>
-      <Text style={styles.countdownNumber}>{value}</Text>
-      <MonoLabel size={9} color={colors.red}>{label}</MonoLabel>
+    <View style={{ alignItems: 'center', minWidth: 52 }}>
+      <Text
+        style={{
+          fontFamily: tokens.fontFamilies.monoBold,
+          fontSize: 34,
+          fontWeight: '700',
+          color: tokens.colors.fg,
+          marginBottom: 2,
+        }}
+      >
+        {value}
+      </Text>
+      <MonoLabel size={9} color={tokens.colors.error}>{label}</MonoLabel>
     </View>
   );
 }
@@ -85,6 +99,7 @@ function useCountdown(targetDate?: Date) {
 export default function ShowModeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { tokens } = useTheme();
   const { ticketId, eventId } = useLocalSearchParams<{ ticketId?: string; eventId?: string }>();
   const goBack = useSafeBack();
 
@@ -97,6 +112,44 @@ export default function ShowModeScreen() {
 
   const { ticket } = useTicketDetail(ticketId || '');
   const captureScale = useSharedValue(1);
+
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20 },
+    content: { flex: 1, justifyContent: 'center', paddingHorizontal: 28 },
+    liveRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+    artistName: {
+      fontSize: 48,
+      fontWeight: '800',
+      letterSpacing: -1.5,
+      color: t.colors.fg,
+    },
+    countdownBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.xl,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      marginTop: 32,
+      paddingVertical: 18,
+      paddingHorizontal: 24,
+      alignSelf: 'flex-start',
+    },
+    countdownDivider: {
+      width: StyleSheet.hairlineWidth,
+      height: 36,
+      backgroundColor: t.colors.line,
+      marginHorizontal: 14,
+    },
+    actions: { paddingHorizontal: 28 },
+    permissionText: {
+      color: t.colors.fg,
+      fontSize: 16,
+      textAlign: 'center',
+      padding: 32,
+    },
+  }));
 
   const eventData = ticket?.event as Record<string, unknown> | undefined;
   const doorsDate = eventData?.doorsAt
@@ -208,12 +261,12 @@ export default function ShowModeScreen() {
 
     if (!permission.granted) {
       return (
-        <View style={styles.container}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
           <Stack.Screen options={{ headerShown: false }} />
           <Text style={styles.permissionText}>Camera access is required to capture moments from your show.</Text>
-          <PillButton title="Grant Access" onPress={() => void requestPermission()} variant="solid" size="lg" />
+          <PillButton title="Grant Access" onPress={() => void requestPermission()} variant="primary" size="lg" springFeedback haptic="light" />
           <View style={{ height: 12 }} />
-          <PillButton title="Go Back" onPress={() => setShowCamera(false)} variant="ghost" size="lg" />
+          <PillButton title="Go Back" onPress={() => setShowCamera(false)} variant="ghost" size="lg" springFeedback haptic="light" />
         </View>
       );
     }
@@ -221,55 +274,55 @@ export default function ShowModeScreen() {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <CameraView ref={cameraRef} style={styles.camera} facing={cameraFacing} flash={flash}>
+        <CameraView ref={cameraRef} style={cameraStyles.camera} facing={cameraFacing} flash={flash}>
           {/* Top Controls */}
-          <View style={[styles.cameraTopControls, { paddingTop: insets.top + 8 }]}>
-            <Pressable onPress={() => setShowCamera(false)} style={styles.controlButton} accessibilityRole="button">
-              <BlurView intensity={50} style={styles.blurButton}>
-                <Ionicons name="close" size={24} color={colors.textHi} />
+          <View style={[cameraStyles.cameraTopControls, { paddingTop: insets.top + 8 }]}>
+            <SpringPressable onPress={() => setShowCamera(false)} haptic="light" style={cameraStyles.controlButton} accessibilityRole="button">
+              <BlurView intensity={50} style={cameraStyles.blurButton}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
               </BlurView>
-            </Pressable>
+            </SpringPressable>
 
-            <View style={styles.cameraLiveIndicator}>
-              <View style={styles.cameraLiveDot} />
-              <Text style={styles.cameraLiveText}>REC</Text>
+            <View style={cameraStyles.cameraLiveIndicator}>
+              <View style={cameraStyles.cameraLiveDot} />
+              <Text style={cameraStyles.cameraLiveText}>REC</Text>
             </View>
 
-            <Pressable onPress={handleToggleFlash} style={styles.controlButton} accessibilityRole="button">
-              <BlurView intensity={50} style={styles.blurButton}>
-                <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color={colors.textHi} />
+            <SpringPressable onPress={handleToggleFlash} haptic="light" style={cameraStyles.controlButton} accessibilityRole="button">
+              <BlurView intensity={50} style={cameraStyles.blurButton}>
+                <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={24} color="#FFFFFF" />
               </BlurView>
-            </Pressable>
+            </SpringPressable>
           </View>
 
           {/* Bottom Controls */}
-          <View style={[styles.cameraBottomControls, { paddingBottom: insets.bottom + 16 }]}>
-            <Pressable onPress={handlePickImage} style={styles.galleryButton} accessibilityRole="button">
+          <View style={[cameraStyles.cameraBottomControls, { paddingBottom: insets.bottom + 16 }]}>
+            <SpringPressable onPress={handlePickImage} haptic="light" style={cameraStyles.galleryButton} accessibilityRole="button">
               {mediaItems.length > 0 ? (
-                <Image source={{ uri: mediaItems[0].uri }} style={styles.galleryPreview} />
+                <Image source={{ uri: mediaItems[0].uri }} style={cameraStyles.galleryPreview} />
               ) : (
-                <View style={styles.galleryPlaceholder}>
-                  <Ionicons name="images" size={24} color={colors.textHi} />
+                <View style={cameraStyles.galleryPlaceholder}>
+                  <Ionicons name="images" size={24} color="#FFFFFF" />
                 </View>
               )}
               {mediaItems.length > 0 ? (
-                <View style={styles.galleryCount}>
-                  <Text style={styles.galleryCountText}>{mediaItems.length}</Text>
+                <View style={[cameraStyles.galleryCount, { backgroundColor: tokens.colors.accent }]}>
+                  <Text style={cameraStyles.galleryCountText}>{mediaItems.length}</Text>
                 </View>
               ) : null}
-            </Pressable>
+            </SpringPressable>
 
             <Animated.View style={captureButtonStyle}>
-              <Pressable onPress={handleCapture} style={styles.captureButton} accessibilityRole="button">
-                <View style={styles.captureButtonInner} />
-              </Pressable>
+              <SpringPressable onPress={handleCapture} haptic="medium" style={cameraStyles.captureButton} accessibilityRole="button">
+                <View style={cameraStyles.captureButtonInner} />
+              </SpringPressable>
             </Animated.View>
 
-            <Pressable onPress={handleFlipCamera} style={styles.flipButton} accessibilityRole="button">
-              <BlurView intensity={50} style={styles.blurButton}>
-                <Ionicons name="camera-reverse" size={24} color={colors.textHi} />
+            <SpringPressable onPress={handleFlipCamera} haptic="light" style={cameraStyles.flipButton} accessibilityRole="button">
+              <BlurView intensity={50} style={cameraStyles.blurButton}>
+                <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
               </BlurView>
-            </Pressable>
+            </SpringPressable>
           </View>
         </CameraView>
       </View>
@@ -283,28 +336,24 @@ export default function ShowModeScreen() {
 
   if (!eventId) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <Text style={styles.permissionText}>Missing event. Try opening Show Mode from today's ticket.</Text>
-        <PillButton title="Go Back" onPress={handleClose} variant="ghost" size="lg" />
+        <PillButton title="Go Back" onPress={handleClose} variant="ghost" size="lg" springFeedback haptic="light" />
       </View>
     );
   }
 
   // ---------- Main show-mode companion ----------
   return (
-    <LinearGradient
-      colors={['rgba(255,77,94,0.08)', colors.ink, colors.ink]}
-      locations={[0, 0.45, 1]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Close button */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={handleClose} hitSlop={12} accessibilityRole="button">
-          <Ionicons name="close" size={24} color={colors.textMid} />
-        </Pressable>
+        <SpringPressable onPress={handleClose} haptic="light" hitSlop={12} accessibilityRole="button">
+          <Ionicons name="close" size={24} color={tokens.colors.mute} />
+        </SpringPressable>
       </View>
 
       {/* Content */}
@@ -312,7 +361,7 @@ export default function ShowModeScreen() {
         {/* Live indicator */}
         <View style={styles.liveRow}>
           <PulsingDot />
-          <MonoLabel size={10.5} color={colors.red}>LIVE  ·  TONIGHT</MonoLabel>
+          <MonoLabel size={10.5} color={tokens.colors.error}>LIVE  ·  TONIGHT</MonoLabel>
         </View>
 
         {/* Artist name */}
@@ -321,7 +370,7 @@ export default function ShowModeScreen() {
         </Text>
 
         {/* Venue */}
-        <MonoLabel size={12} color={colors.textLo} style={{ marginTop: 8 }}>
+        <MonoLabel size={12} color={tokens.colors.mute} style={{ marginTop: 8 }}>
           {(ticket?.event?.venue?.name ?? '').toUpperCase()}
         </MonoLabel>
 
@@ -340,11 +389,12 @@ export default function ShowModeScreen() {
       {/* Action buttons */}
       <View style={[styles.actions, { paddingBottom: insets.bottom + 24 }]}>
         <PillButton
-          title="SHOW TICKET"
+          title="Show ticket"
           onPress={handleShowTicket}
-          variant="solid"
+          variant="primary"
           size="lg"
-          accentColor={colors.red}
+          springFeedback
+          haptic="medium"
         />
         <View style={{ height: 10 }} />
         <PillButton
@@ -352,7 +402,9 @@ export default function ShowModeScreen() {
           onPress={handleCapturePress}
           variant="ghost"
           size="lg"
-          icon={<Ionicons name="camera-outline" size={18} color={colors.textHi} />}
+          springFeedback
+          haptic="light"
+          icon={<Ionicons name="camera-outline" size={18} color={tokens.colors.fg} />}
         />
         <View style={{ height: 10 }} />
         <PillButton
@@ -360,88 +412,18 @@ export default function ShowModeScreen() {
           onPress={handleDirections}
           variant="ghost"
           size="lg"
-          icon={<Ionicons name="navigate-outline" size={18} color={colors.textHi} />}
+          springFeedback
+          haptic="light"
+          icon={<Ionicons name="navigate-outline" size={18} color={tokens.colors.fg} />}
         />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-
-  // --- Top bar ---
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-  },
-
-  // --- Content ---
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  liveRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  pulsingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.red,
-  },
-  artistName: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 52,
-    letterSpacing: -1.5,
-    color: colors.textHi,
-  },
-
-  // --- Countdown ---
-  countdownBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    marginTop: 32,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    alignSelf: 'flex-start',
-  },
-  countdownCell: {
-    alignItems: 'center',
-    minWidth: 52,
-  },
-  countdownNumber: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 36,
-    color: colors.textHi,
-    marginBottom: 2,
-  },
-  countdownDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 36,
-    backgroundColor: colors.hairline,
-    marginHorizontal: 14,
-  },
-
-  // --- Actions ---
-  actions: {
-    paddingHorizontal: 28,
-    gap: 0,
-  },
-
-  // --- Camera view styles ---
+// Camera overlay controls sit on a live video feed — fixed white / dark scrim
+// (and a red REC pill) for guaranteed contrast, independent of app theme.
+const cameraStyles = StyleSheet.create({
   camera: {
     flex: 1,
     width: '100%',
@@ -479,10 +461,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
   },
   cameraLiveText: {
-    color: colors.textHi,
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
@@ -520,7 +502,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: colors.brandPurple,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -529,7 +510,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   galleryCountText: {
-    color: colors.textHi,
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -538,26 +519,18 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: colors.white,
+    borderColor: '#FFFFFF',
     padding: 4,
   },
   captureButtonInner: {
     flex: 1,
     borderRadius: 36,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
   },
   flipButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
     overflow: 'hidden',
-  },
-
-  // --- Permission / fallback ---
-  permissionText: {
-    color: colors.textHi,
-    fontSize: 16,
-    textAlign: 'center',
-    padding: 32,
   },
 });

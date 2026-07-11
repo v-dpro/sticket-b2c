@@ -1,213 +1,238 @@
-import * as Contacts from 'expo-contacts';
-import { Stack, useRouter } from 'expo-router';
+// ONBOARDING · FIND FRIENDS — contact-sync value prop + suggested users.
+// Suggestions load on mount (/users/suggestions); "Sync contacts" runs the
+// existing contacts wiring (useContactsSync → /users/contacts-sync). Follow
+// pills call /users/:id/follow. Continue / Skip → done.
+
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ProgressDots } from '../../components/onboarding/ProgressDots';
-import { Button } from '../../components/ui/Button';
-import { Screen } from '../../components/ui/Screen';
-import { colors, spacing } from '../../lib/theme';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { followUser } from '../../lib/api/profile';
+import { durations } from '../../lib/motion';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { useContactsSync } from '../../hooks/useContactsSync';
+import { useSuggestions } from '../../hooks/useSuggestions';
 
-type SuggestedFriend = {
-  id: string;
-  name: string;
-  subtitle: string;
-};
+type Row = { id: string; name: string; subtitle: string; avatarUrl?: string };
 
-function toStableId(text: string) {
-  return text
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+function FollowRow({
+  row,
+  followed,
+  onFollow,
+  onOpen,
+}: {
+  row: Row;
+  followed: boolean;
+  onFollow: () => void;
+  onOpen: () => void;
+}) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  const initial = row.name.trim()[0]?.toUpperCase() ?? '?';
+
+  return (
+    <SpringPressable
+      onPress={onOpen}
+      accessibilityRole="button"
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 }}
+    >
+      {row.avatarUrl ? (
+        <Image source={{ uri: row.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.card2 }} />
+      ) : (
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: c.card2,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '700', color: c.mute }}>{initial}</Text>
+        </View>
+      )}
+
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: c.fg }}>
+          {row.name}
+        </Text>
+        <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '400', color: c.mute }}>
+          {row.subtitle}
+        </Text>
+      </View>
+
+      <SpringPressable
+        onPress={onFollow}
+        haptic="light"
+        accessibilityRole="button"
+        accessibilityLabel={followed ? 'Following' : 'Follow'}
+        style={{
+          height: 34,
+          paddingHorizontal: 16,
+          borderRadius: 999,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: followed ? c.card2 : c.inverseBg,
+        }}
+      >
+        <Text style={{ fontSize: 13, fontWeight: '600', color: followed ? c.text : c.inverseFg }}>
+          {followed ? 'Following' : 'Follow'}
+        </Text>
+      </SpringPressable>
+    </SpringPressable>
+  );
 }
 
 export default function FindFriendsOnboarding() {
   const router = useRouter();
+  const { tokens } = useTheme();
 
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [suggestions, setSuggestions] = useState<SuggestedFriend[]>([]);
+  const { suggestions, loading: suggestionsLoading } = useSuggestions();
+  const { matches, loading: syncing, sync } = useContactsSync();
+
   const [followedIds, setFollowedIds] = useState<Set<string>>(() => new Set());
 
-  const followedCount = followedIds.size;
+  const rows: Row[] = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Row[] = [];
+    for (const m of matches) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      out.push({
+        id: m.id,
+        name: m.displayName || m.username,
+        subtitle: m.contactName ? `${m.contactName} · in your contacts` : `@${m.username}`,
+        avatarUrl: m.avatarUrl,
+      });
+    }
+    for (const s of suggestions) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      out.push({
+        id: s.id,
+        name: s.displayName || s.username,
+        subtitle: s.mutualFriends ? `${s.mutualFriends} mutual friends` : `@${s.username}`,
+        avatarUrl: s.avatarUrl,
+      });
+    }
+    return out.slice(0, 20);
+  }, [matches, suggestions]);
 
-  const listEmptyText = useMemo(() => {
-    if (isSyncing) return 'Looking through your contacts…';
-    if (suggestions.length > 0) return null;
-    return 'Sync your contacts to find friends already on Sticket.';
-  }, [isSyncing, suggestions.length]);
+  const followedCount = followedIds.size;
+  const listLoading = suggestionsLoading && matches.length === 0;
 
   const toggleFollow = (id: string) => {
+    const already = followedIds.has(id);
     setFollowedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
+      if (already) next.delete(id);
       else next.add(id);
       return next;
     });
+    if (!already) void followUser(id).catch(() => {});
   };
 
-  const syncContacts = async () => {
-    setIsSyncing(true);
-    try {
-      const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Allow contacts access to find friends.');
-        return;
-      }
-
-      const { data } = await Contacts.getContactsAsync({
-        fields: [Contacts.Fields.Emails, Contacts.Fields.PhoneNumbers],
-      });
-
-      const usable = data
-        .map((c) => {
-          const name = c.name?.trim();
-          const email = c.emails?.[0]?.email?.trim();
-          const phone = c.phoneNumbers?.[0]?.number?.trim();
-          if (!name || (!email && !phone)) return null;
-          return {
-            id: toStableId(`${name}-${email ?? phone ?? ''}`) || `contact-${c.id}`,
-            name,
-            subtitle: email ?? phone ?? 'Contact',
-          } satisfies SuggestedFriend;
-        })
-        .filter(Boolean) as SuggestedFriend[];
-
-      const deduped = Array.from(new Map(usable.map((u) => [u.id, u])).values()).slice(0, 20);
-      setSuggestions(deduped);
-
-      Alert.alert('Contacts synced', deduped.length ? `Found ${deduped.length} potential friends.` : 'No contacts with email/phone found.');
-    } catch (e) {
-      Alert.alert('Error', 'Failed to sync contacts.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const skip = () => {
-    router.push('/(onboarding)/done');
-  };
-
-  const continueNext = () => {
-    router.push('/(onboarding)/done');
-  };
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    header: { paddingHorizontal: t.density.pad, paddingTop: 8, paddingBottom: 4 },
+    body: { paddingHorizontal: t.density.pad, paddingTop: 24, gap: 12 },
+    title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    subtitle: { fontSize: 15, fontWeight: '400', color: t.colors.mute, lineHeight: 21, marginBottom: 4 },
+    sectionLabel: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      fontWeight: '600',
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+      marginTop: 6,
+    },
+    empty: { fontSize: 14, fontWeight: '400', color: t.colors.mute, paddingVertical: 20, textAlign: 'center' },
+    footer: { paddingHorizontal: t.density.pad, paddingTop: 12, paddingBottom: 12, gap: 10 },
+  }));
 
   return (
-    <Screen>
-      <Stack.Screen options={{ headerShown: false }} />
-
+    <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <View style={{ width: 60 }} />
-        <ProgressDots total={4} current={3} />
-        <Pressable onPress={skip} hitSlop={10}>
-          <Text style={styles.skipText}>Skip</Text>
-        </Pressable>
+        <ProgressDots total={6} current={5} />
       </View>
 
-      <View style={{ flex: 1, paddingTop: spacing.xl, gap: spacing.lg }}>
-        <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textHi, fontSize: 28, fontWeight: '800' }}>Find friends</Text>
-          <Text style={{ color: colors.textMid, fontSize: 16 }}>See what shows your friends are going to.</Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Animated.Text entering={FadeInDown.duration(300)} style={styles.title}>
+          Find your people
+        </Animated.Text>
+        <Animated.Text entering={FadeInDown.delay(60).duration(300)} style={styles.subtitle}>
+          Follow friends to see the shows they’re going to and the ones they loved.
+        </Animated.Text>
 
-        <Pressable style={styles.syncButton} onPress={syncContacts} disabled={isSyncing}>
-          {isSyncing ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Text style={styles.syncButtonText}>Sync Contacts</Text>
-          )}
-        </Pressable>
+        <Animated.View entering={FadeInDown.delay(120).duration(300)}>
+          <PillButton
+            title={syncing ? 'Syncing contacts…' : 'Sync contacts'}
+            variant="secondary"
+            size="lg"
+            springFeedback
+            haptic="light"
+            disabled={syncing}
+            icon={
+              syncing ? (
+                <ActivityIndicator size="small" color={tokens.colors.text} />
+              ) : (
+                <Ionicons name="people-outline" size={18} color={tokens.colors.text} />
+              )
+            }
+            onPress={() => void sync()}
+          />
+        </Animated.View>
 
-        <View style={{ flex: 1, gap: 8 }}>
-          {listEmptyText ? <Text style={{ color: colors.textLo }}>{listEmptyText}</Text> : null}
+        <Text style={styles.sectionLabel}>
+          {matches.length > 0 ? 'From your contacts' : 'Suggested for you'}
+        </Text>
 
-          {suggestions.map((u) => {
-            const isFollowing = followedIds.has(u.id);
-            return (
-              <View key={u.id} style={styles.card}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textHi, fontSize: 16, fontWeight: '700' }}>{u.name}</Text>
-                  <Text style={{ color: colors.textMid, fontSize: 13 }}>{u.subtitle}</Text>
-                </View>
+        {listLoading ? (
+          <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={tokens.colors.mute} />
+          </View>
+        ) : rows.length === 0 ? (
+          <Text style={styles.empty}>Sync your contacts to find friends already on Sticket.</Text>
+        ) : (
+          rows.map((row, i) => (
+            <Animated.View key={row.id} entering={FadeInDown.delay(Math.min(i, 10) * durations.stagger).duration(260)}>
+              <FollowRow
+                row={row}
+                followed={followedIds.has(row.id)}
+                onFollow={() => toggleFollow(row.id)}
+                onOpen={() => router.push({ pathname: '/profile/[id]', params: { id: row.id } })}
+              />
+            </Animated.View>
+          ))
+        )}
+      </ScrollView>
 
-                <Pressable
-                  style={[styles.followButton, isFollowing && styles.followingButton]}
-                  onPress={() => toggleFollow(u.id)}
-                >
-                  <Text style={[styles.followText, isFollowing && styles.followingText]}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </Text>
-                </Pressable>
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={{ marginTop: 'auto', gap: spacing.sm }}>
-          <Button label={followedCount ? `Continue (${followedCount} followed)` : 'Continue'} onPress={continueNext} />
-        </View>
+      <View style={styles.footer}>
+        <PillButton
+          title={followedCount ? `Continue · following ${followedCount}` : 'Continue'}
+          size="lg"
+          springFeedback
+          haptic="light"
+          onPress={() => router.push('/(onboarding)/done')}
+        />
+        {followedCount === 0 ? (
+          <PillButton
+            title="Skip for now"
+            variant="ghost"
+            size="lg"
+            springFeedback
+            onPress={() => router.push('/(onboarding)/done')}
+          />
+        ) : null}
       </View>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-  },
-  skipText: {
-    color: colors.textMid,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  syncButton: {
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.brandCyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(17, 10, 58, 0.35)',
-  },
-  syncButtonText: {
-    color: colors.brandCyan,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(17, 10, 58, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.18)',
-  },
-  followButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.brandPurple,
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  followText: {
-    color: colors.textHi,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  followingText: {
-    color: colors.textMid,
-  },
-});
-
-
-
-

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, fontFamilies } from '../../lib/theme';
-import { Eyebrow } from './Eyebrow';
+import { View, Text } from 'react-native';
+
+import { useThemedStyles } from '../../lib/theme-context';
 
 type Props = {
   eyebrow: string;
@@ -11,32 +11,39 @@ type Props = {
 };
 
 export function ScreenTitle({ eyebrow, title, eyebrowColor, right }: Props) {
+  const styles = useThemedStyles((t) => ({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      paddingHorizontal: t.density.pad,
+      paddingTop: 56,
+      paddingBottom: t.spacing.md,
+    },
+    eyebrow: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      fontWeight: '600',
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+      marginBottom: 4,
+    },
+    title: {
+      fontSize: 34,
+      fontWeight: '800',
+      letterSpacing: -0.8,
+      color: t.colors.fg,
+      lineHeight: 38,
+    },
+  }));
+
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
-        <Eyebrow text={eyebrow} color={eyebrowColor} />
+        <Text style={[styles.eyebrow, eyebrowColor ? { color: eyebrowColor } : null]}>{eyebrow}</Text>
         <Text style={styles.title}>{title}</Text>
       </View>
       {right}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 56,
-    paddingBottom: 16,
-  },
-  title: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 34,
-    fontWeight: '400',
-    letterSpacing: -0.8,
-    color: colors.textHi,
-    marginTop: 2,
-    lineHeight: 38,
-  },
-});

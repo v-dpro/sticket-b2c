@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
 
 import type { Ticket } from '../../types/ticket';
-import { colors } from '../../lib/theme';
+import { SpringPressable } from '../ui/SpringPressable';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface TicketActionsProps {
   ticket: Ticket;
@@ -13,6 +14,37 @@ interface TicketActionsProps {
 }
 
 export function TicketActions({ ticket, onSell, onDelete }: TicketActionsProps) {
+  const { tokens } = useTheme();
+
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: 16,
+      marginHorizontal: 16,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      marginTop: 16,
+    },
+    action: { alignItems: 'center', flex: 1 },
+    iconCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: t.colors.card2,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    deleteIcon: {
+      backgroundColor: t.isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(220, 38, 38, 0.08)',
+    },
+    actionText: { fontSize: 12, color: t.colors.textSoft, textAlign: 'center', fontWeight: '500' },
+    deleteText: { color: t.colors.error },
+  }));
+
   const handleAddToCalendar = async () => {
     try {
       const { status } = await Calendar.requestCalendarPermissionsAsync();
@@ -65,67 +97,28 @@ export function TicketActions({ ticket, onSell, onDelete }: TicketActionsProps) 
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.action} onPress={handleAddToCalendar}>
+      <SpringPressable style={styles.action} onPress={handleAddToCalendar} haptic="light" accessibilityRole="button">
         <View style={styles.iconCircle}>
-          <Ionicons name="calendar" size={20} color={colors.brandPurple} />
+          <Ionicons name="calendar" size={20} color={tokens.colors.fg} />
         </View>
         <Text style={styles.actionText}>Add to Calendar</Text>
-      </Pressable>
+      </SpringPressable>
 
       {ticket.status === 'KEEPING' && (
-        <Pressable style={styles.action} onPress={onSell}>
+        <SpringPressable style={styles.action} onPress={onSell} haptic="light" accessibilityRole="button">
           <View style={styles.iconCircle}>
-            <Ionicons name="pricetag" size={20} color={colors.warning} />
+            <Ionicons name="pricetag" size={20} color={tokens.colors.fg} />
           </View>
           <Text style={styles.actionText}>Sell Ticket</Text>
-        </Pressable>
+        </SpringPressable>
       )}
 
-      <Pressable style={styles.action} onPress={handleDelete}>
+      <SpringPressable style={styles.action} onPress={handleDelete} haptic="medium" accessibilityRole="button">
         <View style={[styles.iconCircle, styles.deleteIcon]}>
-          <Ionicons name="trash" size={20} color={colors.error} />
+          <Ionicons name="trash" size={20} color={tokens.colors.error} />
         </View>
         <Text style={[styles.actionText, styles.deleteText]}>Remove</Text>
-      </Pressable>
+      </SpringPressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  action: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  deleteIcon: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  actionText: {
-    fontSize: 12,
-    color: colors.textMid,
-    textAlign: 'center',
-  },
-  deleteText: {
-    color: colors.error,
-  },
-});
-
-
-

@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { VenueMarker } from '../../types/profile';
 import { getUserVenueMarkers } from '../../lib/api/profile';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface ProfileMapViewProps {
   userId: string;
@@ -12,8 +12,122 @@ interface ProfileMapViewProps {
 }
 
 export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
+  const { tokens } = useTheme();
   const [markers, setMarkers] = useState<VenueMarker[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      color: t.colors.textLo,
+      fontSize: 16,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      marginTop: 16,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    webNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: 'rgba(18, 19, 45, 0.9)', // fixed dark notice bar
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    webNoticeText: {
+      flex: 1,
+      color: t.colors.white, // over dark notice bar
+      fontSize: 12,
+    },
+    listContent: {
+      padding: 16,
+      gap: 10,
+      paddingBottom: 48,
+    },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      backgroundColor: t.colors.surface,
+    },
+    itemLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+      paddingRight: 10,
+    },
+    badge: {
+      backgroundColor: t.colors.brandPurple,
+      borderRadius: 16,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      minWidth: 34,
+      alignItems: 'center',
+    },
+    badgeText: {
+      color: t.colors.onAccent, // text on accent-filled badge
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    itemText: {
+      flex: 1,
+    },
+    itemTitle: {
+      color: t.colors.textHi,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    itemSubtitle: {
+      color: t.colors.textLo,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    statsOverlay: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: 'rgba(18, 19, 45, 0.9)', // fixed dark overlay chip
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    statsText: {
+      color: t.colors.white, // over dark overlay chip
+      fontSize: 12,
+      fontWeight: '500',
+    },
+  }));
 
   useEffect(() => {
     void loadMarkers();
@@ -59,7 +173,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   if (markers.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="map-outline" size={64} color={colors.textLo} />
+        <Ionicons name="map-outline" size={64} color={tokens.colors.textLo} />
         <Text style={styles.emptyTitle}>No venues to show</Text>
         <Text style={styles.emptyText}>Log some shows to see them here!</Text>
       </View>
@@ -69,7 +183,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
   return (
     <View style={styles.container}>
       <View style={styles.webNotice}>
-        <Ionicons name="globe-outline" size={18} color={colors.textMid} />
+        <Ionicons name="globe-outline" size={18} color={tokens.colors.white} />
         <Text style={styles.webNoticeText}>Map view isn’t available on web yet — showing a venue list instead.</Text>
       </View>
 
@@ -89,7 +203,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
+            <Ionicons name="chevron-forward" size={18} color={tokens.colors.textLo} />
           </Pressable>
         ))}
       </ScrollView>
@@ -102,118 +216,3 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: colors.textLo,
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textLo,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  webNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(18, 19, 45, 0.9)',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  webNoticeText: {
-    flex: 1,
-    color: colors.textMid,
-    fontSize: 12,
-  },
-  listContent: {
-    padding: 16,
-    gap: 10,
-    paddingBottom: 48,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surface,
-  },
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-    paddingRight: 10,
-  },
-  badge: {
-    backgroundColor: colors.brandPurple,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    minWidth: 34,
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: colors.textHi,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  itemText: {
-    flex: 1,
-  },
-  itemTitle: {
-    color: colors.textHi,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  itemSubtitle: {
-    color: colors.textLo,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  statsOverlay: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(18, 19, 45, 0.9)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  statsText: {
-    color: colors.textHi,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-});
-
-

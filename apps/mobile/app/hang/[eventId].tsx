@@ -5,23 +5,23 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '../../components/ui/Avatar';
 import { MonoLabel } from '../../components/ui/MonoLabel';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { apiClient } from '../../lib/api/client';
-import { colors, accentSets, radius, spacing, fonts, fontFamilies } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,8 +76,6 @@ interface HangData {
   userRsvp?: RsvpStatus | null;
 }
 
-const accent = accentSets.cyan;
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -105,11 +103,11 @@ function formatTime(iso: string): string {
 // ---------------------------------------------------------------------------
 
 export default function HangPage() {
-  const router = useRouter();
   const goBack = useSafeBack();
   const insets = useSafeAreaInsets();
+  const { tokens } = useTheme();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
-  const { user, profile } = useSession();
+  const { user } = useSession();
 
   const id = String(eventId || '');
 
@@ -120,6 +118,143 @@ export default function HangPage() {
   const [sending, setSending] = useState(false);
   const [rsvp, setRsvp] = useState<RsvpStatus | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    center: { flex: 1, backgroundColor: t.colors.bg, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 },
+    errorText: { color: t.colors.mute, fontSize: 14, textAlign: 'center' },
+
+    // Hero
+    hero: { height: 220, justifyContent: 'flex-end', paddingHorizontal: 16, paddingBottom: 20 },
+    backBtn: {
+      position: 'absolute',
+      left: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    heroPill: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: t.radius.full,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      overflow: 'hidden',
+      marginBottom: 8,
+    },
+    heroPillText: { fontFamily: t.fontFamilies.mono, fontSize: 9.5, fontWeight: '600', letterSpacing: 1.5, color: '#FFFFFF', textTransform: 'uppercase' },
+    heroTitle: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
+
+    // Host
+    hostRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    hostName: { fontSize: 14, fontWeight: '700', color: t.colors.fg, marginTop: 2 },
+
+    // RSVP
+    rsvpRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      gap: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    rsvpBtn: { flex: 1, borderRadius: t.radius.md, paddingVertical: 8, paddingHorizontal: 12, alignItems: 'center' },
+    rsvpBtnActive: { backgroundColor: t.colors.inverseBg },
+    rsvpBtnInactive: { backgroundColor: t.colors.card, borderWidth: 1, borderColor: t.colors.hairline },
+    rsvpText: { fontSize: 14, fontWeight: '600' },
+
+    // Sections
+    section: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
+
+    // Vibe
+    vibeBox: {
+      marginTop: 10,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      borderRadius: t.radius.md,
+      padding: 14,
+    },
+    vibeText: { fontSize: 14, color: t.colors.fg, lineHeight: 20 },
+
+    // Plan
+    planItem: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+    planIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: t.radius.sm,
+      backgroundColor: t.colors.card2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    planLabel: { fontSize: 14, fontWeight: '600', color: t.colors.fg },
+    planMeta: { fontFamily: t.fontFamilies.mono, fontSize: 12, color: t.colors.muteSoft, marginTop: 2 },
+
+    // Guests
+    guestChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    guestChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.full,
+      paddingRight: 12,
+      paddingLeft: 3,
+      paddingVertical: 3,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    guestName: { fontSize: 12, fontWeight: '600', color: t.colors.fg },
+
+    // Messages
+    msgRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: t.colors.card,
+      marginHorizontal: 16,
+      marginBottom: 2,
+      borderRadius: t.radius.sm,
+    },
+    msgUser: { fontSize: 12, fontWeight: '700', color: t.colors.fg },
+    msgTime: { fontFamily: t.fontFamilies.mono, fontSize: 9.5, color: t.colors.muteSoft },
+    msgText: { fontSize: 13.5, color: t.colors.textSoft, lineHeight: 19, marginTop: 2 },
+
+    // Composer
+    composer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      backgroundColor: t.colors.card,
+      borderTopWidth: 1,
+      borderTopColor: t.colors.hairline,
+      gap: 10,
+    },
+    composerInput: {
+      flex: 1,
+      backgroundColor: t.colors.card2,
+      borderRadius: t.radius.full,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      minHeight: 38,
+      justifyContent: 'center',
+    },
+    composerText: { color: t.colors.fg, fontSize: 14, maxHeight: 100 },
+    sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  }));
 
   // ── Fetch hang data ─────────────────────────────────────────────────
   const fetchHang = useCallback(async () => {
@@ -185,7 +320,7 @@ export default function HangPage() {
     return (
       <View style={styles.center}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={accent.hex} />
+        <ActivityIndicator size="large" color={tokens.colors.mute} />
       </View>
     );
   }
@@ -195,9 +330,9 @@ export default function HangPage() {
       <View style={styles.center}>
         <Stack.Screen options={{ headerShown: false }} />
         <Text style={styles.errorText}>{error ?? 'Hang not found'}</Text>
-        <Pressable onPress={goBack} style={{ marginTop: 16 }}>
-          <Text style={{ color: accent.hex, fontSize: 14, fontWeight: '600' }}>Go Back</Text>
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={{ marginTop: 16 }}>
+          <Text style={{ color: tokens.colors.accent, fontSize: 14, fontWeight: '600' }}>Go Back</Text>
+        </SpringPressable>
       </View>
     );
   }
@@ -210,28 +345,26 @@ export default function HangPage() {
         <Image source={{ uri: hang.coverImageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       ) : (
         <LinearGradient
-          colors={[accentSets.purple.hex, accentSets.cyan.hex]}
+          colors={[tokens.colors.card2, tokens.colors.card]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
       )}
       {/* Gradient scrim */}
-      <LinearGradient
-        colors={['transparent', 'rgba(11,11,20,0.85)']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFill} />
       {/* Back button */}
-      <Pressable
+      <SpringPressable
         onPress={goBack}
+        haptic="light"
         style={[styles.backBtn, { top: insets.top + 8 }]}
         accessibilityRole="button"
       >
-        <Ionicons name="arrow-back" size={20} color={colors.textHi} />
-      </Pressable>
+        <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+      </SpringPressable>
       {/* Pill label */}
       <View style={styles.heroPill}>
-        <Text style={styles.heroPillText}>HANG{' \u00B7 '}{formatDate(hang.date)}</Text>
+        <Text style={styles.heroPillText}>HANG{' · '}{formatDate(hang.date)}</Text>
       </View>
       {/* Title */}
       <Text style={styles.heroTitle}>{hang.title}</Text>
@@ -242,7 +375,7 @@ export default function HangPage() {
     <View style={styles.hostRow}>
       <Avatar uri={hang.host.avatarUrl} name={hang.host.displayName ?? hang.host.username} size={32} />
       <View style={{ marginLeft: 10 }}>
-        <MonoLabel size={9.5} color={colors.textLo}>HOSTED BY</MonoLabel>
+        <MonoLabel size={9.5} color={tokens.colors.muteSoft}>HOSTED BY</MonoLabel>
         <Text style={styles.hostName}>{hang.host.displayName ?? hang.host.username}</Text>
       </View>
     </View>
@@ -251,32 +384,25 @@ export default function HangPage() {
   const renderRsvpButtons = () => {
     if (isHost) return null;
     const buttons: { status: RsvpStatus; label: string }[] = [
-      { status: 'going', label: "\u2713 I'm in" },
+      { status: 'going', label: "✓ I'm in" },
       { status: 'maybe', label: '? Maybe' },
-      { status: 'cant', label: "\u2717 Can't" },
+      { status: 'cant', label: "✗ Can't" },
     ];
     return (
       <View style={styles.rsvpRow}>
         {buttons.map((b) => {
           const active = rsvp === b.status;
           return (
-            <Pressable
+            <SpringPressable
               key={b.status}
               onPress={() => handleRsvp(b.status)}
-              style={[
-                styles.rsvpBtn,
-                active ? styles.rsvpBtnActive : styles.rsvpBtnInactive,
-              ]}
+              haptic="light"
+              style={[styles.rsvpBtn, active ? styles.rsvpBtnActive : styles.rsvpBtnInactive]}
             >
-              <Text
-                style={[
-                  styles.rsvpText,
-                  { color: active ? '#FFFFFF' : colors.textHi },
-                ]}
-              >
+              <Text style={[styles.rsvpText, { color: active ? tokens.colors.inverseFg : tokens.colors.fg }]}>
                 {b.label}
               </Text>
-            </Pressable>
+            </SpringPressable>
           );
         })}
       </View>
@@ -287,7 +413,7 @@ export default function HangPage() {
     if (!hang.vibe) return null;
     return (
       <View style={styles.section}>
-        <MonoLabel size={10} color={accent.hex}>THE VIBE</MonoLabel>
+        <MonoLabel size={10} color={tokens.colors.mute}>THE VIBE</MonoLabel>
         <View style={styles.vibeBox}>
           <Text style={styles.vibeText}>{hang.vibe}</Text>
         </View>
@@ -299,7 +425,7 @@ export default function HangPage() {
     if (!hang.plan?.length) return null;
     return (
       <View style={styles.section}>
-        <MonoLabel size={10} color={accent.hex}>THE PLAN</MonoLabel>
+        <MonoLabel size={10} color={tokens.colors.mute}>THE PLAN</MonoLabel>
         {hang.plan.map((item) => (
           <View key={item.id} style={styles.planItem}>
             <View style={styles.planIcon}>
@@ -307,12 +433,8 @@ export default function HangPage() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.planLabel}>{item.label}</Text>
-              {item.time ? (
-                <Text style={styles.planMeta}>{item.time}</Text>
-              ) : null}
-              {item.location ? (
-                <Text style={styles.planMeta}>{item.location}</Text>
-              ) : null}
+              {item.time ? <Text style={styles.planMeta}>{item.time}</Text> : null}
+              {item.location ? <Text style={styles.planMeta}>{item.location}</Text> : null}
             </View>
           </View>
         ))}
@@ -322,8 +444,8 @@ export default function HangPage() {
 
   const renderGuestList = () => (
     <View style={styles.section}>
-      <MonoLabel size={10} color={accent.hex}>
-        {`${guestCounts.going} GOING \u00B7 ${guestCounts.maybe} MAYBE \u00B7 ${guestCounts.noReply} NO REPLY`}
+      <MonoLabel size={10} color={tokens.colors.mute}>
+        {`${guestCounts.going} GOING · ${guestCounts.maybe} MAYBE · ${guestCounts.noReply} NO REPLY`}
       </MonoLabel>
       <View style={styles.guestChips}>
         {hang.guests
@@ -340,9 +462,9 @@ export default function HangPage() {
           {hang.guests
             .filter((g) => g.rsvp === 'maybe')
             .map((g) => (
-              <View key={g.id} style={[styles.guestChip, { borderColor: colors.hairline }]}>
+              <View key={g.id} style={[styles.guestChip, { borderColor: tokens.colors.hairline }]}>
                 <Avatar uri={g.avatarUrl} name={g.displayName ?? g.username} size={26} />
-                <Text style={[styles.guestName, { color: colors.textMid }]}>
+                <Text style={[styles.guestName, { color: tokens.colors.mute }]}>
                   {g.displayName ?? g.username}
                 </Text>
               </View>
@@ -375,7 +497,7 @@ export default function HangPage() {
       {renderGuestList()}
       {/* Chat label */}
       <View style={[styles.section, { marginBottom: 4 }]}>
-        <MonoLabel size={10} color={accent.hex}>CHAT</MonoLabel>
+        <MonoLabel size={10} color={tokens.colors.mute}>CHAT</MonoLabel>
       </View>
     </View>
   );
@@ -407,269 +529,25 @@ export default function HangPage() {
             value={messageText}
             onChangeText={setMessageText}
             placeholder="Message..."
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={tokens.colors.muteSoft}
             style={styles.composerText}
             multiline
             maxLength={2000}
           />
         </View>
-        <Pressable
+        <SpringPressable
           onPress={handleSend}
           disabled={!canSend || sending}
-          style={[
-            styles.sendBtn,
-            { backgroundColor: canSend ? accent.hex : colors.elevated },
-          ]}
+          haptic="light"
+          style={[styles.sendBtn, { backgroundColor: canSend ? tokens.colors.inverseBg : tokens.colors.card2 }]}
         >
           {sending ? (
-            <ActivityIndicator size="small" color={colors.ink} />
+            <ActivityIndicator size="small" color={tokens.colors.inverseFg} />
           ) : (
-            <Ionicons name="send" size={16} color={canSend ? colors.ink : colors.textMuted} />
+            <Ionicons name="send" size={16} color={canSend ? tokens.colors.inverseFg : tokens.colors.muteSoft} />
           )}
-        </Pressable>
+        </SpringPressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  center: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  errorText: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-
-  // Hero
-  hero: {
-    height: 220,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  backBtn: {
-    position: 'absolute',
-    left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  heroPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  heroPillText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 9.5,
-    letterSpacing: 1.5,
-    color: colors.textHi,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-
-  // Host
-  hostRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  hostName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textHi,
-    marginTop: 2,
-  },
-
-  // RSVP
-  rsvpRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  rsvpBtn: {
-    flex: 1,
-    borderRadius: radius.md,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  rsvpBtnActive: {
-    backgroundColor: accent.hex,
-  },
-  rsvpBtnInactive: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  rsvpText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  // Sections
-  section: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-
-  // Vibe
-  vibeBox: {
-    marginTop: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: radius.md,
-    padding: 14,
-  },
-  vibeText: {
-    fontSize: 14,
-    color: colors.textHi,
-    lineHeight: 20,
-  },
-
-  // Plan
-  planItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  planIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: accent.soft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  planLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  planMeta: {
-    fontSize: 12,
-    color: colors.textLo,
-    marginTop: 2,
-    fontFamily: fontFamilies.mono,
-  },
-
-  // Guests
-  guestChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  guestChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.full,
-    paddingRight: 12,
-    paddingLeft: 3,
-    paddingVertical: 3,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: accent.line,
-  },
-  guestName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-
-  // Messages
-  msgRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.surface,
-    marginHorizontal: 16,
-    marginBottom: 2,
-    borderRadius: radius.sm,
-  },
-  msgUser: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  msgTime: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 9.5,
-    color: colors.textLo,
-  },
-  msgText: {
-    fontSize: 13.5,
-    color: colors.textMid,
-    lineHeight: 19,
-    marginTop: 2,
-  },
-
-  // Composer
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.hairline,
-    gap: 10,
-  },
-  composerInput: {
-    flex: 1,
-    backgroundColor: colors.elevated,
-    borderRadius: radius.full,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    minHeight: 38,
-    justifyContent: 'center',
-  },
-  composerText: {
-    color: colors.textHi,
-    fontSize: 14,
-    maxHeight: 100,
-  },
-  sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

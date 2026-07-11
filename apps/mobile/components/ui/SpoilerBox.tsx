@@ -1,7 +1,8 @@
 import React, { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, fontFamilies } from '../../lib/theme';
+import { radius, fontFamilies } from '../../lib/theme';
+import { useThemedStyles } from '../../lib/theme-context';
 
 type SpoilerBoxProps = {
   label?: string; // default "Spoiler"
@@ -11,6 +12,73 @@ type SpoilerBoxProps = {
 
 export function SpoilerBox({ label = 'Spoiler', sub, children }: SpoilerBoxProps) {
   const [revealed, setRevealed] = useState(false);
+  const styles = useThemedStyles((t) => ({
+    wrapper: {
+      position: 'relative',
+    },
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      // Deliberate dark scrim that obscures spoiler content in both modes.
+      backgroundColor: 'rgba(11,11,20,0.7)',
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.line,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    emoji: {
+      fontSize: 20,
+    },
+    label: {
+      fontFamily: fontFamilies.monoBold,
+      fontSize: 10.5,
+      fontWeight: '700',
+      // White text sits on the dark scrim above.
+      color: '#FFFFFF',
+      letterSpacing: 1.5,
+    },
+    sub: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.7)',
+      lineHeight: 12 * 1.4,
+      maxWidth: 260,
+      textAlign: 'center',
+    },
+    revealButton: {
+      backgroundColor: t.colors.brandCyan,
+      borderRadius: 999,
+      paddingVertical: 6,
+      paddingHorizontal: 14,
+      marginTop: 4,
+    },
+    revealText: {
+      fontFamily: fontFamilies.monoBold,
+      fontSize: 10.5,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      letterSpacing: 1.3,
+    },
+    hideButton: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.line,
+      borderRadius: 999,
+      paddingVertical: 4,
+      paddingHorizontal: 9,
+    },
+    hideText: {
+      fontFamily: fontFamilies.monoBold,
+      fontSize: 9.5,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      letterSpacing: 1.2,
+    },
+  }));
 
   return (
     <View style={styles.wrapper}>
@@ -40,69 +108,3 @@ export function SpoilerBox({ label = 'Spoiler', sub, children }: SpoilerBoxProps
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    position: 'relative',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11,11,20,0.7)',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.line,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  emoji: {
-    fontSize: 20,
-  },
-  label: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: colors.textHi,
-    letterSpacing: 1.5,
-  },
-  sub: {
-    fontSize: 12,
-    color: colors.textLo,
-    lineHeight: 12 * 1.4,
-    maxWidth: 260,
-    textAlign: 'center',
-  },
-  revealButton: {
-    backgroundColor: colors.brandCyan,
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginTop: 4,
-  },
-  revealText: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 1.3,
-  },
-  hideButton: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.line,
-    borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-  },
-  hideText: {
-    fontFamily: fontFamilies.monoBold,
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: colors.textHi,
-    letterSpacing: 1.2,
-  },
-});

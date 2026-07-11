@@ -1,16 +1,17 @@
 import { Stack } from 'expo-router';
 
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 export default function TourLayout() {
+  const { tokens } = useTheme();
   return (
     <Stack
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: colors.ink },
-        headerTitleStyle: { color: colors.textHi },
-        headerTintColor: colors.textHi,
-        contentStyle: { backgroundColor: colors.ink },
+        headerStyle: { backgroundColor: tokens.colors.ink },
+        headerTitleStyle: { color: tokens.colors.textHi },
+        headerTintColor: tokens.colors.textHi,
+        contentStyle: { backgroundColor: tokens.colors.ink },
       }}
     />
   );

@@ -5,9 +5,15 @@ import Barcode from 'react-native-barcode-svg';
 import QRCode from 'react-native-qrcode-svg';
 
 import type { BarcodeFormat } from '../../types/ticket';
-import { colors, fontFamilies } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 const { width } = Dimensions.get('window');
+
+// The scan surface is ALWAYS a pure-white card in both themes — scanners
+// need the high-contrast black-on-white barcode. Text/marks inside it are
+// therefore fixed dark values, not theme tokens.
+const SCAN_INK = '#000000';
+const SCAN_MUTE = '#6B6B76';
 
 interface BarcodeDisplayProps {
   barcode: string;
@@ -16,7 +22,11 @@ interface BarcodeDisplayProps {
 }
 
 export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisplayProps) {
+  const { tokens } = useTheme();
   const [brightness, setBrightness] = useState(false);
+
+  const white = tokens.colors.white;
+  const mono = tokens.fontFamilies.mono;
 
   const normalized = useMemo(() => {
     if (!format) return 'UNKNOWN' as const;
@@ -27,11 +37,11 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
   if (barcodeImageUrl) {
     return (
       <Pressable
-        style={[styles.container, brightness && styles.bright]}
+        style={[styles.container, { backgroundColor: white }, brightness && styles.bright]}
         onPress={() => setBrightness(!brightness)}
       >
         <Image source={{ uri: barcodeImageUrl }} style={styles.barcodeImage} resizeMode="contain" />
-        <Text style={styles.hint}>Tap to {brightness ? 'dim' : 'brighten'}</Text>
+        <Text style={[styles.hint, { color: SCAN_MUTE }]}>Tap to {brightness ? 'dim' : 'brighten'}</Text>
       </Pressable>
     );
   }
@@ -39,7 +49,7 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
   const renderBarcode = () => {
     switch (normalized) {
       case 'QR':
-        return <QRCode value={barcode} size={200} backgroundColor={colors.textHi} color="#000000" />;
+        return <QRCode value={barcode} size={200} backgroundColor={white} color={SCAN_INK} />;
       case 'CODE128':
         return (
           <Barcode
@@ -54,41 +64,42 @@ export function BarcodeDisplay({ barcode, format, barcodeImageUrl }: BarcodeDisp
         // react-native-barcode-svg doesn't support these formats; fall back.
         return (
           <View style={styles.fallback}>
-            <Ionicons name="barcode" size={48} color={colors.textLo} />
-            <Text style={styles.fallbackCode}>{barcode}</Text>
-            <Text style={styles.fallbackHint}>Unsupported barcode format</Text>
+            <Ionicons name="barcode" size={48} color={SCAN_MUTE} />
+            <Text style={[styles.fallbackCode, { fontFamily: mono, color: SCAN_INK }]}>{barcode}</Text>
+            <Text style={[styles.fallbackHint, { color: SCAN_MUTE }]}>Unsupported barcode format</Text>
           </View>
         );
       default:
         return (
           <View style={styles.fallback}>
-            <Ionicons name="barcode" size={48} color={colors.textLo} />
-            <Text style={styles.fallbackCode}>{barcode}</Text>
+            <Ionicons name="barcode" size={48} color={SCAN_MUTE} />
+            <Text style={[styles.fallbackCode, { fontFamily: mono, color: SCAN_INK }]}>{barcode}</Text>
           </View>
         );
     }
   };
 
   return (
-    <Pressable style={[styles.container, brightness && styles.bright]} onPress={() => setBrightness(!brightness)}>
+    <Pressable
+      style={[styles.container, { backgroundColor: white }, brightness && { shadowColor: white }]}
+      onPress={() => setBrightness(!brightness)}
+    >
       <View style={styles.barcodeWrapper}>{renderBarcode()}</View>
-      <Text style={styles.barcodeText}>{barcode}</Text>
-      <Text style={styles.hint}>Tap to {brightness ? 'dim' : 'brighten'}</Text>
+      <Text style={[styles.barcodeText, { fontFamily: mono, color: SCAN_INK }]}>{barcode}</Text>
+      <Text style={[styles.hint, { color: SCAN_MUTE }]}>Tap to {brightness ? 'dim' : 'brighten'}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 16,
     alignItems: 'center',
   },
   bright: {
-    backgroundColor: colors.white,
-    shadowColor: colors.white,
+    shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 20,
@@ -104,14 +115,11 @@ const styles = StyleSheet.create({
   barcodeText: {
     marginTop: 12,
     fontSize: 14,
-    fontFamily: fontFamilies.mono,
-    color: '#000000',
     letterSpacing: 2,
   },
   hint: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textLo,
   },
   fallback: {
     alignItems: 'center',
@@ -120,17 +128,11 @@ const styles = StyleSheet.create({
   fallbackCode: {
     marginTop: 12,
     fontSize: 16,
-    fontFamily: fontFamilies.mono,
-    color: '#000000',
     letterSpacing: 1,
     textAlign: 'center',
   },
   fallbackHint: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textLo,
   },
 });
-
-
-

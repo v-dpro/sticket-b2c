@@ -3,15 +3,33 @@ import { StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { BadgeRarity } from '../../types/badge';
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
-export const RARITY_COLORS: Record<BadgeRarity, string> = {
-  common: colors.textLo,
-  uncommon: colors.success,
-  rare: colors.brandBlue,
-  epic: colors.brandPurple,
-  legendary: colors.warning,
+type RarityPalette = {
+  mute: string;
+  success: string;
+  brandBlue: string;
+  accent: string;
+  warning: string;
 };
+
+/** Semantic rarity hue, resolved from the active theme palette. */
+export function getRarityColor(c: RarityPalette, rarity: BadgeRarity): string {
+  switch (rarity) {
+    case 'common':
+      return c.mute;
+    case 'uncommon':
+      return c.success;
+    case 'rare':
+      return c.brandBlue;
+    case 'epic':
+      return c.accent;
+    case 'legendary':
+      return c.warning;
+    default:
+      return c.mute;
+  }
+}
 
 export function BadgeIcon({
   icon,
@@ -24,7 +42,8 @@ export function BadgeIcon({
   rarity: BadgeRarity;
   size: number;
 }) {
-  const c = RARITY_COLORS[rarity];
+  const { tokens } = useTheme();
+  const c = getRarityColor(tokens.colors, rarity);
 
   return (
     <View
@@ -34,12 +53,12 @@ export function BadgeIcon({
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderColor: earned ? c : colors.hairline,
-          backgroundColor: earned ? `${c}20` : colors.inkAlt,
+          borderColor: earned ? c : tokens.colors.hairline,
+          backgroundColor: earned ? `${c}20` : tokens.colors.card2,
         },
       ]}
     >
-      <Ionicons name={icon as any} size={Math.round(size * 0.45)} color={earned ? c : colors.textLo} />
+      <Ionicons name={icon as any} size={Math.round(size * 0.45)} color={earned ? c : tokens.colors.muteSoft} />
     </View>
   );
 }
@@ -52,6 +71,3 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
-
-
-

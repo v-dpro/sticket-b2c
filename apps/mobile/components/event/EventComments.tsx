@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
 
 import type { EventComment } from '../../types/event';
 import { useSession } from '../../hooks/useSession';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface EventCommentsProps {
   comments: EventComment[];
@@ -24,6 +24,119 @@ export function EventComments({
   onDeleteComment,
   onUserPress,
 }: EventCommentsProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      paddingTop: 24,
+      paddingBottom: 100,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: t.colors.textHi,
+      paddingHorizontal: 16,
+      marginBottom: 16,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: 16,
+      marginBottom: 20,
+    },
+    inputAvatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      marginRight: 12,
+    },
+    avatarPlaceholder: {
+      backgroundColor: t.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: t.colors.textLo,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: t.colors.surface,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      color: t.colors.textHi,
+      fontSize: 14,
+      maxHeight: 100,
+    },
+    sendButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: t.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 8,
+    },
+    sendButtonDisabled: {
+      opacity: 0.5,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      paddingVertical: 24,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: t.colors.textLo,
+    },
+    commentsList: {
+      paddingHorizontal: 16,
+    },
+    commentRow: {
+      flexDirection: 'row',
+      marginBottom: 16,
+    },
+    commentAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      marginRight: 12,
+    },
+    avatarTextSmall: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: t.colors.textLo,
+    },
+    commentContent: {
+      flex: 1,
+      backgroundColor: t.colors.surface,
+      borderRadius: 12,
+      padding: 12,
+    },
+    commentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    commentUsername: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.colors.textHi,
+    },
+    commentTime: {
+      fontSize: 11,
+      color: t.colors.textLo,
+    },
+    commentText: {
+      fontSize: 14,
+      color: t.colors.textMid,
+      lineHeight: 20,
+    },
+    deleteButton: {
+      padding: 8,
+    },
+  }));
+
   const { user, profile } = useSession();
   const currentUser = profile
     ? {
@@ -76,7 +189,7 @@ export function EventComments({
         <TextInput
           style={styles.input}
           placeholder={currentUser ? 'Add a comment...' : 'Log in to comment'}
-          placeholderTextColor={colors.textLo}
+          placeholderTextColor={tokens.colors.textLo}
           value={newComment}
           onChangeText={setNewComment}
           multiline
@@ -88,7 +201,7 @@ export function EventComments({
           onPress={handleSubmit}
           disabled={!newComment.trim() || posting || !currentUser}
         >
-          <Ionicons name="send" size={18} color={newComment.trim() && currentUser ? colors.brandPurple : colors.textLo} />
+          <Ionicons name="send" size={18} color={newComment.trim() && currentUser ? tokens.colors.brandPurple : tokens.colors.textLo} />
         </Pressable>
       </View>
 
@@ -129,7 +242,7 @@ export function EventComments({
 
               {comment.user.id === currentUser?.id ? (
                 <Pressable style={styles.deleteButton} onPress={() => handleDelete(comment)}>
-                  <Ionicons name="trash-outline" size={16} color={colors.textLo} />
+                  <Ionicons name="trash-outline" size={16} color={tokens.colors.textLo} />
                 </Pressable>
               ) : null}
             </View>
@@ -139,118 +252,3 @@ export function EventComments({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: 24,
-    paddingBottom: 100,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  inputAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.textLo,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    color: colors.textHi,
-    fontSize: 14,
-    maxHeight: 100,
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textLo,
-  },
-  commentsList: {
-    paddingHorizontal: 16,
-  },
-  commentRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
-  },
-  avatarTextSmall: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.textLo,
-  },
-  commentContent: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  commentUsername: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  commentTime: {
-    fontSize: 11,
-    color: colors.textLo,
-  },
-  commentText: {
-    fontSize: 14,
-    color: colors.textMid,
-    lineHeight: 20,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-});
-
-
-

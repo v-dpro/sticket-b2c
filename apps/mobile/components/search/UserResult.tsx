@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import type { UserResult as UserResultType } from '../../types/search';
 import { followUser, unfollowUser } from '../../lib/api/users';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface UserResultProps {
   user: UserResultType;
@@ -14,8 +15,74 @@ interface UserResultProps {
 
 export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
   const [isFollowing, setIsFollowing] = useState(user.isFollowing);
   const [loading, setLoading] = useState(false);
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+      gap: spacing.sm,
+    },
+    avatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+    },
+    avatarPlaceholder: {
+      backgroundColor: t.colors.brandPurple,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: t.colors.onAccent, // over the purple avatar fill
+    },
+    info: {
+      flex: 1,
+    },
+    name: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: t.colors.textHi,
+    },
+    username: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 1,
+    },
+    stats: {
+      fontSize: 12,
+      color: t.colors.textMid,
+      marginTop: 2,
+    },
+    followButton: {
+      backgroundColor: t.colors.brandPurple,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      minWidth: 92,
+      alignItems: 'center',
+    },
+    followingButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: t.colors.brandPurple,
+    },
+    followText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: t.colors.onAccent, // over the purple-filled follow button
+    },
+    followingText: {
+      color: t.colors.brandPurple,
+    },
+  }));
 
   const handlePress = () => {
     onPress?.();
@@ -74,7 +141,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
         accessibilityRole="button"
       >
         {loading ? (
-          <ActivityIndicator size="small" color={isFollowing ? colors.brandPurple : colors.textHi} />
+          <ActivityIndicator size="small" color={isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, isFollowing && styles.followingText]}>{isFollowing ? 'Following' : 'Follow'}</Text>
         )}
@@ -82,72 +149,3 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-    gap: spacing.sm,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.brandPurple,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  username: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 1,
-  },
-  stats: {
-    fontSize: 12,
-    color: colors.textMid,
-    marginTop: 2,
-  },
-  followButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    minWidth: 92,
-    alignItems: 'center',
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.brandPurple,
-  },
-  followText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  followingText: {
-    color: colors.brandPurple,
-  },
-});
-
-
-

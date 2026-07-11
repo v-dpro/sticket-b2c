@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -12,15 +12,17 @@ import { BadgeGrid } from '../../components/profile/BadgeGrid';
 import { StatsRow } from '../../components/profile/StatsRow';
 import { ProfileGridView } from '../../components/profile/ProfileGridView';
 import { ProfileStatsView } from '../../components/profile/ProfileStatsView';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useProfile } from '../../hooks/useProfile';
 import { useUserLogs } from '../../hooks/useUserLogs';
 import { useFollow } from '../../hooks/useFollow';
 import type { LogEntry } from '../../types/profile';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 export default function UserProfileScreen() {
   const router = useRouter();
+  const { tokens } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
@@ -31,6 +33,24 @@ export default function UserProfileScreen() {
 
   const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useFollow();
   const goBack = useSafeBack();
+
+  const styles = useThemedStyles((t) => ({
+    container: { flex: 1, backgroundColor: t.colors.bg },
+    loadingContainer: { flex: 1, backgroundColor: t.colors.bg, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingVertical: 8,
+    },
+    backButton: { padding: 8 },
+    headerTitle: { fontSize: 16, fontWeight: '700', color: t.colors.fg },
+    privateContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, gap: 8 },
+    privateTitle: { fontSize: 18, fontWeight: '700', color: t.colors.fg, marginTop: 16 },
+    privateText: { fontSize: 14, color: t.colors.mute },
+    mapScrollContent: { paddingBottom: 32 },
+  }));
 
   // Sync follow state when profile loads
   useEffect(() => {
@@ -66,7 +86,7 @@ export default function UserProfileScreen() {
   if (profileLoading || !profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.brandPurple} />
+        <ActivityIndicator size="large" color={tokens.colors.mute} />
       </View>
     );
   }
@@ -74,14 +94,14 @@ export default function UserProfileScreen() {
   // Check privacy
   if (profile.privacySetting === 'PRIVATE' && !profile.isOwnProfile) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.textHi} />
-          </Pressable>
+          <SpringPressable onPress={handleBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+            <Ionicons name="arrow-back" size={24} color={tokens.colors.fg} />
+          </SpringPressable>
         </View>
         <View style={styles.privateContainer}>
-          <Ionicons name="lock-closed" size={64} color={colors.textLo} />
+          <Ionicons name="lock-closed" size={64} color={tokens.colors.muteSoft} />
           <Text style={styles.privateTitle}>This account is private</Text>
           <Text style={styles.privateText}>Follow to see their shows</Text>
         </View>
@@ -116,9 +136,9 @@ export default function UserProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={handleBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={24} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.headerTitle}>@{profile.username}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -169,55 +189,3 @@ export default function UserProfileScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  privateContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  privateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textHi,
-    marginTop: 16,
-  },
-  privateText: {
-    fontSize: 14,
-    color: colors.textLo,
-    marginTop: 8,
-  },
-  mapScrollContent: {
-    paddingBottom: 32,
-  },
-});
-
-
-
-

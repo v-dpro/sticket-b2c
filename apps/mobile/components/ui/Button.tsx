@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, fonts, gradients, radius, spacing } from '../../lib/theme';
+import { fonts, spacing } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
+import type { ThemeColors } from '../../lib/theme';
 
 type NewButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 type LegacyButtonVariant = 'primary' | 'secondary' | 'danger';
@@ -40,15 +42,17 @@ const legacyToNewVariant = (v: LegacyButtonVariant | NewButtonVariant): NewButto
   return v;
 };
 
-const variantStyles: Record<
+const makeVariantStyles = (
+  colors: ThemeColors,
+): Record<
   NewButtonVariant,
   { bg: string; border?: string; text: string; useGradient?: boolean; spinner: string }
-> = {
+> => ({
   primary: { bg: colors.brandCyan, text: colors.ink, useGradient: false, spinner: colors.ink },
   secondary: { bg: 'transparent', border: colors.brandPurple, text: colors.brandPurple, spinner: colors.brandPurple },
   ghost: { bg: 'transparent', text: colors.textHi, spinner: colors.brandPurple },
   destructive: { bg: colors.error, text: colors.textHi, spinner: colors.textHi },
-};
+});
 
 const sizeStyles: Record<ButtonSize, { height?: number; paddingV: number; paddingH: number; fontSize: number }> = {
   sm: { height: 40, paddingV: spacing.sm, paddingH: spacing.md, fontSize: fonts.bodySmall },
@@ -57,6 +61,8 @@ const sizeStyles: Record<ButtonSize, { height?: number; paddingV: number; paddin
 };
 
 export function Button(props: ButtonProps) {
+  const { tokens } = useTheme();
+  const variantStyles = makeVariantStyles(tokens.colors);
   const title = 'title' in props ? props.title : props.label;
   const icon = 'title' in props ? props.icon : props.left;
   const onPress = props.onPress;
@@ -94,7 +100,7 @@ export function Button(props: ButtonProps) {
     >
       {v.useGradient ? (
         <LinearGradient
-          colors={gradients.primary}
+          colors={tokens.gradients.primary}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}

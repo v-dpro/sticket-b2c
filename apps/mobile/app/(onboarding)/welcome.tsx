@@ -1,326 +1,96 @@
-import { Link, Stack, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Image, Text, View, StyleSheet, Animated, Easing, Pressable } from 'react-native';
+// ONBOARDING · WELCOME — the front door of the flow. Brand-gradient mark
+// (the one sanctioned gradient moment), one-line promise, and a three-line
+// "what you get" that staggers in. Primary Continue → set-city.
 
-import { Screen } from '../../components/ui/Screen';
-import { colors, accentSets, spacing, radius, shadows, fontFamilies } from '../../lib/theme';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+
+import { BrandMark } from '../../components/onboarding/BrandMark';
+import { PillButton } from '../../components/ui/PillButton';
+import { durations } from '../../lib/motion';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useOnboardingStore } from '../../stores/onboardingStore';
-const TAGLINE = 'CONCERTS. TOGETHER.';
-const TAGLINE_SPEED = 38; // ms per character
+
+const PERKS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { icon: 'musical-notes', label: 'Log every show you go to' },
+  { icon: 'stats-chart', label: 'Rank them, build your canon' },
+  { icon: 'notifications', label: 'Never miss a presale' },
+];
 
 export default function WelcomeOnboarding() {
   const router = useRouter();
+  const { tokens } = useTheme();
   const markWelcomeSeen = useOnboardingStore((s) => s.markWelcomeSeen);
 
-  // ── Logo entrance: scale(2) rotate(-20deg) → scale(1) rotate(0deg) ──
-  const logoScale = useRef(new Animated.Value(2)).current;
-  const logoRotate = useRef(new Animated.Value(-20)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    hero: {
+      flex: 1,
+      paddingHorizontal: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+    },
+    title: {
+      fontSize: 34,
+      fontWeight: '800',
+      letterSpacing: -0.8,
+      color: t.colors.fg,
+      textAlign: 'center',
+      marginTop: 6,
+    },
+    perks: { alignSelf: 'stretch', gap: 14, marginTop: 24 },
+    perkRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    perkIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: t.radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.card2,
+    },
+    perkLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: t.colors.text },
+    footer: { paddingHorizontal: t.density.pad, paddingBottom: 12, gap: 10 },
+  }));
 
-  // ── Pulse ring ──
-  const pulseScale = useRef(new Animated.Value(1)).current;
-  const pulseOpacity = useRef(new Animated.Value(0.6)).current;
-
-  // ── Content fade-in (wordmark, tagline, description, CTA) ──
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const contentTranslateY = useRef(new Animated.Value(18)).current;
-
-  // ── Typed tagline ──
-  const [typedCount, setTypedCount] = useState(0);
-
-  useEffect(() => {
-    // 1. Logo entrance — 540ms spring
-    Animated.parallel([
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        stiffness: 160,
-        damping: 16,
-        mass: 0.9,
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoRotate, {
-        toValue: 0,
-        stiffness: 160,
-        damping: 16,
-        mass: 0.9,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // 2. Pulse ring loop (starts after logo lands)
-    const pulseTimer = setTimeout(() => {
-      Animated.loop(
-        Animated.parallel([
-          Animated.sequence([
-            Animated.timing(pulseScale, {
-              toValue: 1.6,
-              duration: 1800,
-              easing: Easing.out(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(pulseScale, {
-              toValue: 1,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.sequence([
-            Animated.timing(pulseOpacity, {
-              toValue: 0,
-              duration: 1800,
-              easing: Easing.out(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(pulseOpacity, {
-              toValue: 0.6,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ]),
-        ]),
-      ).start();
-    }, 500);
-
-    // 3. Content slides in after logo
-    const contentTimer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 400,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.spring(contentTranslateY, {
-          toValue: 0,
-          stiffness: 180,
-          damping: 22,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, 540);
-
-    // 4. Typed tagline starts after content is visible
-    const typeStart = setTimeout(() => {
-      let i = 0;
-      const typeInterval = setInterval(() => {
-        i += 1;
-        setTypedCount(i);
-        if (i >= TAGLINE.length) clearInterval(typeInterval);
-      }, TAGLINE_SPEED);
-      return () => clearInterval(typeInterval);
-    }, 900);
-
-    return () => {
-      clearTimeout(pulseTimer);
-      clearTimeout(contentTimer);
-      clearTimeout(typeStart);
-    };
-  }, []);
-
-  const logoRotateStr = logoRotate.interpolate({
-    inputRange: [-20, 0],
-    outputRange: ['-20deg', '0deg'],
-  });
+  const onContinue = () => {
+    markWelcomeSeen();
+    router.push('/(onboarding)/set-city');
+  };
 
   return (
-    <Screen padded={false}>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      <View style={styles.container}>
-        {/* Center content */}
-        <View style={styles.center}>
-          {/* Logo + Pulse ring */}
-          <View style={styles.logoArea}>
-            {/* Pulse ring */}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.pulseRing,
-                {
-                  transform: [{ scale: pulseScale }],
-                  opacity: pulseOpacity,
-                },
-              ]}
-            />
-
-            {/* Logo */}
-            <Animated.View
-              style={[
-                styles.logoWrap,
-                {
-                  opacity: logoOpacity,
-                  transform: [{ scale: logoScale }, { rotate: logoRotateStr }],
-                },
-              ]}
-            >
-              <Image
-                source={require('../../assets/brand-logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-                accessibilityLabel="Sticket logo"
-              />
-            </Animated.View>
-          </View>
-
-          {/* Wordmark + tagline + description */}
-          <Animated.View
-            style={[
-              styles.textBlock,
-              {
-                opacity: contentOpacity,
-                transform: [{ translateY: contentTranslateY }],
-              },
-            ]}
-          >
-            <Text style={styles.wordmark}>sticket.</Text>
-
-            <Text style={styles.tagline}>
-              {TAGLINE.slice(0, typedCount)}
-              {typedCount < TAGLINE.length && (
-                <Text style={styles.cursor}>|</Text>
-              )}
-            </Text>
-
-            <Text style={styles.description}>
-              Log the shows. Find your people.{'\n'}Build a life soundtrack that's actually shared.
-            </Text>
-          </Animated.View>
-        </View>
-
-        {/* Bottom CTA */}
-        <Animated.View
-          style={[
-            styles.cta,
-            {
-              opacity: contentOpacity,
-              transform: [{ translateY: contentTranslateY }],
-            },
-          ]}
-        >
-          <Pressable
-            style={({ pressed }) => [
-              styles.ctaButton,
-              pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
-            ]}
-            onPress={() => {
-              markWelcomeSeen();
-              router.push('/(onboarding)/select-artists');
-            }}
-            accessibilityRole="button"
-          >
-            <Text style={styles.ctaText}>Get started &rarr;</Text>
-          </Pressable>
-
-          <Text style={styles.loginText}>
-            Already have an account?{' '}
-            <Link href="/(auth)/sign-in" style={styles.loginLink}>
-              Log in
-            </Link>
-          </Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.hero}>
+        <Animated.View entering={FadeInDown.duration(320)}>
+          <BrandMark />
         </Animated.View>
+        <Animated.Text entering={FadeInDown.delay(60).duration(320)} style={styles.title}>
+          Your live-events life
+        </Animated.Text>
+
+        <View style={styles.perks}>
+          {PERKS.map((perk, i) => (
+            <Animated.View
+              key={perk.label}
+              entering={FadeInDown.delay(160 + i * durations.stagger).duration(300)}
+              style={styles.perkRow}
+            >
+              <View style={styles.perkIcon}>
+                <Ionicons name={perk.icon} size={20} color={tokens.colors.fg} />
+              </View>
+              <Text style={styles.perkLabel}>{perk.label}</Text>
+            </Animated.View>
+          ))}
+        </View>
       </View>
-    </Screen>
+
+      <Animated.View entering={FadeInDown.delay(320).duration(320)} style={styles.footer}>
+        <PillButton title="Continue" size="lg" springFeedback haptic="light" onPress={onContinue} />
+      </Animated.View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing['3xl'],
-    paddingBottom: spacing['3xl'],
-    justifyContent: 'space-between',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoArea: {
-    width: 120,
-    height: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
-  },
-  pulseRing: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: accentSets.cyan.hex,
-  },
-  logoWrap: {
-    width: 120,
-    height: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 120,
-    height: 120,
-  },
-  textBlock: {
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  wordmark: {
-    fontFamily: fontFamilies.displayItalic,
-    color: colors.textHi,
-    fontSize: 54,
-    letterSpacing: -1,
-  },
-  tagline: {
-    color: accentSets.cyan.hex,
-    fontSize: 13,
-    fontFamily: fontFamilies.monoBold,
-    letterSpacing: 2.5,
-    textAlign: 'center',
-  },
-  cursor: {
-    color: accentSets.cyan.hex,
-    fontFamily: fontFamilies.monoBold,
-  },
-  description: {
-    fontFamily: fontFamilies.ui,
-    color: colors.textMid,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  cta: {
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  ctaButton: {
-    backgroundColor: accentSets.cyan.hex,
-    paddingVertical: 16,
-    paddingHorizontal: spacing.xl,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.card,
-  },
-  ctaText: {
-    fontFamily: fontFamilies.uiBold,
-    color: '#FFFFFF',
-    fontSize: 15,
-  },
-  loginText: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  loginLink: {
-    color: accentSets.cyan.hex,
-    fontWeight: '600',
-  },
-});

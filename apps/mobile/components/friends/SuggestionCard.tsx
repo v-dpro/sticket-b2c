@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import type { FriendSuggestion, SuggestionReason } from '../../types/friends';
 import { followUser, unfollowUser } from '../../lib/api/users';
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
 
 type SuggestionCardProps = {
@@ -46,6 +47,71 @@ function getReasonIcon(reason: SuggestionReason): keyof typeof Ionicons.glyphMap
 
 export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: SuggestionCardProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      width: 160,
+      backgroundColor: t.colors.inkAlt,
+      borderRadius: radius.lg,
+      padding: 16,
+      alignItems: 'center',
+      marginRight: 12,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    dismissButton: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      padding: 4,
+    },
+    displayName: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: t.colors.textHi,
+      textAlign: 'center',
+    },
+    username: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    reasonContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      gap: 4,
+    },
+    reasonText: {
+      fontSize: 11,
+      color: t.colors.brandPurple,
+      fontWeight: '600',
+    },
+    followButton: {
+      backgroundColor: t.colors.brandPurple,
+      paddingHorizontal: 20,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      marginTop: 12,
+      width: '100%',
+      alignItems: 'center',
+    },
+    followingButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: t.colors.brandPurple,
+    },
+    followText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: t.colors.onAccent, // label over the filled purple button
+    },
+    followingText: {
+      color: t.colors.brandPurple,
+    },
+  }));
+
   const [loading, setLoading] = useState(false);
 
   const handlePress = () => {
@@ -80,7 +146,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
         }}
         hitSlop={10}
       >
-        <Ionicons name="close" size={16} color={colors.textLo} />
+        <Ionicons name="close" size={16} color={tokens.colors.textLo} />
       </Pressable>
 
       <Avatar uri={suggestion.avatarUrl} size={64} name={suggestion.displayName || suggestion.username} style={{ marginBottom: 12 }} />
@@ -93,7 +159,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
       </Text>
 
       <View style={styles.reasonContainer}>
-        <Ionicons name={getReasonIcon(suggestion.reason)} size={12} color={colors.brandPurple} />
+        <Ionicons name={getReasonIcon(suggestion.reason)} size={12} color={tokens.colors.brandPurple} />
         <Text style={styles.reasonText} numberOfLines={1}>
           {getReasonText(suggestion.reason)}
         </Text>
@@ -108,7 +174,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={suggestion.isFollowing ? colors.brandPurple : colors.textHi} />
+          <ActivityIndicator size="small" color={suggestion.isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, suggestion.isFollowing && styles.followingText]}>
             {suggestion.isFollowing ? 'Following' : 'Follow'}
@@ -118,71 +184,3 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: 160,
-    backgroundColor: colors.inkAlt,
-    borderRadius: radius.lg,
-    padding: 16,
-    alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  dismissButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    padding: 4,
-  },
-  displayName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textHi,
-    textAlign: 'center',
-  },
-  username: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  reasonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
-  },
-  reasonText: {
-    fontSize: 11,
-    color: colors.brandPurple,
-    fontWeight: '600',
-  },
-  followButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    marginTop: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.brandPurple,
-  },
-  followText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  followingText: {
-    color: colors.brandPurple,
-  },
-});
-
-
-
-

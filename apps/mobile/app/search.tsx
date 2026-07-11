@@ -1,9 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 
-import { Screen } from '../components/ui/Screen';
-import { colors, spacing } from '../lib/theme';
+import { useTheme, useThemedStyles } from '../lib/theme-context';
 
 import { SearchInput } from '../components/search/SearchInput';
 import { SearchTabs } from '../components/search/SearchTabs';
@@ -23,7 +23,7 @@ import { NotificationBellButton } from '../components/notifications/Notification
 import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 export default function SearchTab() {
-  const router = useRouter();
+  const { tokens } = useTheme();
   const goBack = useSafeBack();
 
   const { query, setQuery, activeTab, changeTab, results, allResults, loading, searched, clear } = useSearch();
@@ -31,6 +31,14 @@ export default function SearchTab() {
   const { recentSearches, addSearch, removeSearch, clearAll: clearRecentSearches } = useRecentSearches();
 
   const { trending } = useTrending();
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    container: { flex: 1, backgroundColor: t.colors.bg, paddingTop: t.spacing.sm },
+    loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    results: { flex: 1 },
+    browse: { flex: 1 },
+  }));
 
   const handleResultPress = (searchQuery: string) => {
     addSearch({ query: searchQuery });
@@ -52,7 +60,7 @@ export default function SearchTab() {
   const showBrowse = !searched && !loading;
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.container}>
         <Stack.Screen options={{ title: 'Search', headerShown: false }} />
 
@@ -70,7 +78,7 @@ export default function SearchTab() {
 
         {loading && (
           <View style={styles.loading}>
-            <ActivityIndicator size="large" color={colors.brandPurple} />
+            <ActivityIndicator size="large" color={tokens.colors.mute} />
           </View>
         )}
 
@@ -103,30 +111,6 @@ export default function SearchTab() {
           </ScrollView>
         )}
       </View>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    paddingTop: spacing.lg,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  results: {
-    flex: 1,
-  },
-  browse: {
-    flex: 1,
-  },
-});
-
-
-
-
-

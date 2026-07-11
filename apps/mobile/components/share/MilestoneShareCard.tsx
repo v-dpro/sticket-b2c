@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface MilestoneShareCardProps {
   badgeName: string;
@@ -13,13 +13,86 @@ interface MilestoneShareCardProps {
 }
 
 export function MilestoneShareCard({ badgeName, badgeIcon, badgeColor, description, username }: MilestoneShareCardProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    card: {
+      width: 350,
+      height: 450,
+      borderRadius: 24,
+      overflow: 'hidden',
+      backgroundColor: t.colors.ink,
+      padding: 24,
+      justifyContent: 'space-between',
+    },
+    background: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    logo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    logoText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: t.colors.textHi,
+    },
+    badgeSection: {
+      alignItems: 'center',
+    },
+    badgeIcon: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      borderWidth: 3,
+      backgroundColor: t.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    unlocked: {
+      fontSize: 14,
+      color: t.colors.textMid,
+      marginBottom: 8,
+    },
+    badgeName: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    description: {
+      fontSize: 14,
+      color: t.colors.textLo,
+      textAlign: 'center',
+    },
+    userSection: {
+      alignItems: 'center',
+    },
+    username: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: t.colors.brandPurple,
+    },
+    footer: {
+      textAlign: 'center',
+      fontSize: 12,
+      color: t.colors.textLo,
+    },
+  }));
+
   return (
     <View style={styles.card}>
-      <LinearGradient colors={[`${badgeColor}40`, colors.ink]} style={styles.background} />
+      <LinearGradient colors={[`${badgeColor}40`, tokens.colors.ink]} style={styles.background} />
 
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Ionicons name="ticket" size={16} color={colors.brandPurple} />
+          {/* sticket brand mark — fixed */}
+          <Ionicons name="ticket" size={16} color="#7C5CFF" />
           <Text style={styles.logoText}>sticket</Text>
         </View>
       </View>
@@ -43,77 +116,3 @@ export function MilestoneShareCard({ badgeName, badgeIcon, badgeColor, descripti
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: 350,
-    height: 450,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: colors.ink,
-    padding: 24,
-    justifyContent: 'space-between',
-  },
-  background: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  logo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  logoText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textHi,
-  },
-  badgeSection: {
-    alignItems: 'center',
-  },
-  badgeIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  unlocked: {
-    fontSize: 14,
-    color: colors.textMid,
-    marginBottom: 8,
-  },
-  badgeName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 14,
-    color: colors.textLo,
-    textAlign: 'center',
-  },
-  userSection: {
-    alignItems: 'center',
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.brandPurple,
-  },
-  footer: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: colors.textLo,
-  },
-});
-
-
-

@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { useQRCode } from '../../hooks/useQRCode';
-import { colors, radius } from '../../lib/theme';
+import { radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type QRCodeScannerProps = {
   onClose: () => void;
@@ -14,8 +15,112 @@ type QRCodeScannerProps = {
 export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
   const router = useRouter();
   const { parse } = useQRCode();
+  const { tokens } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flex: 1,
+      backgroundColor: t.colors.ink,
+    },
+    camera: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButton: {
+      position: 'absolute',
+      top: 50,
+      right: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scanFrame: {
+      width: 250,
+      height: 250,
+      position: 'relative',
+    },
+    corner: {
+      position: 'absolute',
+      width: 40,
+      height: 40,
+      borderColor: t.colors.brandPurple,
+      borderTopWidth: 4,
+      borderLeftWidth: 4,
+      top: 0,
+      left: 0,
+    },
+    cornerTopRight: {
+      left: undefined,
+      right: 0,
+      borderLeftWidth: 0,
+      borderRightWidth: 4,
+    },
+    cornerBottomLeft: {
+      top: undefined,
+      bottom: 0,
+      borderTopWidth: 0,
+      borderBottomWidth: 4,
+    },
+    cornerBottomRight: {
+      top: undefined,
+      left: undefined,
+      bottom: 0,
+      right: 0,
+      borderTopWidth: 0,
+      borderLeftWidth: 0,
+      borderBottomWidth: 4,
+      borderRightWidth: 4,
+    },
+    instructions: {
+      position: 'absolute',
+      bottom: 100,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: radius.full,
+    },
+    instructionText: {
+      color: t.colors.white, // over the live camera feed — stays light in both themes
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    permissionContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    permissionTitle: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: t.colors.textHi,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    permissionText: {
+      fontSize: 16,
+      color: t.colors.textMid,
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    permissionButton: {
+      backgroundColor: t.colors.brandPurple,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: radius.full,
+    },
+    permissionButtonText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: t.colors.onAccent, // label over the filled purple button
+    },
+  }));
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanned) return;
@@ -38,7 +143,7 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={64} color={colors.brandPurple} />
+          <Ionicons name="camera-outline" size={64} color={tokens.colors.brandPurple} />
           <Text style={styles.permissionTitle}>Camera Access</Text>
           <Text style={styles.permissionText}>We need camera access to scan QR codes</Text>
           <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
@@ -57,8 +162,9 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
       >
+        {/* Camera controls sit over the live feed — kept light regardless of theme */}
         <Pressable style={styles.closeButton} onPress={onClose} hitSlop={10}>
-          <Ionicons name="close" size={28} color={colors.textHi} />
+          <Ionicons name="close" size={28} color={tokens.colors.white} />
         </Pressable>
 
         <View style={styles.scanFrame}>
@@ -75,110 +181,3 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  camera: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanFrame: {
-    width: 250,
-    height: 250,
-    position: 'relative',
-  },
-  corner: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderColor: colors.brandPurple,
-    borderTopWidth: 4,
-    borderLeftWidth: 4,
-    top: 0,
-    left: 0,
-  },
-  cornerTopRight: {
-    left: undefined,
-    right: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 4,
-  },
-  cornerBottomLeft: {
-    top: undefined,
-    bottom: 0,
-    borderTopWidth: 0,
-    borderBottomWidth: 4,
-  },
-  cornerBottomRight: {
-    top: undefined,
-    left: undefined,
-    bottom: 0,
-    right: 0,
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 4,
-    borderRightWidth: 4,
-  },
-  instructions: {
-    position: 'absolute',
-    bottom: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: radius.full,
-  },
-  instructionText: {
-    color: colors.textHi,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  permissionTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.textHi,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  permissionText: {
-    fontSize: 16,
-    color: colors.textMid,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  permissionButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: radius.full,
-  },
-  permissionButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-});
-
-
-
-

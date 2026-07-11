@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import type { UserSearchResult as UserSearchResultType } from '../../types/friends';
 import { followUser, unfollowUser } from '../../lib/api/users';
-import { colors, radius, spacing } from '../../lib/theme';
+import { radius, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
 
 type UserSearchResultProps = {
@@ -15,6 +16,79 @@ type UserSearchResultProps = {
 
 export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps) {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    info: {
+      flex: 1,
+    },
+    displayName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: t.colors.textHi,
+    },
+    username: {
+      fontSize: 13,
+      color: t.colors.textLo,
+      marginTop: 1,
+    },
+    meta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+      gap: spacing.md,
+      flexWrap: 'wrap',
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    metaText: {
+      fontSize: 12,
+      color: t.colors.textLo,
+    },
+    followsYouBadge: {
+      backgroundColor: 'rgba(139, 92, 246, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: radius.sm,
+    },
+    followsYouText: {
+      fontSize: 10,
+      color: t.colors.brandPurple,
+      fontWeight: '700',
+    },
+    followButton: {
+      backgroundColor: t.colors.brandPurple,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      minWidth: 96,
+      alignItems: 'center',
+    },
+    followingButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: t.colors.brandPurple,
+    },
+    followText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: t.colors.onAccent, // label over the filled purple button
+    },
+    followingText: {
+      color: t.colors.brandPurple,
+    },
+  }));
+
   const [loading, setLoading] = useState(false);
 
   const handlePress = () => {
@@ -54,13 +128,13 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
         <View style={styles.meta}>
           {user.mutualFriends > 0 ? (
             <View style={styles.metaItem}>
-              <Ionicons name="people" size={12} color={colors.textLo} />
+              <Ionicons name="people" size={12} color={tokens.colors.textLo} />
               <Text style={styles.metaText}>{user.mutualFriends} mutual</Text>
             </View>
           ) : null}
           {user.showCount > 0 ? (
             <View style={styles.metaItem}>
-              <Ionicons name="musical-notes" size={12} color={colors.textLo} />
+              <Ionicons name="musical-notes" size={12} color={tokens.colors.textLo} />
               <Text style={styles.metaText}>{user.showCount} shows</Text>
             </View>
           ) : null}
@@ -82,7 +156,7 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
         hitSlop={6}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={user.isFollowing ? colors.brandPurple : colors.textHi} />
+          <ActivityIndicator size="small" color={user.isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, user.isFollowing && styles.followingText]}>
             {user.isFollowing ? 'Following' : 'Follow'}
@@ -92,79 +166,3 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  info: {
-    flex: 1,
-  },
-  displayName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textHi,
-  },
-  username: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 1,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: spacing.md,
-    flexWrap: 'wrap',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 12,
-    color: colors.textLo,
-  },
-  followsYouBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  followsYouText: {
-    fontSize: 10,
-    color: colors.brandPurple,
-    fontWeight: '700',
-  },
-  followButton: {
-    backgroundColor: colors.brandPurple,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    minWidth: 96,
-    alignItems: 'center',
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.brandPurple,
-  },
-  followText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  followingText: {
-    color: colors.brandPurple,
-  },
-});
-
-
-
-

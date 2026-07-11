@@ -1,9 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { RecentSearch } from '../../types/search';
-import { colors, spacing } from '../../lib/theme';
+import { spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 interface RecentSearchesProps {
   searches: RecentSearch[];
@@ -13,6 +14,47 @@ interface RecentSearchesProps {
 }
 
 export function RecentSearches({ searches, onSelect, onRemove, onClearAll }: RecentSearchesProps) {
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      paddingTop: spacing.sm,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: t.colors.textLo,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    clearAll: {
+      fontSize: 13,
+      color: t.colors.brandPurple,
+      fontWeight: '700',
+    },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      gap: 12,
+    },
+    query: {
+      flex: 1,
+      fontSize: 15,
+      color: t.colors.textHi,
+    },
+    removeButton: {
+      padding: 4,
+    },
+  }));
+
   if (!searches.length) return null;
 
   return (
@@ -31,58 +73,15 @@ export function RecentSearches({ searches, onSelect, onRemove, onClearAll }: Rec
           onPress={() => onSelect(search.query)}
           accessibilityRole="button"
         >
-          <Ionicons name="time-outline" size={18} color={colors.textLo} />
+          <Ionicons name="time-outline" size={18} color={tokens.colors.textLo} />
           <Text style={styles.query} numberOfLines={1}>
             {search.query}
           </Text>
           <Pressable onPress={() => onRemove(search.query)} hitSlop={8} style={styles.removeButton} accessibilityRole="button">
-            <Ionicons name="close" size={18} color={colors.textLo} />
+            <Ionicons name="close" size={18} color={tokens.colors.textLo} />
           </Pressable>
         </Pressable>
       ))}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: spacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.textLo,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  clearAll: {
-    fontSize: 13,
-    color: colors.brandPurple,
-    fontWeight: '700',
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  query: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.textHi,
-  },
-  removeButton: {
-    padding: 4,
-  },
-});
-
-
-

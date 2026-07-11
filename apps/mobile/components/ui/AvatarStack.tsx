@@ -1,5 +1,5 @@
-import { View, Image, Text, StyleSheet } from 'react-native';
-import { colors } from '../../lib/theme';
+import { View, Image, Text } from 'react-native';
+import { useThemedStyles } from '../../lib/theme-context';
 
 interface Avatar {
   uri: string | null;
@@ -15,16 +15,47 @@ interface Props {
 export function AvatarStack({ avatars, max = 3, size = 24 }: Props) {
   const displayed = avatars.slice(0, max);
   const remaining = avatars.length - max;
-  
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    avatarWrapper: {
+      borderRadius: 999,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: t.colors.surface,
+    },
+    avatar: {
+      width: '100%',
+      height: '100%',
+    },
+    placeholder: {
+      backgroundColor: t.colors.elevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    placeholderText: {
+      color: t.colors.textLo,
+      fontWeight: '700',
+    },
+    remainingText: {
+      marginLeft: 8,
+      color: t.colors.textLo,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+  }));
+
   return (
     <View style={styles.container}>
       {displayed.map((avatar, index) => (
-        <View 
-          key={index} 
+        <View
+          key={index}
           style={[
             styles.avatarWrapper,
-            { 
-              width: size, 
+            {
+              width: size,
               height: size,
               marginLeft: index === 0 ? 0 : -size / 3,
               zIndex: displayed.length - index,
@@ -48,36 +79,3 @@ export function AvatarStack({ avatars, max = 3, size = 24 }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarWrapper: {
-    borderRadius: 999,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.surface,
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholder: {
-    backgroundColor: colors.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderText: {
-    color: colors.textLo,
-    fontWeight: '700',
-  },
-  remainingText: {
-    marginLeft: 8,
-    color: colors.textLo,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-});
-

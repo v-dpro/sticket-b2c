@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Image, Text, View, type StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, gradients } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 type AvatarProps = {
   uri?: string | null;
@@ -32,6 +32,8 @@ const FONT_SIZES: Record<Exclude<AvatarProps['size'], number | undefined>, numbe
 };
 
 export const Avatar = memo(function Avatar({ uri, size = 'md', name, gradientBorder, style }: AvatarProps) {
+  const { tokens } = useTheme();
+  const { colors, gradients } = tokens;
   const dimension = typeof size === 'number' ? size : SIZES[size];
   const fontSize = typeof size === 'number' ? Math.max(10, Math.round(size * 0.35)) : FONT_SIZES[size];
   const initial = (name?.trim()?.[0] ?? 'U').toUpperCase();

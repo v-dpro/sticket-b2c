@@ -1,13 +1,14 @@
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { SettingsRow, SettingsSection, SettingsToggle } from '../../components/settings';
-import { Screen } from '../../components/ui/Screen';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useSettings } from '../../hooks/useSettings';
 import type { VisibilityOption } from '../../types/settings';
-import { colors, spacing } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 const VISIBILITY_OPTIONS: Array<{ value: VisibilityOption; label: string; icon: string }> = [
@@ -20,6 +21,29 @@ export default function PrivacySettingsScreen() {
   const router = useRouter();
   const { settings, updateSetting, saving } = useSettings();
   const goBack = useSafeBack();
+  const { tokens } = useTheme();
+
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: t.density.pad,
+      paddingTop: t.spacing.md,
+      paddingBottom: 12,
+    },
+    backButton: { width: 40, height: 40, justifyContent: 'center' },
+    title: { fontSize: 20, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.3 },
+    scrollView: { flex: 1 },
+    description: {
+      fontSize: 13,
+      color: t.colors.mute,
+      lineHeight: 18,
+      paddingHorizontal: t.density.pad,
+      marginTop: t.spacing.lg,
+    },
+  }));
 
   const showVisibilityPicker = (title: string, currentValue: VisibilityOption, onSelect: (value: VisibilityOption) => void) => {
     Alert.alert(
@@ -37,22 +61,21 @@ export default function PrivacySettingsScreen() {
   };
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backButton} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={colors.textHi} />
-        </Pressable>
+        <SpringPressable onPress={goBack} haptic="light" style={styles.backButton} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={22} color={tokens.colors.fg} />
+        </SpringPressable>
         <Text style={styles.title}>Privacy</Text>
-        {saving ? <Ionicons name="sync" size={18} color={colors.brandPurple} /> : <View style={{ width: 20 }} />}
+        {saving ? <Ionicons name="sync" size={18} color={tokens.colors.mute} /> : <View style={{ width: 20 }} />}
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <SettingsSection title="Profile">
           <SettingsRow
             icon="person"
-            iconColor={colors.brandPurple}
             label="Profile Visibility"
             value={getVisibilityLabel(settings.profileVisibility)}
             onPress={() =>
@@ -61,7 +84,6 @@ export default function PrivacySettingsScreen() {
           />
           <SettingsRow
             icon="musical-notes"
-            iconColor={colors.brandPink}
             label="Show Activity"
             value={getVisibilityLabel(settings.activityVisibility)}
             onPress={() =>
@@ -78,7 +100,6 @@ export default function PrivacySettingsScreen() {
         <SettingsSection title="Discovery">
           <SettingsToggle
             icon="search"
-            iconColor={colors.brandCyan}
             label="Show in Suggestions"
             description="Let others find you in friend suggestions"
             value={settings.showInSuggestions}
@@ -86,7 +107,6 @@ export default function PrivacySettingsScreen() {
           />
           <SettingsToggle
             icon="pricetag"
-            iconColor={colors.warning}
             label="Allow Tagging"
             description="Let friends tag you in their concert logs"
             value={settings.allowTagging}
@@ -96,45 +116,11 @@ export default function PrivacySettingsScreen() {
         </SettingsSection>
 
         <SettingsSection title="Blocked">
-          <SettingsRow icon="ban" iconColor={colors.error} label="Blocked Users" onPress={() => router.push('/settings/blocked-users')} isLast />
+          <SettingsRow icon="ban" iconColor={tokens.colors.error} label="Blocked Users" onPress={() => router.push('/settings/blocked-users')} isLast />
         </SettingsSection>
 
         <View style={{ height: 80 }} />
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: spacing.lg,
-    paddingBottom: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.textHi,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  description: {
-    fontSize: 13,
-    color: colors.textLo,
-    lineHeight: 18,
-    paddingHorizontal: 16,
-    marginTop: spacing.lg,
-  },
-});
-
-
-

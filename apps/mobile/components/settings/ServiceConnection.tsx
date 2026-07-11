@@ -1,12 +1,12 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { apiClient } from '../../lib/api/client';
 import { disconnectService } from '../../lib/api/settings';
-import { colors, radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type ServiceConnectionProps = {
   service: 'spotify' | 'apple_music';
@@ -30,6 +30,64 @@ export function ServiceConnection({
   isLast = false,
 }: ServiceConnectionProps) {
   const [loading, setLoading] = useState(false);
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: t.density.cardPad,
+    },
+    border: {
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.hairline,
+    },
+    iconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: t.radius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    info: {
+      flex: 1,
+    },
+    name: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: t.colors.fg,
+    },
+    username: {
+      fontSize: 13,
+      color: t.colors.success,
+      marginTop: 2,
+      fontWeight: '600',
+    },
+    notConnected: {
+      fontSize: 13,
+      color: t.colors.mute,
+      marginTop: 2,
+      fontWeight: '600',
+    },
+    statusBadge: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: t.radius.full,
+      backgroundColor: t.colors.inverseBg,
+    },
+    statusConnected: {
+      backgroundColor: t.colors.card2,
+    },
+    statusText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.colors.inverseFg,
+    },
+    statusTextConnected: {
+      color: t.colors.success,
+    },
+  }));
 
   const connectSpotify = async () => {
     setLoading(true);
@@ -108,7 +166,7 @@ export function ServiceConnection({
       </View>
 
       {loading ? (
-        <ActivityIndicator size="small" color={colors.brandPurple} />
+        <ActivityIndicator size="small" color={tokens.colors.mute} />
       ) : (
         <View style={[styles.statusBadge, connected && styles.statusConnected]}>
           <Text style={[styles.statusText, connected && styles.statusTextConnected]}>{connected ? 'Connected' : 'Connect'}</Text>
@@ -117,64 +175,6 @@ export function ServiceConnection({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  border: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  username: {
-    fontSize: 13,
-    color: colors.success,
-    marginTop: 2,
-    fontWeight: '700',
-  },
-  notConnected: {
-    fontSize: 13,
-    color: colors.textLo,
-    marginTop: 2,
-    fontWeight: '700',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.full,
-    backgroundColor: colors.brandPurple,
-  },
-  statusConnected: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textHi,
-  },
-  statusTextConnected: {
-    color: colors.success,
-  },
-});
 
 
 
