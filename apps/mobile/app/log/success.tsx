@@ -67,8 +67,14 @@ export default function LogSuccess() {
   const pad = tokens.density.pad;
 
   const params = useLocalSearchParams<{
+    logId?: string;
     eventId?: string;
     eventName?: string;
+    venueId?: string;
+    venueName?: string;
+    section?: string;
+    row?: string;
+    seat?: string;
     score?: string;
     rank?: string;
     totalScored?: string;
@@ -141,7 +147,21 @@ export default function LogSuccess() {
   }, [milestoneVisible]);
 
   const done = () => router.replace('/(tabs)/you');
-  const logAnother = () => router.replace('/log/search');
+  const canMakeMemory = Boolean(params.logId);
+  const makeMemory = () =>
+    router.push({
+      pathname: '/log/memory',
+      params: {
+        ...(params.logId ? { logId: String(params.logId) } : {}),
+        ...(params.eventId ? { eventId: String(params.eventId) } : {}),
+        ...(eventName ? { eventName } : {}),
+        ...(params.venueId ? { venueId: String(params.venueId) } : {}),
+        ...(params.venueName ? { venueName: String(params.venueName) } : {}),
+        ...(params.section ? { section: String(params.section) } : {}),
+        ...(params.row ? { row: String(params.row) } : {}),
+        ...(params.seat ? { seat: String(params.seat) } : {}),
+      },
+    });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
@@ -270,8 +290,21 @@ export default function LogSuccess() {
           <View style={{ minHeight: 124, justifyContent: 'flex-end', paddingBottom: 12 }}>
             {phase >= 5 ? (
               <Animated.View entering={FadeIn.duration(250)} style={{ gap: 12 }}>
-                <PillButton title="Done" variant="primary" size="lg" springFeedback haptic="light" onPress={done} />
-                <PillButton title="Log another" variant="ghost" size="lg" springFeedback onPress={logAnother} />
+                {canMakeMemory ? (
+                  <>
+                    <PillButton
+                      title="Make it a memory →"
+                      variant="primary"
+                      size="lg"
+                      springFeedback
+                      haptic="light"
+                      onPress={makeMemory}
+                    />
+                    <PillButton title="Done" variant="ghost" size="lg" springFeedback onPress={done} />
+                  </>
+                ) : (
+                  <PillButton title="Done" variant="primary" size="lg" springFeedback haptic="light" onPress={done} />
+                )}
               </Animated.View>
             ) : null}
           </View>

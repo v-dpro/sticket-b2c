@@ -80,6 +80,39 @@ export async function reportMoment(eventId: string, moment: { type: string; labe
 }
 
 // ---------------------------------------------------------------------------
+// Entity pages (additive)
+// ---------------------------------------------------------------------------
+
+// Shape of GET /presales rows (subset the event page needs).
+export interface EventPresale {
+  id: string;
+  artistName: string;
+  tourName: string | null;
+  venueName: string;
+  venueCity: string;
+  venueState: string | null;
+  eventDate: string;
+  presaleType: string;
+  presaleStart: string;
+  presaleEnd: string | null;
+  onsaleStart?: string | null;
+  code: string | null;
+  signupUrl: string | null;
+  ticketUrl?: string | null;
+  notes?: string | null;
+}
+
+// GET /presales?artistId= — upcoming presales for an artist. There is no
+// per-event presale endpoint; callers match rows to a specific event
+// client-side (same day + venue).
+export async function getArtistPresales(artistId: string): Promise<EventPresale[]> {
+  const response = await apiClient.get('/presales', {
+    params: { artistId, limit: 50 },
+  });
+  return Array.isArray(response.data) ? response.data : [];
+}
+
+// ---------------------------------------------------------------------------
 // Hang (Partiful-style event chat/invite)
 // ---------------------------------------------------------------------------
 

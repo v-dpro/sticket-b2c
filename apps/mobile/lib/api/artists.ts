@@ -78,5 +78,50 @@ export async function getArtistHistory(artistId: string): Promise<any[]> {
   return response.data;
 }
 
+// ---------------------------------------------------------------------------
+// Entity pages (additive)
+// ---------------------------------------------------------------------------
+
+// Shape returned by GET /artists/:id/tours
+export interface ArtistTour {
+  id: string;
+  name: string;
+  year?: number;
+  startDate?: string;
+  endDate?: string;
+  imageUrl?: string;
+  eventCount: number;
+  avgScore?: number;
+  scoredLogCount: number;
+}
+
+// GET /artists/:id/tours — tours with event counts + community avg score,
+// newest tour first.
+export async function getArtistTours(artistId: string): Promise<ArtistTour[]> {
+  const response = await apiClient.get(`/artists/${artistId}/tours`);
+  return Array.isArray(response.data) ? response.data : [];
+}
+
+// Typed shape of GET /artists/:id/my-history rows (same endpoint as
+// getArtistHistory above, typed for the artist entity page).
+export interface ArtistHistoryEntry {
+  id: string;
+  rating?: number;
+  note?: string;
+  createdAt: string;
+  event: {
+    id: string;
+    name: string;
+    date: string;
+    venue: { id: string; name: string; city: string; state?: string };
+  };
+  photos: { id: string; photoUrl: string }[];
+}
+
+export async function getArtistMyHistory(artistId: string): Promise<ArtistHistoryEntry[]> {
+  const response = await apiClient.get(`/artists/${artistId}/my-history`);
+  return Array.isArray(response.data) ? response.data : [];
+}
+
 
 

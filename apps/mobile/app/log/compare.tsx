@@ -62,7 +62,11 @@ export default function CompareScreen() {
     first?: string;
     eventId?: string;
     eventName?: string;
+    venueId?: string;
     venueName?: string;
+    section?: string;
+    row?: string;
+    seat?: string;
     eventDate?: string;
     xpGain?: string;
     xpAfter?: string;
@@ -110,8 +114,17 @@ export default function CompareScreen() {
       router.replace({
         pathname: '/log/success',
         params: {
+          // logId threads into the "Make it a memory" step from the reveal.
+          logId,
           ...(params.eventId ? { eventId: String(params.eventId) } : {}),
           eventName: tonightName,
+          // Pass-through so the memory step can prefill without a refetch
+          // (all optional — it self-resolves from the event otherwise).
+          ...(params.venueId ? { venueId: String(params.venueId) } : {}),
+          ...(tonightVenue ? { venueName: tonightVenue } : {}),
+          ...(params.section ? { section: String(params.section) } : {}),
+          ...(params.row ? { row: String(params.row) } : {}),
+          ...(params.seat ? { seat: String(params.seat) } : {}),
           ...(result
             ? {
                 score: String(result.score),
@@ -126,7 +139,21 @@ export default function CompareScreen() {
         },
       });
     },
-    [router, params.eventId, params.xpGain, params.xpAfter, params.leveledUp, params.badges, tonightName],
+    [
+      router,
+      logId,
+      params.eventId,
+      params.venueId,
+      params.section,
+      params.row,
+      params.seat,
+      params.xpGain,
+      params.xpAfter,
+      params.leveledUp,
+      params.badges,
+      tonightName,
+      tonightVenue,
+    ],
   );
 
   const finalize = useCallback(

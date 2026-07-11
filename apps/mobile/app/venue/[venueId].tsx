@@ -1,363 +1,379 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+// Venue entity page — header (name, city · capacity, rating stars) +
+// segmented tabs: Info (practical cards) / Seat views / Tips.
+//
+// APIs: GET /venues/:id (detail incl. ratings summary) ·
+// GET /venues/:id/seat-views · GET/POST /venues/:id/tips ·
+// POST/DELETE /venues/:id/tips/:tipId/upvote.
+
+import { Stack, useLocalSearchParams } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
+  KeyboardAvoidingView,
   Linking,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { VenueHeader } from '../../components/venue/VenueHeader';
-import { LocationCard } from '../../components/venue/LocationCard';
-import { VenueStats } from '../../components/venue/VenueStats';
-import { YourVenueHistory } from '../../components/venue/YourVenueHistory';
-import { VenueRatings } from '../../components/venue/VenueRatings';
-import { RateVenueModal } from '../../components/venue/RateVenueModal';
-import { VenueShows } from '../../components/venue/VenueShows';
-import { SeatViewsSection } from '../../components/venue/SeatViewsSection';
-import { TipsSection } from '../../components/venue/TipsSection';
-import { AddTipModal } from '../../components/venue/AddTipModal';
-import { AddSeatViewModal } from '../../components/venue/AddSeatViewModal';
+import { EntityNav } from '../../components/entity/EntityChrome';
+import { Chip, SectionLabel, StarRow } from '../../components/entity/EntityBits';
+import {
+  EntityError,
+  EntityPageSkeleton,
+  ShimmerBlock,
+} from '../../components/entity/EntityStates';
+import { formatScore } from '../../components/entity/format';
+import { SeatViewsGrid } from '../../components/entity/SeatViewsGrid';
+import { TipsList } from '../../components/entity/TipsList';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 
+import { useSeatViews } from '../../hooks/useSeatViews';
 import { useVenue } from '../../hooks/useVenue';
 import { useVenueTips } from '../../hooks/useVenueTips';
-import { useSeatViews } from '../../hooks/useSeatViews';
-import { useVenueShows } from '../../hooks/useVenueShows';
-import { useSession } from '../../hooks/useSession';
-
-import { submitSeatView, submitVenueRatings } from '../../lib/api/venues';
-import type { VenueRatingsSubmission, VenueShow } from '../../types/venue';
+import { haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import type { VenueDetails } from '../../types/venue';
+
+type VenueTab = 'info' | 'seats' | 'tips';
+
+const RATING_ROWS: { key: keyof VenueDetails['ratings']; label: string }[] = [
+  { key: 'sound', label: 'Sound' },
+  { key: 'sightlines', label: 'Sightlines' },
+  { key: 'drinks', label: 'Drinks' },
+  { key: 'staff', label: 'Staff' },
+  { key: 'access', label: 'Getting in' },
+];
+
+function mapsUrl(venue: VenueDetails): string {
+  const query = encodeURIComponent(
+    [venue.name, venue.address, venue.city, venue.state, venue.country]
+      .filter(Boolean)
+      .join(', '),
+  );
+  if (Platform.OS === 'ios') return `http://maps.apple.com/?q=${query}`;
+  if (Platform.OS === 'android') return `geo:0,0?q=${query}`;
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
 
 export default function VenueScreen() {
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const goBack = useSafeBack();
+  const { tokens } = useTheme();
   const { venueId } = useLocalSearchParams<{ venueId: string }>();
-  const { user } = useSession();
   const id = venueId ? String(venueId) : '';
 
-  const { venue, loading, error, refetch, updateRatings } = useVenue(id);
-  const tips = useVenueTips(id);
-  const seatViews = useSeatViews(id);
-  const upcoming = useVenueShows(id, true);
-  const past = useVenueShows(id, false);
+  const { venue, loading, error, refetch } = useVenue(id);
+  const seatViewsState = useSeatViews(id);
+  const tipsState = useVenueTips(id);
 
+  const [tab, setTab] = useState<VenueTab>('info');
+  const [tipsAutoFocus, setTipsAutoFocus] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [rateModalVisible, setRateModalVisible] = useState(false);
-  const [addTipVisible, setAddTipVisible] = useState(false);
-  const [addSeatViewVisible, setAddSeatViewVisible] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const goBack = useSafeBack();
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetch(), tips.refresh(), seatViews.refresh(), upcoming.refresh(), past.refresh()]);
+      await Promise.all([refetch(), seatViewsState.refresh(), tipsState.refresh()]);
     } finally {
       setRefreshing(false);
     }
   };
 
-  const handleBack = goBack;
+  // Overall rating = mean of the non-null category averages.
+  const overallRating = useMemo(() => {
+    if (!venue) return null;
+    const values = RATING_ROWS.map((r) => venue.ratings[r.key]).filter(
+      (v): v is number => typeof v === 'number' && Number.isFinite(v),
+    );
+    if (!values.length) return null;
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  }, [venue]);
 
-  const handleShare = async () => {
-    if (!venue) return;
-
-    try {
-      await Share.share({
-        title: venue.name,
-        message: `Check out ${venue.name} on Sticket!`,
-        url: `https://sticket.in/venue/${id}`,
-      });
-    } catch (shareError) {
-      // eslint-disable-next-line no-console
-      console.error('Share failed:', shareError);
-    }
-  };
-
-  const handleDirections = () => {
-    if (!venue) return;
-    const destination = encodeURIComponent(venue.address || `${venue.name}, ${venue.city}${venue.state ? `, ${venue.state}` : ''}`);
-    const url = Platform.select({
-      ios: `maps://app?daddr=${destination}`,
-      android: `google.navigation:q=${destination}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${destination}`,
-    });
-    if (url) Linking.openURL(url);
-  };
-
-  const handleSave = () => {
-    setSaved((prev) => !prev);
-  };
-
-  const handleRateSubmit = async (ratings: VenueRatingsSubmission) => {
-    try {
-      await submitVenueRatings(id, ratings);
-      updateRatings(ratings);
-      await refetch();
-      return true;
-    } catch (submitError) {
-      // eslint-disable-next-line no-console
-      console.error('Rating submit failed:', submitError);
-      return false;
-    }
-  };
-
-  const handleAddSeatViewSubmit = async (data: { section: string; row?: string; photo: { uri: string } }) => {
-    try {
-      await submitSeatView(id, data);
-      await seatViews.refresh();
-      return true;
-    } catch (uploadError) {
-      // eslint-disable-next-line no-console
-      console.error('Seat view upload failed:', uploadError);
-      return false;
-    }
-  };
-
-  const handleShowPress = (eventId: string) => {
-    router.push({ pathname: '/event/[eventId]', params: { eventId } });
-  };
-
-  const handleLogPress = (show: VenueShow) => {
-    router.push({ pathname: '/log/details', params: { eventId: show.id } });
-  };
-
-  const handleSeeAllHistory = () => {
-    // Navigate to user's own profile where they can see all their shows at this venue
-    if (user?.id) {
-      router.push({ pathname: '/profile/[id]', params: { id: user.id } });
-    }
-  };
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    content: { paddingHorizontal: t.density.pad },
+    name: {
+      fontSize: 24,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+      color: t.colors.fg,
+      marginTop: 14,
+      lineHeight: 29,
+    },
+    metaLine: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11.5,
+      letterSpacing: 0.4,
+      color: t.colors.mute,
+      marginTop: 8,
+      textTransform: 'uppercase',
+    },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+    ratingCount: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      color: t.colors.mute,
+    },
+    noRatings: { fontSize: 12.5, color: t.colors.muteSoft, marginTop: 10 },
+    tabRow: { flexDirection: 'row', gap: 8, marginTop: 20, marginBottom: 20 },
+    card: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.hairline,
+      padding: t.density.cardPad,
+      marginBottom: 10,
+    },
+    cardRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    cardBody: { flex: 1, gap: 3 },
+    cardTitle: { fontSize: 14, fontWeight: '600', color: t.colors.fg },
+    cardText: { fontSize: 13, color: t.colors.mute, lineHeight: 19 },
+    cardMono: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 16,
+      color: t.colors.fg,
+    },
+    breakdownRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+    },
+    breakdownLabel: { fontSize: 13.5, fontWeight: '400', color: t.colors.text },
+    breakdownRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    breakdownScore: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11.5,
+      color: t.colors.mute,
+      minWidth: 24,
+      textAlign: 'right',
+    },
+    ctaCard: {
+      backgroundColor: t.colors.card2,
+      borderRadius: t.radius.lg,
+      padding: t.density.cardPad,
+      alignItems: 'flex-start',
+      gap: 10,
+      marginBottom: 10,
+    },
+    seatGridSkeleton: { flexDirection: 'row', gap: 10 },
+  }));
 
   if (loading && !venue) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.screen}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={accentSets.cyan.hex} />
+        <View style={{ paddingTop: insets.top }}>
+          <EntityNav onBack={goBack} />
+        </View>
+        <EntityPageSkeleton hero={false} />
       </View>
     );
   }
 
   if (error || !venue) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.screen}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Text style={styles.errorTitle}>Couldn't load venue</Text>
-        <Text style={styles.errorSubtitle}>{error || 'Unknown error'}</Text>
-        <Pressable style={styles.retryButton} onPress={refetch}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </Pressable>
-        <Pressable style={styles.backButton} onPress={handleBack}>
-          <Text style={styles.backButtonText}>Go back</Text>
-        </Pressable>
+        <EntityError
+          title="Couldn't load this venue"
+          message={error}
+          onRetry={() => void refetch()}
+          onBack={goBack}
+        />
       </View>
     );
   }
 
+  const cityLine = [venue.city, venue.state].filter(Boolean).join(', ');
+  const hasPracticalInfo = Boolean(venue.address || venue.capacity);
+
+  const openMaps = () => {
+    void Linking.openURL(mapsUrl(venue)).catch(() => haptics.error());
+  };
+
+  const goToTipsComposer = () => {
+    setTipsAutoFocus(true);
+    setTab('tips');
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={accentSets.cyan.hex} />}
+      <View style={{ paddingTop: insets.top }}>
+        <EntityNav onBack={goBack} />
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <VenueHeader
-          name={venue.name}
-          imageUrl={venue.imageUrl}
-          city={venue.city}
-          state={venue.state}
-          country={venue.country}
-          capacity={venue.capacity}
-          onBackPress={handleBack}
-          onSharePress={handleShare}
-        />
-
-        {/* Action buttons: Directions + Save */}
-        <View style={styles.actionRow}>
-          <Pressable style={styles.directionsButton} onPress={handleDirections}>
-            <Ionicons name="navigate" size={16} color={colors.ink} />
-            <Text style={styles.directionsText}>Directions</Text>
-          </Pressable>
-          <Pressable style={[styles.saveButton, saved && styles.saveButtonActive]} onPress={handleSave}>
-            <Ionicons
-              name={saved ? 'bookmark' : 'bookmark-outline'}
-              size={16}
-              color={saved ? accentSets.cyan.hex : colors.textMid}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void handleRefresh()}
+              tintColor={tokens.colors.mute}
+              colors={[tokens.colors.fg]}
+              progressBackgroundColor={tokens.colors.card2}
             />
-            <Text style={[styles.saveText, saved && styles.saveTextActive]}>
-              {saved ? 'Saved' : 'Save'}
+          }
+        >
+          <View style={styles.content}>
+            {/* ── Header ── */}
+            <Text style={styles.name}>{venue.name}</Text>
+            <Text style={styles.metaLine}>
+              {cityLine}
+              {venue.capacity ? ` · CAP ${venue.capacity.toLocaleString()}` : ''}
             </Text>
-          </Pressable>
-        </View>
+            {overallRating != null ? (
+              <View style={styles.ratingRow}>
+                <StarRow value={overallRating} />
+                <Text style={styles.ratingCount}>
+                  {formatScore(overallRating)} ({venue.ratings.totalRatings})
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.noRatings}>No ratings yet</Text>
+            )}
 
-        <VenueStats totalShows={venue.totalShows} totalLogs={venue.totalLogs} capacity={venue.capacity} />
+            {/* ── Tabs ── */}
+            <View style={styles.tabRow}>
+              <Chip label="Info" active={tab === 'info'} onPress={() => setTab('info')} />
+              <Chip label="Seat views" active={tab === 'seats'} onPress={() => setTab('seats')} />
+              <Chip label="Tips" active={tab === 'tips'} onPress={() => setTab('tips')} />
+            </View>
 
-        {/* Map placeholder */}
-        <LocationCard
-          name={venue.name}
-          address={venue.address}
-          city={venue.city}
-          state={venue.state}
-          lat={venue.lat}
-          lng={venue.lng}
-        />
+            {/* ── INFO ── */}
+            {tab === 'info' ? (
+              <View>
+                <Animated.View entering={FadeInDown.duration(240)}>
+                  <SpringPressable
+                    haptic="light"
+                    onPress={openMaps}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open in Maps"
+                    style={styles.card}
+                  >
+                    <View style={styles.cardRow}>
+                      <Ionicons name="location-outline" size={20} color={tokens.colors.mute} />
+                      <View style={styles.cardBody}>
+                        <Text style={styles.cardTitle}>
+                          {venue.address || `${venue.name}, ${cityLine}`}
+                        </Text>
+                        <Text style={styles.cardText}>Open in Maps</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={15} color={tokens.colors.muteSoft} />
+                    </View>
+                  </SpringPressable>
+                </Animated.View>
 
-        <YourVenueHistory
-          showCount={venue.userShowCount}
-          firstShow={venue.userFirstShow}
-          lastShow={venue.userLastShow}
-          onSeeAllPress={handleSeeAllHistory}
-        />
+                {venue.capacity ? (
+                  <Animated.View entering={FadeInDown.delay(40).duration(240)} style={styles.card}>
+                    <View style={styles.cardRow}>
+                      <Ionicons name="people-outline" size={20} color={tokens.colors.mute} />
+                      <View style={styles.cardBody}>
+                        <Text style={styles.cardText}>Capacity</Text>
+                        <Text style={styles.cardMono}>{venue.capacity.toLocaleString()}</Text>
+                      </View>
+                    </View>
+                  </Animated.View>
+                ) : null}
 
-        <VenueShows
-          upcoming={upcoming.shows}
-          past={past.shows}
-          pastLoading={past.loading}
-          pastHasMore={past.hasMore}
-          onLoadMorePast={past.loadMore}
-          onShowPress={handleShowPress}
-          onLogPress={handleLogPress}
-        />
+                {venue.ratings.totalRatings > 0 ? (
+                  <Animated.View entering={FadeInDown.delay(80).duration(240)} style={styles.card}>
+                    <SectionLabel>Crowd ratings</SectionLabel>
+                    {RATING_ROWS.map((row) => {
+                      const value = venue.ratings[row.key];
+                      if (typeof value !== 'number') return null;
+                      return (
+                        <View key={row.key} style={styles.breakdownRow}>
+                          <Text style={styles.breakdownLabel}>{row.label}</Text>
+                          <View style={styles.breakdownRight}>
+                            <StarRow value={value} size={11} />
+                            <Text style={styles.breakdownScore}>{formatScore(value)}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </Animated.View>
+                ) : null}
 
-        <VenueRatings ratings={venue.ratings} userHasRated={!!venue.userRatings} onRatePress={() => setRateModalVisible(true)} />
+                {!hasPracticalInfo ? (
+                  <Animated.View
+                    entering={FadeInDown.delay(120).duration(240)}
+                    style={styles.ctaCard}
+                  >
+                    <Text style={styles.cardTitle}>Know this venue?</Text>
+                    <Text style={styles.cardText}>
+                      We don't have practical details for this spot yet. Help the next crowd out
+                      with a tip — parking, entry, where to stand.
+                    </Text>
+                    <PillButton
+                      title="Add a tip"
+                      variant="secondary"
+                      springFeedback
+                      haptic="light"
+                      onPress={goToTipsComposer}
+                    />
+                  </Animated.View>
+                ) : null}
+              </View>
+            ) : null}
 
-        <SeatViewsSection
-          seatViews={seatViews.seatViews}
-          sections={seatViews.sections}
-          onAddPress={() => setAddSeatViewVisible(true)}
-        />
+            {/* ── SEAT VIEWS ── */}
+            {tab === 'seats' ? (
+              seatViewsState.loading && seatViewsState.seatViews.length === 0 ? (
+                <View style={styles.seatGridSkeleton}>
+                  <View style={{ flex: 1, gap: 8 }}>
+                    <ShimmerBlock height={120} borderRadius={tokens.radius.md} />
+                    <ShimmerBlock width="60%" height={11} borderRadius={6} />
+                  </View>
+                  <View style={{ flex: 1, gap: 8 }}>
+                    <ShimmerBlock height={120} borderRadius={tokens.radius.md} />
+                    <ShimmerBlock width="60%" height={11} borderRadius={6} />
+                  </View>
+                </View>
+              ) : (
+                <SeatViewsGrid seatViews={seatViewsState.seatViews} />
+              )
+            ) : null}
 
-        <TipsSection tips={tips.tips} onUpvote={tips.toggleUpvote} onAddTipPress={() => setAddTipVisible(true)} />
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      <RateVenueModal
-        visible={rateModalVisible}
-        onClose={() => setRateModalVisible(false)}
-        onSubmit={handleRateSubmit}
-        initialRatings={venue.userRatings}
-      />
-
-      <AddTipModal
-        visible={addTipVisible}
-        onClose={() => setAddTipVisible(false)}
-        onSubmit={(text, category) => tips.addTip(text, category)}
-      />
-
-      <AddSeatViewModal
-        visible={addSeatViewVisible}
-        onClose={() => setAddSeatViewVisible(false)}
-        onSubmit={handleAddSeatViewSubmit}
-      />
+            {/* ── TIPS ── */}
+            {tab === 'tips' ? (
+              tipsState.loading && tipsState.tips.length === 0 ? (
+                <View style={{ gap: 10 }}>
+                  <ShimmerBlock height={120} borderRadius={tokens.radius.lg} />
+                  <ShimmerBlock height={72} borderRadius={tokens.radius.lg} />
+                  <ShimmerBlock height={72} borderRadius={tokens.radius.lg} />
+                </View>
+              ) : (
+                <TipsList
+                  tips={tipsState.tips}
+                  onUpvote={tipsState.toggleUpvote}
+                  onAdd={tipsState.addTip}
+                  autoFocusComposer={tipsAutoFocus}
+                />
+              )
+            ) : null}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 10,
-  },
-  directionsButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 44,
-    borderRadius: 9999,
-    backgroundColor: accentSets.cyan.hex,
-    gap: 6,
-  },
-  directionsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.ink,
-  },
-  saveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 44,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    gap: 6,
-  },
-  saveButtonActive: {
-    borderColor: accentSets.cyan.line,
-    backgroundColor: accentSets.cyan.soft,
-  },
-  saveText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textMid,
-  },
-  saveTextActive: {
-    color: accentSets.cyan.hex,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  errorTitle: {
-    color: colors.textHi,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorSubtitle: {
-    color: colors.textMid,
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: accentSets.cyan.hex,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 9999,
-  },
-  retryButtonText: {
-    color: colors.ink,
-    fontWeight: '700',
-  },
-  backButton: {
-    marginTop: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  backButtonText: {
-    color: accentSets.cyan.hex,
-    fontWeight: '700',
-  },
-});

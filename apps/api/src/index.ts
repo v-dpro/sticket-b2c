@@ -3261,6 +3261,38 @@ app.get('/venues/:id/seat-views', async (req, reply) => {
   }
 });
 
+// POST /venues/:id/seat-ratings — photo-less seat rating (JSON). A seat view
+// photo can be attached later via /venues/:id/seat-views; both write SeatView.
+app.post('/venues/:id/seat-ratings', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: venueId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { section?: string; row?: string; rating?: number; eventId?: string };
+
+  const section = typeof body.section === 'string' ? body.section.trim() : '';
+  if (!section) throw new AppError('section is required', 400);
+  const rating = Number(body.rating);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new AppError('rating must be an integer 1-5', 400);
+  }
+
+  const venue = await prisma.venue.findUnique({ where: { id: venueId }, select: { id: true } });
+  if (!venue) throw new AppError('Venue not found', 404);
+
+  const created = await prisma.seatView.create({
+    data: {
+      venueId,
+      userId,
+      section,
+      row: typeof body.row === 'string' && body.row.trim() ? body.row.trim() : null,
+      rating,
+      eventId: typeof body.eventId === 'string' && body.eventId ? body.eventId : null,
+    },
+  });
+
+  reply.status(201);
+  return { id: created.id, section: created.section, row: created.row ?? undefined, rating: created.rating };
+});
+
 app.post('/venues/:id/seat-views', async (req, reply) => {
   try {
     const userId = requireAccessUserId(req as any);
@@ -5951,6 +5983,7 @@ app.get('/logs/:id', async (req, reply) => {
       log: {
         id: log.id,
         rating: typeof log.rating === 'number' ? log.rating : undefined,
+        score: typeof log.score === 'number' ? log.score : undefined,
         note: log.note ?? undefined,
         visibility: log.visibility,
         photos: (log.photos ?? []).map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.photoUrl })),

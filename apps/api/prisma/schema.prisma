@@ -578,7 +578,7 @@ model SeatView {
   id           String   @id @default(cuid())
   section      String
   row          String?
-  photoUrl     String
+  photoUrl     String? // optional: a seat rating can exist without a view photo
   thumbnailUrl String?
   rating       Int? // 1-5, "how's the view from here"
   createdAt    DateTime @default(now())

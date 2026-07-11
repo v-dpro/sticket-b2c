@@ -1,0 +1,77 @@
+default_platform(:ios)
+
+APP_STORE_APP_ID = "6757096316" # App Store Connect app ID
+TEAM_ID = "N5L7VN2BG7"
+BUNDLE_ID = "com.sticket.app"
+PRODUCTION_API_URL = "https://sticket-b2c-production.up.railway.app"
+
+platform :ios do
+  desc "Show the latest build number currently on TestFlight"
+  lane :latest do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: File.expand_path(ENV["ASC_KEY_PATH"])
+    )
+    n = latest_testflight_build_number(api_key: api_key, app_identifier: BUNDLE_ID)
+    UI.important("Latest TestFlight build number: #{n}")
+  end
+
+  desc "Build the app locally and upload it to TestFlight"
+  lane :beta do
+    %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH].each do |var|
+      UI.user_error!("Missing #{var} — see apps/mobile/DEPLOY.md for the one-time App Store Connect API key setup") if ENV[var].to_s.empty?
+    end
+    key_path = File.expand_path(ENV["ASC_KEY_PATH"])
+    UI.user_error!("ASC_KEY_PATH points to #{key_path}, which doesn't exist") unless File.exist?(key_path)
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: key_path
+    )
+
+    # TestFlight rejects duplicate build numbers, so continue from the latest one up there
+    build_number = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      initial_build_number: 8
+    ) + 1
+    set_info_plist_value(path: "ios/Sticket/Info.plist", key: "CFBundleVersion", value: build_number.to_s)
+
+    # Metro inlines EXPO_PUBLIC_* vars at bundle time; pin the production API
+    # so a locally modified .env can't leak into a TestFlight build
+    ENV["EXPO_PUBLIC_API_URL"] = PRODUCTION_API_URL
+
+    auth_xcargs = [
+      "-allowProvisioningUpdates",
+      "-authenticationKeyPath #{key_path.shellescape}",
+      "-authenticationKeyID #{ENV['ASC_KEY_ID']}",
+      "-authenticationKeyIssuerID #{ENV['ASC_ISSUER_ID']}"
+    ].join(" ")
+
+    build_app(
+      workspace: "ios/Sticket.xcworkspace",
+      scheme: "Sticket",
+      configuration: "Release",
+      output_directory: "ios/build",
+      # NOTE: gym applies xcargs to the exportArchive step too — don't add
+      # export_xcargs with the same auth flags or xcodebuild gets them twice
+      xcargs: "#{auth_xcargs} DEVELOPMENT_TEAM=#{TEAM_ID} CODE_SIGN_STYLE=Automatic",
+      export_method: "app-store",
+      export_options: {
+        teamID: TEAM_ID,
+        signingStyle: "automatic"
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      apple_id: APP_STORE_APP_ID,
+      app_identifier: BUNDLE_ID,
+      skip_waiting_for_build_processing: true
+    )
+
+    UI.success("Build #{build_number} uploaded — it appears in TestFlight once Apple finishes processing (~5-15 min).")
+  end
+end

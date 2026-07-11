@@ -1,678 +1,480 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  Share,
-  Text,
-  Pressable,
-  Image,
-  Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// Artist entity page — hero, follow, YOU × ARTIST history card,
+// ON TOUR (Bandsintown-backed upcoming dates), ALL TOURS (→ /tour/[id]).
+//
+// APIs: GET /artists/:id · POST/DELETE /artists/:id/follow ·
+// GET /artists/:id/my-history · GET /artists/:id/events/bandsintown
+// (fallback GET /artists/:id/events?upcoming=true) · GET /artists/:id/tours.
 
-import { MonoLabel } from '../../components/ui/MonoLabel';
-import { StatPill } from '../../components/ui/StatPill';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Image,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+
+import { EntityNav } from '../../components/entity/EntityChrome';
+import {
+  MonoChip,
+  QuietEmpty,
+  SectionLabel,
+  StatBlock,
+} from '../../components/entity/EntityBits';
+import {
+  EntityError,
+  EntityPageSkeleton,
+  RowSkeletons,
+} from '../../components/entity/EntityStates';
+import { formatScore, monoDate, yearOf } from '../../components/entity/format';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 
 import { useArtist } from '../../hooks/useArtist';
-import { useArtistShows } from '../../hooks/useArtistShows';
-import { useArtistFollow } from '../../hooks/useArtistFollow';
-import { useSession } from '../../hooks/useSession';
-
-import { markInterested, removeInterested } from '../../lib/api/events';
-import type { ArtistShow } from '../../types/artist';
+import {
+  followArtist,
+  getArtistMyHistory,
+  getArtistShows,
+  getArtistTours,
+  unfollowArtist,
+  type ArtistHistoryEntry,
+  type ArtistTour,
+} from '../../lib/api/artists';
+import { getArtistEventsBandsintown } from '../../lib/api/logShow';
+import { durations, haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius, fontFamilies, density } from '../../lib/theme';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HERO_HEIGHT = 260;
+type UpcomingRow = {
+  id: string;
+  title: string;
+  meta: string;
+  date: string;
+};
+
+type AsyncStatus = 'loading' | 'ready' | 'error';
+
 export default function ArtistScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const goBack = useSafeBack();
+  const { width } = useWindowDimensions();
+  const { tokens } = useTheme();
   const { artistId } = useLocalSearchParams<{ artistId: string }>();
-  const { user } = useSession();
-
   const id = artistId ? String(artistId) : '';
 
   const { artist, loading, error, refetch, updateFollowing } = useArtist(id);
-  const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useArtistFollow();
 
-  const upcoming = useArtistShows(id, true);
-  const past = useArtistShows(id, false);
-
+  // Secondary data — each degrades independently.
+  const [history, setHistory] = useState<ArtistHistoryEntry[]>([]);
+  const [historyStatus, setHistoryStatus] = useState<AsyncStatus>('loading');
+  const [tours, setTours] = useState<ArtistTour[]>([]);
+  const [toursStatus, setToursStatus] = useState<AsyncStatus>('loading');
+  const [upcoming, setUpcoming] = useState<UpcomingRow[]>([]);
+  const [upcomingStatus, setUpcomingStatus] = useState<AsyncStatus>('loading');
   const [refreshing, setRefreshing] = useState(false);
-  const goBack = useSafeBack();
+  const [followBusy, setFollowBusy] = useState(false);
+
+  const loadExtras = useCallback(async () => {
+    if (!id) return;
+
+    const [historyRes, toursRes, bitRes] = await Promise.allSettled([
+      getArtistMyHistory(id),
+      getArtistTours(id),
+      getArtistEventsBandsintown(id, false),
+    ]);
+
+    setHistory(historyRes.status === 'fulfilled' ? historyRes.value : []);
+    setHistoryStatus(historyRes.status === 'fulfilled' ? 'ready' : 'error');
+
+    setTours(toursRes.status === 'fulfilled' ? toursRes.value : []);
+    setToursStatus(toursRes.status === 'fulfilled' ? 'ready' : 'error');
+
+    // ON TOUR: Bandsintown first; fall back to DB upcoming events when empty.
+    let rows: UpcomingRow[] = [];
+    if (bitRes.status === 'fulfilled' && bitRes.value.length > 0) {
+      rows = bitRes.value.map((e) => ({
+        id: e.id,
+        title: e.venue?.name ?? e.name,
+        meta: [e.venue?.city, e.venue?.state].filter(Boolean).join(', '),
+        date: e.date,
+      }));
+    } else {
+      try {
+        const dbShows = await getArtistShows(id, { upcoming: true, limit: 10 });
+        rows = dbShows.map((s) => ({
+          id: s.id,
+          title: s.venue?.name ?? s.name,
+          meta: [s.venue?.city, s.venue?.state].filter(Boolean).join(', '),
+          date: s.date,
+        }));
+      } catch {
+        // both sources failed — treated as no dates
+      }
+    }
+    setUpcoming(rows);
+    setUpcomingStatus('ready');
+  }, [id]);
 
   useEffect(() => {
-    if (artist) {
-      setIsFollowing(artist.isFollowing);
-    }
-  }, [artist, setIsFollowing]);
+    void loadExtras();
+  }, [loadExtras]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetch(), upcoming.refresh(), past.refresh()]);
+      await Promise.all([refetch(), loadExtras()]);
     } finally {
       setRefreshing(false);
     }
   };
-
-  const handleBack = goBack;
 
   const handleShare = async () => {
     if (!artist) return;
     try {
       await Share.share({
         title: artist.name,
-        message: `Check out ${artist.name} on Sticket!`,
+        message: `Check out ${artist.name} on Sticket — https://sticket.in/artist/${id}`,
         url: `https://sticket.in/artist/${id}`,
       });
-    } catch (shareError) {
-      console.error('Share failed:', shareError);
+    } catch {
+      // user dismissed the sheet — nothing to do
     }
   };
 
-  const handleFollowPress = async () => {
-    if (!id) return;
-    await toggleFollow(id);
-    updateFollowing(!isFollowing);
-  };
+  const isFollowing = artist?.isFollowing ?? false;
 
-  const handleShowPress = (showId: string) => {
-    router.push({ pathname: '/event/[eventId]', params: { eventId: showId } });
-  };
-
-  const handleInterestedPress = async (showId: string, current: boolean) => {
+  const handleFollow = async () => {
+    if (!artist || followBusy) return;
+    const next = !isFollowing;
+    setFollowBusy(true);
+    updateFollowing(next); // optimistic
     try {
-      if (current) {
-        await removeInterested(showId);
-      } else {
-        await markInterested(showId);
-      }
-      upcoming.updateInterested(showId, !current);
-    } catch (interestError) {
-      console.error('Interest toggle failed:', interestError);
+      if (next) await followArtist(id);
+      else await unfollowArtist(id);
+      haptics.medium();
+    } catch {
+      updateFollowing(!next); // rollback
+      haptics.error();
+    } finally {
+      setFollowBusy(false);
     }
   };
 
-  const handleLogPress = (show: ArtistShow) => {
-    router.push({ pathname: '/log/details', params: { eventId: show.id } });
-  };
-
-  const handleFriendPress = (userId: string) => {
-    router.push({ pathname: '/profile/[id]', params: { id: userId } });
-  };
-
-  const handleSeeAllHistory = () => {
-    if (user?.id) {
-      router.push({ pathname: '/profile/[id]', params: { id: user.id } });
+  // YOU × ARTIST stats — my-history first, artist-detail fields as fallback.
+  const youStats = useMemo(() => {
+    if (historyStatus === 'ready' && history.length > 0) {
+      const ratings = history
+        .map((h) => h.rating)
+        .filter((r): r is number => typeof r === 'number');
+      const avg = ratings.length
+        ? formatScore(ratings.reduce((a, b) => a + b, 0) / ratings.length)
+        : '—';
+      const years = history
+        .map((h) => new Date(h.event?.date ?? '').getFullYear())
+        .filter((y) => Number.isFinite(y));
+      const firstYear = years.length ? String(Math.min(...years)) : '—';
+      return { shows: String(history.length), avg, firstYear };
     }
-  };
+    // Degraded: my-history unavailable (e.g. signed out / request failed).
+    if (artist && artist.userShowCount > 0) {
+      return {
+        shows: String(artist.userShowCount),
+        avg: '—',
+        firstYear: artist.userFirstShow ? yearOf(artist.userFirstShow.date) || '—' : '—',
+      };
+    }
+    return null;
+  }, [artist, history, historyStatus]);
 
-  // --- Helpers ---
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    heroFallback: { backgroundColor: t.colors.card2, width: '100%' },
+    nameBlock: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      paddingHorizontal: t.density.pad,
+      paddingTop: 18,
+    },
+    name: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4, color: t.colors.fg },
+    genres: { fontSize: 13, color: t.colors.mute, marginTop: 4 },
+    followers: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      color: t.colors.muteSoft,
+      marginTop: 6,
+      textTransform: 'uppercase',
+    },
+    section: { paddingHorizontal: t.density.pad, marginTop: 28 },
+    youCard: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.hairline,
+      padding: t.density.cardPad,
+      gap: 14,
+    },
+    youLabel: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
+    youStatsRow: { flexDirection: 'row', gap: 12 },
+    row: {
+      minHeight: t.density.rowH,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 8,
+    },
+    rowBody: { flex: 1, minWidth: 0, gap: 2 },
+    rowTitle: { fontSize: 15, fontWeight: '600', color: t.colors.text },
+    rowTitleStrong: { fontSize: 15, fontWeight: '700', color: t.colors.text },
+    rowMeta: { fontSize: 13, color: t.colors.mute },
+    moreDates: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      color: t.colors.muteSoft,
+      marginTop: 6,
+      textTransform: 'uppercase',
+    },
+  }));
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const formatShortDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-  };
-
-  // --- Loading ---
+  // ── Loading / error shells ──
   if (loading && !artist) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.screen}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={accentSets.cyan.hex} />
+        <EntityNav onBack={goBack} floating />
+        <View style={{ paddingTop: insets.top }}>
+          <EntityPageSkeleton />
+        </View>
       </View>
     );
   }
 
-  // --- Error ---
   if (error || !artist) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.screen}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Text style={styles.errorTitle}>Couldn't load artist</Text>
-        <Text style={styles.errorSubtitle}>{error || 'Unknown error'}</Text>
-        <Pressable style={styles.retryButton} onPress={refetch}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </Pressable>
-        <Pressable style={styles.backButtonError} onPress={handleBack}>
-          <Text style={styles.backButtonErrorText}>Go back</Text>
-        </Pressable>
+        <EntityError
+          title="Couldn't load this artist"
+          message={error}
+          onRetry={() => void refetch()}
+          onBack={goBack}
+        />
       </View>
     );
   }
 
-  // Derive data
-  const allShows = [...past.shows];
-  const hasHistory = artist.userShowCount > 0;
-  const hasUpcomingTour = upcoming.shows.length > 0;
-  const firstUpcoming = upcoming.shows[0];
+  const heroHeight = artist.imageUrl ? Math.round((width * 9) / 16) : insets.top + 96;
+  const heroImage = artist.bannerUrl || artist.imageUrl;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView
-        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={accentSets.cyan.hex} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void handleRefresh()}
+            tintColor={tokens.colors.mute}
+            colors={[tokens.colors.fg]}
+            progressBackgroundColor={tokens.colors.card2}
+          />
         }
       >
-        {/* ====== 1. HERO ====== */}
-        <View style={[styles.hero, { height: HERO_HEIGHT }]}>
-          {artist.imageUrl ? (
-            <Image source={{ uri: artist.imageUrl }} style={styles.heroCover} />
+        {/* ── Hero ── */}
+        <View style={{ height: heroHeight }}>
+          {heroImage ? (
+            <>
+              <Image
+                source={{ uri: heroImage }}
+                style={{ ...StyleSheet.absoluteFillObject, width: '100%', height: heroHeight }}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['transparent', tokens.colors.bg]}
+                locations={[0.45, 1]}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </>
           ) : (
-            <View style={[styles.heroCover, { backgroundColor: colors.surface }]} />
+            <View style={[styles.heroFallback, { height: heroHeight }]} />
           )}
+        </View>
 
-          <LinearGradient
-            colors={['transparent', 'rgba(11,11,20,0.85)', colors.ink]}
-            locations={[0, 0.6, 1]}
-            style={StyleSheet.absoluteFillObject}
-          />
-
-          {/* Top buttons */}
-          <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-            <Pressable onPress={handleBack} style={styles.topButton}>
-              <Ionicons name="arrow-back" size={20} color={colors.textHi} />
-            </Pressable>
-            <Pressable onPress={handleShare} style={styles.topButton}>
-              <Ionicons name="share-outline" size={20} color={colors.textHi} />
-            </Pressable>
-          </View>
-
-          {/* Hero text */}
-          <View style={styles.heroText}>
-            <Text style={styles.artistLabel}>ARTIST</Text>
-            <Text style={styles.artistName} numberOfLines={2}>
+        {/* ── Name + follow ── */}
+        <View style={styles.nameBlock}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.name} numberOfLines={2}>
               {artist.name}
             </Text>
-            {artist.genres.length > 0 && (
-              <Text style={styles.originSubtitle}>{artist.genres.slice(0, 2).join(' / ')}</Text>
-            )}
-            <Text style={styles.monthlyListeners}>
-              {artist.followerCount.toLocaleString()} FOLLOWERS
-            </Text>
+            {artist.genres?.length ? (
+              <Text style={styles.genres} numberOfLines={1}>
+                {artist.genres.slice(0, 3).join(' · ')}
+              </Text>
+            ) : null}
+            {artist.followerCount > 0 ? (
+              <Text style={styles.followers}>
+                {artist.followerCount.toLocaleString()} followers
+              </Text>
+            ) : null}
           </View>
+          <PillButton
+            title={isFollowing ? 'Following' : 'Follow'}
+            variant={isFollowing ? 'secondary' : 'primary'}
+            springFeedback
+            haptic="light"
+            disabled={followBusy}
+            onPress={() => void handleFollow()}
+          />
         </View>
 
-        {/* ====== 2. ACTION ROW ====== */}
-        <View style={styles.actionRow}>
-          <Pressable
-            style={[styles.followBtn, isFollowing && styles.followBtnFollowing]}
-            onPress={handleFollowPress}
-            disabled={followLoading}
-          >
-            <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextFollowing]}>
-              {isFollowing ? '\u2713 Following' : 'Follow'}
-            </Text>
-          </Pressable>
-
-          <Pressable style={styles.notifyBtn} onPress={handleShare}>
-            <Ionicons name="notifications-outline" size={16} color={colors.textHi} />
-          </Pressable>
-        </View>
-
-        {/* ====== 3. GENRE PILLS ====== */}
-        {artist.genres.length > 0 && (
-          <View style={styles.genrePillRow}>
-            {artist.genres.map((genre) => (
-              <View key={genre} style={styles.genrePill}>
-                <Text style={styles.genrePillText}>{genre.toUpperCase()}</Text>
+        {/* ── YOU × ARTIST ── */}
+        {youStats ? (
+          <View style={styles.section}>
+            <Animated.View entering={FadeInDown.duration(240)} style={styles.youCard}>
+              <Text style={styles.youLabel}>YOU × {artist.name.toUpperCase()}</Text>
+              <View style={styles.youStatsRow}>
+                <StatBlock value={youStats.shows} label="Shows" />
+                <StatBlock value={youStats.avg} label="Avg score" />
+                <StatBlock value={youStats.firstYear} label="First seen" />
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* ====== 4. BIO ====== */}
-        {artist.bio ? (
-          <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>{artist.bio}</Text>
+            </Animated.View>
           </View>
         ) : null}
 
-        {/* ====== 5. YOUR HISTORY ====== */}
-        {hasHistory && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR HISTORY</Text>
-            <View style={styles.statPillRow}>
-              <StatPill
-                value={artist.userShowCount}
-                label="SHOWS SEEN"
-                style={styles.statPill}
-              />
-              {artist.userFirstShow && (
-                <StatPill
-                  value={formatShortDate(artist.userFirstShow.date)}
-                  label="FIRST SAW"
-                  style={styles.statPill}
-                />
-              )}
+        {/* ── ON TOUR ── */}
+        <View style={styles.section}>
+          <SectionLabel>On tour</SectionLabel>
+          {upcomingStatus === 'loading' ? (
+            <View style={{ marginHorizontal: -tokens.density.pad }}>
+              <RowSkeletons count={2} />
             </View>
-          </View>
-        )}
+          ) : upcoming.length === 0 ? (
+            <QuietEmpty text="No upcoming dates on the books." />
+          ) : (
+            <>
+              {upcoming.slice(0, 8).map((show, i) => (
+                <Animated.View
+                  key={show.id}
+                  entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+                >
+                  <SpringPressable
+                    haptic="light"
+                    onPress={() =>
+                      router.push({ pathname: '/event/[eventId]', params: { eventId: show.id } })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`${show.title}, ${show.meta}`}
+                    style={styles.row}
+                  >
+                    <View style={styles.rowBody}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>
+                        {show.title}
+                      </Text>
+                      {show.meta ? (
+                        <Text style={styles.rowMeta} numberOfLines={1}>
+                          {show.meta}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <MonoChip label={monoDate(show.date)} />
+                    <Ionicons name="chevron-forward" size={15} color={tokens.colors.muteSoft} />
+                  </SpringPressable>
+                </Animated.View>
+              ))}
+              {upcoming.length > 8 ? (
+                <Text style={styles.moreDates}>+{upcoming.length - 8} more dates</Text>
+              ) : null}
+            </>
+          )}
+        </View>
 
-        {/* ====== 6. UPCOMING TOUR ====== */}
-        {hasUpcomingTour && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>ON TOUR NOW</Text>
-            <Pressable
-              style={styles.tourCard}
-              onPress={() => handleShowPress(firstUpcoming.id)}
-            >
-              <View style={styles.tourIcon}>
-                <Ionicons name="musical-note" size={20} color={accentSets.cyan.hex} />
-              </View>
-              <View style={styles.tourInfo}>
-                <Text style={styles.tourName} numberOfLines={1}>
-                  {firstUpcoming.name}
-                </Text>
-                <Text style={styles.tourVenue} numberOfLines={1}>
-                  Next: {firstUpcoming.venue.name}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textLo} />
-            </Pressable>
-          </View>
-        )}
-
-        {/* ====== Upcoming shows list ====== */}
-        {upcoming.shows.length > 1 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>
-              UPCOMING {upcoming.shows.length} SHOWS
-            </Text>
-            {upcoming.shows.map((show) => (
-              <Pressable
-                key={show.id}
-                style={styles.miniShowRow}
-                onPress={() => handleShowPress(show.id)}
+        {/* ── ALL TOURS ── */}
+        <View style={styles.section}>
+          <SectionLabel>All tours</SectionLabel>
+          {toursStatus === 'loading' ? (
+            <View style={{ marginHorizontal: -tokens.density.pad }}>
+              <RowSkeletons count={2} />
+            </View>
+          ) : tours.length === 0 ? (
+            <QuietEmpty
+              text={
+                toursStatus === 'error'
+                  ? "Couldn't load tours right now."
+                  : 'No tours on record yet.'
+              }
+            />
+          ) : (
+            tours.map((tour, i) => (
+              <Animated.View
+                key={tour.id}
+                entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
               >
-                <View style={styles.miniShowCover}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.textLo} />
-                </View>
-                <View style={styles.miniShowInfo}>
-                  <Text style={styles.miniShowArtist} numberOfLines={1}>
-                    {show.name}
-                  </Text>
-                  <Text style={styles.miniShowVenue} numberOfLines={1}>
-                    {show.venue.name}, {show.venue.city}
-                  </Text>
-                </View>
-                <Text style={styles.miniShowDate}>{formatDate(show.date)}</Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-
-        {/* ====== 7. YOUR SHOWS (past) ====== */}
-        {allShows.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>
-              YOUR {allShows.length} SHOWS
-            </Text>
-            {allShows.map((show) => (
-              <Pressable
-                key={show.id}
-                style={styles.miniShowRow}
-                onPress={() => handleShowPress(show.id)}
-              >
-                <View style={styles.miniShowCover}>
-                  <Ionicons name="musical-notes-outline" size={18} color={colors.textLo} />
-                </View>
-                <View style={styles.miniShowInfo}>
-                  <Text style={styles.miniShowArtist} numberOfLines={1}>
-                    {show.name}
-                  </Text>
-                  <Text style={styles.miniShowVenue} numberOfLines={1}>
-                    {show.venue.name}, {show.venue.city}
-                  </Text>
-                </View>
-                <Text style={styles.miniShowDate}>{formatDate(show.date)}</Text>
-              </Pressable>
-            ))}
-
-            {past.hasMore && (
-              <Pressable style={styles.loadMoreBtn} onPress={past.loadMore}>
-                <Text style={styles.loadMoreText}>
-                  {past.loading ? 'Loading...' : 'Load more'}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        <View style={{ height: 100 }} />
+                <SpringPressable
+                  haptic="light"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/tour/[tourId]',
+                      params: {
+                        tourId: tour.id,
+                        artistId: id,
+                        artistName: artist.name,
+                        tourName: tour.name,
+                        ...(tour.year != null ? { year: String(tour.year) } : {}),
+                        eventCount: String(tour.eventCount),
+                        ...(tour.avgScore != null ? { avgScore: String(tour.avgScore) } : {}),
+                        scoredLogCount: String(tour.scoredLogCount),
+                      },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={`${tour.name} tour`}
+                  style={styles.row}
+                >
+                  <View style={styles.rowBody}>
+                    <Text style={styles.rowTitleStrong} numberOfLines={1}>
+                      {tour.name}
+                    </Text>
+                    <Text style={styles.rowMeta} numberOfLines={1}>
+                      {[
+                        tour.year != null ? String(tour.year) : null,
+                        `${tour.eventCount} ${tour.eventCount === 1 ? 'show' : 'shows'}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
+                  </View>
+                  {tour.avgScore != null ? (
+                    <MonoChip label={formatScore(tour.avgScore)} />
+                  ) : null}
+                  <Ionicons name="chevron-forward" size={15} color={tokens.colors.muteSoft} />
+                </SpringPressable>
+              </Animated.View>
+            ))
+          )}
+        </View>
       </ScrollView>
+
+      <EntityNav onBack={goBack} onShare={() => void handleShare()} floating />
     </View>
   );
 }
-
-// ─── Styles ──────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  scrollView: {
-    flex: 1,
-  },
-
-  // Loading / Error
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  errorTitle: {
-    color: colors.textHi,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorSubtitle: {
-    color: colors.textMid,
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: accentSets.cyan.hex,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: radius.md,
-  },
-  retryButtonText: {
-    color: colors.ink,
-    fontWeight: '700',
-  },
-  backButtonError: {
-    marginTop: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  backButtonErrorText: {
-    color: accentSets.cyan.hex,
-    fontWeight: '700',
-  },
-
-  // ── 1. Hero ──
-  hero: {
-    width: SCREEN_WIDTH,
-    position: 'relative',
-  },
-  heroCover: {
-    ...StyleSheet.absoluteFillObject,
-    width: SCREEN_WIDTH,
-    height: HERO_HEIGHT,
-    resizeMode: 'cover',
-  } as any,
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: density.pad,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  topButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heroText: {
-    position: 'absolute',
-    bottom: 20,
-    left: density.pad,
-    right: density.pad,
-  },
-  artistLabel: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10.5,
-    color: accentSets.cyan.hex,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  artistName: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 36,
-    fontWeight: '400',
-    color: colors.textHi,
-    letterSpacing: -0.8,
-    lineHeight: 36 * 1.05,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-    marginBottom: 4,
-  },
-  originSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 6,
-  },
-  monthlyListeners: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10.5,
-    color: colors.textLo,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-
-  // ── 2. Action Row ──
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: density.pad,
-    gap: 10,
-  },
-  followBtn: {
-    flex: 1,
-    backgroundColor: accentSets.cyan.hex,
-    borderRadius: radius.md,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  followBtnFollowing: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  followBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  followBtnTextFollowing: {
-    color: colors.textHi,
-  },
-  notifyBtn: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.md,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // ── 3. Genre Pills ──
-  genrePillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: density.pad,
-  },
-  genrePill: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-  },
-  genrePillText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.textMid,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-
-  // ── 4. Bio ──
-  bioContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: density.pad,
-  },
-  bioText: {
-    fontSize: 14,
-    color: colors.textMid,
-    lineHeight: 14 * 1.5,
-  },
-
-  // ── 5. Section ──
-  section: {
-    paddingHorizontal: density.pad,
-    marginTop: 20,
-  },
-  sectionLabel: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10.5,
-    color: colors.textLo,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  statPillRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statPill: {
-    flex: 1,
-  },
-
-  // ── 6. Tour Card ──
-  tourCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: accentSets.cyan.line,
-    borderRadius: radius.md,
-    padding: density.cardPad,
-    gap: 12,
-  },
-  tourIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.sm,
-    backgroundColor: accentSets.cyan.soft,
-    borderWidth: 1,
-    borderColor: accentSets.cyan.line,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tourInfo: {
-    flex: 1,
-  },
-  tourName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textHi,
-    marginBottom: 2,
-  },
-  tourVenue: {
-    fontSize: 12,
-    color: colors.textMid,
-  },
-
-  // ── 7. Mini Show Row ──
-  miniShowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 6,
-  },
-  miniShowCover: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    backgroundColor: colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  miniShowInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
-  miniShowArtist: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textHi,
-    marginBottom: 2,
-  },
-  miniShowVenue: {
-    fontSize: 12,
-    color: colors.textMid,
-  },
-  miniShowDate: {
-    fontFamily: fontFamilies.mono,
-    fontSize: 10,
-    color: colors.textLo,
-    letterSpacing: 0.5,
-  },
-
-  // ── Load More ──
-  loadMoreBtn: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    marginTop: 4,
-  },
-  loadMoreText: {
-    fontFamily: fontFamilies.monoSemi,
-    fontSize: 11,
-    fontWeight: '600',
-    color: accentSets.cyan.hex,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-});

@@ -36,6 +36,10 @@ yarn-error.*
 .env.*
 !.env.example
 
+# fastlane generated files
+fastlane/report.xml
+fastlane/README.md
+
 # typescript
 *.tsbuildinfo
 

@@ -77,6 +77,10 @@ export async function updateLog(
     row?: string | null;
     seat?: string | null;
     visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+    /** Post a log as a shared memory. `share: true` stamps sharedAt = now(). */
+    share?: boolean;
+    /** Explicit ISO string, or null to un-share. */
+    sharedAt?: string | null;
   }
 ) {
   const res = await apiClient.patch(`/logs/${logId}`, patch);
@@ -98,7 +102,10 @@ export async function uploadLogPhoto(logId: string, photo: { uri: string; type: 
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
-  return res.data as { id: string; photoUrl: string };
+  // The server awards a one-time XP bonus on a log's first photo: xpGain is
+  // the amount (0 when not the first) and xpAfter the new total (null when
+  // no bonus was granted).
+  return res.data as { id: string; photoUrl: string; xpGain: number; xpAfter: number | null };
 }
 
 export async function tagFriendsOnLog(logId: string, userIds: string[]) {

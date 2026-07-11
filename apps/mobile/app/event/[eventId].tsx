@@ -1,273 +1,446 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
+// Event entity page — breadcrumb → header → your-log/interested actions →
+// who went → crowd memories → spoiler-shielded setlist → presales →
+// compact comments.
+//
+// APIs: GET /events/:id (detail incl. userLog/friends/interested) ·
+// POST/DELETE /events/:id/interested · GET /events/:id/photos ·
+// GET /events/:id/setlist · GET /presales?artistId= (matched client-side) ·
+// GET/POST /events/:id/comments.
 
-import { EventHeader } from '../../components/event/EventHeader';
-import { EventStats } from '../../components/event/EventStats';
-import { EventActions } from '../../components/event/EventActions';
-import { FriendsWhoWent } from '../../components/event/FriendsWhoWent';
-import { PhotosSection } from '../../components/event/PhotosSection';
-import { SetlistSection } from '../../components/event/SetlistSection';
-import { MomentsSection } from '../../components/event/MomentsSection';
-import { EventComments } from '../../components/event/EventComments';
-import { ErrorState } from '../../components/ui/ErrorState';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  Share,
+  Text,
+  View,
+} from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+
+import { CommentsBlock } from '../../components/entity/CommentsBlock';
+import { EntityNav } from '../../components/entity/EntityChrome';
+import { Facepile, QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
+import { EntityError, EntityPageSkeleton } from '../../components/entity/EntityStates';
+import { isPast, monoDateYear, sameDay } from '../../components/entity/format';
+import { PhotoGrid } from '../../components/entity/PhotoGrid';
+import { PresaleCard } from '../../components/entity/PresaleCard';
+import { SetlistShield } from '../../components/entity/SetlistShield';
+import { ScoreChip } from '../../components/timeline/ScoreChip';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 
 import { useEvent } from '../../hooks/useEvent';
-import { useEventPhotos } from '../../hooks/useEventPhotos';
 import { useEventComments } from '../../hooks/useEventComments';
-import { markInterested, removeInterested } from '../../lib/api/events';
-import type { ShareCardData } from '../../types/share';
-import { createEventLink } from '../../lib/share/deepLinks';
-import { ShareButton } from '../../components/share/ShareButton';
+import { useEventPhotos } from '../../hooks/useEventPhotos';
+import {
+  getArtistPresales,
+  getSetlist,
+  markInterested,
+  removeInterested,
+  type EventPresale,
+} from '../../lib/api/events';
+import { haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
-import { colors, accentSets, radius, fontFamilies } from '../../lib/theme';
-
-const TABS = ['Photos', 'Setlist', 'Moments'] as const;
-type Tab = typeof TABS[number];
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import type { SetlistSong } from '../../types/event';
 
 export default function EventScreen() {
   const router = useRouter();
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
-
-  const id = String(eventId || '');
+  const insets = useSafeAreaInsets();
+  const goBack = useSafeBack();
+  const { tokens } = useTheme();
+  const params = useLocalSearchParams<{
+    eventId: string;
+    tourId?: string;
+    tourName?: string;
+  }>();
+  const id = params.eventId ? String(params.eventId) : '';
+  const tourName = params.tourName ? String(params.tourName) : '';
+  const tourId = params.tourId ? String(params.tourId) : '';
 
   const { event, loading, error, refetch, updateInterested } = useEvent(id);
-  const { photos, loadMore: loadMorePhotos, hasMore: hasMorePhotos, loading: photosLoading, refresh: refreshPhotos } = useEventPhotos(id);
-  const { comments, loading: commentsLoading, posting, addComment, removeComment, refresh: refreshComments } = useEventComments(id);
+  const photosState = useEventPhotos(id);
+  const commentsState = useEventComments(id);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('Photos');
-  const goBack = useSafeBack();
+  const [interestedBusy, setInterestedBusy] = useState(false);
+  const [setlistSongs, setSetlistSongs] = useState<SetlistSong[]>([]);
+  const [presales, setPresales] = useState<EventPresale[]>([]);
 
-  const isPast = useMemo(() => {
-    if (!event?.date) return false;
-    const dt = new Date(event.date);
-    if (Number.isNaN(dt.getTime())) return false;
-    return dt < new Date();
-  }, [event?.date]);
+  // Setlist — the detail payload is used first; the dedicated endpoint
+  // fills in when the detail carries none.
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    void getSetlist(id)
+      .then((data) => {
+        if (!alive) return;
+        const songs = Array.isArray(data?.songs) ? data.songs : Array.isArray(data) ? data : [];
+        setSetlistSongs(songs);
+      })
+      .catch(() => {
+        // setlist is optional — section is simply omitted
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
-  const isLogged = !!event?.userLog;
+  // Presales — no per-event endpoint exists; fetch the artist's presales
+  // and match this event by same-day date + venue name/city.
+  const loadPresales = useCallback(async () => {
+    if (!event) return;
+    try {
+      const rows = await getArtistPresales(event.artist.id);
+      const venueName = event.venue.name?.toLowerCase() ?? '';
+      const venueCity = event.venue.city?.toLowerCase() ?? '';
+      const matches = rows.filter((p) => {
+        if (!sameDay(p.eventDate, event.date)) return false;
+        const pName = p.venueName?.toLowerCase() ?? '';
+        const pCity = p.venueCity?.toLowerCase() ?? '';
+        return (
+          (pCity.length > 0 && pCity === venueCity) ||
+          (pName.length > 0 &&
+            venueName.length > 0 &&
+            (pName === venueName || pName.includes(venueName) || venueName.includes(pName)))
+        );
+      });
+      setPresales(matches);
+    } catch {
+      setPresales([]);
+    }
+  }, [event]);
+
+  useEffect(() => {
+    void loadPresales();
+  }, [loadPresales]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refreshComments(), refreshPhotos()]);
-    setRefreshing(false);
-  };
-
-  const handleBack = goBack;
-
-  const shareCardData = useMemo<ShareCardData | null>(() => {
-    if (!event) return null;
-    return {
-      type: 'event',
-      event: {
-        artistName: event.artist.name,
-        artistImage: event.artist.imageUrl || event.imageUrl || undefined,
-        venueName: event.venue.name,
-        venueCity: event.venue.city,
-        date: event.date,
-        friendsGoing: (event.friendsInterested?.length ?? 0) + (event.friendsWhoWent?.length ?? 0),
-      },
-    };
-  }, [event]);
-
-  const handleLogPress = () => {
-    router.push({ pathname: '/log/details', params: { eventId: id } });
-  };
-
-  const handleInterestedPress = async () => {
-    if (!event) return;
     try {
-      if (event.isInterested) {
-        await removeInterested(id);
-        updateInterested(false);
-      } else {
-        await markInterested(id);
-        updateInterested(true);
-      }
-    } catch (toggleError) {
-      // eslint-disable-next-line no-console
-      console.error('Interest toggle failed:', toggleError);
+      await Promise.all([
+        refetch(),
+        photosState.refresh(),
+        commentsState.refresh(),
+        loadPresales(),
+      ]);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  const handleFriendPress = (userId: string) => {
-    router.push(`/profile/${userId}`);
+  const handleShare = async () => {
+    if (!event) return;
+    try {
+      await Share.share({
+        title: event.name,
+        message: `${event.artist.name} at ${event.venue.name} — https://sticket.in/event/${id}`,
+        url: `https://sticket.in/event/${id}`,
+      });
+    } catch {
+      // sheet dismissed
+    }
   };
 
-  const handleSeeAllFriends = () => {
-    // Navigate to event page which shows all friends who went
-    // The event page already displays friends, so we can scroll to that section
-    // For now, just do nothing as the list is already visible on this page
+  const handleInterested = async () => {
+    if (!event || interestedBusy) return;
+    const next = !event.isInterested;
+    setInterestedBusy(true);
+    updateInterested(next); // optimistic
+    try {
+      if (next) await markInterested(id);
+      else await removeInterested(id);
+      haptics.medium();
+    } catch {
+      updateInterested(!next); // rollback
+      haptics.error();
+    } finally {
+      setInterestedBusy(false);
+    }
   };
 
-  const handleUserPress = (userId: string) => {
-    router.push(`/profile/${userId}`);
-  };
+  const styles = useThemedStyles((t) => ({
+    screen: { flex: 1, backgroundColor: t.colors.bg },
+    content: { paddingHorizontal: t.density.pad },
+    crumbRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 14,
+    },
+    crumb: { fontSize: 13, fontWeight: '600', color: t.colors.mute },
+    crumbSep: { fontSize: 13, color: t.colors.muteSoft },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+      color: t.colors.fg,
+      marginTop: 8,
+      lineHeight: 27,
+    },
+    metaLine: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11.5,
+      letterSpacing: 0.4,
+      color: t.colors.mute,
+      marginTop: 8,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 18,
+      flexWrap: 'wrap',
+    },
+    section: { marginTop: 28 },
+    whoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    whoCounts: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      letterSpacing: 0.6,
+      color: t.colors.mute,
+      textTransform: 'uppercase',
+      flexShrink: 1,
+    },
+  }));
 
   if (loading && !event) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.screen}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={accentSets.cyan.hex} />
+        <View style={{ paddingTop: insets.top }}>
+          <EntityNav onBack={goBack} />
+        </View>
+        <EntityPageSkeleton hero={false} />
       </View>
     );
   }
 
   if (error || !event) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.screen}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ErrorState title="Couldn't load event" message={error || 'Event not found'} onRetry={refetch} />
+        <EntityError
+          title="Couldn't load this show"
+          message={error}
+          onRetry={() => void refetch()}
+          onBack={goBack}
+        />
       </View>
     );
   }
 
+  const past = isPast(event.date);
+  const userLog = event.userLog ?? null;
+  const songs = event.setlist?.length ? event.setlist : setlistSongs;
+  const whoWentPeople = event.friendsWhoWent ?? [];
+  const interestedPeople = event.friendsInterested ?? [];
+  const facepilePeople = whoWentPeople.length ? whoWentPeople : interestedPeople;
+
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={accentSets.cyan.hex} />}
+
+      <View style={{ paddingTop: insets.top }}>
+        <EntityNav onBack={goBack} onShare={() => void handleShare()} />
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <EventHeader
-          imageUrl={event.imageUrl}
-          artistName={event.artist.name}
-          artistImageUrl={event.artist.imageUrl}
-          venueName={event.venue.name}
-          venueCity={event.venue.city}
-          date={event.date}
-          onBackPress={handleBack}
-          shareButton={
-            shareCardData ? (
-              <ShareButton
-                data={shareCardData}
-                link={createEventLink(id)}
-                renderTrigger={(open) => (
-                  <Pressable onPress={open} style={styles.headerCircleButton} accessibilityRole="button">
-                    <Ionicons name="share-outline" size={18} color={colors.textHi} />
-                  </Pressable>
-                )}
-              />
-            ) : null
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void handleRefresh()}
+              tintColor={tokens.colors.mute}
+              colors={[tokens.colors.fg]}
+              progressBackgroundColor={tokens.colors.card2}
+            />
           }
-        />
+        >
+          <View style={styles.content}>
+            {/* ── Breadcrumb ── */}
+            <View style={styles.crumbRow}>
+              <SpringPressable
+                haptic="light"
+                onPress={() =>
+                  router.push({
+                    pathname: '/artist/[artistId]',
+                    params: { artistId: event.artist.id },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Go to ${event.artist.name}`}
+              >
+                <Text style={styles.crumb}>{event.artist.name}</Text>
+              </SpringPressable>
+              {tourName ? (
+                <>
+                  <Text style={styles.crumbSep}>›</Text>
+                  <SpringPressable
+                    haptic="light"
+                    disabled={!tourId}
+                    shakeWhenDisabled={false}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/tour/[tourId]',
+                        params: {
+                          tourId,
+                          tourName,
+                          artistId: event.artist.id,
+                          artistName: event.artist.name,
+                        },
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to ${tourName}`}
+                  >
+                    <Text style={styles.crumb}>{tourName}</Text>
+                  </SpringPressable>
+                </>
+              ) : null}
+            </View>
 
-        <EventStats logCount={event.logCount} avgRating={event.avgRating} interestedCount={event.interestedCount} />
-
-        <EventActions
-          isLogged={isLogged}
-          isInterested={event.isInterested}
-          ticketUrl={event.ticketUrl}
-          isPast={isPast}
-          onLogPress={handleLogPress}
-          onInterestedPress={handleInterestedPress}
-        />
-
-        <FriendsWhoWent friends={event.friendsWhoWent} onFriendPress={handleFriendPress} onSeeAllPress={handleSeeAllFriends} />
-
-        {/* Tabs: Photos | Setlist | Moments */}
-        <View style={styles.tabBar}>
-          {TABS.map((tab) => (
-            <Pressable
-              key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab)}
+            {/* ── Header ── */}
+            <Text style={styles.title}>{event.name}</Text>
+            <SpringPressable
+              haptic="light"
+              onPress={() =>
+                router.push({
+                  pathname: '/venue/[venueId]',
+                  params: { venueId: event.venue.id },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`Go to ${event.venue.name}`}
+              style={{ alignSelf: 'flex-start' }}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {tab.toUpperCase()}
+              <Text style={styles.metaLine}>
+                {event.venue.name.toUpperCase()}, {event.venue.city.toUpperCase()} ·{' '}
+                {monoDateYear(event.date)}
               </Text>
-            </Pressable>
-          ))}
-        </View>
+            </SpringPressable>
 
-        {activeTab === 'Photos' && (
-          <PhotosSection photos={photos} onLoadMore={loadMorePhotos} hasMore={hasMorePhotos && !photosLoading} />
-        )}
+            {/* ── Action row ── */}
+            <View style={styles.actionRow}>
+              {userLog ? (
+                <>
+                  {typeof userLog.rating === 'number' ? <ScoreChip score={userLog.rating} /> : null}
+                  <PillButton
+                    title="View your memory"
+                    variant="secondary"
+                    springFeedback
+                    haptic="light"
+                    onPress={() => router.push(`/log/${userLog.id}`)}
+                  />
+                </>
+              ) : (
+                <PillButton
+                  title="Log this show"
+                  variant="primary"
+                  springFeedback
+                  haptic="light"
+                  onPress={() =>
+                    router.push({ pathname: '/log/details', params: { eventId: id } })
+                  }
+                />
+              )}
+              <PillButton
+                title="Interested"
+                variant="secondary"
+                springFeedback
+                haptic="light"
+                disabled={interestedBusy}
+                icon={
+                  <Ionicons
+                    name={event.isInterested ? 'star' : 'star-outline'}
+                    size={13}
+                    color={event.isInterested ? tokens.colors.accent : tokens.colors.mute}
+                  />
+                }
+                onPress={() => void handleInterested()}
+              />
+            </View>
 
-        {activeTab === 'Setlist' && (
-          <SetlistSection songs={event.setlist ?? []} isUpcoming={!isPast} />
-        )}
+            {/* ── Who went ── */}
+            <View style={styles.section}>
+              <SectionLabel>{past ? 'Who went' : "Who's going"}</SectionLabel>
+              {facepilePeople.length === 0 &&
+              event.logCount === 0 &&
+              event.interestedCount === 0 ? (
+                <QuietEmpty
+                  text={
+                    past
+                      ? 'No one has logged this show yet — be the first.'
+                      : 'No one has raised a hand yet — be the first.'
+                  }
+                />
+              ) : (
+                <Animated.View entering={FadeInDown.duration(240)} style={styles.whoRow}>
+                  {facepilePeople.length > 0 ? <Facepile people={facepilePeople} /> : null}
+                  <Text style={styles.whoCounts}>
+                    {event.logCount} logged · {event.interestedCount} interested
+                  </Text>
+                </Animated.View>
+              )}
+            </View>
 
-        {activeTab === 'Moments' && (
-          <MomentsSection moments={event.moments ?? []} />
-        )}
+            {/* ── Crowd memories ── */}
+            <View style={styles.section}>
+              <SectionLabel>Crowd memories</SectionLabel>
+              {photosState.photos.length > 0 ? (
+                <PhotoGrid photos={photosState.photos} />
+              ) : (
+                <QuietEmpty
+                  text={
+                    past
+                      ? 'No photos from the crowd yet.'
+                      : 'Photos land here once the night happens.'
+                  }
+                />
+              )}
+            </View>
 
-        <EventComments
-          comments={comments}
-          loading={commentsLoading}
-          posting={posting}
-          onAddComment={addComment}
-          onDeleteComment={removeComment}
-          onUserPress={handleUserPress}
-        />
+            {/* ── Setlist (only when data exists; spoiler-shielded) ── */}
+            {songs.length > 0 ? (
+              <View style={styles.section}>
+                <SectionLabel>Setlist</SectionLabel>
+                <SetlistShield songs={songs} />
+              </View>
+            ) : null}
 
-        <View style={{ height: 80 }} />
-      </ScrollView>
+            {/* ── Presales (only when matched) ── */}
+            {presales.length > 0 ? (
+              <View style={styles.section}>
+                <SectionLabel>Presales</SectionLabel>
+                <PresaleCard presales={presales} />
+              </View>
+            ) : null}
+
+            {/* ── Comments ── */}
+            <View style={styles.section}>
+              <SectionLabel>Comments</SectionLabel>
+              <CommentsBlock
+                comments={commentsState.comments}
+                posting={commentsState.posting}
+                onPost={commentsState.addComment}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ink,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  headerCircleButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabBar: {
-    flexDirection: 'row',
-    marginTop: 24,
-    marginHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: accentSets.cyan.hex,
-  },
-  tabText: {
-    fontFamily: fontFamilies.monoMedium,
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 1.5,
-    color: colors.textLo,
-    textTransform: 'uppercase',
-  },
-  tabTextActive: {
-    color: accentSets.cyan.hex,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  errorText: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-});
