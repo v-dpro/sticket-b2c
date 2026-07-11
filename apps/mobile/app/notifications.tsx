@@ -1,15 +1,18 @@
 import { Stack, useRouter } from 'expo-router';
+
+// Stack route (was a hidden tab): pushed from the Home bell and
+// notification taps, so it needs its own back affordance.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { Screen } from '../../../components/ui/Screen';
-import { colors, spacing } from '../../../lib/theme';
-import { useNotifications } from '../../../hooks/useNotifications';
-import { handleNotificationTap } from '../../../lib/notifications/notificationHandler';
-import type { Notification } from '../../../types/notification';
-import { EmptyNotifications } from '../../../components/notifications/EmptyNotifications';
-import { NotificationSkeleton } from '../../../components/notifications/NotificationSkeleton';
-import { NotificationList } from '../../../components/notifications/NotificationList';
+import { Screen } from '../components/ui/Screen';
+import { colors, spacing } from '../lib/theme';
+import { useNotifications } from '../hooks/useNotifications';
+import { handleNotificationTap } from '../lib/notifications/notificationHandler';
+import type { Notification } from '../types/notification';
+import { EmptyNotifications } from '../components/notifications/EmptyNotifications';
+import { NotificationSkeleton } from '../components/notifications/NotificationSkeleton';
+import { NotificationList } from '../components/notifications/NotificationList';
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -35,7 +38,12 @@ export default function NotificationsScreen() {
       <Screen padded={false}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.header}>
-          <Text style={styles.title}>Notifications</Text>
+          <View style={styles.titleRow}>
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+              <Ionicons name="chevron-back" size={24} color={colors.textHi} />
+            </Pressable>
+            <Text style={styles.title}>Notifications</Text>
+          </View>
         </View>
         <NotificationSkeleton />
       </Screen>
@@ -48,7 +56,12 @@ export default function NotificationsScreen() {
 
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Notifications</Text>
+          <View style={styles.titleRow}>
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+              <Ionicons name="chevron-back" size={24} color={colors.textHi} />
+            </Pressable>
+            <Text style={styles.title}>Notifications</Text>
+          </View>
           <View style={styles.headerActions}>
             {hasUnread ? (
               <Pressable onPress={() => void markAllRead()} style={styles.headerButton} accessibilityRole="button">
@@ -93,6 +106,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: spacing.lg,
     paddingBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   title: {
     fontSize: 28,

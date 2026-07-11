@@ -24,7 +24,7 @@ export default function NotFound() {
         <View style={{ gap: 12, marginTop: 8 }}>
           <Button label="Go home" onPress={() => router.replace('/')} />
           {user ? (
-            <Button label="Go to Discover" variant="secondary" onPress={() => router.replace('/(tabs)/discover')} />
+            <Button label="Go to Discover" variant="secondary" onPress={() => router.replace('/(tabs)/explore')} />
           ) : (
             <Button label="Go to Sign in" variant="secondary" onPress={() => router.replace('/(auth)/sign-in')} />
           )}

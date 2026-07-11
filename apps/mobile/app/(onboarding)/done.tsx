@@ -91,7 +91,7 @@ export default function DoneOnboarding() {
       // (AsyncStorage) — app/index.tsx reads it alongside session state.
       await completeOnboarding();
       await refresh();
-      router.replace('/(tabs)/feed');
+      router.replace('/(tabs)/home');
     } finally {
       setIsSaving(false);
     }

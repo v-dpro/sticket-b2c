@@ -2,25 +2,25 @@ import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 
-import { Screen } from '../../../components/ui/Screen';
-import { colors, spacing } from '../../../lib/theme';
+import { Screen } from '../components/ui/Screen';
+import { colors, spacing } from '../lib/theme';
 
-import { SearchInput } from '../../../components/search/SearchInput';
-import { SearchTabs } from '../../../components/search/SearchTabs';
-import { ArtistResult } from '../../../components/search/ArtistResult';
-import { VenueResult } from '../../../components/search/VenueResult';
-import { EventResult } from '../../../components/search/EventResult';
-import { UserResult } from '../../../components/search/UserResult';
-import { RecentSearches } from '../../../components/search/RecentSearches';
-import { TrendingSection } from '../../../components/search/TrendingSection';
-import { EmptySearch } from '../../../components/search/EmptySearch';
+import { SearchInput } from '../components/search/SearchInput';
+import { SearchTabs } from '../components/search/SearchTabs';
+import { ArtistResult } from '../components/search/ArtistResult';
+import { VenueResult } from '../components/search/VenueResult';
+import { EventResult } from '../components/search/EventResult';
+import { UserResult } from '../components/search/UserResult';
+import { RecentSearches } from '../components/search/RecentSearches';
+import { TrendingSection } from '../components/search/TrendingSection';
+import { EmptySearch } from '../components/search/EmptySearch';
 
-import { useSearch } from '../../../hooks/useSearch';
-import { useRecentSearches } from '../../../hooks/useRecentSearches';
-import { useTrending } from '../../../hooks/useTrending';
-import { logSearch } from '../../../lib/api/search';
-import { NotificationBellButton } from '../../../components/notifications/NotificationBellButton';
-import { useSafeBack } from '../../../lib/navigation/safeNavigation';
+import { useSearch } from '../hooks/useSearch';
+import { useRecentSearches } from '../hooks/useRecentSearches';
+import { useTrending } from '../hooks/useTrending';
+import { logSearch } from '../lib/api/search';
+import { NotificationBellButton } from '../components/notifications/NotificationBellButton';
+import { useSafeBack } from '../lib/navigation/safeNavigation';
 
 export default function SearchTab() {
   const router = useRouter();

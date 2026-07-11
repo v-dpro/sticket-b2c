@@ -18,7 +18,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { colors, fontFamilies } from '../../lib/theme';
+import { colors } from '../../lib/theme';
 import { motionDurations } from '../../lib/motion';
 
 interface FeedRefreshWordmarkProps {
@@ -89,9 +89,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   wordmark: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 17,
-    color: colors.brandCyan,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    color: colors.textHi,
     marginTop: -2,
   },
 });

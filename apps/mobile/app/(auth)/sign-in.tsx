@@ -1,23 +1,28 @@
+// Sign in — email/password on card2 fields, monochrome buttons,
+// social sign-in below. Wired to the existing session store.
+
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import { useState, useEffect } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
+import { AuthField } from '../../components/auth/AuthField';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useSocialAuth } from '../../hooks/useSocialAuth';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSessionStore } from '../../stores/sessionStore';
-import { apiClient } from '../../lib/api/client';
-import * as SecureStore from '../../lib/storage/secureStore';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -28,50 +33,54 @@ type FormValues = z.infer<typeof schema>;
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    content: {
+      paddingHorizontal: t.density.pad,
+      paddingBottom: 48,
+      gap: t.density.gap,
+    },
+    backRow: { paddingVertical: 12, alignSelf: 'flex-start' },
+    title: {
+      fontSize: 30,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+      color: t.colors.fg,
+    },
+    subtitle: { fontSize: 14, color: t.colors.textSoft, marginTop: -6 },
+    error: { fontSize: 13, color: t.colors.error },
+    forgotRow: { alignSelf: 'flex-end', marginTop: -4 },
+    forgotText: { fontSize: 13, fontWeight: '600', color: t.colors.mute },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginVertical: 6,
+    },
+    dividerLine: { flex: 1, height: 1, backgroundColor: t.colors.hairline },
+    dividerText: { fontSize: 12, color: t.colors.muteSoft },
+    footer: {
+      alignItems: 'center',
+      paddingVertical: 14,
+    },
+    footerText: { fontSize: 14, color: t.colors.mute },
+    footerLink: { fontWeight: '600', color: t.colors.fg },
+  }));
+
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const signIn = useSessionStore((s) => s.signIn);
-  const storeError = useSessionStore((s) => s.error);
   const isLoading = useSessionStore((s) => s.isLoading);
 
-  // Check if Google auth is properly configured
-  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-  const isGoogleConfigured = Boolean(
-    Platform.OS === 'ios' 
-      ? iosClientId && webClientId && iosClientId !== 'not-configured' && webClientId !== 'not-configured'
-      : webClientId && webClientId !== 'not-configured'
-  );
-
-  // Always call the hook (required by React rules), but provide placeholder values if not configured
-  // The hook requires iosClientId on iOS, so we always provide a non-empty string
-  // We'll hide the button if not properly configured
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest(
-    Platform.OS === 'ios'
-      ? {
-          // On iOS, both are required - provide placeholders if not configured
-          iosClientId: iosClientId || 'not-configured-placeholder',
-          webClientId: webClientId || 'not-configured-placeholder',
-        }
-      : {
-          // On other platforms, only webClientId is needed
-          webClientId: webClientId || 'not-configured-placeholder',
-        }
-  );
-
-  useEffect(() => {
-    if (Platform.OS === 'ios') {
-      AppleAuthentication.isAvailableAsync().then(setIsAppleAvailable);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      handleGoogleToken(googleResponse.authentication?.idToken);
-    }
-  }, [googleResponse]);
+  const {
+    showAppleButton,
+    appleLoading,
+    signInWithApple,
+    showGoogleButton,
+    googleLoading,
+    signInWithGoogle,
+    error: socialError,
+  } = useSocialAuth({ onSuccess: () => router.replace('/') });
 
   const {
     control,
@@ -94,349 +103,148 @@ export default function SignInScreen() {
     setAuthError(error ?? 'Sign in failed');
   };
 
-  const handleAppleSignIn = async () => {
-    if (Platform.OS !== 'ios') {
-      Alert.alert('Apple Sign In', 'Only available on iOS devices');
-      return;
-    }
-    
-    if (!isAppleAvailable) {
-      Alert.alert('Apple Sign In', 'Apple Sign In is not available on this device.');
-      return;
-    }
-    
-    setAppleLoading(true);
-    try {
-      setAuthError(null);
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (!credential.identityToken) {
-        throw new Error('No identity token received');
-      }
-
-      // Send to backend
-      const response = await apiClient.post('/auth/apple/callback', {
-        identityToken: credential.identityToken,
-        authorizationCode: credential.authorizationCode,
-        fullName: credential.fullName,
-        email: credential.email,
-      });
-
-      const { accessToken, refreshToken } = response.data;
-
-      // Store tokens
-      await SecureStore.setItemAsync('access_token', accessToken);
-      await SecureStore.setItemAsync('refresh_token', refreshToken);
-      await SecureStore.setItemAsync('auth_token', accessToken);
-
-      // Hydrate the session from /auth/me using the fresh tokens
-      await useSessionStore.getState().hydrateFromToken();
-
-      // Navigate to app
-      router.replace('/');
-    } catch (error: any) {
-      if (error.code === 'ERR_REQUEST_CANCELED' || error.code === 'ERR_CANCELED') {
-        // User cancelled, do nothing
-        return;
-      }
-      console.error('Apple Sign In error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Could not sign in with Apple';
-      setAuthError(errorMessage);
-      Alert.alert(
-        'Sign In Failed',
-        errorMessage
-      );
-    } finally {
-      setAppleLoading(false);
-    }
-  };
-
-  const handleGoogleToken = async (idToken: string | undefined) => {
-    if (!idToken) return;
-    
-    setGoogleLoading(true);
-    try {
-      setAuthError(null);
-      const response = await apiClient.post('/auth/google/callback', { idToken });
-      
-      const { accessToken, refreshToken } = response.data;
-
-      await SecureStore.setItemAsync('access_token', accessToken);
-      await SecureStore.setItemAsync('refresh_token', refreshToken);
-      await SecureStore.setItemAsync('auth_token', accessToken);
-
-      // Hydrate the session from /auth/me using the fresh tokens
-      await useSessionStore.getState().hydrateFromToken();
-
-      router.replace('/');
-    } catch (error: any) {
-      console.error('Google Sign In error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Could not sign in with Google';
-      setAuthError(errorMessage);
-      Alert.alert(
-        'Sign In Failed',
-        errorMessage
-      );
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = () => {
-    if (!googleRequest) {
-      Alert.alert('Google Sign In', 'Google Sign In is not configured');
-      return;
-    }
-    googlePromptAsync();
-  };
+  const busy = isSubmitting || isLoading;
+  const displayError = authError ?? socialError;
 
   return (
-    <Screen padded={false}>
-      <Stack.Screen options={{ headerShown: false }} />
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
-          <View style={styles.logoWrap}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="musical-notes" size={40} color={colors.textHi} />
-            </View>
-          </View>
+          <SpringPressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(auth)/welcome'))}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.backRow}
+          >
+            <Ionicons name="chevron-back" size={24} color={tokens.colors.fg} />
+          </SpringPressable>
 
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.h1}>Sign in.</Text>
-            <Text style={styles.subhead}>Log in to continue tracking your shows</Text>
-          </View>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.subtitle}>Pick up where your last show left off.</Text>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {authError || storeError ? <Text style={styles.errorText}>{authError ?? storeError}</Text> : null}
+          {displayError ? <Text style={styles.error}>{displayError}</Text> : null}
 
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Email"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  placeholder="your@email.com"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  error={errors.email?.message}
-                />
-              )}
-            />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Email"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                keyboardType="email-address"
+                returnKeyType="next"
+                placeholder="you@example.com"
+                value={value}
+                onBlur={onBlur}
+                onChangeText={onChange}
+                error={errors.email?.message}
+              />
+            )}
+          />
 
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Password"
-                  placeholder="••••••••"
-                  secureTextEntry
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  error={errors.password?.message}
-                />
-              )}
-            />
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Password"
+                placeholder="••••••••"
+                secureTextEntry
+                autoComplete="password"
+                returnKeyType="go"
+                onSubmitEditing={() => void handleSubmit(onSubmit)()}
+                value={value}
+                onBlur={onBlur}
+                onChangeText={onChange}
+                error={errors.password?.message}
+              />
+            )}
+          />
 
-            <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={styles.forgot} accessibilityRole="button">
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </Pressable>
+          <SpringPressable
+            onPress={() => router.push('/(auth)/forgot-password')}
+            accessibilityRole="button"
+            accessibilityLabel="Forgot password"
+            style={styles.forgotRow}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </SpringPressable>
 
-            <Button
-              title="Log In"
-              loading={isSubmitting || isLoading}
-              disabled={isSubmitting || isLoading}
-              onPress={handleSubmit(onSubmit)}
-              fullWidth
-            />
+          <PillButton
+            title={busy ? 'Signing in…' : 'Sign in'}
+            size="lg"
+            springFeedback
+            haptic="light"
+            disabled={busy}
+            icon={busy ? <ActivityIndicator size="small" color={tokens.colors.inverseFg} /> : undefined}
+            onPress={handleSubmit(onSubmit)}
+          />
 
-            {/* Divider */}
+          {showAppleButton || showGoogleButton ? (
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
+              <Text style={styles.dividerText}>or</Text>
               <View style={styles.dividerLine} />
             </View>
+          ) : null}
 
-            {/* Social */}
-            <View style={styles.socialList}>
-              {Platform.OS === 'ios' && isAppleAvailable && (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleAppleSignIn}
-                  disabled={appleLoading}
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, appleLoading && { opacity: 0.6 }]}
-                >
-                  {appleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textHi} />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-apple" size={20} color={colors.textHi} />
-                      <Text style={styles.socialText}>Continue with Apple</Text>
-                    </>
-                  )}
-                </Pressable>
-              )}
+          {showAppleButton ? (
+            <PillButton
+              title="Continue with Apple"
+              variant="secondary"
+              size="lg"
+              springFeedback
+              haptic="light"
+              disabled={appleLoading}
+              icon={
+                appleLoading ? (
+                  <ActivityIndicator size="small" color={tokens.colors.text} />
+                ) : (
+                  <Ionicons name="logo-apple" size={18} color={tokens.colors.text} />
+                )
+              }
+              onPress={() => void signInWithApple()}
+            />
+          ) : null}
 
-              {isGoogleConfigured && (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleGoogleSignIn}
-                  disabled={googleLoading || !googleRequest}
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
-                >
-                  {googleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textHi} />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-google" size={20} color={colors.textHi} />
-                      <Text style={styles.socialText}>Continue with Google</Text>
-                    </>
-                  )}
-                </Pressable>
-              )}
-            </View>
+          {showGoogleButton ? (
+            <PillButton
+              title="Continue with Google"
+              variant="secondary"
+              size="lg"
+              springFeedback
+              haptic="light"
+              disabled={googleLoading}
+              icon={
+                googleLoading ? (
+                  <ActivityIndicator size="small" color={tokens.colors.text} />
+                ) : (
+                  <Ionicons name="logo-google" size={17} color={tokens.colors.text} />
+                )
+              }
+              onPress={signInWithGoogle}
+            />
+          ) : null}
 
-            {/* Sign up */}
-            <Text style={styles.footer}>
-              Don&apos;t have an account?{' '}
-              <Link href="/(auth)/sign-up" style={styles.footerLink}>
-                Sign Up
-              </Link>
+          <SpringPressable
+            onPress={() => router.push('/(auth)/sign-up')}
+            accessibilityRole="button"
+            accessibilityLabel="Create an account"
+            style={styles.footer}
+          >
+            <Text style={styles.footerText}>
+              New here? <Text style={styles.footerLink}>Create an account</Text>
             </Text>
-          </View>
+          </SpringPressable>
         </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: 64,
-    paddingBottom: spacing['3xl'],
-  },
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-    gap: spacing.sm,
-  },
-  h1: {
-    fontFamily: fontFamilies.displayItalic,
-    color: colors.textHi,
-    fontSize: 34,
-    fontWeight: '400',
-    letterSpacing: -0.8,
-    textAlign: 'center',
-  },
-  subhead: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  form: {
-    gap: spacing.sm,
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: fonts.bodySmall,
-    marginBottom: spacing.sm,
-  },
-  forgot: {
-    alignSelf: 'flex-end',
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
-  },
-  forgotText: {
-    color: colors.brandCyan,
-    fontSize: fonts.bodySmall,
-    fontWeight: fonts.medium,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.hairline,
-  },
-  dividerText: {
-    color: colors.textMuted,
-    fontSize: fonts.bodySmall,
-  },
-  socialList: {
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  socialBtn: {
-    height: 56,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  socialText: {
-    color: colors.textHi,
-    fontSize: fonts.body,
-    fontWeight: fonts.semibold,
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.97 }],
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  footer: {
-    color: colors.textMid,
-    fontSize: fonts.bodySmall,
-    textAlign: 'center',
-  },
-  footerLink: {
-    color: colors.brandCyan,
-    fontWeight: fonts.semibold,
-  },
-});
-
-
-

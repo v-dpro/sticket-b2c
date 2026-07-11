@@ -1,18 +1,18 @@
 import { Stack } from 'expo-router';
 
-import { colors } from '../../lib/theme';
+import { useTheme } from '../../lib/theme-context';
 
 export default function AuthLayout() {
+  const { tokens } = useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.ink },
-        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: tokens.colors.bg },
+        animation: 'fade',
+        animationDuration: 200,
       }}
     />
   );
 }
-
-
-

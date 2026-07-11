@@ -2,12 +2,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
-import { Button } from '../../components/ui/Button';
+import { PillButton } from '../../components/ui/PillButton';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
+import { colors, fonts, radius, spacing } from '../../lib/theme';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ForgotPasswordScreen() {
@@ -35,26 +34,22 @@ export default function ForgotPasswordScreen() {
 
             <View style={styles.form}>
               <Input label="Email" placeholder="your@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-              <Button
-                title="Send Reset Link"
+              <PillButton
+                title="Send reset link"
+                size="lg"
+                springFeedback
+                haptic="light"
                 onPress={() => {
                   // UI-only; integrate with API/email service later.
                   setSent(true);
                 }}
-                fullWidth
               />
             </View>
           </>
         ) : (
           <View style={styles.success}>
             <View style={styles.successIconWrap}>
-              <LinearGradient
-                colors={[`${colors.brandCyan}33`, `${colors.brandPurple}33`, `${colors.brandPink}33`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <Ionicons name="mail" size={44} color={colors.brandPurple} />
+              <Ionicons name="mail-outline" size={40} color={colors.textMid} />
             </View>
 
             <Text style={styles.h2}>Check your email</Text>
@@ -95,18 +90,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
-    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
-    fontSize: 34,
-    fontWeight: '400',
-    letterSpacing: -0.8,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.6,
   },
   h2: {
-    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
-    fontSize: 28,
-    fontWeight: '400',
-    letterSpacing: -0.6,
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
@@ -160,7 +153,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   sendAgainText: {
-    color: colors.brandCyan,
+    color: colors.textHi,
     fontSize: fonts.body,
     fontWeight: fonts.semibold,
   },

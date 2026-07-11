@@ -518,7 +518,7 @@ export default function LogSuccess() {
                         params: { eventId: String(eventId) },
                       });
                     } else {
-                      router.replace('/(tabs)/discover');
+                      router.replace('/(tabs)/explore');
                     }
                   }}
                 />

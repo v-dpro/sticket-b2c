@@ -639,11 +639,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   artistName: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 24,
+    fontSize: 20,
+    fontWeight: '800',
     letterSpacing: -0.4,
     color: colors.textHi,
-    lineHeight: 27,
+    lineHeight: 25,
   },
   metaLine: {
     flexDirection: 'row',

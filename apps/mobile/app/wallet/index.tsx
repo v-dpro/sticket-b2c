@@ -167,6 +167,9 @@ export default function WalletScreen() {
       <Screen padded={false}>
         <View style={styles.container}>
           <View style={styles.header}>
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.backButton}>
+              <Ionicons name="chevron-back" size={24} color={colors.textHi} />
+            </Pressable>
             <ScreenTitle eyebrow="THE WALLET" eyebrowColor={colors.warning} title="Your ticket drawer" />
           </View>
           <WalletSkeleton />
@@ -180,6 +183,9 @@ export default function WalletScreen() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
+          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back" style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={colors.textHi} />
+          </Pressable>
           <View style={{ flex: 1 }}>
             <ScreenTitle eyebrow="THE WALLET" eyebrowColor={colors.warning} title="Your ticket drawer" />
           </View>
@@ -301,6 +307,10 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: spacing.md,
     backgroundColor: colors.ink,
+  },
+  backButton: {
+    paddingRight: 6,
+    paddingBottom: 6,
   },
   addButton: {
     width: 40,

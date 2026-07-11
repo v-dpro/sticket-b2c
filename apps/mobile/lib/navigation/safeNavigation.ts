@@ -5,7 +5,7 @@ import { useCallback } from 'react';
  * Safely navigate back. If there's no history to go back to,
  * it will navigate to the fallback route instead.
  */
-export function useSafeBack(fallbackRoute: string = '/(tabs)/discover') {
+export function useSafeBack(fallbackRoute: string = '/(tabs)/explore') {
   const router = useRouter();
   return useCallback(() => {
     if (router.canGoBack()) {
@@ -20,7 +20,7 @@ export function useSafeBack(fallbackRoute: string = '/(tabs)/discover') {
  * Legacy hook name for backward compatibility
  * @deprecated Use useSafeBack instead
  */
-export function useSafeNavigation(fallbackRoute: string = '/(tabs)/discover') {
+export function useSafeNavigation(fallbackRoute: string = '/(tabs)/explore') {
   return useSafeBack(fallbackRoute);
 }
 
@@ -34,7 +34,7 @@ export function useSafeNavigation(fallbackRoute: string = '/(tabs)/discover') {
  */
 export function safeBack(
   router: ReturnType<typeof useRouter>,
-  fallbackRoute: string = '/(tabs)/feed'
+  fallbackRoute: string = '/(tabs)/home'
 ) {
   // Try to go back
   router.back();

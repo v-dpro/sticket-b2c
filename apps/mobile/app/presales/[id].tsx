@@ -18,7 +18,7 @@ export default function PresaleDetailScreen() {
         <Pressable 
           onPress={() => {
             // Direct navigation - this should always work
-            router.replace('/(tabs)/feed' as any);
+            router.replace('/(tabs)/home' as any);
           }} 
           style={styles.back} 
           accessibilityRole="button"

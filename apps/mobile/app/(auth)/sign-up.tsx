@@ -1,30 +1,36 @@
+// Sign up — email/username/password on card2 fields, live password
+// checklist, terms agreement, monochrome buttons. Wired to the existing
+// session store.
+
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, Alert, ActivityIndicator } from 'react-native';
-import { useMemo, useState, useEffect } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
+import { AuthField } from '../../components/auth/AuthField';
+import { PillButton } from '../../components/ui/PillButton';
+import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useSocialAuth } from '../../hooks/useSocialAuth';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSessionStore } from '../../stores/sessionStore';
-import { apiClient } from '../../lib/api/client';
-import * as SecureStore from '../../lib/storage/secureStore';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const schema = z
   .object({
     email: z.string().email('Enter a valid email'),
-    username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username is too long'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    username: z.string().min(3, 'At least 3 characters').max(20, 'Max 20 characters'),
+    password: z.string().min(8, 'At least 8 characters'),
+    confirmPassword: z.string().min(8, 'At least 8 characters'),
   })
   .refine((v) => v.password === v.confirmPassword, {
     message: 'Passwords do not match',
@@ -35,47 +41,72 @@ type FormValues = z.infer<typeof schema>;
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { tokens } = useTheme();
+  const styles = useThemedStyles((t) => ({
+    safe: { flex: 1, backgroundColor: t.colors.bg },
+    content: {
+      paddingHorizontal: t.density.pad,
+      paddingBottom: 48,
+      gap: t.density.gap,
+    },
+    backRow: { paddingVertical: 12, alignSelf: 'flex-start' },
+    title: {
+      fontSize: 30,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+      color: t.colors.fg,
+    },
+    subtitle: { fontSize: 14, color: t.colors.textSoft, marginTop: -6 },
+    error: { fontSize: 13, color: t.colors.error },
+    checklist: { gap: 6, paddingHorizontal: 4, marginTop: -4 },
+    checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    checkText: { fontSize: 12, color: t.colors.mute },
+    checkTextMet: { color: t.colors.success },
+    termsRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      marginTop: 2,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 7,
+      borderWidth: 1.5,
+      borderColor: t.colors.line,
+      backgroundColor: t.colors.card2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 1,
+    },
+    checkboxChecked: {
+      backgroundColor: t.colors.inverseBg,
+      borderColor: t.colors.inverseBg,
+    },
+    termsText: { flex: 1, fontSize: 13, lineHeight: 19, color: t.colors.mute },
+    termsLink: { fontWeight: '600', color: t.colors.fg },
+    dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 6 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: t.colors.hairline },
+    dividerText: { fontSize: 12, color: t.colors.muteSoft },
+    footer: { alignItems: 'center', paddingVertical: 14 },
+    footerText: { fontSize: 14, color: t.colors.mute },
+    footerLink: { fontWeight: '600', color: t.colors.fg },
+  }));
+
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const signUp = useSessionStore((s) => s.signUp);
-  const storeError = useSessionStore((s) => s.error);
-  const isLoading = useSessionStore((s) => s.isLoading);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const signUp = useSessionStore((s) => s.signUp);
+  const isLoading = useSessionStore((s) => s.isLoading);
 
-  // Check if Google auth is properly configured
-  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-  const isGoogleConfigured = Boolean(
-    Platform.OS === 'ios' 
-      ? iosClientId && webClientId && iosClientId !== 'not-configured' && webClientId !== 'not-configured'
-      : webClientId && webClientId !== 'not-configured'
-  );
-
-  // Always call the hook (required by React rules), but provide placeholder values if not configured
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest(
-    Platform.OS === 'ios'
-      ? {
-          iosClientId: iosClientId || 'not-configured-placeholder',
-          webClientId: webClientId || 'not-configured-placeholder',
-        }
-      : {
-          webClientId: webClientId || 'not-configured-placeholder',
-        }
-  );
-
-  useEffect(() => {
-    if (Platform.OS === 'ios') {
-      AppleAuthentication.isAvailableAsync().then(setIsAppleAvailable);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      handleGoogleToken(googleResponse.authentication?.idToken);
-    }
-  }, [googleResponse]);
+  const {
+    showAppleButton,
+    appleLoading,
+    signInWithApple,
+    showGoogleButton,
+    googleLoading,
+    signInWithGoogle,
+    error: socialError,
+  } = useSocialAuth({ onSuccess: () => router.replace('/') });
 
   const {
     control,
@@ -88,6 +119,16 @@ export default function SignUpScreen() {
     mode: 'onSubmit',
   });
 
+  const password = watch('password');
+  const requirements = useMemo(
+    () => [
+      { text: 'At least 8 characters', met: password.length >= 8 },
+      { text: 'Contains a number', met: /\d/.test(password) },
+      { text: 'Upper & lower case', met: /[a-z]/.test(password) && /[A-Z]/.test(password) },
+    ],
+    [password]
+  );
+
   const onSubmit = async (values: FormValues) => {
     setAuthError(null);
     await signUp(values.email, values.password, values.username);
@@ -99,460 +140,214 @@ export default function SignUpScreen() {
     setAuthError(error ?? 'Sign up failed');
   };
 
-  const password = watch('password');
-  const requirements = useMemo(
-    () => [
-      { text: 'At least 8 characters', met: password.length >= 8 },
-      { text: 'Contains a number', met: /\d/.test(password) },
-      { text: 'Contains uppercase & lowercase', met: /[a-z]/.test(password) && /[A-Z]/.test(password) },
-    ],
-    [password]
-  );
-
-  const handleAppleSignIn = async () => {
-    if (Platform.OS !== 'ios') {
-      Alert.alert('Apple Sign In', 'Only available on iOS devices');
-      return;
-    }
-    
-    if (!isAppleAvailable) {
-      Alert.alert('Apple Sign In', 'Apple Sign In is not available on this device.');
-      return;
-    }
-    
-    setAppleLoading(true);
-    try {
-      setAuthError(null);
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (!credential.identityToken) {
-        throw new Error('No identity token received');
-      }
-
-      // Send to backend
-      const response = await apiClient.post('/auth/apple/callback', {
-        identityToken: credential.identityToken,
-        authorizationCode: credential.authorizationCode,
-        fullName: credential.fullName,
-        email: credential.email,
-      });
-
-      const { accessToken, refreshToken } = response.data;
-
-      // Store tokens
-      await SecureStore.setItemAsync('access_token', accessToken);
-      await SecureStore.setItemAsync('refresh_token', refreshToken);
-      await SecureStore.setItemAsync('auth_token', accessToken);
-
-      // Hydrate the session from /auth/me using the fresh tokens
-      await useSessionStore.getState().hydrateFromToken();
-
-      // Navigate to app
-      router.replace('/');
-    } catch (error: any) {
-      if (error.code === 'ERR_REQUEST_CANCELED' || error.code === 'ERR_CANCELED') {
-        // User cancelled, do nothing
-        return;
-      }
-      console.error('Apple Sign In error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Could not sign in with Apple';
-      setAuthError(errorMessage);
-      Alert.alert(
-        'Sign In Failed',
-        errorMessage
-      );
-    } finally {
-      setAppleLoading(false);
-    }
-  };
-
-  const handleGoogleToken = async (idToken: string | undefined) => {
-    if (!idToken) return;
-    
-    setGoogleLoading(true);
-    try {
-      setAuthError(null);
-      const response = await apiClient.post('/auth/google/callback', { idToken });
-      
-      const { accessToken, refreshToken } = response.data;
-
-      await SecureStore.setItemAsync('access_token', accessToken);
-      await SecureStore.setItemAsync('refresh_token', refreshToken);
-      await SecureStore.setItemAsync('auth_token', accessToken);
-
-      // Hydrate the session from /auth/me using the fresh tokens
-      await useSessionStore.getState().hydrateFromToken();
-
-      router.replace('/');
-    } catch (error: any) {
-      console.error('Google Sign In error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Could not sign in with Google';
-      setAuthError(errorMessage);
-      Alert.alert(
-        'Sign In Failed',
-        errorMessage
-      );
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = () => {
-    if (!googleRequest) {
-      Alert.alert('Google Sign In', 'Google Sign In is not configured');
-      return;
-    }
-    googlePromptAsync();
-  };
+  const busy = isSubmitting || isLoading;
+  const displayError = authError ?? socialError;
 
   return (
-    <Screen padded={false}>
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Logo */}
-          <View style={styles.logoWrap}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="musical-notes" size={40} color={colors.textHi} />
-            </View>
-          </View>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <SpringPressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(auth)/welcome'))}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.backRow}
+          >
+            <Ionicons name="chevron-back" size={24} color={tokens.colors.fg} />
+          </SpringPressable>
 
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.h1}>Sign up.</Text>
-            <Text style={styles.subhead}>Start tracking your concert journey</Text>
-          </View>
+          <Text style={styles.title}>Create your account</Text>
+          <Text style={styles.subtitle}>Every show you&apos;ve seen, in one place.</Text>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {authError || storeError ? <Text style={styles.errorText}>{authError ?? storeError}</Text> : null}
+          {displayError ? <Text style={styles.error}>{displayError}</Text> : null}
 
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Email"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  placeholder="your@email.com"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  error={errors.email?.message}
-                />
-              )}
-            />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Email"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                keyboardType="email-address"
+                returnKeyType="next"
+                placeholder="you@example.com"
+                value={value}
+                onBlur={onBlur}
+                onChangeText={onChange}
+                error={errors.email?.message}
+              />
+            )}
+          />
 
-            <Controller
-              control={control}
-              name="username"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Username"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholder="username"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={(t) => onChange(t.toLowerCase().replace(/\s/g, ''))}
-                  error={errors.username?.message}
-                />
-              )}
-            />
+          <Controller
+            control={control}
+            name="username"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Username"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="next"
+                placeholder="username"
+                value={value}
+                onBlur={onBlur}
+                onChangeText={(t) => onChange(t.toLowerCase().replace(/\s/g, ''))}
+                error={errors.username?.message}
+              />
+            )}
+          />
 
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View style={{ marginBottom: spacing.lg }}>
-                  <Input
-                    label="Password"
-                    placeholder="••••••••"
-                    secureTextEntry
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={errors.password?.message}
-                  />
-
-                  {value ? (
-                    <View style={styles.requirementsInline}>
-                      {requirements.map((req) => (
-                        <View key={req.text} style={styles.reqRow}>
-                          <View style={[styles.reqDot, req.met && styles.reqDotMet]}>
-                            {req.met ? <Ionicons name="checkmark" size={10} color={colors.textHi} /> : null}
-                          </View>
-                          <Text style={[styles.reqText, req.met ? styles.reqTextMet : styles.reqTextUnmet]}>{req.text}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
-                </View>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="confirmPassword"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Confirm Password"
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={{ gap: 10 }}>
+                <AuthField
+                  label="Password"
                   placeholder="••••••••"
                   secureTextEntry
+                  autoComplete="new-password"
+                  returnKeyType="next"
                   value={value}
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  error={errors.confirmPassword?.message}
+                  error={errors.password?.message}
                 />
-              )}
-            />
-
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: agreedToTerms }}
-              onPress={() => setAgreedToTerms((v) => !v)}
-              style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
-            >
-              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                {agreedToTerms ? <Ionicons name="checkmark" size={14} color={colors.textHi} /> : null}
+                {value ? (
+                  <View style={styles.checklist}>
+                    {requirements.map((req) => (
+                      <View key={req.text} style={styles.checkRow}>
+                        <Ionicons
+                          name={req.met ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={14}
+                          color={req.met ? tokens.colors.success : tokens.colors.muteSoft}
+                        />
+                        <Text style={[styles.checkText, req.met && styles.checkTextMet]}>{req.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
               </View>
-              <Text style={styles.termsText}>
-                I agree to the <Text style={styles.termsLink}>Terms</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <AuthField
+                label="Confirm password"
+                placeholder="••••••••"
+                secureTextEntry
+                autoComplete="new-password"
+                returnKeyType="go"
+                onSubmitEditing={() => void handleSubmit(onSubmit)()}
+                value={value}
+                onBlur={onBlur}
+                onChangeText={onChange}
+                error={errors.confirmPassword?.message}
+              />
+            )}
+          />
+
+          <SpringPressable
+            onPress={() => setAgreedToTerms((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: agreedToTerms }}
+            style={styles.termsRow}
+          >
+            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+              {agreedToTerms ? (
+                <Ionicons name="checkmark" size={14} color={tokens.colors.inverseFg} />
+              ) : null}
+            </View>
+            <Text style={styles.termsText}>
+              I agree to the{' '}
+              <Text style={styles.termsLink} onPress={() => router.push('/legal/terms')}>
+                Terms
+              </Text>{' '}
+              and{' '}
+              <Text style={styles.termsLink} onPress={() => router.push('/legal/privacy')}>
+                Privacy Policy
               </Text>
-            </Pressable>
+            </Text>
+          </SpringPressable>
 
-            <Button
-              title="Create account"
-              loading={isSubmitting || isLoading}
-              disabled={!agreedToTerms || isSubmitting || isLoading}
-              onPress={handleSubmit(onSubmit)}
-              fullWidth
-            />
+          <PillButton
+            title={busy ? 'Creating account…' : 'Create account'}
+            size="lg"
+            springFeedback
+            haptic="light"
+            disabled={!agreedToTerms || busy}
+            icon={busy ? <ActivityIndicator size="small" color={tokens.colors.inverseFg} /> : undefined}
+            onPress={handleSubmit(onSubmit)}
+          />
 
-            {/* Divider */}
+          {showAppleButton || showGoogleButton ? (
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
+              <Text style={styles.dividerText}>or</Text>
               <View style={styles.dividerLine} />
             </View>
+          ) : null}
 
-            {/* Social */}
-            <View style={styles.socialList}>
-              {Platform.OS === 'ios' && isAppleAvailable && (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleAppleSignIn}
-                  disabled={appleLoading}
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, appleLoading && { opacity: 0.6 }]}
-                >
-                  {appleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textHi} />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-apple" size={20} color={colors.textHi} />
-                      <Text style={styles.socialText}>Continue with Apple</Text>
-                    </>
-                  )}
-                </Pressable>
-              )}
+          {showAppleButton ? (
+            <PillButton
+              title="Continue with Apple"
+              variant="secondary"
+              size="lg"
+              springFeedback
+              haptic="light"
+              disabled={appleLoading}
+              icon={
+                appleLoading ? (
+                  <ActivityIndicator size="small" color={tokens.colors.text} />
+                ) : (
+                  <Ionicons name="logo-apple" size={18} color={tokens.colors.text} />
+                )
+              }
+              onPress={() => void signInWithApple()}
+            />
+          ) : null}
 
-              {isGoogleConfigured && (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleGoogleSignIn}
-                  disabled={googleLoading || !googleRequest}
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed, googleLoading && { opacity: 0.6 }]}
-                >
-                  {googleLoading ? (
-                    <ActivityIndicator size="small" color={colors.textHi} />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-google" size={20} color={colors.textHi} />
-                      <Text style={styles.socialText}>Continue with Google</Text>
-                    </>
-                  )}
-                </Pressable>
-              )}
-            </View>
+          {showGoogleButton ? (
+            <PillButton
+              title="Continue with Google"
+              variant="secondary"
+              size="lg"
+              springFeedback
+              haptic="light"
+              disabled={googleLoading}
+              icon={
+                googleLoading ? (
+                  <ActivityIndicator size="small" color={tokens.colors.text} />
+                ) : (
+                  <Ionicons name="logo-google" size={17} color={tokens.colors.text} />
+                )
+              }
+              onPress={signInWithGoogle}
+            />
+          ) : null}
 
-            <Text style={styles.footer}>
-              Already have an account?{' '}
-              <Link href="/(auth)/sign-in" style={styles.footerLink}>
-                Log in
-              </Link>
+          <SpringPressable
+            onPress={() => router.push('/(auth)/sign-in')}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in"
+            style={styles.footer}
+          >
+            <Text style={styles.footerText}>
+              Already have an account? <Text style={styles.footerLink}>Sign in</Text>
             </Text>
-          </View>
+          </SpringPressable>
         </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: 64,
-    paddingBottom: spacing['3xl'],
-  },
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-    gap: spacing.sm,
-  },
-  h1: {
-    fontFamily: fontFamilies.displayItalic,
-    color: colors.textHi,
-    fontSize: 34,
-    fontWeight: '400',
-    letterSpacing: -0.8,
-    textAlign: 'center',
-  },
-  subhead: {
-    color: colors.textMid,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  form: {
-    gap: spacing.sm,
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: fonts.bodySmall,
-    marginBottom: spacing.sm,
-  },
-  requirementsInline: {
-    marginTop: -spacing.sm,
-    gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
-  },
-  reqRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  reqDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reqDotMet: {
-    backgroundColor: colors.success,
-  },
-  reqText: {
-    fontSize: 12,
-  },
-  reqTextMet: {
-    color: colors.success,
-  },
-  reqTextUnmet: {
-    color: colors.textMuted,
-  },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.brandPurple,
-    borderColor: colors.brandPurple,
-  },
-  termsText: {
-    flex: 1,
-    color: colors.textMid,
-    fontSize: fonts.bodySmall,
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: colors.brandCyan,
-    fontWeight: fonts.semibold,
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.97 }],
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.hairline,
-  },
-  dividerText: {
-    color: colors.textMuted,
-    fontSize: fonts.bodySmall,
-  },
-  socialList: {
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  socialBtn: {
-    height: 56,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  socialText: {
-    color: colors.textHi,
-    fontSize: fonts.body,
-    fontWeight: fonts.semibold,
-  },
-  footer: {
-    color: colors.textMid,
-    fontSize: fonts.bodySmall,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-  },
-  footerLink: {
-    color: colors.brandCyan,
-    fontWeight: fonts.semibold,
-  },
-});
-
-

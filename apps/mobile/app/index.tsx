@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-import { colors } from '../lib/theme';
+import { useTheme } from '../lib/theme-context';
 import { useSession } from '../hooks/useSession';
 import { useOnboardingStore } from '../stores/onboardingStore';
 
 export default function Index() {
+  const { tokens } = useTheme();
   const { user, profile, hasLoggedFirstShow, isLoading } = useSession();
   const hasCompletedOnboarding = useOnboardingStore((s) => s.hasCompletedOnboarding);
   const hasSeenWelcome = useOnboardingStore((s) => s.hasSeenWelcome);
@@ -46,8 +47,8 @@ export default function Index() {
 
   if (isLoading || !ready) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink }}>
-        <ActivityIndicator color={colors.primary} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: tokens.colors.bg }}>
+        <ActivityIndicator color={tokens.colors.mute} />
       </View>
     );
   }
@@ -61,7 +62,7 @@ export default function Index() {
     hasCompletedOnboarding ||
     secureStoreComplete;
 
-  if (onboardingComplete) return <Redirect href="/(tabs)/feed" />;
+  if (onboardingComplete) return <Redirect href="/(tabs)/home" />;
 
   // Onboarding gates (in order)
   if (!hasSeenWelcome) return <Redirect href="/(onboarding)/welcome" />;

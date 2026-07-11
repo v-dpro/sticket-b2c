@@ -14,12 +14,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, accentSets, radius, fonts, spacing } from '../../../lib/theme';
-import { fontFamilies } from '../../../lib/fonts';
-import { useUserLogs } from '../../../hooks/useUserLogs';
-import { useSession } from '../../../hooks/useSession';
-import { useProfile } from '../../../hooks/useProfile';
-import type { LogEntry } from '../../../types/profile';
+import { colors, accentSets, radius, fonts, spacing } from '../lib/theme';
+import { fontFamilies } from '../lib/fonts';
+import { useUserLogs } from '../hooks/useUserLogs';
+import { useSession } from '../hooks/useSession';
+import { useProfile } from '../hooks/useProfile';
+import type { LogEntry } from '../types/profile';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -141,6 +141,9 @@ export default function ConcertLifeScreen() {
       >
         {/* ── Header ── */}
         <View style={s.header}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>
+            <Ionicons name="chevron-back" size={24} color={colors.textHi} />
+          </TouchableOpacity>
           <Text style={s.eyebrow}>CONCERT LIFE</Text>
           <Text style={s.title}>Your year in shows</Text>
         </View>

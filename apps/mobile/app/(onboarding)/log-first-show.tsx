@@ -26,7 +26,7 @@ export default function LogFirstShowOnboarding() {
   const handleSkip = async () => {
     // Mark onboarding as complete and go to main app
     await SecureStore.setItemAsync('onboarding_complete', 'true');
-    router.replace('/(tabs)/discover');
+    router.replace('/(tabs)/explore');
   };
 
   return (

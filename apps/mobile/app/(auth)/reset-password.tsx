@@ -3,10 +3,10 @@ import { Stack, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '../../components/ui/Button';
+import { PillButton } from '../../components/ui/PillButton';
 import { Input } from '../../components/ui/Input';
 import { Screen } from '../../components/ui/Screen';
-import { colors, fonts, fontFamilies, radius, spacing } from '../../lib/theme';
+import { colors, fonts, radius, spacing } from '../../lib/theme';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
 export default function ResetPasswordScreen() {
@@ -75,14 +75,16 @@ export default function ResetPasswordScreen() {
             </View>
           </View>
 
-          <Button
-            title="Reset Password"
+          <PillButton
+            title="Reset password"
+            size="lg"
+            springFeedback
+            haptic="light"
             onPress={() => {
               // UI-only; token + API integration later.
               router.replace('/(auth)/sign-in');
             }}
             disabled={!canSubmit}
-            fullWidth
           />
         </View>
       </View>
@@ -113,11 +115,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   h1: {
-    fontFamily: fontFamilies.displayItalic,
     color: colors.textHi,
-    fontSize: fonts.h1,
-    fontWeight: fonts.regular,
-    letterSpacing: -0.8,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.6,
   },
   subhead: {
     color: colors.textMid,

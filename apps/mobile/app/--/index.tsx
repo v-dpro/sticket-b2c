@@ -20,7 +20,7 @@ export default function ExpoGoPrefixRedirect() {
         <View style={{ gap: 12, marginTop: 8 }}>
           <Button label="Continue" onPress={() => router.replace('/')} />
           {user ? (
-            <Button label="Discover" variant="secondary" onPress={() => router.replace('/(tabs)/discover')} />
+            <Button label="Discover" variant="secondary" onPress={() => router.replace('/(tabs)/explore')} />
           ) : (
             <Button label="Sign in" variant="secondary" onPress={() => router.replace('/(auth)/sign-in')} />
           )}

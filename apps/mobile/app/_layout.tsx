@@ -3,7 +3,7 @@ import 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, StyleSheet, LogBox } from 'react-native';
 import { useFonts } from 'expo-font';
 import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
@@ -15,6 +15,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { initAnalytics, identify, reset as resetAnalytics } from '../lib/analytics';
 import { initSentry, setUser as setSentryUser } from '../lib/errorTracking/sentry';
+import { durations } from '../lib/motion';
 import { setupDeepLinkHandler } from '../lib/share/deepLinks';
 import { useSession } from '../hooks/useSession';
 import { ThemeProvider, useTheme } from '../lib/theme-context';
@@ -119,6 +120,24 @@ function RootShell() {
     });
   }, [router]);
 
+  // Dev-only auto-login for simulator screenshot runs: only in __DEV__ bundles
+  // started with EXPO_PUBLIC_DEV_AUTOLOGIN="email:password". Never in release.
+  const autoLoginTried = useRef(false);
+  useEffect(() => {
+    const cred = __DEV__ ? process.env.EXPO_PUBLIC_DEV_AUTOLOGIN : undefined;
+    if (!cred || user || isLoading || autoLoginTried.current) return;
+    const idx = cred.indexOf(':');
+    if (idx < 1) return;
+    autoLoginTried.current = true;
+    import('../stores/sessionStore').then(({ useSessionStore }) =>
+      useSessionStore
+        .getState()
+        .signIn(cred.slice(0, idx), cred.slice(idx + 1))
+        .then(() => router.replace('/(tabs)/home'))
+        .catch(() => {}),
+    );
+  }, [user, isLoading, router]);
+
   useEffect(() => {
     if (user) {
       const username = profile?.username ?? undefined;
@@ -141,7 +160,13 @@ function RootShell() {
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <ErrorBoundary>
         <Stack
-          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tokens.colors.bg } }}
+          screenOptions={{
+            headerShown: false,
+            // Motion contract: screen transitions are a 200ms fade-through.
+            animation: 'fade',
+            animationDuration: durations.fadeThrough,
+            contentStyle: { backgroundColor: tokens.colors.bg },
+          }}
         />
       </ErrorBoundary>
     </View>

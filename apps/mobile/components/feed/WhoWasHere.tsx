@@ -274,8 +274,7 @@ const styles = StyleSheet.create({
     color: colors.textLo,
   },
   emptyText: {
-    fontFamily: fontFamilies.displayItalic,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textMid,
     paddingVertical: 8,
   },
