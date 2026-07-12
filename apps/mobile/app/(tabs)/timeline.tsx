@@ -67,21 +67,35 @@ export default function TimelineScreen() {
   const loadingMoreRef = useRef(false);
 
   const [viewMode, setViewMode] = useState<TimelineViewMode>('scroll');
+  const [deckIndex, setDeckIndex] = useState(0);
   const deckRef = useRef<MemoryDeckHandle>(null);
   const pendingScrollKey = useRef<string | null>(null);
   const mapBackfillPages = useRef(0);
 
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
+    // ONE compressed header row — the MONTH is the hero: big enough to feel
+    // the passage of time as the wheel ticks it over.
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 10,
       paddingHorizontal: t.density.pad,
-      paddingTop: 10,
-      paddingBottom: 6,
+      paddingTop: 6,
+      paddingBottom: 4,
     },
-    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    monthBlock: { flexDirection: 'row', alignItems: 'baseline', gap: 8, flexShrink: 1 },
+    title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.8, color: t.colors.fg },
+    counter: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1,
+      color: t.colors.muteSoft,
+    },
+    headerControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     toggleBar: {
       paddingHorizontal: t.density.pad,
@@ -222,7 +236,16 @@ export default function TimelineScreen() {
   const renderCard = useCallback(
     (item: DeckItem) => {
       if (item.kind === 'plan') {
-        return <PlanCard item={item.item} onPress={() => openEvent(item.item.event.id)} />;
+        // A plan with a party honors its "TAP TO JOIN" line.
+        const party = item.item.party;
+        return (
+          <PlanCard
+            item={item.item}
+            onPress={() =>
+              party ? router.push(`/party/${party.id}`) : openEvent(item.item.event.id)
+            }
+          />
+        );
       }
       if (isMemoryEntry(item.entry)) {
         return (
@@ -230,7 +253,7 @@ export default function TimelineScreen() {
             entry={item.entry}
             onPress={() => openLog(item.entry.logId)}
             // Full-tab stage: the photo goes properly portrait.
-            photoAspect={0.82}
+            photoAspect={0.78}
           />
         );
       }
@@ -301,10 +324,36 @@ export default function TimelineScreen() {
     );
   }, [months, currentYear]);
 
+  // Keep the deck index in range as pages merge/refresh.
+  useEffect(() => {
+    setDeckIndex((i) => Math.max(0, Math.min(Math.max(deckItems.length - 1, 0), i)));
+  }, [deckItems.length]);
+  useEffect(() => {
+    setDeckIndex(initialDeckIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on first ready
+  }, [status === 'ready']);
+
+  const currentItem = deckItems[deckIndex];
+  const headline =
+    viewMode === 'map' || !currentItem ? 'Timeline' : monthLabel(currentItem.monthKey);
+
   const header = (
     <View style={styles.header}>
-      <Text style={styles.title}>Timeline</Text>
-      <PillButton title="+ Log" variant="primary" onPress={openLogFlow} springFeedback haptic="light" />
+      <View style={styles.monthBlock}>
+        {/* Key on the text: month flips re-enter with a small fade. */}
+        <Animated.View key={headline} entering={FadeIn.duration(140)}>
+          <Text style={styles.title} numberOfLines={1}>
+            {headline}
+          </Text>
+        </Animated.View>
+        {viewMode === 'scroll' && deckItems.length > 0 ? (
+          <Text style={styles.counter}>{`${deckIndex + 1}/${deckItems.length}`}</Text>
+        ) : null}
+      </View>
+      <View style={styles.headerControls}>
+        <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
+        <PillButton title="+ Log" variant="primary" onPress={openLogFlow} springFeedback haptic="light" />
+      </View>
     </View>
   );
 
@@ -355,9 +404,6 @@ export default function TimelineScreen() {
       ) : null}
       {viewMode === 'map' ? (
         <Animated.View key="map" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
-          <View style={styles.toggleBar}>
-            <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
-          </View>
           <TimelineMapView
             upcoming={upcoming}
             months={months}
@@ -379,7 +425,8 @@ export default function TimelineScreen() {
             renderCard={renderCard}
             renderLabel={renderLabel}
             readoutFor={readoutFor}
-            accessory={<TimelineViewToggle mode={viewMode} onChange={setViewMode} />}
+            showReadout={false}
+            onIndexChange={setDeckIndex}
             onNearEnd={() => void loadMore()}
             onOverscrollRefresh={() => void onRefresh()}
           />

@@ -1,55 +1,52 @@
-// components/timeline/mapModel.ts — pure derivation of the 2D map view
-// model from the SAME data the scroll timeline already holds (no refetch).
-// Year sections (newest first) → month tiles (newest first, empty months
-// skipped) → markers: photo thumbnail (shared w/ photo), dot (logged,
-// no shared photo), dashed plan ring (future). No theme access, no React.
+// components/timeline/mapModel.ts — pure derivation of the map view's
+// Instagram-grid model from the SAME data the scroll timeline already holds
+// (no refetch). Upcoming plans group under one "UPCOMING" header at the top;
+// past months each get their own "JUL 2026" header (months arrive newest
+// first already — no re-sorting needed). Every group's cells are pre-chunked
+// into rows of 3 so the view can render a single flat, virtualized list
+// (header rows + cell-triplet rows) without FlatList's numColumns fighting
+// mixed-width items. No theme access, no React.
 
 import type {
   TimelineEntry,
   TimelineMonth,
   TimelineUpcomingItem,
 } from '../../lib/api/timeline';
-import { formatShortDate, monthAbbr } from './format';
+import { daysUntil, formatShortDate, monthLabel } from './format';
 
-export type MapMarker =
+const COLUMNS = 3;
+
+export type MapCell =
   | {
       kind: 'photo';
       key: string;
-      logId: string;
+      index: number; // global cell order — drives the entrance stagger
       thumbnailUrl: string;
+      score: number | null;
       label: string;
     }
   | {
-      kind: 'dot';
+      kind: 'entry';
       key: string;
-      logId: string;
+      index: number;
+      initial: string;
+      score: number | null;
       label: string;
     }
   | {
       kind: 'plan';
       key: string;
-      item: TimelineUpcomingItem;
-      /** Party plans get a tiny 🎉 — no API field yet, so this is always
-       *  false today. The render branch is ready for when the data lands. */
-      isParty: boolean;
+      index: number;
+      countdown: string; // "21D" / "TODAY"
       label: string;
     };
 
-export type MapMonthTile = {
-  key: string; // "2026-07"
-  monthAbbr: string; // "JUL"
-  markers: MapMarker[];
-};
-
-export type MapYearSection = {
-  year: string; // "2026"
-  loggedCount: number; // logged shows in this year (photos + dots)
-  plannedCount: number; // future plans in this year
-  months: MapMonthTile[]; // newest first, empty months skipped
-};
+export type MapRow =
+  | { type: 'header'; key: string; label: string }
+  | { type: 'cells'; key: string; cells: MapCell[] };
 
 /** Row keys matching the scroll view's flattened rows — the map hands these
- *  back so you.tsx can scrollToIndex the exact same row. */
+ *  back so timeline.tsx can scrollToIndex the exact same row. */
 export function entryRowKey(entry: Pick<TimelineEntry, 'logId'>): string {
   return `log-${entry.logId}`;
 }
@@ -57,79 +54,71 @@ export function planRowKey(item: Pick<TimelineUpcomingItem, 'type' | 'id'>): str
   return `plan-${item.type}-${item.id}`;
 }
 
-function entryMarker(entry: TimelineEntry): MapMarker {
-  const label = `${entry.artist.name} at ${entry.venue.name}, ${formatShortDate(entry.event.date)}`;
-  const shared = entry.sharedAt !== null && entry.photos.length > 0;
-  if (shared) {
-    const photo = entry.photos[0]!;
-    return {
-      kind: 'photo',
-      key: entryRowKey(entry),
-      logId: entry.logId,
-      thumbnailUrl: photo.thumbnailUrl || photo.photoUrl,
-      label,
-    };
-  }
-  return { kind: 'dot', key: entryRowKey(entry), logId: entry.logId, label };
+/** "in 21d" reads fine in a sentence; the grid cell wants a bare tag. */
+function countdownCellLabel(dateStr: string): string {
+  const days = daysUntil(dateStr);
+  return days === 0 ? 'TODAY' : `${days}D`;
 }
 
-function planMarker(item: TimelineUpcomingItem): MapMarker {
-  return {
-    kind: 'plan',
-    key: planRowKey(item),
-    item,
-    // No party data in the API yet — branch ready, unreachable today.
-    isParty: false,
-    label: `Planned: ${item.event.artist.name} at ${item.event.venue.name}, ${formatShortDate(item.date)}`,
-  };
+function chunkRows(groupKey: string, cells: MapCell[]): MapRow[] {
+  const rows: MapRow[] = [];
+  for (let i = 0; i < cells.length; i += COLUMNS) {
+    rows.push({ type: 'cells', key: `${groupKey}-row-${i / COLUMNS}`, cells: cells.slice(i, i + COLUMNS) });
+  }
+  return rows;
 }
 
 /**
- * Build the whole-timeline-on-one-page model. `months` is the scroll view's
- * already-fetched month buckets (newest first); `upcoming` the future plans
- * (ascending). Future plans are bucketed into their own month tiles so a
- * year can mix dashed plan rings with logged markers.
+ * Build the whole-timeline grid: [UPCOMING header + rows] then, per month
+ * newest-first, [month header + rows]. Cell `index` is a global counter
+ * across the whole grid — the view stripes tearIn() over the first ~12.
  */
-export function buildMapModel(
-  upcoming: TimelineUpcomingItem[],
-  months: TimelineMonth[],
-): MapYearSection[] {
-  // monthKey → markers. Insert plans first (they render before logged
-  // entries inside a shared month tile), soonest plan first.
-  const buckets = new Map<string, MapMarker[]>();
-  const push = (monthKey: string, marker: MapMarker) => {
-    const list = buckets.get(monthKey);
-    if (list) list.push(marker);
-    else buckets.set(monthKey, [marker]);
-  };
+export function buildMapGrid(upcoming: TimelineUpcomingItem[], months: TimelineMonth[]): MapRow[] {
+  const rows: MapRow[] = [];
+  let index = 0;
 
-  for (const item of upcoming) {
-    const monthKey = item.date.slice(0, 7); // ISO → "2026-09"
-    if (monthKey.length === 7) push(monthKey, planMarker(item));
+  const planCells: MapCell[] = upcoming.map((item) => ({
+    kind: 'plan',
+    key: planRowKey(item),
+    index: index++,
+    countdown: countdownCellLabel(item.date),
+    label: `Planned: ${item.event.artist.name} at ${item.event.venue.name}, ${formatShortDate(item.date)}`,
+  }));
+  if (planCells.length > 0) {
+    rows.push({ type: 'header', key: 'header-upcoming', label: 'UPCOMING' });
+    rows.push(...chunkRows('upcoming', planCells));
   }
+
   for (const month of months) {
+    const cells: MapCell[] = [];
     for (const entry of month.entries) {
-      push(month.key, entryMarker(entry));
+      const label = `${entry.artist.name} at ${entry.venue.name}, ${formatShortDate(entry.event.date)}`;
+      const shared = entry.sharedAt !== null && entry.photos.length > 0;
+      if (shared) {
+        const photo = entry.photos[0]!;
+        cells.push({
+          kind: 'photo',
+          key: entryRowKey(entry),
+          index: index++,
+          thumbnailUrl: photo.thumbnailUrl || photo.photoUrl,
+          score: entry.score,
+          label,
+        });
+      } else {
+        cells.push({
+          kind: 'entry',
+          key: entryRowKey(entry),
+          index: index++,
+          initial: (entry.artist.name.trim()[0] ?? '?').toUpperCase(),
+          score: entry.score,
+          label,
+        });
+      }
     }
+    if (cells.length === 0) continue;
+    rows.push({ type: 'header', key: `header-${month.key}`, label: monthLabel(month.key) });
+    rows.push(...chunkRows(month.key, cells));
   }
 
-  // Newest month first across the whole page ("2026-09" sorts lexically).
-  const sortedKeys = [...buckets.keys()].sort((a, b) => (a < b ? 1 : -1));
-
-  const sections: MapYearSection[] = [];
-  for (const monthKey of sortedKeys) {
-    const year = monthKey.slice(0, 4);
-    const markers = buckets.get(monthKey)!;
-    let section = sections[sections.length - 1];
-    if (!section || section.year !== year) {
-      section = { year, loggedCount: 0, plannedCount: 0, months: [] };
-      sections.push(section);
-    }
-    section.months.push({ key: monthKey, monthAbbr: monthAbbr(monthKey), markers });
-    for (const marker of markers) {
-      if (marker.kind === 'plan') section.plannedCount += 1;
-      else section.loggedCount += 1;
-    }
-  }
-  return sections;
+  return rows;
 }

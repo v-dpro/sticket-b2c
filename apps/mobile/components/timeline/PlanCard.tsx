@@ -21,7 +21,23 @@ const INTENT_LABEL: Record<TimelineUpcomingItem['type'], string | null> = {
   ticket: null, // tickets are the default plan — no eyebrow noise
   interested: 'INTERESTED',
   tracking: 'TRACKING',
+  party: 'PARTY',
 };
+
+/** The party line under a plan: "PARTY · 11 GOING · REQUEST TO JOIN". */
+function partyLine(party: NonNullable<TimelineUpcomingItem['party']>): string {
+  const state =
+    party.myStatus === 'HOST'
+      ? 'YOU HOST'
+      : party.myStatus === 'GOING'
+        ? "YOU'RE GOING"
+        : party.myStatus === 'REQUESTED'
+          ? 'REQUESTED'
+          : party.myStatus === 'INVITED'
+            ? 'INVITED'
+            : 'TAP TO JOIN';
+  return `${party.title.toUpperCase()} · ${party.goingCount} GOING · ${state}`;
+}
 
 export function PlanCard({ item, onPress }: PlanCardProps) {
   const { tokens } = useTheme();
@@ -92,6 +108,11 @@ export function PlanCard({ item, onPress }: PlanCardProps) {
         <Text style={styles.meta} numberOfLines={1}>
           {item.event.venue.name} · {formatShortDate(item.event.date)}
         </Text>
+        {item.party ? (
+          <Text style={[styles.meta, { color: tokens.colors.fg }]} numberOfLines={1}>
+            {partyLine(item.party)}
+          </Text>
+        ) : null}
       </View>
       <Text
         style={[

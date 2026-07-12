@@ -456,10 +456,13 @@ export default function CompareScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
+      {/* Skip (finish later) lives on the right; dismissal is the modal swipe-down. */}
       <FlowHeader
-        icon="close"
+        icon="none"
         label={isFirstLog ? 'First score' : `Compare · ${round} of ${Math.max(5, round)}`}
-        onPress={exitToTimeline}
+        grabber
+        actionLabel="Skip"
+        onAction={exitToTimeline}
       />
       {renderBody()}
     </SafeAreaView>

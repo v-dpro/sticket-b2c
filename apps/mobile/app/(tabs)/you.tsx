@@ -19,15 +19,17 @@ import type { ProfileStats } from '../../types/profile';
 import { TimelineHeader } from '../../components/timeline/TimelineHeader';
 import { ArtistsTab } from '../../components/you/ArtistsTab';
 import { CollectionTab } from '../../components/you/CollectionTab';
-import { PresalesTab } from '../../components/you/PresalesTab';
+import { MapTab } from '../../components/you/MapTab';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
-type YouTab = 'artists' | 'presales' | 'collection';
+// Presales moved to the PLAN tab; the artist collectibles absorb the
+// collection counts, and the venues/cities become the MAP.
+type YouTab = 'artists' | 'collection' | 'map';
 
 const TABS: { key: YouTab; label: string }[] = [
   { key: 'artists', label: 'ARTISTS' },
-  { key: 'presales', label: 'PRESALES' },
   { key: 'collection', label: 'COLLECTION' },
+  { key: 'map', label: 'MAP' },
 ];
 
 export default function YouScreen() {
@@ -94,10 +96,10 @@ export default function YouScreen() {
     switch (tab) {
       case 'artists':
         return <ArtistsTab />;
-      case 'presales':
-        return <PresalesTab />;
       case 'collection':
         return <CollectionTab />;
+      case 'map':
+        return <MapTab />;
     }
   }, [tab]);
 

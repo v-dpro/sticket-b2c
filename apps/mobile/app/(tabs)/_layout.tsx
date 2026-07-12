@@ -61,7 +61,7 @@ export default function TabsLayout() {
         options={{
           title: 'Feed',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'albums' : 'albums-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'file-tray-full' : 'file-tray-full-outline'} size={24} color={color} />
           ),
         }}
       />
@@ -80,8 +80,40 @@ export default function TabsLayout() {
         name="timeline"
         options={{
           title: 'Timeline',
+          tabBarLabel: () => null,
+          // THE CENTER BUTTON — the timeline is the app's heart, so its tab
+          // is the raised ink circle (Instagram-post-button energy).
+          tabBarIcon: ({ focused }) => (
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                marginTop: -18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: c.inverseBg,
+                borderWidth: focused ? 0 : StyleSheet.hairlineWidth,
+                borderColor: c.hairline,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+                elevation: 8,
+              }}
+            >
+              <Ionicons name="albums" size={24} color={c.inverseFg} />
+            </View>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="plan"
+        options={{
+          title: 'Plan',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'albums' : 'albums-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
           ),
         }}
       />

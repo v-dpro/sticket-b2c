@@ -1,29 +1,37 @@
-// TimelineMapView — the zoomed-out 2D map of the timeline: the whole
-// thing on one page. Year sections (mono "2026 · 12 SHOWS" headers), each
-// a 2-col grid of month tiles; every logged show / future plan is a small
-// marker inside its month:
-//   photo thumbnail (26px rounded) — shared log with a photo
-//   accent dot                     — logged, no shared photo
-//   dashed ring                    — future plan (tiny 🎉 when it's a party)
-// Tapping any marker flies back to the scroll view at that entry (the
-// parent owns the mode switch + scrollToIndex). Derives everything from
-// the scroll view's already-fetched data — no fetching here.
+// TimelineMapView — an Instagram-profile-style GRID overview of the whole
+// timeline: 3 columns, bigger photos than a thumbnail strip but compact
+// enough to scan months at a glance. "UPCOMING" (dashed countdown cells)
+// leads, then months newest-first under big mono headers with a hairline
+// rule. Cell bodies:
+//   photo cell    — shared log w/ a photo: full-bleed image, BareScore
+//                   bottom-right over a tiny corner scrim.
+//   entry cell    — logged, no shared photo: card2 fill, artist initial
+//                   (800), mono score underneath.
+//   plan cell     — upcoming: dashed tokens.colors.dash border, mono
+//                   countdown ("21D") centered.
+// mapModel.ts pre-chunks cells into rows of 3 (+ header rows) so this stays
+// a SINGLE virtualized FlatList — no numColumns fighting the header rows.
+// Tapping a cell hands its row key back to the parent (flies to that card
+// in the scroll deck — the parent owns the mode switch).
 
-import React, { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { TimelineMonth, TimelineUpcomingItem } from '../../lib/api/timeline';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { BareScore } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
-import { buildMapModel, type MapMarker, type MapMonthTile, type MapYearSection } from './mapModel';
+import { formatScore } from './format';
+import { buildMapGrid, type MapCell, type MapRow } from './mapModel';
 
-const MARKER_CELL = 26; // px — photo thumbnails fill it; dots/rings center in it
-// Tiles past this index mount without the entrance stagger.
-const STAGGER_CUTOFF = 14;
+const COLUMNS = 3;
+const GRID_GAP = 3;
+// Cells past this global index mount without the tear-in stagger.
+const STAGGER_CUTOFF = 12;
 
 type TimelineMapViewProps = {
   upcoming: TimelineUpcomingItem[];
@@ -34,127 +42,122 @@ type TimelineMapViewProps = {
   onPressMarker: (rowKey: string) => void;
 };
 
-function yearHeaderLabel(section: MapYearSection): string {
-  if (section.loggedCount === 0 && section.plannedCount > 0) {
-    return `${section.year} · ${section.plannedCount} PLANNED`;
-  }
-  return `${section.year} · ${section.loggedCount} ${section.loggedCount === 1 ? 'SHOW' : 'SHOWS'}`;
+function GroupHeader({ label }: { label: string }) {
+  const styles = useThemedStyles(buildStyles);
+  return (
+    <View style={styles.header}>
+      <Text style={styles.headerLabel}>{label}</Text>
+      <View style={styles.headerRule} />
+    </View>
+  );
 }
 
-function Marker({ marker, onPress }: { marker: MapMarker; onPress: () => void }) {
+function GridCell({
+  cell,
+  size,
+  onPress,
+}: {
+  cell: MapCell;
+  size: number;
+  onPress: () => void;
+}) {
   const styles = useThemedStyles(buildStyles);
 
-  return (
+  const body = (
     <SpringPressable
       onPress={onPress}
       haptic="light"
-      hitSlop={4}
       accessibilityRole="button"
-      accessibilityLabel={marker.label}
-      style={styles.markerCell}
+      accessibilityLabel={cell.label}
+      style={[
+        styles.cell,
+        { width: size, height: size },
+        cell.kind === 'plan' ? styles.cellPlan : styles.cellFill,
+      ]}
     >
-      {marker.kind === 'photo' ? (
-        <Image
-          source={{ uri: marker.thumbnailUrl }}
-          style={styles.photoThumb}
-          contentFit="cover"
-          transition={80}
-          cachePolicy="memory-disk"
-        />
-      ) : marker.kind === 'dot' ? (
-        <View style={styles.loggedDot} />
-      ) : (
+      {cell.kind === 'photo' ? (
         <>
-          <View style={styles.planRing} />
-          {marker.isParty ? (
-            // Party plans — unreachable until the API grows a party flag.
-            <Text style={styles.partyMark}>🎉</Text>
+          <Image
+            source={{ uri: cell.thumbnailUrl }}
+            style={styles.photo}
+            contentFit="cover"
+            transition={80}
+            cachePolicy="memory-disk"
+            recyclingKey={cell.key}
+          />
+          {typeof cell.score === 'number' ? (
+            <View style={styles.scoreScrim}>
+              <BareScore score={cell.score} size={15} />
+            </View>
           ) : null}
         </>
+      ) : cell.kind === 'entry' ? (
+        <>
+          <Text style={styles.initial}>{cell.initial}</Text>
+          {typeof cell.score === 'number' ? (
+            <Text style={styles.entryScore}>{formatScore(cell.score)}</Text>
+          ) : null}
+        </>
+      ) : (
+        <Text style={styles.countdown}>{cell.countdown}</Text>
       )}
     </SpringPressable>
   );
+
+  if (cell.index >= STAGGER_CUTOFF) return body;
+  return <Animated.View entering={tearIn(cell.index * durations.stagger)}>{body}</Animated.View>;
 }
 
-function MonthTile({
-  tile,
-  index,
-  onPressMarker,
-}: {
-  tile: MapMonthTile;
-  index: number;
-  onPressMarker: (rowKey: string) => void;
-}) {
-  const styles = useThemedStyles(buildStyles);
-  const entering = FadeInDown.duration(300).delay(
-    index < STAGGER_CUTOFF ? index * durations.stagger : 0,
-  );
-
-  return (
-    <Animated.View entering={entering} style={styles.tile}>
-      <Text style={styles.tileLabel}>{tile.monthAbbr}</Text>
-      <View style={styles.markerRow}>
-        {tile.markers.map((marker) => (
-          <Marker key={marker.key} marker={marker} onPress={() => onPressMarker(marker.key)} />
-        ))}
-      </View>
-    </Animated.View>
-  );
-}
-
-export function TimelineMapView({
-  upcoming,
-  months,
-  loadingAll,
-  onPressMarker,
-}: TimelineMapViewProps) {
+export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }: TimelineMapViewProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles(buildStyles);
-  const sections = useMemo(() => buildMapModel(upcoming, months), [upcoming, months]);
+  const { width } = useWindowDimensions();
 
-  // Global tile index across sections — drives the entrance stagger.
-  let tileIndex = 0;
+  const rows = useMemo(() => buildMapGrid(upcoming, months), [upcoming, months]);
+
+  const cellSize = useMemo(() => {
+    const usable = width - tokens.density.pad * 2 - GRID_GAP * (COLUMNS - 1);
+    return Math.floor(usable / COLUMNS);
+  }, [width, tokens.density.pad]);
+
+  const renderRow = useCallback(
+    ({ item }: { item: MapRow }) => {
+      if (item.type === 'header') return <GroupHeader label={item.label} />;
+      return (
+        <View style={styles.row}>
+          {item.cells.map((cell) => (
+            <GridCell key={cell.key} cell={cell} size={cellSize} onPress={() => onPressMarker(cell.key)} />
+          ))}
+        </View>
+      );
+    },
+    [cellSize, onPressMarker, styles.row],
+  );
 
   return (
-    <ScrollView
-      style={styles.scroll}
+    <FlatList
+      data={rows}
+      keyExtractor={(row) => row.key}
+      renderItem={renderRow}
+      style={styles.list}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-    >
-      {sections.map((section) => (
-        <View key={section.year} style={styles.yearSection}>
-          <View style={styles.yearHeader}>
-            <Text style={styles.yearLabel}>{yearHeaderLabel(section)}</Text>
-            <View style={styles.yearRule} />
+      removeClippedSubviews
+      initialNumToRender={18}
+      ListFooterComponent={
+        loadingAll ? (
+          <View style={styles.loadingFooter}>
+            <ActivityIndicator size="small" color={tokens.colors.mute} />
           </View>
-          <View style={styles.grid}>
-            {section.months.map((tile) => (
-              <MonthTile
-                key={tile.key}
-                tile={tile}
-                index={tileIndex++}
-                onPressMarker={onPressMarker}
-              />
-            ))}
-          </View>
-        </View>
-      ))}
-
-      {loadingAll ? (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color={tokens.colors.mute} />
-          <Text style={styles.loadingText}>LOADING FULL HISTORY</Text>
-        </View>
-      ) : null}
-
-      <Text style={styles.legend}>Thumbnails = shared · dots = logged · dashed = planned</Text>
-    </ScrollView>
+        ) : null
+      }
+    />
   );
 }
 
 const buildStyles = (tokens: ThemeTokens) =>
   StyleSheet.create({
-    scroll: {
+    list: {
       flex: 1,
     },
     content: {
@@ -162,106 +165,86 @@ const buildStyles = (tokens: ThemeTokens) =>
       paddingTop: 16,
       paddingBottom: 48,
     },
-    yearSection: {
-      marginBottom: 22,
-    },
-    yearHeader: {
+    header: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      marginBottom: 12,
+      marginTop: 18,
+      marginBottom: 10,
     },
-    yearLabel: {
+    headerLabel: {
       fontFamily: tokens.fontFamilies.mono,
-      fontVariant: ['tabular-nums'],
-      fontSize: 11,
-      fontWeight: '600',
-      letterSpacing: 1.5,
-      color: tokens.colors.mute,
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: tokens.colors.muteSoft,
     },
-    yearRule: {
+    headerRule: {
       flex: 1,
       height: 1,
       backgroundColor: tokens.colors.hairline,
     },
-    grid: {
+    row: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
+      gap: GRID_GAP,
+      marginBottom: GRID_GAP,
     },
-    tile: {
-      width: '48%',
-      backgroundColor: tokens.colors.card,
-      borderRadius: tokens.radius.md,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: tokens.colors.hairline,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-    tileLabel: {
-      fontFamily: tokens.fontFamilies.mono,
-      fontSize: 10,
-      fontWeight: '600',
-      letterSpacing: 1.5,
-      color: tokens.colors.mute,
-    },
-    markerRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-      marginTop: 8,
-    },
-    markerCell: {
-      width: MARKER_CELL,
-      height: MARKER_CELL,
+    cell: {
+      borderRadius: 4,
+      overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    photoThumb: {
-      width: MARKER_CELL,
-      height: MARKER_CELL,
-      borderRadius: 7,
+    cellFill: {
       backgroundColor: tokens.colors.card2,
     },
-    loggedDot: {
-      width: 9,
-      height: 9,
-      borderRadius: 4.5,
-      backgroundColor: tokens.colors.accent,
-    },
-    planRing: {
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-      borderWidth: 1.5,
+    cellPlan: {
+      backgroundColor: tokens.colors.card,
+      borderWidth: 1,
       borderStyle: 'dashed',
-      borderColor: tokens.colors.mute,
+      borderColor: tokens.colors.dash,
     },
-    partyMark: {
+    photo: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    scoreScrim: {
       position: 'absolute',
-      top: -2,
-      right: -2,
-      fontSize: 8,
+      right: 3,
+      bottom: 3,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 4,
+      // Over-photo scrim is deliberately literal (theme-independent), same
+      // convention as MemoryCard's chip fill.
+      backgroundColor: 'rgba(11,11,16,0.55)',
     },
-    loadingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingVertical: 14,
+    initial: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: tokens.colors.fg,
+      letterSpacing: -0.5,
     },
-    loadingText: {
+    entryScore: {
       fontFamily: tokens.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
       fontSize: 10,
       fontWeight: '600',
-      letterSpacing: 1.5,
-      color: tokens.colors.mute,
-    },
-    legend: {
-      fontSize: 11,
-      fontWeight: '400',
       color: tokens.colors.muteSoft,
-      textAlign: 'center',
-      marginTop: 10,
+      marginTop: 4,
+    },
+    countdown: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: tokens.colors.fg,
+    },
+    loadingFooter: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
     },
   });

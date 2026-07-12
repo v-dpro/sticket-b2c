@@ -16,7 +16,6 @@ import { LogRow } from '../../components/log/LogRow';
 import { PillButton } from '../../components/ui/PillButton';
 import { searchArtistsSpotify, type SearchArtist } from '../../lib/api/logShow';
 import { durations, tearIn } from '../../lib/motion';
-import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme } from '../../lib/theme-context';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
 
@@ -24,7 +23,6 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 export default function LogSearchArtist() {
   const router = useRouter();
-  const goBack = useSafeBack();
   const { tokens } = useTheme();
   const c = tokens.colors;
   const pad = tokens.density.pad;
@@ -76,7 +74,8 @@ export default function LogSearchArtist() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <FlowHeader icon="close" label="Log a show" onPress={goBack} />
+      {/* No close button — the modal dismisses with swipe-down (grabber hints it). */}
+      <FlowHeader icon="none" label="Log a show" grabber />
 
       <View style={{ paddingHorizontal: pad, paddingTop: 8, paddingBottom: 16, gap: 6 }}>
         <Text style={{ color: c.fg, fontSize: 32, fontWeight: '800', letterSpacing: -0.5 }}>

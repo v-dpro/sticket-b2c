@@ -33,7 +33,7 @@ export type TimelineEventSummary = TimelineEventRef & {
 };
 
 export type TimelineUpcomingItem = {
-  type: 'ticket' | 'interested' | 'tracking';
+  type: 'ticket' | 'interested' | 'tracking' | 'party';
   id: string;
   date: string; // ISO — event date, used for countdowns
   event: TimelineEventSummary;
@@ -46,6 +46,14 @@ export type TimelineUpcomingItem = {
   notifyOnSale?: boolean;
   // tracking-only
   maxPrice?: number;
+  /** A party on this plan (the owner hosts) — join lives on the party page. */
+  party?: {
+    id: string;
+    title: string;
+    visibility: 'PUBLIC' | 'INVITE';
+    goingCount: number;
+    myStatus: 'HOST' | 'GOING' | 'REQUESTED' | 'INVITED' | null;
+  };
 };
 
 export type TimelineCoAuthor = {

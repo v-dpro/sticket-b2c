@@ -1858,6 +1858,14 @@ app.post('/users/me/avatar', async (req) => {
 // MY ARTISTS + FANCLUBS + CONCERT LIFE (v2)
 // ============================================
 
+// Compact display formatting for latestDrop text ("JUL 24", "10:00 AM").
+const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const fmtMonthDay = (d: Date) => `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
+const fmtTime = (d: Date) => {
+  const h = d.getHours() % 12 || 12;
+  return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
+};
+
 // GET /users/me/artists - Get user's followed artists with stats
 app.get('/users/me/artists', async (req) => {
   const userId = requireAccessUserId(req as any);
@@ -1881,7 +1889,10 @@ app.get('/users/me/artists', async (req) => {
     .slice(0, 200)
     .map((n) => ({ artistName: { equals: n, mode: 'insensitive' as const } }));
 
-  const [logs, presales, upcomingEvents, tickets] = await Promise.all([
+  const degrees = await getViewerDegrees(userId);
+  const friendIds = [...degrees.firstDegree];
+
+  const [logs, presales, upcomingEvents, tickets, interestedRows, friendFollows, friendLogRows] = await Promise.all([
     artistIds.length
       ? prisma.userLog.findMany({
           where: { userId, event: { artistId: { in: artistIds } } },
@@ -1899,7 +1910,7 @@ app.get('/users/me/artists', async (req) => {
     artistIds.length
       ? prisma.event.findMany({
           where: { artistId: { in: artistIds }, date: { gte: now } },
-          include: { venue: true, artist: true },
+          include: { venue: true, artist: true, tour: { select: { startDate: true } } },
           orderBy: { date: 'asc' },
           take: 200,
         })
@@ -1909,6 +1920,27 @@ app.get('/users/me/artists', async (req) => {
           where: { userId, event: { artistId: { in: artistIds }, date: { gte: now } } },
           include: { event: { include: { venue: true } } },
           orderBy: { event: { date: 'asc' } },
+        })
+      : [],
+    // Viewer's upcoming event interests, for latestDrop.planned.
+    artistIds.length
+      ? prisma.userInterested.findMany({
+          where: { userId, event: { artistId: { in: artistIds }, date: { gte: now } } },
+          select: { eventId: true },
+        })
+      : [],
+    // Degree-1 friends who also follow these artists (one batched query).
+    friendIds.length && artistIds.length
+      ? prisma.userArtistFollow.findMany({
+          where: { userId: { in: friendIds }, artistId: { in: artistIds } },
+          select: { artistId: true, user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+        })
+      : [],
+    // Degree-1 friends' logs across these artists, for seen-count comparisons.
+    friendIds.length && artistIds.length
+      ? prisma.userLog.findMany({
+          where: { userId: { in: friendIds }, event: { artistId: { in: artistIds } } },
+          select: { userId: true, event: { select: { artistId: true } } },
         })
       : [],
   ]);
@@ -1945,6 +1977,17 @@ app.get('/users/me/artists', async (req) => {
     presalesByArtistNameLower.set(k, arr);
   }
 
+  const interestedEventIds = new Set(interestedRows.map((i) => i.eventId));
+  const friendsTrackingByArtist = groupFacepiles(friendFollows, (r) => r.artistId, (r) => r.user, degrees.degreeOf, 4);
+
+  // Per-artist seen counts for each degree-1 friend (friendsSeenMore).
+  const friendSeenByArtist = new Map<string, Map<string, number>>();
+  for (const row of friendLogRows) {
+    const counts = friendSeenByArtist.get(row.event.artistId) ?? new Map<string, number>();
+    counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1);
+    friendSeenByArtist.set(row.event.artistId, counts);
+  }
+
   const artistsWithStats = follows.map((follow) => {
     const userLogs = logsByArtist.get(follow.artistId) ?? [];
     const last = userLogs[0];
@@ -1953,6 +1996,49 @@ app.get('/users/me/artists', async (req) => {
     const artistPresales = presalesByArtistNameLower.get(follow.artist.name.toLowerCase()) ?? [];
     const artistUpcoming = upcomingByArtist.get(follow.artistId) ?? [];
     const userTickets = ticketsByArtist.get(follow.artistId) ?? [];
+
+    // latestDrop: the artist's most-timely upcoming thing, derived from the
+    // rows already fetched above. A presale beats the soonest show when it
+    // starts sooner; a show on a not-yet-started tour reads as a tour start.
+    const ticketEventIds = new Set(userTickets.map((t) => t.eventId));
+    const nextShow = artistUpcoming[0];
+    const nextPresale = artistPresales[0];
+    let latestDrop: {
+      kind: 'show' | 'presale' | 'tour';
+      text: string;
+      date: string;
+      eventId?: string;
+      presaleId?: string;
+      planned: boolean;
+    } | null = null;
+    if (nextPresale && (!nextShow || nextPresale.presaleStart.getTime() < nextShow.date.getTime())) {
+      latestDrop = {
+        kind: 'presale',
+        text: `PRESALE ${fmtMonthDay(nextPresale.presaleStart)} · ${fmtTime(nextPresale.presaleStart)}`,
+        date: nextPresale.presaleStart.toISOString(),
+        presaleId: nextPresale.id,
+        // Presale rows are denormalized (no Event FK), so ticket/interest
+        // state can't be resolved for them.
+        planned: false,
+      };
+    } else if (nextShow) {
+      const isTourStart = nextShow.tour?.startDate != null && nextShow.tour.startDate.getTime() >= now.getTime();
+      latestDrop = {
+        kind: isTourStart ? 'tour' : 'show',
+        text: `${isTourStart ? 'TOUR STARTS' : 'NEW SHOW'} · ${nextShow.venue.name.toUpperCase()} ${fmtMonthDay(nextShow.date)}`,
+        date: nextShow.date.toISOString(),
+        eventId: nextShow.id,
+        planned: ticketEventIds.has(nextShow.id) || interestedEventIds.has(nextShow.id),
+      };
+    }
+
+    // How many degree-1 friends have seen this artist at least as many times
+    // as the viewer (friends with zero logs never count).
+    const friendCounts = friendSeenByArtist.get(follow.artistId);
+    let friendsSeenMoreCount = 0;
+    if (friendCounts) {
+      for (const c of friendCounts.values()) if (c >= userLogs.length) friendsSeenMoreCount += 1;
+    }
 
     return {
       id: follow.id,
@@ -1994,6 +2080,9 @@ app.get('/users/me/artists', async (req) => {
             venueName: userTickets[0].event.venue.name,
           }
         : null,
+      latestDrop,
+      friendsTracking: friendsTrackingByArtist.get(follow.artistId) ?? [],
+      friendsSeenMore: { count: friendsSeenMoreCount },
     };
   });
 
@@ -2347,14 +2436,14 @@ app.get('/users/me/collection', async (req) => {
         select: {
           date: true,
           artist: { select: { id: true, name: true, imageUrl: true } },
-          venue: { select: { id: true, name: true, city: true } },
+          venue: { select: { id: true, name: true, city: true, lat: true, lng: true } },
         },
       },
     },
   });
 
   const artistMap = new Map<string, { artist: { id: string; name: string; imageUrl?: string }; count: number; lastSeen: Date }>();
-  const venueMap = new Map<string, { venue: { id: string; name: string; city: string }; count: number }>();
+  const venueMap = new Map<string, { venue: { id: string; name: string; city: string; lat?: number; lng?: number }; count: number }>();
   const cityMap = new Map<string, number>();
 
   for (const l of logs) {
@@ -2374,15 +2463,57 @@ app.get('/users/me/collection', async (req) => {
 
     const v = venueMap.get(venue.id);
     if (v) v.count += 1;
-    else venueMap.set(venue.id, { venue: { id: venue.id, name: venue.name, city: venue.city }, count: 1 });
+    else {
+      venueMap.set(venue.id, {
+        venue: { id: venue.id, name: venue.name, city: venue.city, lat: venue.lat ?? undefined, lng: venue.lng ?? undefined },
+        count: 1,
+      });
+    }
 
     cityMap.set(venue.city, (cityMap.get(venue.city) ?? 0) + 1);
+  }
+
+  // Degree-1 friend overlays: who else follows each artist (facepile) and the
+  // highest friend seen-count per artist.
+  const degrees = await getViewerDegrees(userId);
+  const friendIds = [...degrees.firstDegree];
+  const artistIds = [...artistMap.keys()];
+  const [friendFollows, friendLogRows] = await Promise.all([
+    friendIds.length && artistIds.length
+      ? prisma.userArtistFollow.findMany({
+          where: { userId: { in: friendIds }, artistId: { in: artistIds } },
+          select: { artistId: true, user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+        })
+      : [],
+    friendIds.length && artistIds.length
+      ? prisma.userLog.findMany({
+          where: { userId: { in: friendIds }, event: { artistId: { in: artistIds } } },
+          select: { userId: true, event: { select: { artistId: true } } },
+        })
+      : [],
+  ]);
+
+  const friendsTrackingByArtist = groupFacepiles(friendFollows, (r) => r.artistId, (r) => r.user, degrees.degreeOf, 4);
+  const friendSeenByArtist = new Map<string, Map<string, number>>();
+  for (const row of friendLogRows) {
+    const counts = friendSeenByArtist.get(row.event.artistId) ?? new Map<string, number>();
+    counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1);
+    friendSeenByArtist.set(row.event.artistId, counts);
   }
 
   return {
     artists: [...artistMap.values()]
       .sort((a, b) => b.count - a.count)
-      .map((a) => ({ artist: a.artist, count: a.count, lastSeen: a.lastSeen.toISOString() })),
+      .map((a) => {
+        const friendCounts = friendSeenByArtist.get(a.artist.id);
+        return {
+          artist: a.artist,
+          count: a.count,
+          lastSeen: a.lastSeen.toISOString(),
+          friendsTracking: friendsTrackingByArtist.get(a.artist.id) ?? [],
+          topFriendCount: friendCounts ? Math.max(...friendCounts.values()) : null,
+        };
+      }),
     venues: [...venueMap.values()].sort((a, b) => b.count - a.count),
     cities: [...cityMap.entries()]
       .map(([city, count]) => ({ city, count }))
@@ -2629,11 +2760,13 @@ app.get('/users/:id/timeline', async (req) => {
 
   const months = Array.from(monthsMap.entries()).map(([key, entries]) => ({ key, entries }));
 
-  // Upcoming section (tickets/interested/tracked) is private-intent data —
-  // only the owner sees it, consistent with there being no other route that
-  // exposes another user's tickets or tracking.
+  // Upcoming section: tickets/interested/tracked events are private-intent
+  // data — only the owner sees those. Parties the owner HOSTS are the
+  // exception: they surface for other viewers too (PUBLIC always; INVITE only
+  // when the viewer is a member, mirroring GET /events/:id/parties) so plans
+  // are joinable from a friend's timeline.
   let upcoming: Array<Record<string, unknown>> = [];
-  if (isOwner) {
+  {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -2644,24 +2777,6 @@ app.get('/users/:id/timeline', async (req) => {
       },
     } as const;
 
-    const [tickets, interested, tracking] = await Promise.all([
-      prisma.userTicket.findMany({
-        where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
-        include: { event: eventSelect },
-        orderBy: { event: { date: 'asc' } },
-      }),
-      prisma.userInterested.findMany({
-        where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
-        include: { event: eventSelect },
-        orderBy: { event: { date: 'asc' } },
-      }),
-      prisma.userEventTracking.findMany({
-        where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
-        include: { event: eventSelect },
-        orderBy: { event: { date: 'asc' } },
-      }),
-    ]);
-
     const toEventSummary = (e: { id: string; name: string; date: Date; artist: any; venue: any }) => ({
       id: e.id,
       name: e.name,
@@ -2670,34 +2785,134 @@ app.get('/users/:id/timeline', async (req) => {
       venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
     });
 
-    upcoming = [
-      ...tickets.map((t) => ({
-        type: 'ticket' as const,
-        id: t.id,
-        date: t.event.date.toISOString(),
-        event: toEventSummary(t.event),
-        section: t.section ?? undefined,
-        row: t.row ?? undefined,
-        seat: t.seat ?? undefined,
-        status: t.status,
-      })),
-      ...interested.map((i) => ({
-        type: 'interested' as const,
-        id: i.id,
-        date: i.event.date.toISOString(),
-        event: toEventSummary(i.event),
-        notifyOnSale: i.notifyOnSale,
-      })),
-      ...tracking.map((tr) => ({
-        type: 'tracking' as const,
-        id: tr.id,
-        date: tr.event.date.toISOString(),
-        event: toEventSummary(tr.event),
-        status: tr.status,
-        maxPrice: tr.maxPrice ?? undefined,
-      })),
-      // 'hang' / party placeholder intentionally omitted for Wave-1.
-    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const hostedParties = await prisma.party.findMany({
+      where: {
+        hostId: targetUserId,
+        event: { date: { gte: startOfToday } },
+        ...(isOwner
+          ? {}
+          : {
+              OR: [
+                { visibility: 'PUBLIC' as const },
+                ...(viewerId ? [{ members: { some: { userId: viewerId } } }] : []),
+              ],
+            }),
+      },
+      include: { event: eventSelect },
+      orderBy: [{ startsAt: { sort: 'asc' as const, nulls: 'last' as const } }, { createdAt: 'desc' as const }],
+    });
+
+    const hostedPartyIds = hostedParties.map((p) => p.id);
+    const [partyCounts, viewerPartyMemberships] = await Promise.all([
+      getPartyCounts(hostedPartyIds),
+      viewerId && !isOwner && hostedPartyIds.length
+        ? prisma.partyMember.findMany({
+            where: { userId: viewerId, partyId: { in: hostedPartyIds } },
+            select: { partyId: true, status: true },
+          })
+        : ([] as { partyId: string; status: string }[]),
+    ]);
+    const viewerStatusByParty = new Map(viewerPartyMemberships.map((m) => [m.partyId, m.status]));
+
+    const toPartyChip = (p: (typeof hostedParties)[number]) => {
+      const raw = isOwner ? 'HOST' : (viewerStatusByParty.get(p.id) ?? null);
+      // DECLINED intentionally maps to null (re-requestable via /join).
+      const myStatus = raw === 'HOST' || raw === 'GOING' || raw === 'REQUESTED' || raw === 'INVITED' ? raw : null;
+      return {
+        id: p.id,
+        title: p.title,
+        visibility: p.visibility,
+        goingCount: partyCounts.get(p.id)!.going,
+        myStatus,
+      };
+    };
+
+    // One party chip per event (soonest startsAt wins when the owner hosts
+    // several on the same event).
+    const partyByEvent = new Map<string, (typeof hostedParties)[number]>();
+    for (const p of hostedParties) if (!partyByEvent.has(p.eventId)) partyByEvent.set(p.eventId, p);
+
+    if (isOwner) {
+      const [tickets, interested, tracking] = await Promise.all([
+        prisma.userTicket.findMany({
+          where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
+          include: { event: eventSelect },
+          orderBy: { event: { date: 'asc' } },
+        }),
+        prisma.userInterested.findMany({
+          where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
+          include: { event: eventSelect },
+          orderBy: { event: { date: 'asc' } },
+        }),
+        prisma.userEventTracking.findMany({
+          where: { userId: targetUserId, event: { date: { gte: startOfToday } } },
+          include: { event: eventSelect },
+          orderBy: { event: { date: 'asc' } },
+        }),
+      ]);
+
+      const chipFor = (eventId: string) => {
+        const p = partyByEvent.get(eventId);
+        return p ? toPartyChip(p) : undefined;
+      };
+
+      // Hosted parties on events with no ticket/interest/tracking row are
+      // still plans — they get standalone 'party' entries below.
+      const coveredEventIds = new Set<string>([
+        ...tickets.map((t) => t.eventId),
+        ...interested.map((i) => i.eventId),
+        ...tracking.map((tr) => tr.eventId),
+      ]);
+      const standaloneParties = [...partyByEvent.values()].filter((p) => !coveredEventIds.has(p.eventId));
+
+      upcoming = [
+        ...tickets.map((t) => ({
+          type: 'ticket' as const,
+          id: t.id,
+          date: t.event.date.toISOString(),
+          event: toEventSummary(t.event),
+          section: t.section ?? undefined,
+          row: t.row ?? undefined,
+          seat: t.seat ?? undefined,
+          status: t.status,
+          party: chipFor(t.eventId),
+        })),
+        ...interested.map((i) => ({
+          type: 'interested' as const,
+          id: i.id,
+          date: i.event.date.toISOString(),
+          event: toEventSummary(i.event),
+          notifyOnSale: i.notifyOnSale,
+          party: chipFor(i.eventId),
+        })),
+        ...tracking.map((tr) => ({
+          type: 'tracking' as const,
+          id: tr.id,
+          date: tr.event.date.toISOString(),
+          event: toEventSummary(tr.event),
+          status: tr.status,
+          maxPrice: tr.maxPrice ?? undefined,
+          party: chipFor(tr.eventId),
+        })),
+        ...standaloneParties.map((p) => ({
+          type: 'party' as const,
+          id: p.id,
+          date: p.event.date.toISOString(),
+          event: toEventSummary(p.event),
+          party: toPartyChip(p),
+        })),
+      ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } else {
+      upcoming = [...partyByEvent.values()]
+        .map((p) => ({
+          type: 'party' as const,
+          id: p.id,
+          date: p.event.date.toISOString(),
+          event: toEventSummary(p.event),
+          party: toPartyChip(p),
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }
   }
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.event.date.toISOString() : null;
@@ -3366,7 +3581,7 @@ app.get('/explore', async (req) => {
   const faceUserSelect = { select: { id: true, username: true, displayName: true, avatarUrl: true } } as const;
 
   // ---- Phase 1: independent base queries ----
-  const [presaleRows, candidateEvents, logAgg, crowdLogs] = await Promise.all([
+  const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows] = await Promise.all([
     // Presales starting in the next 14 days, soonest first.
     prisma.presale.findMany({
       where: { presaleStart: { gte: now, lte: new Date(now.getTime() + 14 * DAY_MS) } },
@@ -3412,6 +3627,16 @@ app.get('/explore', async (req) => {
           select: { photoUrl: true },
         },
       },
+    }),
+    // PUBLIC parties on future events, soonest first (Plan tab's open-party rail).
+    prisma.party.findMany({
+      where: { visibility: 'PUBLIC', event: { date: { gte: now } } },
+      include: {
+        host: faceUserSelect,
+        event: { select: { id: true, name: true, date: true, venue: { select: { name: true, city: true } } } },
+      },
+      orderBy: [{ event: { date: 'asc' } }, { startsAt: { sort: 'asc', nulls: 'last' } }],
+      take: 6,
     }),
   ]);
 
@@ -3465,7 +3690,7 @@ app.get('/explore', async (req) => {
     .map(([id]) => id);
 
   // ---- Phase 2: metadata + facepile source rows for the picked ids ----
-  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows] =
+  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts] =
     await Promise.all([
       // Rising-artist candidates ranked below by followerCount + logCount.
       prisma.artist.findMany({
@@ -3517,6 +3742,7 @@ app.get('/explore', async (req) => {
             select: { photoUrl: true, log: { select: { eventId: true } } },
           })
         : [],
+      getPartyCounts(publicPartyRows.map((p) => p.id)),
     ]);
 
   // ---- Rising artists: simple totals of follows + logs ----
@@ -3613,6 +3839,27 @@ app.get('/explore', async (req) => {
         imageUrl: v.imageUrl ?? undefined,
         eventCount: v._count.events,
       })),
+    publicParties: publicPartyRows.map((p) => ({
+      id: p.id,
+      title: p.title,
+      startsAt: p.startsAt ? p.startsAt.toISOString() : undefined,
+      event: {
+        id: p.event.id,
+        name: p.event.name,
+        date: p.event.date.toISOString(),
+        venue: { name: p.event.venue.name, city: p.event.venue.city },
+      },
+      host: {
+        id: p.host.id,
+        username: p.host.username,
+        displayName: p.host.displayName ?? undefined,
+        avatarUrl: p.host.avatarUrl ?? undefined,
+        // PUBLIC parties reach beyond the viewer's graph; degree only
+        // annotates hosts within 2 hops.
+        degree: degrees.degreeOf(p.host.id),
+      },
+      goingCount: publicPartyCounts.get(p.id)!.going,
+    })),
     crowdPosts: crowdLogs
       .filter((l) => l.photos.length > 0)
       .map((l) => ({
@@ -8439,6 +8686,22 @@ function serializeParty(
   };
 }
 
+// Lightweight party row for list surfaces (/users/me/parties): host + event
+// summary, no member rows.
+const PARTY_LITE_INCLUDE = {
+  host: { select: PARTY_USER_SELECT },
+  event: {
+    select: {
+      id: true,
+      name: true,
+      date: true,
+      artist: { select: { name: true } },
+      venue: { select: { name: true, city: true } },
+    },
+  },
+} satisfies Prisma.PartyInclude;
+type PartyLiteRow = Prisma.PartyGetPayload<{ include: typeof PARTY_LITE_INCLUDE }>;
+
 /** Per-party member tallies: going (HOST + GOING), requested, invited. */
 async function getPartyCounts(partyIds: string[]) {
   const zero = () => ({ going: 0, requested: 0, invited: 0 });
@@ -8558,6 +8821,91 @@ app.get('/events/:id/parties', async (req) => {
 
   return {
     parties: parties.map((p) => serializeParty(p, countsByParty.get(p.id)!, myStatusByParty.get(p.id) ?? null)),
+  };
+});
+
+// GET /users/me/parties — the viewer's party dashboard for the Plan tab:
+// parties they host, are going to, and are invited to, plus pending join
+// requests on parties they host (answered via POST /parties/:id/respond).
+app.get('/users/me/parties', async (req) => {
+  const userId = requireAccessUserId(req as any);
+
+  const [degrees, hostedParties, memberships, requestRows] = await Promise.all([
+    getViewerDegrees(userId),
+    // Hosting keys off Party.hostId (the authoritative host signal — the same
+    // one every host-permission check uses), not a HOST member row.
+    prisma.party.findMany({
+      where: { hostId: userId },
+      include: PARTY_LITE_INCLUDE,
+    }),
+    prisma.partyMember.findMany({
+      where: { userId, status: { in: ['GOING', 'INVITED'] }, party: { hostId: { not: userId } } },
+      include: { party: { include: PARTY_LITE_INCLUDE } },
+    }),
+    prisma.partyMember.findMany({
+      where: { status: 'REQUESTED', party: { hostId: userId } },
+      include: { user: { select: PARTY_USER_SELECT }, party: { include: PARTY_LITE_INCLUDE } },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
+
+  const partyIds = [
+    ...new Set([
+      ...hostedParties.map((p) => p.id),
+      ...memberships.map((m) => m.partyId),
+      ...requestRows.map((r) => r.partyId),
+    ]),
+  ];
+  const countsByParty = await getPartyCounts(partyIds);
+
+  const toPartyLite = (party: PartyLiteRow, myStatus: string | null) => ({
+    id: party.id,
+    title: party.title,
+    startsAt: party.startsAt ? party.startsAt.toISOString() : undefined,
+    location: party.location ?? undefined,
+    visibility: party.visibility,
+    event: {
+      id: party.event.id,
+      name: party.event.name,
+      date: party.event.date.toISOString(),
+      artist: { name: party.event.artist.name },
+      venue: { name: party.event.venue.name, city: party.event.venue.city },
+    },
+    hostId: party.hostId,
+    host: {
+      id: party.host.id,
+      username: party.host.username,
+      avatarUrl: party.host.avatarUrl ?? undefined,
+    },
+    goingCount: countsByParty.get(party.id)!.going,
+    myStatus,
+  });
+
+  const byEventDate = (a: { event: { date: string } }, b: { event: { date: string } }) =>
+    new Date(a.event.date).getTime() - new Date(b.event.date).getTime();
+
+  const bucket = (status: 'GOING' | 'INVITED') =>
+    memberships
+      .filter((m) => m.status === status)
+      .map((m) => toPartyLite(m.party, m.status))
+      .sort(byEventDate);
+
+  return {
+    hosting: hostedParties.map((p) => toPartyLite(p, 'HOST')).sort(byEventDate),
+    going: bucket('GOING'),
+    invited: bucket('INVITED'),
+    requests: requestRows.map((r) => ({
+      party: toPartyLite(r.party, 'HOST'),
+      requester: {
+        id: r.user.id,
+        username: r.user.username,
+        displayName: r.user.displayName ?? undefined,
+        avatarUrl: r.user.avatarUrl ?? undefined,
+        // Requesters can come from beyond the viewer's network; degree is
+        // omitted when they're not within 2 hops.
+        degree: degrees.degreeOf(r.user.id),
+      },
+    })),
   };
 });
 

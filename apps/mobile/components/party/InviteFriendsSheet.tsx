@@ -4,22 +4,19 @@
 // followers. A search field (users search API) finds anyone else.
 // Multi-select → POST /parties/:id/invite via the onInvite callback.
 //
-// Follows the app's Modal-sheet pattern (SeatSectionSheet / LikersSheet):
-// blurred backdrop, slide-up card panel, grabber. Fully tokenized.
+// Renders in the shared BottomSheet shell (swipe-down / backdrop to
+// dismiss). Fully tokenized.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { BlurView } from 'expo-blur';
 import Animated from 'react-native-reanimated';
 
 import { useSession } from '../../hooks/useSession';
@@ -29,6 +26,7 @@ import { durations, haptics, tearIn } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
+import { BottomSheet } from '../ui/BottomSheet';
 import { PillButton } from '../ui/PillButton';
 import { SpringPressable } from '../ui/SpringPressable';
 
@@ -209,103 +207,68 @@ export function InviteFriendsSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        style={styles.backdrop}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-      >
-        <BlurView
-          intensity={18}
-          tint={tokens.mode === 'dark' ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
+    <BottomSheet visible={visible} onClose={onClose} maxHeightRatio={0.72} accessibilityLabel="Invite friends">
+      <Text style={styles.title}>Invite friends</Text>
+
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={14} color={tokens.colors.muteSoft} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search people…"
+          placeholderTextColor={tokens.colors.muteSoft}
+          value={query}
+          onChangeText={setQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
-      </Pressable>
-
-      <View style={styles.sheet}>
-        <View style={styles.grabber} />
-        <Text style={styles.title}>Invite friends</Text>
-
-        <View style={styles.searchWrap}>
-          <Ionicons name="search" size={14} color={tokens.colors.muteSoft} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search people…"
-            placeholderTextColor={tokens.colors.muteSoft}
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searching ? <ActivityIndicator size="small" color={tokens.colors.mute} /> : null}
-        </View>
-
-        {loading && !results ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="small" color={tokens.colors.mute} />
-          </View>
-        ) : (
-          <FlatList
-            data={shown}
-            keyExtractor={(p) => p.id}
-            renderItem={renderRow}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <Text style={styles.empty}>
-                {results
-                  ? 'No one matched that search.'
-                  : 'No suggestions yet — search for people to invite.'}
-              </Text>
-            }
-          />
-        )}
-
-        <View style={styles.footer}>
-          <PillButton
-            title={
-              sending
-                ? 'Inviting…'
-                : selected.size > 0
-                  ? `Invite ${selected.size}`
-                  : 'Invite'
-            }
-            variant="primary"
-            size="lg"
-            springFeedback
-            haptic="medium"
-            disabled={selected.size === 0 || sending}
-            onPress={() => void handleInvite()}
-          />
-        </View>
+        {searching ? <ActivityIndicator size="small" color={tokens.colors.mute} /> : null}
       </View>
-    </Modal>
+
+      {loading && !results ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="small" color={tokens.colors.mute} />
+        </View>
+      ) : (
+        <FlatList
+          data={shown}
+          keyExtractor={(p) => p.id}
+          renderItem={renderRow}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <Text style={styles.empty}>
+              {results
+                ? 'No one matched that search.'
+                : 'No suggestions yet — search for people to invite.'}
+            </Text>
+          }
+        />
+      )}
+
+      <View style={styles.footer}>
+        <PillButton
+          title={
+            sending
+              ? 'Inviting…'
+              : selected.size > 0
+                ? `Invite ${selected.size}`
+                : 'Invite'
+          }
+          variant="primary"
+          size="lg"
+          springFeedback
+          haptic="medium"
+          disabled={selected.size === 0 || sending}
+          onPress={() => void handleInvite()}
+        />
+      </View>
+    </BottomSheet>
   );
 }
 
 const buildStyles = (tokens: ThemeTokens) =>
   StyleSheet.create({
-    backdrop: { flex: 1 },
-    sheet: {
-      backgroundColor: tokens.colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 10,
-      paddingBottom: 24,
-      height: '72%',
-      borderTopWidth: 1,
-      borderColor: tokens.colors.hairline,
-    },
-    grabber: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: tokens.colors.line,
-      alignSelf: 'center',
-      marginBottom: 14,
-    },
     title: {
       fontSize: 18,
       fontWeight: '800',

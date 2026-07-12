@@ -3,20 +3,20 @@
 // displayName + @username, tappable → /profile/[id] (or /(tabs)/you for
 // self). Likers come from GET /logs/:id/likes with cursor pagination.
 //
-// Follows the app's Modal-sheet pattern (see ShareSheet): blurred backdrop,
-// slide-up card panel. Fully tokenized via useTheme(); monochrome, mono
-// for the count label and the per-row handle line (C11).
+// Renders in the shared BottomSheet shell (swipe-down / backdrop to
+// dismiss). Fully tokenized via useTheme(); monochrome, mono for the
+// count label and the per-row handle line (C11).
 
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BlurView } from 'expo-blur';
 
 import { getLogLikes, type LogLikeUser } from '../../lib/api/feed';
 import { haptics } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
+import { BottomSheet } from '../ui/BottomSheet';
 
 const PAGE = 30;
 
@@ -119,72 +119,44 @@ export function LikersSheet({ visible, onClose, logId, currentUserId, totalCount
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-        <BlurView intensity={18} tint={tokens.mode === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-      </Pressable>
-
-      <View style={styles.sheet}>
-        <View style={styles.grabber} />
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Liked by</Text>
-          {totalCount > 0 ? <Text style={styles.count}>{totalCount}</Text> : null}
-        </View>
-
-        {loading && likers.length === 0 ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="small" color={c.mute} />
-          </View>
-        ) : likers.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.empty}>No likes yet</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={likers}
-            keyExtractor={(u) => u.id}
-            renderItem={renderRow}
-            onEndReached={() => void loadMore()}
-            onEndReachedThreshold={0.5}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            ListFooterComponent={
-              loadingMore ? (
-                <View style={styles.footer}>
-                  <ActivityIndicator size="small" color={c.mute} />
-                </View>
-              ) : null
-            }
-          />
-        )}
+    <BottomSheet visible={visible} onClose={onClose} accessibilityLabel="Liked by">
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Liked by</Text>
+        {totalCount > 0 ? <Text style={styles.count}>{totalCount}</Text> : null}
       </View>
-    </Modal>
+
+      {loading && likers.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="small" color={c.mute} />
+        </View>
+      ) : likers.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.empty}>No likes yet</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={likers}
+          keyExtractor={(u) => u.id}
+          renderItem={renderRow}
+          onEndReached={() => void loadMore()}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footer}>
+                <ActivityIndicator size="small" color={c.mute} />
+              </View>
+            ) : null
+          }
+        />
+      )}
+    </BottomSheet>
   );
 }
 
 const buildStyles = (tokens: ThemeTokens) =>
   StyleSheet.create({
-    backdrop: {
-      flex: 1,
-    },
-    sheet: {
-      backgroundColor: tokens.colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 10,
-      paddingBottom: 32,
-      maxHeight: '72%',
-      borderTopWidth: 1,
-      borderColor: tokens.colors.hairline,
-    },
-    grabber: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: tokens.colors.line,
-      alignSelf: 'center',
-      marginBottom: 14,
-    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',

@@ -119,21 +119,35 @@ export default function CreatePartyScreen() {
 
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
+    grabber: {
+      alignSelf: 'center',
+      width: 38,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: t.colors.line,
+      marginTop: 8,
+    },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
       paddingHorizontal: t.density.pad,
       paddingTop: 8,
       paddingBottom: 4,
     },
-    closeButton: {
-      width: 36,
+    cancelButton: {
+      minWidth: 36,
       height: 36,
-      borderRadius: t.radius.full,
-      backgroundColor: t.colors.card2,
-      alignItems: 'center',
+      alignItems: 'flex-end',
       justifyContent: 'center',
+    },
+    cancelText: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
     },
     content: { paddingHorizontal: t.density.pad },
     eyebrow: {
@@ -216,15 +230,18 @@ export default function CreatePartyScreen() {
       <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
 
       <View style={{ paddingTop: insets.top }}>
+        {/* No top-left X — the modal dismisses with swipe-down (grabber hints
+            it); Cancel keeps an explicit abandon-the-draft affordance. */}
+        <View style={styles.grabber} />
         <View style={styles.header}>
           <SpringPressable
             onPress={goBack}
             haptic="light"
             accessibilityRole="button"
-            accessibilityLabel="Close"
-            style={styles.closeButton}
+            accessibilityLabel="Cancel"
+            style={styles.cancelButton}
           >
-            <Ionicons name="close" size={20} color={tokens.colors.fg} />
+            <Text style={styles.cancelText}>Cancel</Text>
           </SpringPressable>
         </View>
       </View>

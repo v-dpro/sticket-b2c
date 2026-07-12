@@ -4,12 +4,11 @@
 // Confirming returns the chosen people to memory.tsx, which invites them as
 // co-authors on Post. Nothing here is required — the sheet is skippable.
 //
-// Follows the app's Modal-sheet pattern (see LikersSheet): blurred backdrop,
-// slide-up card panel, fully tokenized (both modes), mono reserved for counts.
+// Renders in the shared BottomSheet shell (swipe-down / backdrop to
+// dismiss), fully tokenized (both modes), mono reserved for counts.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { getFollowing, type FollowUserListItem } from '../../../lib/api/profile';
@@ -17,6 +16,7 @@ import { haptics } from '../../../lib/motion';
 import type { ThemeTokens } from '../../../lib/theme';
 import { useTheme, useThemedStyles } from '../../../lib/theme-context';
 import { Avatar } from '../../ui/Avatar';
+import { BottomSheet } from '../../ui/BottomSheet';
 import { SpringPressable } from '../../ui/SpringPressable';
 
 export type CoAuthorPerson = {
@@ -130,76 +130,48 @@ export function CoAuthorSheet({ visible, onClose, currentUserId, selectedIds, on
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-        <BlurView intensity={18} tint={tokens.mode === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-      </Pressable>
-
-      <View style={styles.sheet}>
-        <View style={styles.grabber} />
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Post together</Text>
-          {count > 0 ? <Text style={styles.count}>{count}</Text> : null}
-        </View>
-        <Text style={styles.subtitle}>They’ll be asked to co-sign — it lands on their timeline too.</Text>
-
-        {loading && people.length === 0 ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="small" color={c.mute} />
-          </View>
-        ) : people.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.empty}>No one to add yet. Follow the people you go to shows with.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={people}
-            keyExtractor={(u) => u.id}
-            renderItem={renderRow}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-          />
-        )}
-
-        <View style={styles.footer}>
-          <SpringPressable
-            onPress={confirm}
-            haptic="none"
-            accessibilityRole="button"
-            accessibilityLabel={confirmLabel}
-            style={styles.confirmBtn}
-          >
-            <Text style={styles.confirmText}>{confirmLabel}</Text>
-          </SpringPressable>
-        </View>
+    <BottomSheet visible={visible} onClose={onClose} maxHeightRatio={0.78} accessibilityLabel="Post together">
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Post together</Text>
+        {count > 0 ? <Text style={styles.count}>{count}</Text> : null}
       </View>
-    </Modal>
+      <Text style={styles.subtitle}>They’ll be asked to co-sign — it lands on their timeline too.</Text>
+
+      {loading && people.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="small" color={c.mute} />
+        </View>
+      ) : people.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.empty}>No one to add yet. Follow the people you go to shows with.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={people}
+          keyExtractor={(u) => u.id}
+          renderItem={renderRow}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
+
+      <View style={styles.footer}>
+        <SpringPressable
+          onPress={confirm}
+          haptic="none"
+          accessibilityRole="button"
+          accessibilityLabel={confirmLabel}
+          style={styles.confirmBtn}
+        >
+          <Text style={styles.confirmText}>{confirmLabel}</Text>
+        </SpringPressable>
+      </View>
+    </BottomSheet>
   );
 }
 
 const buildStyles = (tokens: ThemeTokens) =>
   StyleSheet.create({
-    backdrop: {
-      flex: 1,
-    },
-    sheet: {
-      backgroundColor: tokens.colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 10,
-      paddingBottom: 20,
-      maxHeight: '78%',
-      borderTopWidth: 1,
-      borderColor: tokens.colors.hairline,
-    },
-    grabber: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: tokens.colors.line,
-      alignSelf: 'center',
-      marginBottom: 14,
-    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',

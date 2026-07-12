@@ -4,20 +4,20 @@
 // → /profile/[id] (or /(tabs)/you for self). Attendees come from
 // GET /logs/:id (othersWhoWent + taggedFriends, deduped) — no pagination yet.
 //
-// Follows the app's Modal-sheet pattern (template: LikersSheet): blurred
-// backdrop, slide-up card panel. Fully tokenized via useTheme(); monochrome,
-// mono for the count label and the per-row handle line (C11).
+// Renders in the shared BottomSheet shell (swipe-down / backdrop to
+// dismiss; template: LikersSheet). Fully tokenized via useTheme();
+// monochrome, mono for the count label and the per-row handle line (C11).
 
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BlurView } from 'expo-blur';
 
 import { getLogDetail } from '../../lib/api/feed';
 import { haptics } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
+import { BottomSheet } from '../ui/BottomSheet';
 
 type WereHereUser = {
   id: string;
@@ -114,63 +114,35 @@ export function WereHereSheet({ visible, onClose, logId, currentUserId, totalCou
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-        <BlurView intensity={18} tint={tokens.mode === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-      </Pressable>
-
-      <View style={styles.sheet}>
-        <View style={styles.grabber} />
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Were here</Text>
-          {totalCount > 0 ? <Text style={styles.count}>{totalCount}</Text> : null}
-        </View>
-
-        {loading && users.length === 0 ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="small" color={c.mute} />
-          </View>
-        ) : users.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.empty}>No one else logged this show</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={users}
-            keyExtractor={(u) => u.id}
-            renderItem={renderRow}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-          />
-        )}
+    <BottomSheet visible={visible} onClose={onClose} accessibilityLabel="Were here">
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Were here</Text>
+        {totalCount > 0 ? <Text style={styles.count}>{totalCount}</Text> : null}
       </View>
-    </Modal>
+
+      {loading && users.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="small" color={c.mute} />
+        </View>
+      ) : users.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.empty}>No one else logged this show</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={users}
+          keyExtractor={(u) => u.id}
+          renderItem={renderRow}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
+    </BottomSheet>
   );
 }
 
 const buildStyles = (tokens: ThemeTokens) =>
   StyleSheet.create({
-    backdrop: {
-      flex: 1,
-    },
-    sheet: {
-      backgroundColor: tokens.colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 10,
-      paddingBottom: 32,
-      maxHeight: '72%',
-      borderTopWidth: 1,
-      borderColor: tokens.colors.hairline,
-    },
-    grabber: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: tokens.colors.line,
-      alignSelf: 'center',
-      marginBottom: 14,
-    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',

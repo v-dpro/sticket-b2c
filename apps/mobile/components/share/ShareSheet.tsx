@@ -1,8 +1,8 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { BlurView } from 'expo-blur';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { BottomSheet } from '../ui/BottomSheet';
 
 interface ShareSheetProps {
   visible: boolean;
@@ -25,24 +25,8 @@ export function ShareSheet({
 }: ShareSheetProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
-    backdrop: {
-      flex: 1,
-    },
-    sheet: {
-      backgroundColor: t.colors.surface,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+    body: {
       paddingHorizontal: 24,
-      paddingTop: 12,
-      paddingBottom: 40,
-    },
-    handle: {
-      width: 40,
-      height: 4,
-      backgroundColor: t.colors.line,
-      borderRadius: 2,
-      alignSelf: 'center',
-      marginBottom: 20,
     },
     title: {
       fontSize: 18,
@@ -86,14 +70,8 @@ export function ShareSheet({
   }));
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <BlurView intensity={20} style={StyleSheet.absoluteFill} />
-      </Pressable>
-
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-
+    <BottomSheet visible={visible} onClose={onClose} accessibilityLabel="Share">
+      <View style={styles.body}>
         <Text style={styles.title}>Share</Text>
 
         <View style={styles.options}>
@@ -139,6 +117,6 @@ export function ShareSheet({
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }

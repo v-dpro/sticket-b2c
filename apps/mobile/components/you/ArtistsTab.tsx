@@ -11,6 +11,7 @@ import Animated from 'react-native-reanimated';
 import { useMyArtists } from '../../hooks/useMyArtists';
 import { durations, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { DegreeFacepile } from '../ui/DegreeFacepile';
 import { PillButton } from '../ui/PillButton';
 import { SpringPressable } from '../ui/SpringPressable';
 
@@ -20,6 +21,23 @@ type ArtistRow = {
   stats?: { timesSeen?: number };
   upcomingShows?: { id: string; date?: string }[];
   upcomingPresales?: unknown[];
+  /** The one-liner: the artist's most-timely drop (show/presale/tour). */
+  latestDrop?: {
+    kind: 'show' | 'presale' | 'tour';
+    text: string;
+    date: string;
+    eventId?: string;
+    presaleId?: string;
+    planned: boolean;
+  } | null;
+  friendsTracking?: {
+    id: string;
+    username: string;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    degree?: 1 | 2;
+  }[];
+  friendsSeenMore?: { count: number };
 };
 
 function nextShowLabel(row: ArtistRow): string | null {
@@ -70,6 +88,19 @@ export function ArtistsTab() {
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: t.colors.muteSoft,
+    },
+    socialRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 },
+    plannedChip: {
+      paddingVertical: 2,
+      paddingHorizontal: 6,
+      borderRadius: t.radius.sm,
+      backgroundColor: t.colors.inverseBg,
+    },
+    plannedChipText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 9,
+      letterSpacing: 0.8,
+      color: t.colors.inverseFg,
     },
     // The collectible count — a small flat stamp.
     countStamp: {
@@ -145,11 +176,45 @@ export function ArtistsTab() {
                     <Text style={styles.name} numberOfLines={1}>
                       {row.artist.name}
                     </Text>
-                    <Text style={styles.meta} numberOfLines={1}>
-                      {[next ? `NEXT ${next}` : null, hasPresale ? 'PRESALE SOON' : null]
-                        .filter(Boolean)
-                        .join(' · ') || 'NO DATES YET'}
-                    </Text>
+                    {/* The drop one-liner — what this artist is doing next. */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
+                        {row.latestDrop?.text ||
+                          [next ? `NEXT ${next}` : null, hasPresale ? 'PRESALE SOON' : null]
+                            .filter(Boolean)
+                            .join(' · ') ||
+                          'NO DATES YET'}
+                      </Text>
+                      {row.latestDrop?.planned ? (
+                        <View style={styles.plannedChip}>
+                          <Text style={styles.plannedChipText}>PLANNED ✓</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    {(row.friendsTracking?.length ?? 0) > 0 || (row.friendsSeenMore?.count ?? 0) > 0 ? (
+                      <View style={styles.socialRow}>
+                        {(row.friendsTracking?.length ?? 0) > 0 ? (
+                          <DegreeFacepile
+                            people={row.friendsTracking!}
+                            size={18}
+                            max={3}
+                            surfaceColor={tokens.colors.card}
+                          />
+                        ) : null}
+                        <Text style={styles.meta} numberOfLines={1}>
+                          {[
+                            (row.friendsTracking?.length ?? 0) > 0
+                              ? `${row.friendsTracking!.length} FRIEND${row.friendsTracking!.length === 1 ? '' : 'S'} TRACK`
+                              : null,
+                            (row.friendsSeenMore?.count ?? 0) > 0
+                              ? `${row.friendsSeenMore!.count} AHEAD OF YOU`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                   {seen > 0 ? (
                     <View style={styles.countStamp}>

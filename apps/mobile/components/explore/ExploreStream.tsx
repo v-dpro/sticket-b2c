@@ -20,6 +20,7 @@ import { useThemedStyles } from '../../lib/theme-context';
 import { Skeleton } from '../ui/Skeleton';
 import { CrowdMosaic } from './CrowdMosaic';
 import { EventMediumCard } from './EventMediumCard';
+import { PartiesRail } from './PartiesRail';
 import { PresaleRail } from './PresaleRail';
 import { RisingArtistsRail } from './RisingArtistsRail';
 import { TourSpotlightCard } from './TourSpotlightCard';
@@ -53,7 +54,7 @@ export function ExploreStream({ data }: ExploreStreamProps) {
   }));
 
   const sections = useMemo<Section[]>(() => {
-    const { presales, trendingEvents, risingArtists, spotlightTours, venues, crowdPosts } = data;
+    const { presales, trendingEvents, risingArtists, spotlightTours, venues, crowdPosts, publicParties } = data;
 
     // Crowd-post split — two mosaics of 4–6 tiles when supply allows. When
     // both entities between them (tour + rising rail) are empty, the two
@@ -80,6 +81,8 @@ export function ExploreStream({ data }: ExploreStreamProps) {
       });
     if (spotlightTours[0])
       built.push({ key: 'tour', kind: 'full', node: <TourSpotlightCard tour={spotlightTours[0]} /> });
+    if (publicParties.length > 0)
+      built.push({ key: 'parties', kind: 'rail', node: <PartiesRail parties={publicParties} /> });
     if (risingArtists.length > 0)
       built.push({ key: 'rising', kind: 'rail', node: <RisingArtistsRail artists={risingArtists} /> });
     if (secondMosaic.length > 0)

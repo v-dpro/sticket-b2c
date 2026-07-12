@@ -69,6 +69,12 @@ type MemoryDeckProps = {
   readoutFor: (item: DeckItem) => string;
   /** Rendered at the right of the readout row (Scroll ⇄ Map toggle). */
   accessory?: React.ReactNode;
+  /** Hide the internal readout row — the screen renders its own (big-month
+      header) driven by onIndexChange. */
+  showReadout?: boolean;
+  /** The timeline spine: an ink rail down the left edge with a thumb that
+      glides as the wheel turns (default on). */
+  spine?: boolean;
   onIndexChange?: (index: number) => void;
   onNearEnd?: () => void;
   /** Pull-down past the first card triggers this (deck's pull-to-refresh). */
@@ -95,6 +101,8 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
     renderLabel,
     readoutFor,
     accessory,
+    showReadout = true,
+    spine = true,
     onIndexChange,
     onNearEnd,
     onOverscrollRefresh,
@@ -320,20 +328,23 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
 
   return (
     <View style={styles.root}>
-      {/* Fixed readout — the date lives HERE and ticks as the wheel turns. */}
-      <View style={styles.readoutRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexShrink: 1 }}>
-          {/* Key on the text: month changes re-enter with a small fade. */}
-          <Animated.View key={readout} entering={FadeIn.duration(140)}>
-            <Text style={styles.readout}>{readout}</Text>
-          </Animated.View>
-          <Text style={styles.counter}>{count > 0 ? `${index + 1}/${count}` : ''}</Text>
+      {showReadout ? (
+        // Fixed readout — the date lives HERE and ticks as the wheel turns.
+        <View style={styles.readoutRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexShrink: 1 }}>
+            {/* Key on the text: month changes re-enter with a small fade. */}
+            <Animated.View key={readout} entering={FadeIn.duration(140)}>
+              <Text style={styles.readout}>{readout}</Text>
+            </Animated.View>
+            <Text style={styles.counter}>{count > 0 ? `${index + 1}/${count}` : ''}</Text>
+          </View>
+          {accessory}
         </View>
-        {accessory}
-      </View>
+      ) : null}
 
       <GestureDetector gesture={pan}>
         <View style={styles.stage} collapsable={false}>
+          {spine && count > 1 ? <TimelineSpine progress={progress} count={count} /> : null}
           {/* The night BEFORE — text only, pinned above the card. */}
           <View style={[styles.slot, { top: 0 }]} pointerEvents="none">
             {prevItem ? (
@@ -374,6 +385,63 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
     </View>
   );
 });
+
+// ─── TimelineSpine ─────────────────────────────────────────────────
+// The line of time. A hairline rail down the left edge of the stage with
+// an ink thumb that glides as the wheel turns — up toward the future,
+// down into history. It rides `progress` directly, so it moves live
+// during drags, momentum spins, and settles.
+
+function TimelineSpine({ progress, count }: { progress: SharedValue<number>; count: number }) {
+  const { tokens } = useTheme();
+  const [railHeight, setRailHeight] = useState(0);
+  const THUMB = 26;
+
+  const thumbStyle = useAnimatedStyle(() => {
+    const max = Math.max(count - 1, 1);
+    const p = Math.max(0, Math.min(max, progress.value)) / max;
+    return {
+      transform: [{ translateY: p * Math.max(railHeight - THUMB, 0) }],
+    };
+  });
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: 9,
+        top: LABEL_SLOT,
+        bottom: LABEL_SLOT,
+        width: 3,
+        zIndex: 250,
+      }}
+      onLayout={(e) => setRailHeight(e.nativeEvent.layout.height)}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 1,
+          width: 1,
+          backgroundColor: tokens.colors.line,
+        }}
+      />
+      <Animated.View
+        style={[
+          {
+            width: 3,
+            height: THUMB,
+            borderRadius: 2,
+            backgroundColor: tokens.colors.fg,
+          },
+          thumbStyle,
+        ]}
+      />
+    </View>
+  );
+}
 
 type DeckLayerProps = {
   index: number;

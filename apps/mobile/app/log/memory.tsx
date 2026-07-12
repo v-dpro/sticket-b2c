@@ -358,7 +358,8 @@ export default function LogMemory() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
-      <FlowHeader icon="close" label={eventName || 'Memory'} onPress={skip} />
+      {/* Skip lives on the right; dismissal itself is the modal swipe-down. */}
+      <FlowHeader icon="none" label={eventName || 'Memory'} grabber actionLabel="Skip" onAction={skip} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView

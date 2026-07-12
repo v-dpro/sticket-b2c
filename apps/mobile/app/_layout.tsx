@@ -4,11 +4,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack, useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, LogBox } from 'react-native';
 import { useFonts } from 'expo-font';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_600SemiBold, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 
+import { AnimatedSplash } from '../components/launch/AnimatedSplash';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { initAnalytics, identify, reset as resetAnalytics } from '../lib/analytics';
@@ -139,11 +140,21 @@ function RootShell() {
     }
   }, [profile?.username, user]);
 
+  // Launch choreography: the native splash (static S) hands off to the
+  // AnimatedSplash overlay showing the same logo — it heartbeats, then the
+  // two tickets tear apart to reveal the app.
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
   useEffect(() => {
-    if (!isLoading && fontsLoaded) {
+    if (!isLoading && fontsLoaded && !splashDone && !showAnimatedSplash) {
+      setShowAnimatedSplash(true);
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isLoading, fontsLoaded]);
+  }, [isLoading, fontsLoaded, splashDone, showAnimatedSplash]);
+  const onSplashDone = useCallback(() => {
+    setShowAnimatedSplash(false);
+    setSplashDone(true);
+  }, []);
 
   return (
     // GestureHandlerRootView at the very root — GestureDetector surfaces
@@ -175,6 +186,7 @@ function RootShell() {
           />
         </Stack>
       </ErrorBoundary>
+      {showAnimatedSplash ? <AnimatedSplash onDone={onSplashDone} /> : null}
     </GestureHandlerRootView>
   );
 }

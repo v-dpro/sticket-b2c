@@ -79,6 +79,15 @@ export type ExploreCrowdPost = {
   user: ExplorePerson;
 };
 
+export type ExplorePublicParty = {
+  id: string;
+  title: string;
+  startsAt: string | null;
+  event: { id: string; name: string; date: string; venue?: { name: string; city?: string | null } | null };
+  host: ExplorePerson;
+  goingCount: number;
+};
+
 export type ExploreData = {
   presales: ExplorePresale[];
   trendingEvents: ExploreTrendingEvent[];
@@ -86,6 +95,7 @@ export type ExploreData = {
   spotlightTours: ExploreSpotlightTour[];
   venues: ExploreVenue[];
   crowdPosts: ExploreCrowdPost[];
+  publicParties: ExplorePublicParty[];
 };
 
 export async function getExplore(): Promise<ExploreData> {
@@ -99,5 +109,6 @@ export async function getExplore(): Promise<ExploreData> {
     spotlightTours: Array.isArray(data.spotlightTours) ? data.spotlightTours : [],
     venues: Array.isArray(data.venues) ? data.venues : [],
     crowdPosts: Array.isArray(data.crowdPosts) ? data.crowdPosts : [],
+    publicParties: Array.isArray(data.publicParties) ? data.publicParties : [],
   };
 }

@@ -134,3 +134,39 @@ export async function postPartyAnnouncement(
 export async function deleteParty(partyId: string): Promise<void> {
   await apiClient.delete(`/parties/${partyId}`);
 }
+
+// ── Plan tab: the viewer's party world ──────────────────────────────
+
+export interface PartyLite {
+  id: string;
+  title: string;
+  startsAt: string | null;
+  location?: string | null;
+  visibility: PartyVisibility;
+  event: {
+    id: string;
+    name: string;
+    date: string;
+    artist?: { name: string } | null;
+    venue?: { name: string; city?: string | null } | null;
+  };
+  hostId: string;
+  host: { id: string; username: string; avatarUrl?: string | null };
+  goingCount: number;
+  myStatus?: PartyMemberStatus | null;
+}
+
+export interface MyParties {
+  hosting: PartyLite[];
+  going: PartyLite[];
+  invited: PartyLite[];
+  requests: {
+    party: PartyLite;
+    requester: { id: string; username: string; displayName?: string | null; avatarUrl?: string | null };
+  }[];
+}
+
+export async function getMyParties(): Promise<MyParties> {
+  const res = await apiClient.get('/users/me/parties');
+  return res.data as MyParties;
+}
