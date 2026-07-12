@@ -29,7 +29,6 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  FlatList,
   StyleSheet,
   Text,
   View,
@@ -37,6 +36,10 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+// RNGH FlatList: registers its pan with the gesture system so horizontal
+// photo paging works inside the deck's GestureDetector — with the RN one,
+// the drag is never claimed and falls through to the card press.
+import { FlatList } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -322,9 +325,9 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
       <View style={styles.photoArea} onLayout={onPhotoAreaLayout}>
         {/* Photo layer — slides beneath the fixed overlay chrome. */}
         {isPager && pageW > 0 ? (
-          <FlatList
+          <FlatList<TimelinePhoto>
             data={photos}
-            keyExtractor={(p) => p.id}
+            keyExtractor={(p: TimelinePhoto) => p.id}
             renderItem={renderSlide}
             horizontal
             pagingEnabled
@@ -334,7 +337,7 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
             onScroll={onPagerScroll}
             scrollEventThrottle={16}
             onMomentumScrollEnd={onPagerMomentumEnd}
-            getItemLayout={(_, i) => ({ length: pageW, offset: pageW * i, index: i })}
+            getItemLayout={(_: unknown, i: number) => ({ length: pageW, offset: pageW * i, index: i })}
             initialNumToRender={1}
             maxToRenderPerBatch={2}
             windowSize={3}

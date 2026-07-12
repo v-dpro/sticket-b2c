@@ -82,9 +82,9 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
   const { width: windowWidth } = useWindowDimensions();
   const cardW = windowWidth - tokens.density.pad * 2;
   // Stride: how far one card-step moves the track. Derived from the memory
-  // card's photo height so a full card always dominates the stage while the
-  // previous/next peek close behind its edges.
-  const stride = Math.round(cardW * 0.63 * 0.68);
+  // card's photo height (stub cards run taller with the details strip) so a
+  // full card dominates the stage while the previous/next peek behind it.
+  const stride = Math.round(cardW * 0.63 * 0.8);
 
   const count = items.length;
   const clampIndex = useCallback(
@@ -145,8 +145,10 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
     () =>
       Gesture.Pan()
         // Vertical intent only — the in-card photo pager owns horizontal.
-        .activeOffsetY([-14, 14])
-        .failOffsetX([-16, 16])
+        // Tight thresholds: the horizontal-vs-vertical call happens fast so
+        // the pager gets the drag before it reads as a press.
+        .activeOffsetY([-10, 10])
+        .failOffsetX([-12, 12])
         .onStart(() => {
           cancelAnimation(progress);
           dragStart.value = progress.value;
@@ -331,9 +333,10 @@ function DeckLayer({
         { rotateX: `${-angle * 57.2958 * 0.52}deg` },
         { scale: interpolate(abs, [0, 1, RENDER_WINDOW], [1, 0.94, 0.84], 'clamp') },
       ],
-      // Neighbors sit just behind the floating card — dimmed enough to read
-      // as a lower surface, close enough to feel like the same timeline.
-      opacity: interpolate(abs, [0, 1, 2, RENDER_WINDOW], [1, 0.72, 0.38, 0.1], 'clamp'),
+      // A real card stack: the previous/next card stays FULLY readable —
+      // depth comes from scale, position, and the center card's shadow,
+      // never from dimming. Only the far cards fade as they leave.
+      opacity: interpolate(abs, [0, 1, 1.6, RENDER_WINDOW], [1, 1, 0.75, 0.35], 'clamp'),
     };
   });
 
