@@ -1,6 +1,7 @@
 // TimelineHeader — compact pinned profile header above the timeline.
 // Avatar 56 · display name (800) · @username + city (mute) · stats row
-// (mono, tabular numerals) · settings gear · edit chip.
+// (mono, tabular numerals, uppercase letterspaced labels) · white Log pill
+// · settings gear · edit chip.
 
 import React from 'react';
 import { Image, Text, View } from 'react-native';
@@ -120,7 +121,8 @@ export function TimelineHeader({
       fontFamily: t.fontFamilies.mono,
       fontSize: 10,
       fontWeight: '500',
-      letterSpacing: 0.5,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
       color: t.colors.muteSoft,
     },
     statDot: {

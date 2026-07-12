@@ -1,8 +1,15 @@
-// FloatCard — scroll-linked "float" wrapper for timeline cards.
+// FloatCard — scroll-linked "float" wrapper for timeline cards (A20).
 //
-// As a card approaches the viewport's vertical center it settles: scale
-// 0.97 → 1 and opacity 0.5 → 1 (subtle amplitude by design). All per-frame
-// work happens in a Reanimated worklet on the UI thread:
+// As a card approaches the viewport's vertical center it settles, per the
+// handoff's exact formula:
+//
+//   d       = min(|cardCenterY − viewportCenterY| / (viewportH × 0.62), 1)
+//   scale   = 1 − 0.045·d
+//   opacity = 0.55 + 0.45·(1 − d)
+//
+// Transform + opacity ONLY, purely scroll-driven — it never fights
+// momentum. All per-frame work happens in a Reanimated worklet on the UI
+// thread:
 //
 //   1. The screen's useAnimatedScrollHandler writes contentOffset.y into a
 //      shared value (`scrollY`).
@@ -11,9 +18,7 @@
 //      `measure()` on its own view — UI-thread-only, cheap, and already
 //      inclusive of the scroll translation, so `pageY + height/2` is the
 //      card's live window-space center.
-//   3. Distance from the window center, normalized to half the window
-//      height, drives two clamped interpolations. Pure worklet math — no
-//      JS-thread work per frame.
+//   3. The formula above is pure worklet math — no JS-thread work per frame.
 //
 // `measure()` is only valid on the UI runtime; the `_WORKLET` guard returns
 // the settled style for the initial JS-side style evaluation (and on web).
@@ -21,8 +26,6 @@
 import React, { type ReactNode } from 'react';
 import { useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
-  Extrapolation,
-  interpolate,
   measure,
   useAnimatedRef,
   useAnimatedStyle,
@@ -61,14 +64,12 @@ export function FloatCard({ scrollY, children, style }: FloatCardProps) {
 
     const viewportCenter = windowHeight / 2;
     const cardCenter = m.pageY + m.height / 2;
-    // 0 at viewport center → 1 at the window edge (can exceed 1 offscreen).
-    const distance = Math.abs(cardCenter - viewportCenter) / viewportCenter;
+    // d: 0 at viewport center → 1 at 62% of the viewport height away (clamped).
+    const d = Math.min(Math.abs(cardCenter - viewportCenter) / (windowHeight * 0.62), 1);
 
     return {
-      opacity: interpolate(distance, [0, 0.55, 1.15], [1, 1, 0.5], Extrapolation.CLAMP),
-      transform: [
-        { scale: interpolate(distance, [0, 0.45, 1.15], [1, 1, 0.97], Extrapolation.CLAMP) },
-      ],
+      opacity: 0.55 + 0.45 * (1 - d),
+      transform: [{ scale: 1 - 0.045 * d }],
     };
   });
 

@@ -21,6 +21,15 @@ export function setupNotificationListeners() {
 }
 
 export function handleNotificationTap(data: NotificationData) {
+  // Locally-scheduled notifications (e.g. the "save memory for morning" draft)
+  // carry an explicit deep-link URL that isn't part of the server-driven
+  // NotificationData union — honor it before the typed switch.
+  const url = (data as { url?: unknown })?.url;
+  if (typeof url === 'string' && url.length > 0) {
+    router.push(url as never);
+    return;
+  }
+
   switch (data.type) {
     case 'follow':
       router.push('/notifications');

@@ -1,12 +1,15 @@
-// FeedCardPhotos — ShowCard media carousel (SCREENS.md §1.2):
-// square 1:1 (or 4:5 hero), horizontal snap-swipe, mixed image + video,
-// counter pill top-right ("2/5"), dots below, double-tap heart burst,
-// light haptic on carousel snap.
+// FeedCardPhotos — ShowCard media carousel.
 //
-// Behavior is preserved verbatim; only the palette is retokened to
-// useTheme() (card2 chips, mute text, active dot = fg, heart burst = error).
+// Default variant (memory screen /log/[id]): horizontal snap-swipe, mixed
+// image + video, "n/m" counter pill top-right, dots centered below.
+//
+// Card variant (feed FeedCard v3, "the post is the photo"): the media is the
+// whole card — pass `scrims`, `radius`, `dotsPosition="right"` (vertical dots
+// hugging the right edge) and an `overlay` painted over the photo, with the
+// counter suppressed. All carousel behavior (swipe, snap haptic, double-tap
+// heart burst) is preserved verbatim across both variants.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   FlatList,
   Image,
@@ -19,6 +22,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import Animated, {
   useAnimatedStyle,
@@ -41,8 +45,18 @@ interface FeedCardPhotosProps {
   onPressMedia: () => void;
   /** Double tap anywhere on media — like. Burst overlay renders here. */
   onDoubleTapLike: () => void;
-  /** Media aspect ratio (height / width). Spec = 1 (square); hero = 5/4. */
+  /** Media aspect ratio (height / width). Default 1 (square); hero = 5/4. */
   aspectRatio?: number;
+  /** 'bottom' (default) = centered dots below; 'right' = vertical dots on the media's right edge (card v3). */
+  dotsPosition?: 'bottom' | 'right';
+  /** Show the "n/m" counter pill (default true). Card v3 suppresses it. */
+  showCounter?: boolean;
+  /** Paint top + bottom scrims over the media (card v3). */
+  scrims?: boolean;
+  /** Corner radius clipped on the media box (card v3). */
+  radius?: number;
+  /** Absolutely-positioned content painted over the media, beneath the burst. */
+  overlay?: ReactNode;
 }
 
 function formatDuration(seconds?: number): string {
@@ -57,6 +71,11 @@ export function FeedCardPhotos({
   onPressMedia,
   onDoubleTapLike,
   aspectRatio = 1,
+  dotsPosition = 'bottom',
+  showCounter = true,
+  scrims = false,
+  radius = 0,
+  overlay,
 }: FeedCardPhotosProps) {
   const { tokens } = useTheme();
   const c = tokens.colors;
@@ -192,11 +211,14 @@ export function FeedCardPhotos({
   return (
     <View onLayout={onLayout}>
       <View
-        style={{
-          width: width || '100%',
-          height: width ? height : undefined,
-          aspectRatio: width ? undefined : aspectRatio,
-        }}
+        style={[
+          {
+            width: width || '100%',
+            height: width ? height : undefined,
+            aspectRatio: width ? undefined : aspectRatio,
+          },
+          radius > 0 ? { borderRadius: radius, overflow: 'hidden' } : null,
+        ]}
       >
         {width > 0 ? (
           <FlatList
@@ -220,12 +242,44 @@ export function FeedCardPhotos({
           <View style={[styles.media, { backgroundColor: c.card2 }]} />
         )}
 
-        {/* Counter pill — top right */}
-        {count > 1 ? (
+        {/* Scrims — top + bottom, so over-photo chrome stays legible (card v3) */}
+        {scrims ? (
+          <>
+            <LinearGradient
+              colors={['rgba(11,11,16,0.55)', 'transparent']}
+              style={styles.scrimTop}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(11,11,16,0.92)']}
+              style={styles.scrimBottom}
+              pointerEvents="none"
+            />
+          </>
+        ) : null}
+
+        {/* Overlay — author pill / score chip / caption, painted over the photo */}
+        {overlay ? (
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            {overlay}
+          </View>
+        ) : null}
+
+        {/* Counter pill — top right (default variant) */}
+        {showCounter && count > 1 ? (
           <View style={styles.counterPill} pointerEvents="none">
             <Text style={styles.counterText}>
               {index + 1}/{count}
             </Text>
+          </View>
+        ) : null}
+
+        {/* Vertical dots — right edge (card v3) */}
+        {dotsPosition === 'right' && count > 1 ? (
+          <View style={styles.dotsCol} pointerEvents="none">
+            {photos.map((p, i) => (
+              <View key={p.id} style={[styles.vDot, i === index && styles.vDotActive]} />
+            ))}
           </View>
         ) : null}
 
@@ -235,8 +289,8 @@ export function FeedCardPhotos({
         </Animated.View>
       </View>
 
-      {/* Dots — below media per spec */}
-      {count > 1 ? (
+      {/* Dots — below media (default variant) */}
+      {dotsPosition === 'bottom' && count > 1 ? (
         <View style={styles.dotsRow} pointerEvents="none">
           {photos.map((p, i) => (
             <View key={p.id} style={[styles.dot, i === index && styles.dotActive]} />
@@ -358,6 +412,20 @@ const buildStyles = (tokens: ThemeTokens) =>
       height: '100%',
       backgroundColor: tokens.colors.card2,
     },
+    scrimTop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '34%',
+    },
+    scrimBottom: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '58%',
+    },
     counterPill: {
       position: 'absolute',
       top: 10,
@@ -430,5 +498,25 @@ const buildStyles = (tokens: ThemeTokens) =>
     dotActive: {
       backgroundColor: tokens.colors.fg,
       width: 14,
+    },
+    // Vertical dots — right edge (card v3), white over the photo.
+    dotsCol: {
+      position: 'absolute',
+      right: 10,
+      top: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+    },
+    vDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: 'rgba(255,255,255,0.45)',
+    },
+    vDotActive: {
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      height: 14,
     },
   });

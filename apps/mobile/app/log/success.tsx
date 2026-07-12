@@ -29,6 +29,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { saveMemoryForMorning } from '../../components/log/memoryDraft';
 import { Confetti } from '../../components/ui/Confetti';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringNumber } from '../../components/ui/SpringNumber';
@@ -111,6 +112,13 @@ export default function LogSuccess() {
   }, [params.eventName, params.eventId]);
   const eventName = params.eventName ? String(params.eventName) : fetchedName ?? '';
 
+  // A9: between 20:00 and 04:00 the primary CTA defers to a morning reminder.
+  // Snapshot once on mount so it can't flip mid-reveal.
+  const [isNight] = useState(() => {
+    const h = new Date().getHours();
+    return h >= 20 || h < 4;
+  });
+
   // ── Phase machine ──
   const [phase, setPhase] = useState(0);
   const [skipped, setSkipped] = useState(false);
@@ -119,13 +127,22 @@ export default function LogSuccess() {
   useEffect(() => {
     const at = (ms: number, fn: () => void) => timersRef.current.push(setTimeout(fn, ms));
     const bump = (p: number) => () => setPhase((prev) => Math.max(prev, p));
+    const hasBadge = Boolean(badge);
     at(durations.reveal.intro, bump(1));
     at(durations.reveal.intro + 800, () => haptics.medium()); // odometer lands
     at(durations.reveal.stamp, bump(2));
     at(durations.reveal.details, bump(3));
-    at(durations.reveal.stats, bump(4));
-    at(durations.reveal.cta, bump(5));
+    if (hasBadge) {
+      // A8: real threshold reached — the 2.4s milestone beat plays in full.
+      at(durations.reveal.stats, bump(4));
+      at(durations.reveal.cta, bump(5));
+    } else {
+      // A8: no badge → the rank stamp is the finale. Skip the milestone beat
+      // and bring the CTAs up to ~2.6s.
+      at(durations.reveal.stats + 200, bump(5));
+    }
     return () => timersRef.current.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const skip = () => {
@@ -148,6 +165,18 @@ export default function LogSuccess() {
 
   const done = () => router.replace('/(tabs)/you');
   const canMakeMemory = Boolean(params.logId);
+
+  // A9: defer the memory to the morning — persist a draft + schedule the 10:00
+  // reminder (both best-effort/silent), then bow out to the timeline.
+  const saveForMorning = () => {
+    haptics.light();
+    void saveMemoryForMorning({
+      logId: String(params.logId),
+      eventId: params.eventId ? String(params.eventId) : undefined,
+      eventName: eventName || undefined,
+    });
+    router.replace('/(tabs)/you');
+  };
   const makeMemory = () =>
     router.push({
       pathname: '/log/memory',
@@ -291,17 +320,37 @@ export default function LogSuccess() {
             {phase >= 5 ? (
               <Animated.View entering={FadeIn.duration(250)} style={{ gap: 12 }}>
                 {canMakeMemory ? (
-                  <>
-                    <PillButton
-                      title="Make it a memory →"
-                      variant="primary"
-                      size="lg"
-                      springFeedback
-                      haptic="light"
-                      onPress={makeMemory}
-                    />
-                    <PillButton title="Done" variant="ghost" size="lg" springFeedback onPress={done} />
-                  </>
+                  isNight ? (
+                    <>
+                      <PillButton
+                        title="Save for morning"
+                        variant="primary"
+                        size="lg"
+                        springFeedback
+                        haptic="light"
+                        onPress={saveForMorning}
+                      />
+                      <PillButton
+                        title="Add photos now"
+                        variant="ghost"
+                        size="lg"
+                        springFeedback
+                        onPress={makeMemory}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <PillButton
+                        title="Make it a memory →"
+                        variant="primary"
+                        size="lg"
+                        springFeedback
+                        haptic="light"
+                        onPress={makeMemory}
+                      />
+                      <PillButton title="Done" variant="ghost" size="lg" springFeedback onPress={done} />
+                    </>
+                  )
                 ) : (
                   <PillButton title="Done" variant="primary" size="lg" springFeedback haptic="light" onPress={done} />
                 )}

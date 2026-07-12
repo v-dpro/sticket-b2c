@@ -114,7 +114,8 @@ function TimelineSkeleton() {
       <ShimmerBlock height={74} radius={tokens.radius.lg} />
       <ShimmerBlock height={2} radius={1} style={{ marginVertical: 10 }} />
       <ShimmerBlock height={12} radius={6} style={{ width: 72 }} />
-      <ShimmerBlock height={248} radius={tokens.radius.lg} />
+      {/* Memory card placeholder — full-bleed photo card (≈63% of width, radius 22). */}
+      <ShimmerBlock height={220} radius={tokens.radius.xl} />
       <ShimmerBlock height={68} radius={tokens.radius.lg} />
       <ShimmerBlock height={68} radius={tokens.radius.lg} />
     </View>
@@ -355,6 +356,30 @@ export default function YouScreen() {
     return scores.reduce((sum, s) => sum + s, 0) / scores.length;
   }, [months]);
 
+  // "#1 OF N" rank chip (A19). The timeline payload carries no rank, so we
+  // only claim #1 when it's provably true: the ENTIRE history is loaded
+  // (no cursor left) and exactly one entry holds the top score. Otherwise
+  // the chip is omitted — never faked.
+  const topRank = useMemo<{ logId: string; total: number } | null>(() => {
+    if (nextCursor !== null) return null; // history incomplete — can't know #1
+    const entries = months.flatMap((m) => m.entries);
+    let top: TimelineEntry | null = null;
+    let bestScore = -Infinity;
+    let tied = false;
+    for (const entry of entries) {
+      if (typeof entry.score !== 'number') continue;
+      if (entry.score > bestScore) {
+        bestScore = entry.score;
+        top = entry;
+        tied = false;
+      } else if (entry.score === bestScore) {
+        tied = true;
+      }
+    }
+    if (!top || tied) return null;
+    return { logId: top.logId, total: stats?.shows ?? entries.length };
+  }, [months, nextCursor, stats]);
+
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     if (upcoming.length > 0) {
@@ -473,7 +498,15 @@ export default function YouScreen() {
             <Animated.View entering={entering} style={styles.entryWrap}>
               <FloatCard scrollY={scrollY}>
                 {isMemory ? (
-                  <MemoryCard entry={item.entry} onPress={() => openLog(item.entry.logId)} />
+                  <MemoryCard
+                    entry={item.entry}
+                    onPress={() => openLog(item.entry.logId)}
+                    rankLabel={
+                      topRank && topRank.logId === item.entry.logId
+                        ? `#1 OF ${topRank.total}`
+                        : null
+                    }
+                  />
                 ) : (
                   <CompactLogRow entry={item.entry} onPress={() => openLog(item.entry.logId)} />
                 )}
@@ -489,7 +522,7 @@ export default function YouScreen() {
           );
       }
     },
-    [styles, scrollY, openEvent, openLog, openLogFlow],
+    [styles, scrollY, openEvent, openLog, openLogFlow, topRank],
   );
 
   // ── Render ────────────────────────────────────────────────────

@@ -1,9 +1,10 @@
 // PlanCard — an upcoming plan (ticket / interested / tracking) above the
 // Today divider. Event name leads (800); venue · date muted; mono countdown
-// chip ("in 76d") on the right.
+// chip ("in 76d") on the right. Planned-but-not-lived is drawn with a 1px
+// DASHED border (A19) — the memory isn't real yet.
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { TimelineUpcomingItem } from '../../lib/api/timeline';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -26,9 +27,12 @@ export function PlanCard({ item, onPress }: PlanCardProps) {
   const styles = useThemedStyles((t) => ({
     card: {
       backgroundColor: t.colors.card,
-      borderRadius: t.radius.lg,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: t.colors.hairline,
+      borderRadius: t.radius.lg, // 16
+      // Dashed = planned, not yet lived. Full 1px of the stronger line token
+      // (vs the hairline used on past cards) so the dashes read.
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.line,
       paddingHorizontal: t.density.cardPad,
       paddingVertical: 14,
       flexDirection: 'row',

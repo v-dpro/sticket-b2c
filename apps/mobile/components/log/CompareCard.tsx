@@ -17,6 +17,12 @@ type CompareCardProps = {
   tonight?: boolean;
   /** Opponent's placed score (one decimal), mono. Omitted for TONIGHT. */
   score?: number;
+  /**
+   * Whether the opponent's score is shown. Hidden until the user commits to a
+   * choice (A7) — the slot shows a mono "?" so the pick stays a gut call; the
+   * real number flashes in during the choice-feedback fold.
+   */
+  revealScore?: boolean;
   photo?: string;
   disabled?: boolean;
   onPress: () => void;
@@ -28,6 +34,7 @@ export function CompareCard({
   tag,
   tonight = false,
   score,
+  revealScore = false,
   photo,
   disabled = false,
   onPress,
@@ -43,7 +50,13 @@ export function CompareCard({
       haptic="medium"
       pressScale={0.96}
       accessibilityRole="button"
-      accessibilityLabel={tonight ? `Tonight: ${title}` : `${title}, scored ${score?.toFixed(1) ?? ''}`}
+      accessibilityLabel={
+        tonight
+          ? `Tonight: ${title}`
+          : revealScore
+            ? `${title}, scored ${score?.toFixed(1) ?? ''}`
+            : `${title}, score hidden until you choose`
+      }
       style={{
         width: '100%',
         aspectRatio: 0.74,
@@ -95,10 +108,11 @@ export function CompareCard({
               fontVariant: ['tabular-nums'],
               fontSize: 22,
               fontWeight: '800',
-              color: c.fg,
+              // Hidden until the choice is made — the mono "?" holds the slot.
+              color: revealScore ? c.fg : c.muteSoft,
             }}
           >
-            {score.toFixed(1)}
+            {revealScore ? score.toFixed(1) : '?'}
           </Text>
         ) : (
           <Text

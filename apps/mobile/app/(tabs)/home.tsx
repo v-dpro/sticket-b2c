@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 
 import { EmptyFeed } from '../../components/feed/EmptyFeed';
 import { FeedCard, invalidateFeedLikeCache } from '../../components/feed/FeedCard';
@@ -25,7 +25,6 @@ import { invalidateWhoWasHereCache } from '../../components/feed/WhoWasHere';
 import { NotificationBellButton } from '../../components/notifications/NotificationBellButton';
 import { PillButton } from '../../components/ui/PillButton';
 import { useFeed } from '../../hooks/useFeed';
-import { useFeedActions } from '../../hooks/useFeedActions';
 import { useSession } from '../../hooks/useSession';
 import { durations } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -62,8 +61,8 @@ export default function HomeScreen() {
       letterSpacing: 0.2,
       color: t.colors.mute,
     },
-    cardWrapper: { paddingBottom: 12 },
-    listContent: { paddingTop: 4, paddingBottom: 110 },
+    cardWrapper: { paddingBottom: 22 },
+    listContent: { paddingTop: 8, paddingBottom: 110 },
     footer: { paddingVertical: 20 },
     center: {
       flex: 1,
@@ -87,7 +86,7 @@ export default function HomeScreen() {
     stateActions: { gap: 10, marginTop: 6, alignSelf: 'stretch' },
   }));
 
-  const { user, profile } = useSession();
+  const { user } = useSession();
   const {
     items,
     loading,
@@ -101,9 +100,7 @@ export default function HomeScreen() {
     setScope,
     refresh,
     loadMore,
-    addCommentToItem,
   } = useFeed();
-  const { submitComment } = useFeedActions();
 
   // Refresh when the tab regains focus (e.g. right after sign-in).
   const refreshRef = useRef(refresh);
@@ -117,28 +114,20 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const handleComment = useCallback(
-    async (logId: string, text: string) => submitComment(logId, text),
-    [submitComment]
-  );
-
+  // First-paint stagger: opacity + translateY(10→0), 380ms cubic-bezier, 40ms/card.
   const renderItem = useCallback(
     ({ item, index }: { item: FeedItem; index: number }) => (
       <Animated.View
-        entering={FadeInDown.delay(Math.min(index, 6) * durations.stagger).duration(240)}
+        entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger)
+          .duration(380)
+          .easing(Easing.bezier(0.2, 0.7, 0.3, 1))
+          .withInitialValues({ opacity: 0, transform: [{ translateY: 10 }] })}
         style={styles.cardWrapper}
       >
-        <FeedCard
-          item={item}
-          currentUserId={user?.id}
-          viewerAvatarUrl={profile?.avatarUrl}
-          viewerName={profile?.displayName || profile?.username}
-          onComment={handleComment}
-          onCommentAdded={addCommentToItem}
-        />
+        <FeedCard item={item} currentUserId={user?.id} />
       </Animated.View>
     ),
-    [addCommentToItem, handleComment, profile?.avatarUrl, profile?.displayName, profile?.username, styles.cardWrapper, user?.id]
+    [styles.cardWrapper, user?.id]
   );
 
   const keyExtractor = useCallback((item: FeedItem) => item.id, []);

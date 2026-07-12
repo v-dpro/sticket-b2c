@@ -1,20 +1,26 @@
-// LOG FLOW · STEP 5 — MAKE IT A MEMORY. The optional-everything screen that
-// turns a scored log into a shared memory. One scroll of skippable cards:
-// photos · seat · venue · caption · visibility. "Post memory" batches the log
-// edits into a single PATCH (with share:true) and fires venue rating/tip as
-// best-effort side calls; "Skip" leaves the log logged-but-unshared.
+// LOG FLOW · STEP 5 — MAKE IT A MEMORY. Turns a scored log into a shared
+// memory. Restructured for Phase A (A22 / A11 / A12):
+//   · THE SHOW (required) — the media that IS the post; ≥1 item gates "Post".
+//   · YOU + YOUR PEOPLE (optional) — a second, visually-separate add-grid.
+//   · Caption (A11: photos before caption).
+//   · One collapsed "Seat & venue ratings" accordion (all optional, unchanged).
+//   · Visibility chips + a live plain-language exposure line (A12).
+// "Post memory" batches the log edits into a single PATCH (with share:true) and
+// fires venue rating/tip as best-effort side calls; "Skip" leaves the log
+// logged-but-unshared.
 //
 // Route contract in: { logId, eventId?, eventName?, venueId?, venueName?,
 //   section?, row?, seat? }. venueId/venueName and the seat/caption prefill
-// self-resolve from GET /events/:id when not passed, so the step works no
-// matter how little the caller threaded.
+// self-resolve from GET /events/:id when not passed.
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { clearMemoryDraft } from '../../components/log/memoryDraft';
 import { FlowHeader } from '../../components/log/FlowHeader';
 import { LogField } from '../../components/log/LogField';
 import { MemoryCard } from '../../components/log/memory/MemoryCard';
@@ -24,6 +30,8 @@ import { StarRow } from '../../components/log/memory/StarRow';
 import { XpChip } from '../../components/log/memory/XpChip';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { useSession } from '../../hooks/useSession';
+import { useUserStats } from '../../hooks/useUserStats';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { getEvent } from '../../lib/api/events';
 import { updateLog, uploadLogPhoto } from '../../lib/api/logs';
@@ -34,6 +42,9 @@ import type { EventDetails } from '../../types/event';
 import type { VenueRatingsSubmission } from '../../types/venue';
 
 type Visibility = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+// Which add-grid a media item belongs to. Both upload through the same API;
+// the split is purely presentational (A22).
+type MediaSlot = 'show' | 'people';
 
 const MAX_PHOTOS = 5;
 
@@ -89,6 +100,19 @@ export default function LogMemory() {
   const eventId = params.eventId ? String(params.eventId) : '';
   const eventName = params.eventName ? String(params.eventName) : '';
 
+  // Opening this screen means the memory is being handled now — retire any
+  // pending "save for morning" draft (and its 10:00 reminder) for this log.
+  useEffect(() => {
+    if (logId) void clearMemoryDraft(logId);
+  }, [logId]);
+
+  // Friend count for the Friends-visibility exposure line (A12). Sourced from
+  // the lightweight stats endpoint; the line degrades to "your friends" until
+  // it resolves (or if it never does).
+  const { user } = useSession();
+  const { stats } = useUserStats(user?.id ?? '');
+  const friendCount = stats?.followers ?? null;
+
   // Event fetch — fills venue identity + seat/caption prefill when the caller
   // didn't thread them. Never blocks the screen; fields just populate.
   const [event, setEvent] = useState<EventDetails | null>(null);
@@ -121,8 +145,12 @@ export default function LogMemory() {
   const [venueTags, setVenueTags] = useState<string[]>([]);
   const [venueTip, setVenueTip] = useState('');
 
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  // Two separate add-grids (A22). Both upload via the same endpoint.
+  const [showPhotos, setShowPhotos] = useState<PhotoItem[]>([]);
+  const [peoplePhotos, setPeoplePhotos] = useState<PhotoItem[]>([]);
   const [xpEarned, setXpEarned] = useState<number | null>(null);
+
+  const [ratingsOpen, setRatingsOpen] = useState(false);
 
   const [posting, setPosting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -141,11 +169,18 @@ export default function LogMemory() {
     }
   }, [event]);
 
-  const uploading = photos.some((p) => p.status === 'uploading');
+  const setterFor = (slot: MediaSlot) => (slot === 'show' ? setShowPhotos : setPeoplePhotos);
+  const listFor = (slot: MediaSlot) => (slot === 'show' ? showPhotos : peoplePhotos);
+
+  const uploading =
+    showPhotos.some((p) => p.status === 'uploading') || peoplePhotos.some((p) => p.status === 'uploading');
+  // A22 validation: the post requires at least one uploaded item in THE SHOW.
+  const showHasMedia = showPhotos.some((p) => p.status === 'done');
 
   // ── Photos ──
-  const uploadOne = async (item: PhotoItem) => {
+  const uploadOne = async (slot: MediaSlot, item: PhotoItem) => {
     if (!logId) return;
+    const setPhotos = setterFor(slot);
     try {
       const name = item.fileName || item.uri.split('/').pop() || 'photo.jpg';
       const type = item.mimeType || guessType(name);
@@ -160,8 +195,8 @@ export default function LogMemory() {
     }
   };
 
-  const pickPhotos = async () => {
-    const remaining = MAX_PHOTOS - photos.length;
+  const pickPhotos = async (slot: MediaSlot) => {
+    const remaining = MAX_PHOTOS - listFor(slot).length;
     if (remaining <= 0 || !logId) return;
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -178,18 +213,19 @@ export default function LogMemory() {
       fileName: a.fileName ?? undefined,
     }));
     if (!additions.length) return;
-    setPhotos((prev) => [...prev, ...additions]);
-    additions.forEach((item) => void uploadOne(item));
+    setterFor(slot)((prev) => [...prev, ...additions]);
+    additions.forEach((item) => void uploadOne(slot, item));
   };
 
-  const retryPhoto = (key: string) => {
-    const item = photos.find((p) => p.key === key);
+  const retryPhoto = (slot: MediaSlot, key: string) => {
+    const item = listFor(slot).find((p) => p.key === key);
     if (!item) return;
-    setPhotos((prev) => prev.map((p) => (p.key === key ? { ...p, status: 'uploading' } : p)));
-    void uploadOne({ ...item, status: 'uploading' });
+    setterFor(slot)((prev) => prev.map((p) => (p.key === key ? { ...p, status: 'uploading' } : p)));
+    void uploadOne(slot, { ...item, status: 'uploading' });
   };
 
-  const dismissPhoto = (key: string) => setPhotos((prev) => prev.filter((p) => p.key !== key));
+  const dismissPhoto = (slot: MediaSlot, key: string) =>
+    setterFor(slot)((prev) => prev.filter((p) => p.key !== key));
 
   // ── Venue helpers ──
   const toggleTag = (key: string) =>
@@ -207,9 +243,26 @@ export default function LogMemory() {
     return ratings;
   };
 
+  // Live, plain-language exposure line (A12).
+  const exposureLine = (v: Visibility): string => {
+    if (v === 'PUBLIC') return 'Right now: anyone on Sticket can see this.';
+    if (v === 'PRIVATE') return 'Only you.';
+    return typeof friendCount === 'number'
+      ? `Right now: your ${friendCount} friends can see this.`
+      : 'Right now: your friends can see this.';
+  };
+
+  const monoLineStyle = {
+    fontFamily: tokens.fontFamilies.mono,
+    fontSize: 11.5,
+    fontWeight: '400' as const,
+    color: c.mute,
+    lineHeight: 16,
+  };
+
   // ── Submit / skip ──
   const post = async () => {
-    if (!logId || posting || uploading) return;
+    if (!logId || posting || uploading || !showHasMedia) return;
     setPosting(true);
     setErrorMsg(null);
     try {
@@ -257,6 +310,7 @@ export default function LogMemory() {
   };
 
   const busy = posting || uploading;
+  const canPost = Boolean(logId) && !busy && showHasMedia;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
@@ -273,84 +327,46 @@ export default function LogMemory() {
           <View style={{ paddingTop: 6, paddingBottom: 2, gap: 6 }}>
             <Text style={{ color: c.fg, fontSize: 30, fontWeight: '800', letterSpacing: -0.5 }}>Make it a memory</Text>
             <Text style={{ color: c.mute, fontSize: 15, fontWeight: '400' }}>
-              Add what you’ll want to look back on. Everything here is optional.
+              Lead with the show. Everything below it is optional.
             </Text>
           </View>
 
-          {/* 1 · Photos */}
+          {/* 1 · THE SHOW — required media (this IS the post) */}
           <MemoryCard
-            eyebrow="Photos"
-            hint={photos.length ? `${photos.length}/${MAX_PHOTOS} added` : 'Up to 5 · they post as you add them'}
-            right={xpEarned ? <XpChip amount={xpEarned} /> : undefined}
+            eyebrow="The show"
+            hint="At least one photo or video from the show. This is the post."
+            right={
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {xpEarned ? <XpChip amount={xpEarned} /> : null}
+                <SectionBadge text="Required" required />
+              </View>
+            }
           >
             <PhotoStrip
-              photos={photos}
-              canAdd={photos.length < MAX_PHOTOS && Boolean(logId)}
-              onAdd={pickPhotos}
-              onRetry={retryPhoto}
-              onDismiss={dismissPhoto}
+              photos={showPhotos}
+              canAdd={showPhotos.length < MAX_PHOTOS && Boolean(logId)}
+              onAdd={() => pickPhotos('show')}
+              onRetry={(key) => retryPhoto('show', key)}
+              onDismiss={(key) => dismissPhoto('show', key)}
             />
           </MemoryCard>
 
-          {/* 2 · Seat */}
-          <MemoryCard eyebrow="Seat" hint="Where you sat">
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <LogField compact mono placeholder="Section" value={section} onChangeText={setSection} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <LogField compact mono placeholder="Row" value={row} onChangeText={setRow} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <LogField compact mono placeholder="Seat" value={seat} onChangeText={setSeat} />
-              </View>
-            </View>
-
-            <View style={{ gap: 8, marginTop: 2 }}>
-              <Text
-                style={{
-                  fontFamily: tokens.fontFamilies.mono,
-                  fontSize: 10,
-                  fontWeight: '600',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  color: c.mute,
-                }}
-              >
-                How was the view · helps people pick seats
-              </Text>
-              <StarRow value={seatStars} onChange={setSeatStars} disabled={!section.trim()} size={26} />
-              {!section.trim() ? (
-                <Text style={{ color: c.muteSoft, fontSize: 11.5, fontWeight: '400' }}>
-                  add your section to rate the seat
-                </Text>
-              ) : null}
-            </View>
-          </MemoryCard>
-
-          {/* 3 · Venue */}
-          <MemoryCard eyebrow="Venue" title={venueName || 'This venue'} hint="How was it? Tap what stood out.">
-            <StarRow value={venueStars} onChange={setVenueStars} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
-              {VENUE_TAGS.map((t) => (
-                <MemoryChip
-                  key={t.key}
-                  label={t.label}
-                  selected={venueTags.includes(t.key)}
-                  onPress={() => toggleTag(t.key)}
-                />
-              ))}
-            </View>
-            <LogField
-              placeholder="One tip for the next person (optional)"
-              value={venueTip}
-              onChangeText={setVenueTip}
-              maxLength={140}
-              returnKeyType="done"
+          {/* 2 · YOU + YOUR PEOPLE — optional media */}
+          <MemoryCard
+            eyebrow="You + your people"
+            hint="Faces are never required. Skipping changes nothing."
+            right={<SectionBadge text="Optional" required={false} />}
+          >
+            <PhotoStrip
+              photos={peoplePhotos}
+              canAdd={peoplePhotos.length < MAX_PHOTOS && Boolean(logId)}
+              onAdd={() => pickPhotos('people')}
+              onRetry={(key) => retryPhoto('people', key)}
+              onDismiss={(key) => dismissPhoto('people', key)}
             />
           </MemoryCard>
 
-          {/* 4 · Caption */}
+          {/* 3 · Caption (A11: photos before caption) */}
           <MemoryCard eyebrow="Caption" hint="One line you’ll want to read back later.">
             <LogField
               placeholder="Say something about the night…"
@@ -363,7 +379,145 @@ export default function LogMemory() {
             />
           </MemoryCard>
 
-          {/* 5 · Visibility */}
+          {/* 4 · Seat & venue ratings — one collapsed accordion */}
+          <View
+            style={{
+              backgroundColor: c.card,
+              borderRadius: tokens.radius.xl,
+              borderWidth: 1,
+              borderColor: c.hairline,
+              overflow: 'hidden',
+            }}
+          >
+            <SpringPressable
+              onPress={() => {
+                haptics.light();
+                setRatingsOpen((o) => !o);
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: ratingsOpen }}
+              accessibilityLabel="Seat and venue ratings"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                padding: tokens.density.cardPad,
+              }}
+            >
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text
+                  style={{
+                    fontFamily: tokens.fontFamilies.mono,
+                    fontSize: 10.5,
+                    fontWeight: '600',
+                    letterSpacing: 2,
+                    textTransform: 'uppercase',
+                    color: c.mute,
+                  }}
+                >
+                  Seat & venue ratings
+                </Text>
+                <Text style={{ color: c.muteSoft, fontSize: 12.5, fontWeight: '400' }}>
+                  Optional · helps people pick seats
+                </Text>
+              </View>
+              <Ionicons name={ratingsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={c.mute} />
+            </SpringPressable>
+
+            {ratingsOpen ? (
+              <View
+                style={{
+                  paddingHorizontal: tokens.density.cardPad,
+                  paddingBottom: tokens.density.cardPad,
+                  gap: 20,
+                }}
+              >
+                {/* Seat */}
+                <View style={{ gap: 12 }}>
+                  <Text
+                    style={{
+                      fontFamily: tokens.fontFamilies.mono,
+                      fontSize: 10,
+                      fontWeight: '600',
+                      letterSpacing: 1.5,
+                      textTransform: 'uppercase',
+                      color: c.mute,
+                    }}
+                  >
+                    Seat
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <LogField compact mono placeholder="Section" value={section} onChangeText={setSection} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <LogField compact mono placeholder="Row" value={row} onChangeText={setRow} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <LogField compact mono placeholder="Seat" value={seat} onChangeText={setSeat} />
+                    </View>
+                  </View>
+                  <View style={{ gap: 8, marginTop: 2 }}>
+                    <Text
+                      style={{
+                        fontFamily: tokens.fontFamilies.mono,
+                        fontSize: 10,
+                        fontWeight: '600',
+                        letterSpacing: 1.5,
+                        textTransform: 'uppercase',
+                        color: c.mute,
+                      }}
+                    >
+                      How was the view · helps people pick seats
+                    </Text>
+                    <StarRow value={seatStars} onChange={setSeatStars} disabled={!section.trim()} size={26} />
+                    {!section.trim() ? (
+                      <Text style={{ color: c.muteSoft, fontSize: 11.5, fontWeight: '400' }}>
+                        add your section to rate the seat
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Venue */}
+                <View style={{ gap: 12 }}>
+                  <Text
+                    style={{
+                      fontFamily: tokens.fontFamilies.mono,
+                      fontSize: 10,
+                      fontWeight: '600',
+                      letterSpacing: 1.5,
+                      textTransform: 'uppercase',
+                      color: c.mute,
+                    }}
+                  >
+                    {venueName || 'Venue'}
+                  </Text>
+                  <StarRow value={venueStars} onChange={setVenueStars} />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+                    {VENUE_TAGS.map((t) => (
+                      <MemoryChip
+                        key={t.key}
+                        label={t.label}
+                        selected={venueTags.includes(t.key)}
+                        onPress={() => toggleTag(t.key)}
+                      />
+                    ))}
+                  </View>
+                  <LogField
+                    placeholder="One tip for the next person (optional)"
+                    value={venueTip}
+                    onChangeText={setVenueTip}
+                    maxLength={140}
+                    returnKeyType="done"
+                  />
+                </View>
+              </View>
+            ) : null}
+          </View>
+
+          {/* 5 · Visibility + live exposure line */}
           <MemoryCard eyebrow="Who sees this">
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {VIS_OPTIONS.map((o) => (
@@ -378,6 +532,7 @@ export default function LogMemory() {
                 />
               ))}
             </View>
+            <Text style={monoLineStyle}>{exposureLine(visibility)}</Text>
           </MemoryCard>
 
           {/* Footer */}
@@ -386,9 +541,17 @@ export default function LogMemory() {
               <Text style={{ color: c.error, fontSize: 13, fontWeight: '400', textAlign: 'center' }}>{errorMsg}</Text>
             ) : null}
 
+            {!showHasMedia ? (
+              <Text style={{ color: c.muteSoft, fontSize: 12.5, fontWeight: '400', textAlign: 'center' }}>
+                Add a photo or video from the show to post.
+              </Text>
+            ) : (
+              <Text style={[monoLineStyle, { textAlign: 'center' }]}>{exposureLine(visibility)}</Text>
+            )}
+
             <SpringPressable
               onPress={post}
-              disabled={busy || !logId}
+              disabled={!canPost}
               haptic="medium"
               accessibilityRole="button"
               accessibilityLabel="Post memory"
@@ -400,7 +563,7 @@ export default function LogMemory() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                opacity: busy || !logId ? 0.5 : 1,
+                opacity: canPost ? 1 : 0.5,
               }}
             >
               {busy ? <ActivityIndicator size="small" color={c.inverseFg} /> : null}
@@ -414,5 +577,37 @@ export default function LogMemory() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+// Required (filled ink) / Optional (outlined, muted) section badge.
+function SectionBadge({ text, required }: { text: string; required: boolean }) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  return (
+    <View
+      style={{
+        paddingHorizontal: 9,
+        height: 22,
+        borderRadius: 999,
+        justifyContent: 'center',
+        backgroundColor: required ? c.inverseBg : 'transparent',
+        borderWidth: required ? 0 : 1,
+        borderColor: c.line,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: tokens.fontFamilies.mono,
+          fontSize: 9.5,
+          fontWeight: '600',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          color: required ? c.inverseFg : c.mute,
+        }}
+      >
+        {text}
+      </Text>
+    </View>
   );
 }

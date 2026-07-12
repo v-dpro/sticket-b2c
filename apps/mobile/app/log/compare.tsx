@@ -17,6 +17,7 @@ import Animated, {
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -39,6 +40,16 @@ import { haptics, springs } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 
 type Phase = 'loading' | 'ready' | 'submitting' | 'finalizing' | 'error';
+
+// A7 choice-feedback beat: the opponent's real score flashes in on the folding
+// card before the next opponent slides in. Hold the score at full opacity
+// briefly, then fold; keep the whole reveal on screen for ~FLASH_TOTAL ms
+// regardless of network latency.
+const FLASH_HOLD = 180; // score legible at full opacity before the fold
+const FOLD_MS = 220; // card collapse duration
+const FLASH_TOTAL = FLASH_HOLD + FOLD_MS; // ~400ms perceived reveal
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 function yearOf(iso: string): string {
   const d = new Date(iso);
@@ -82,6 +93,11 @@ export default function CompareScreen() {
   const [opponent, setOpponent] = useState<CompareOpponent | null>(null);
   const [round, setRound] = useState(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // A7: opponent score stays hidden until the user commits; it flashes in on
+  // the folding card during the choice-feedback beat.
+  const [revealScore, setRevealScore] = useState(false);
+  // A7: one "Too close to call" per log — the button disables after the first.
+  const [tieUsed, setTieUsed] = useState(false);
   const retryRef = useRef<() => void>(() => {});
 
   // Card collapse choreography — cards fold inward on choice; the next
@@ -185,6 +201,7 @@ export default function CompareScreen() {
         await finalize();
         return;
       }
+      setRevealScore(false);
       leftOut.value = 0;
       rightOut.value = 0;
       setOpponent(next);
@@ -203,9 +220,12 @@ export default function CompareScreen() {
   const submitChoice = useCallback(
     async (opp: CompareOpponent, result: CompareOutcome) => {
       setPhase('submitting');
-      // Collapse both cards inward while the round posts.
-      leftOut.value = withTiming(1, { duration: 220 });
-      rightOut.value = withTiming(1, { duration: 220 });
+      // A7: reveal the opponent's real score as the card folds. Hold it at
+      // full opacity for a beat, then collapse both cards inward.
+      setRevealScore(true);
+      const startedAt = Date.now();
+      leftOut.value = withDelay(FLASH_HOLD, withTiming(1, { duration: FOLD_MS }));
+      rightOut.value = withDelay(FLASH_HOLD, withTiming(1, { duration: FOLD_MS }));
 
       let res: Awaited<ReturnType<typeof compareLog>>;
       try {
@@ -216,11 +236,17 @@ export default function CompareScreen() {
           goToSuccess();
           return;
         }
+        setRevealScore(false);
         leftOut.value = withSpring(0, springs.gentle);
         rightOut.value = withSpring(0, springs.gentle);
         fail(e, () => void submitChoice(opp, result));
         return;
       }
+
+      // Keep the score reveal on screen for the full flash beat even when the
+      // round posts faster than the animation.
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < FLASH_TOTAL) await wait(FLASH_TOTAL - elapsed);
 
       if (res.resolved) {
         await finalize();
@@ -236,7 +262,9 @@ export default function CompareScreen() {
           await finalize();
           return;
         }
-        // Tonight's card springs back; the new opponent (re-keyed) slides in.
+        // New opponent hides its score again; tonight's card springs back and
+        // the re-keyed opponent slides in.
+        setRevealScore(false);
         leftOut.value = withSpring(0, springs.gentle);
         rightOut.value = 0;
         setOpponent(next);
@@ -252,9 +280,13 @@ export default function CompareScreen() {
   const choose = useCallback(
     (result: CompareOutcome) => {
       if (phase !== 'ready' || !opponent) return;
+      if (result === 'tie') {
+        if (tieUsed) return; // one tie per log
+        setTieUsed(true);
+      }
       void submitChoice(opponent, result);
     },
-    [phase, opponent, submitChoice],
+    [phase, opponent, submitChoice, tieUsed],
   );
 
   const pickVibe = useCallback(
@@ -382,6 +414,7 @@ export default function CompareScreen() {
               title={opponent.event.name}
               subtitle={prettyDate(opponent.event.date)}
               score={opponent.score}
+              revealScore={revealScore}
               photo={opponent.photo}
               disabled={busy}
               onPress={() => choose('loss')}
@@ -389,16 +422,30 @@ export default function CompareScreen() {
           </Animated.View>
         </View>
 
-        <Animated.View entering={FadeIn.duration(250)} style={{ marginTop: 24, alignItems: 'center' }}>
+        <Animated.View entering={FadeIn.duration(250)} style={{ marginTop: 24, alignItems: 'center', gap: 8 }}>
           <PillButton
             title="Too close to call"
             variant="ghost"
             size="md"
             springFeedback
             haptic="light"
-            disabled={busy}
+            disabled={busy || tieUsed}
             onPress={() => choose('tie')}
           />
+          {tieUsed ? (
+            <Text
+              style={{
+                fontFamily: tokens.fontFamilies.mono,
+                fontSize: 11,
+                fontWeight: '400',
+                letterSpacing: 0.3,
+                color: c.muteSoft,
+                textAlign: 'center',
+              }}
+            >
+              One tie per ranking — pick a side from here.
+            </Text>
+          ) : null}
         </Animated.View>
       </View>
     );
