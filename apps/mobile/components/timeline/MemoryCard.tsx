@@ -59,6 +59,8 @@ type MemoryCardProps = {
    * from complete score data) — never fabricate one.
    */
   rankLabel?: string | null;
+  /** Photo frame width/height ratio — lower = taller (default 0.95). */
+  photoAspect?: number;
 };
 
 // The timeline API is growing photos[] (≤5 per entry, thumbnailUrl +
@@ -97,7 +99,7 @@ function stubDate(dateStr: string): string {
     .replace(',', '');
 }
 
-export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
+export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95 }: MemoryCardProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
     card: {
@@ -114,7 +116,7 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
       width: '100%',
       // Vertical-leaning: phone photos are portrait — the frame leans tall
       // (the deck's stage budget caps how tall it can go).
-      aspectRatio: 0.95,
+      aspectRatio: photoAspect,
       backgroundColor: t.colors.card2, // shows while the photo loads
     },
     photo: {

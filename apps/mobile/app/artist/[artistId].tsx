@@ -33,8 +33,10 @@ import {
   EntityError,
   EntityPageSkeleton,
   RowSkeletons,
+  ShimmerBlock,
 } from '../../components/entity/EntityStates';
 import { formatScore, monoDate, yearOf } from '../../components/entity/format';
+import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { ScoreStamp } from '../../components/ui/Stub';
@@ -50,6 +52,7 @@ import {
   type ArtistTour,
 } from '../../lib/api/artists';
 import { getArtistEventsBandsintown } from '../../lib/api/logShow';
+import { getArtistWhoSaw, type WhoSawResponse } from '../../lib/api/whoSaw';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -81,16 +84,19 @@ export default function ArtistScreen() {
   const [toursStatus, setToursStatus] = useState<AsyncStatus>('loading');
   const [upcoming, setUpcoming] = useState<UpcomingRow[]>([]);
   const [upcomingStatus, setUpcomingStatus] = useState<AsyncStatus>('loading');
+  const [whoSaw, setWhoSaw] = useState<WhoSawResponse | null>(null);
+  const [whoSawStatus, setWhoSawStatus] = useState<AsyncStatus>('loading');
   const [refreshing, setRefreshing] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
 
   const loadExtras = useCallback(async () => {
     if (!id) return;
 
-    const [historyRes, toursRes, bitRes] = await Promise.allSettled([
+    const [historyRes, toursRes, bitRes, whoSawRes] = await Promise.allSettled([
       getArtistMyHistory(id),
       getArtistTours(id),
       getArtistEventsBandsintown(id, false),
+      getArtistWhoSaw(id),
     ]);
 
     setHistory(historyRes.status === 'fulfilled' ? historyRes.value : []);
@@ -98,6 +104,9 @@ export default function ArtistScreen() {
 
     setTours(toursRes.status === 'fulfilled' ? toursRes.value : []);
     setToursStatus(toursRes.status === 'fulfilled' ? 'ready' : 'error');
+
+    setWhoSaw(whoSawRes.status === 'fulfilled' ? whoSawRes.value : null);
+    setWhoSawStatus(whoSawRes.status === 'fulfilled' ? 'ready' : 'error');
 
     // ON TOUR: Bandsintown first; fall back to DB upcoming events when empty.
     let rows: UpcomingRow[] = [];
@@ -197,6 +206,22 @@ export default function ArtistScreen() {
     return null;
   }, [artist, history, historyStatus]);
 
+  // WHO'S SEEN THEM caption — "4 FRIENDS · 12 IN YOUR ORBIT · 47 TOTAL".
+  // Friends/orbit counted from the (≤12) returned sample; total from the
+  // server's full connected count.
+  const whoSawCaption = useMemo(() => {
+    if (!whoSaw) return '';
+    const friends = whoSaw.people.filter((p) => p.degree === 1).length;
+    const orbit = whoSaw.people.filter((p) => p.degree === 2).length;
+    return [
+      friends > 0 ? `${friends} FRIEND${friends === 1 ? '' : 'S'}` : null,
+      orbit > 0 ? `${orbit} IN YOUR ORBIT` : null,
+      `${whoSaw.totalCount} TOTAL`,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }, [whoSaw]);
+
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
     heroFallback: { backgroundColor: t.colors.card2, width: '100%' },
@@ -260,6 +285,16 @@ export default function ArtistScreen() {
       color: t.colors.muteSoft,
       marginTop: 6,
       textTransform: 'uppercase',
+    },
+    whoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    whoCaption: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      letterSpacing: 0.6,
+      color: t.colors.mute,
+      textTransform: 'uppercase',
+      flexShrink: 1,
     },
   }));
 
@@ -356,6 +391,26 @@ export default function ArtistScreen() {
             onPress={() => void handleFollow()}
           />
         </View>
+
+        {/* ── WHO'S SEEN THEM — C15 degree facepile, non-tappable v1 (see
+               lib/api/whoSaw.ts note). ── */}
+        {whoSawStatus === 'loading' ? (
+          <View style={styles.section}>
+            <SectionLabel>Who&apos;s seen them</SectionLabel>
+            <View style={styles.whoRow}>
+              <ShimmerBlock width={110} height={36} borderRadius={18} />
+              <ShimmerBlock width={100} height={12} borderRadius={6} />
+            </View>
+          </View>
+        ) : whoSaw && whoSaw.people.length > 0 ? (
+          <View style={styles.section}>
+            <SectionLabel>Who&apos;s seen them</SectionLabel>
+            <Animated.View entering={FadeInDown.duration(240)} style={styles.whoRow}>
+              <DegreeFacepile people={whoSaw.people} totalCount={whoSaw.totalCount} size={32} surfaceColor={tokens.colors.bg} />
+              <Text style={styles.whoCaption}>{whoSawCaption}</Text>
+            </Animated.View>
+          </View>
+        ) : null}
 
         {/* ── YOU × ARTIST ── */}
         {youStats ? (

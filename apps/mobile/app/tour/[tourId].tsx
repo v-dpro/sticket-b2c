@@ -26,11 +26,13 @@ import {
   type FestivalLogRef,
 } from '../../components/entity/FestivalWeekend';
 import { formatScore, monoDateYear } from '../../components/entity/format';
+import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
 import { getUserTimeline } from '../../lib/api/timeline';
 import { getTour, getTourPhotos, type TourDetail, type TourEvent, type TourPhoto } from '../../lib/api/tours';
+import { getTourWhoSaw, type WhoSawResponse } from '../../lib/api/whoSaw';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -70,6 +72,9 @@ export default function TourScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const photosBusy = useRef(false);
 
+  const [whoSaw, setWhoSaw] = useState<WhoSawResponse | null>(null);
+  const [whoSawStatus, setWhoSawStatus] = useState<AsyncStatus>('loading');
+
   const loadTour = useCallback(async () => {
     if (!tourId) {
       setStatus('error');
@@ -97,17 +102,31 @@ export default function TourScreen() {
     }
   }, [tourId]);
 
+  const loadWhoSaw = useCallback(async () => {
+    if (!tourId) return;
+    try {
+      const res = await getTourWhoSaw(tourId);
+      setWhoSaw(res);
+      setWhoSawStatus('ready');
+    } catch {
+      setWhoSaw(null);
+      setWhoSawStatus('error');
+    }
+  }, [tourId]);
+
   useEffect(() => {
     setStatus('loading');
     setPhotosStatus('loading');
+    setWhoSawStatus('loading');
     void loadTour();
     void loadPhotos();
-  }, [loadTour, loadPhotos]);
+    void loadWhoSaw();
+  }, [loadTour, loadPhotos, loadWhoSaw]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadTour(), loadPhotos()]);
+      await Promise.all([loadTour(), loadPhotos(), loadWhoSaw()]);
     } finally {
       setRefreshing(false);
     }
@@ -211,6 +230,20 @@ export default function TourScreen() {
     return Number.isFinite(fromParams) ? fromParams : null;
   }, [events, params.avgScore]);
 
+  // WHO'S SEEN THEM caption — "4 FRIENDS · 12 IN YOUR ORBIT · 47 TOTAL".
+  const whoSawCaption = useMemo(() => {
+    if (!whoSaw) return '';
+    const friends = whoSaw.people.filter((p) => p.degree === 1).length;
+    const orbit = whoSaw.people.filter((p) => p.degree === 2).length;
+    return [
+      friends > 0 ? `${friends} FRIEND${friends === 1 ? '' : 'S'}` : null,
+      orbit > 0 ? `${orbit} IN YOUR ORBIT` : null,
+      `${whoSaw.totalCount} TOTAL`,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }, [whoSaw]);
+
   // Shared by the plain show rows and the festival schedule rows.
   const openEvent = useCallback(
     (event: TourEvent) =>
@@ -263,6 +296,16 @@ export default function TourScreen() {
       backgroundColor: t.colors.card2,
     },
     footer: { paddingVertical: 20 },
+    whoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    whoCaption: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      letterSpacing: 0.6,
+      color: t.colors.mute,
+      textTransform: 'uppercase',
+      flexShrink: 1,
+    },
   }));
 
   // ── Full-page error: fetch failed and params gave us nothing ──
@@ -336,6 +379,26 @@ export default function TourScreen() {
             </Animated.View>
           </>
         )}
+
+        {/* ── WHO'S SEEN THEM — C15 degree facepile, non-tappable v1 (see
+               lib/api/whoSaw.ts note). ── */}
+        {whoSawStatus === 'loading' ? (
+          <View style={styles.section}>
+            <SectionLabel>Who&apos;s seen them</SectionLabel>
+            <View style={styles.whoRow}>
+              <ShimmerBlock width={110} height={36} borderRadius={18} />
+              <ShimmerBlock width={100} height={12} borderRadius={6} />
+            </View>
+          </View>
+        ) : whoSaw && whoSaw.people.length > 0 ? (
+          <View style={styles.section}>
+            <SectionLabel>Who&apos;s seen them</SectionLabel>
+            <Animated.View entering={FadeInDown.duration(240)} style={styles.whoRow}>
+              <DegreeFacepile people={whoSaw.people} totalCount={whoSaw.totalCount} size={32} surfaceColor={tokens.colors.bg} />
+              <Text style={styles.whoCaption}>{whoSawCaption}</Text>
+            </Animated.View>
+          </View>
+        ) : null}
 
         {/* ── Shows (or the festival-weekend schedule) ── */}
         <View style={styles.section}>

@@ -1,34 +1,18 @@
-// Upcoming — your ticketed shows and the ones you're circling.
-//
-// Data comes from the existing concert-life endpoint (tickets + tracked
-// events + presale alerts). Scorecard Stub: future rows are PLAIN cards
-// with a dashed `dash` border (C3 — plans never get the stub construction);
-// countdowns are mono "IN 21D" data; TODAY/LIVE invert to ink. Empty state
-// hands off to Explore.
-//
-// A17 — presales are merged into the agenda as timed entries: a "Presales
-// this week" section sits between Ticketed and Interested. Each row carries
-// the artist/tour (700), a mono presale datetime, a countdown chip (LIVE
-// inverts to ink), and — when the presale has a code — a tap-to-copy chip
-// (expo-clipboard + success haptic). Tapping the row opens /presales/[id].
+// You · PRESALES — the tracking agenda (was the Upcoming tab): presales
+// this week with live countdowns + tap-to-copy codes, your ticketed shows,
+// and the ones you're circling. Rows tap through to events/presales.
 
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 
-import { PillButton } from '../../components/ui/PillButton';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { SpringPressable } from '../../components/ui/SpringPressable';
+import { PillButton } from '../ui/PillButton';
+import { Skeleton } from '../ui/Skeleton';
+import { SpringPressable } from '../ui/SpringPressable';
 import { useConcertLife } from '../../hooks/useConcertLife';
 import { usePresales, type PresaleItem } from '../../hooks/usePresales';
 import { durations, haptics, tearIn } from '../../lib/motion';
@@ -70,8 +54,6 @@ function formatShowDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-// ── A17 presale helpers ─────────────────────────────────────────────
-
 /** "FRI, JUL 17 · 10:00 AM" — mono data line for a presale's start. */
 function presaleDateTime(iso: string): string {
   const d = new Date(iso);
@@ -112,28 +94,18 @@ function toRow(raw: any, kind: UpcomingRow['kind']): UpcomingRow {
   };
 }
 
-export default function UpcomingScreen() {
+export function PresalesTab() {
   const router = useRouter();
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
-    safe: { flex: 1, backgroundColor: t.colors.bg },
-    header: {
+    sectionRow: {
       flexDirection: 'row',
       alignItems: 'baseline',
       justifyContent: 'space-between',
       paddingHorizontal: t.density.pad,
-      paddingTop: 10,
-      paddingBottom: t.density.gap,
+      marginTop: 18,
+      marginBottom: 10,
     },
-    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
-    presaleCalendarLink: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: t.colors.mute,
-    },
-    scrollContent: { paddingBottom: 120 },
     sectionLabel: {
       fontFamily: t.fontFamilies.monoSemi,
       fontSize: 11,
@@ -141,11 +113,14 @@ export default function UpcomingScreen() {
       letterSpacing: 1.2,
       textTransform: 'uppercase',
       color: t.colors.muteSoft,
-      paddingHorizontal: t.density.pad,
-      marginTop: 18,
-      marginBottom: 10,
     },
-    // Future show rows: plain cards, dashed border (planned — never a stub).
+    calendarLink: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 11,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
     row: {
       minHeight: t.density.rowH,
       flexDirection: 'row',
@@ -183,7 +158,6 @@ export default function UpcomingScreen() {
       letterSpacing: 0.5,
       color: t.colors.fg,
     },
-    // TODAY / LIVE — the active state inverts to ink (weight, not hue).
     chipToday: {
       alignItems: 'center',
       paddingVertical: 5,
@@ -197,7 +171,6 @@ export default function UpcomingScreen() {
       letterSpacing: 0.5,
       color: t.colors.inverseFg,
     },
-    // A17 — presale rows
     presaleMono: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 10.5,
@@ -222,12 +195,10 @@ export default function UpcomingScreen() {
       color: t.colors.text,
     },
     empty: {
-      flexGrow: 1,
       alignItems: 'center',
-      justifyContent: 'center',
       paddingHorizontal: 32,
+      paddingVertical: 48,
       gap: t.density.gap,
-      paddingBottom: 80,
     },
     emptyTitle: { fontSize: 17, fontWeight: '800', color: t.colors.fg, textAlign: 'center' },
     emptyBody: { fontSize: 14, color: t.colors.textSoft, textAlign: 'center', lineHeight: 20 },
@@ -240,12 +211,9 @@ export default function UpcomingScreen() {
     },
   }));
 
-  const { data, loading, refreshing, refresh, error } = useConcertLife();
-  // A17 — presales merged into the agenda (same source Explore uses).
+  const { data, loading, error } = useConcertLife();
   const { presales } = usePresales();
 
-  // Tap-to-copy presale code: expo-clipboard + success haptic, then a brief
-  // "COPIED" state on the chip.
   const [copiedPresaleId, setCopiedPresaleId] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -263,11 +231,10 @@ export default function UpcomingScreen() {
       if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
       copyResetTimer.current = setTimeout(() => setCopiedPresaleId(null), 1600);
     } catch {
-      // clipboard unavailable — nothing to surface
+      // clipboard unavailable
     }
   }, []);
 
-  // Live now, or starting within the next 7 days (Explore's window).
   const weekPresales = useMemo<PresaleItem[]>(() => {
     const now = Date.now();
     const weekOut = now + 7 * 86400000;
@@ -354,17 +321,12 @@ export default function UpcomingScreen() {
     );
   };
 
-  // A17 — presale row: artist/tour (700) + mono start datetime, countdown
-  // chip (LIVE inverts to ink), tap-to-copy code chip. Row → /presales/[id].
   const renderPresaleRow = (presale: PresaleItem, index: number) => {
     const countdown = presaleCountdown(presale);
     const isLive = countdown === 'LIVE';
     const copied = copiedPresaleId === presale.id;
     return (
-      <Animated.View
-        key={`presale-${presale.id}`}
-        entering={tearIn(Math.min(index, 8) * durations.stagger)}
-      >
+      <Animated.View key={`presale-${presale.id}`} entering={tearIn(Math.min(index, 8) * durations.stagger)}>
         <SpringPressable
           haptic="light"
           onPress={() => router.push(`/presales/${presale.id}`)}
@@ -398,9 +360,7 @@ export default function UpcomingScreen() {
                 haptic="none"
                 onPress={() => void copyPresaleCode(presale)}
                 accessibilityRole="button"
-                accessibilityLabel={
-                  copied ? 'Presale code copied' : `Copy presale code ${presale.code}`
-                }
+                accessibilityLabel={copied ? 'Presale code copied' : `Copy presale code ${presale.code}`}
                 style={styles.codeChip}
               >
                 <Ionicons
@@ -419,11 +379,10 @@ export default function UpcomingScreen() {
     );
   };
 
-  let body: React.ReactNode;
   if (loading) {
-    body = (
+    return (
       <View>
-        {[0, 1, 2, 3, 4].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <View key={i} style={styles.skeletonRow}>
             <Skeleton width={52} height={52} borderRadius={tokens.radius.md} />
             <View style={{ flex: 1, gap: 8 }}>
@@ -435,22 +394,25 @@ export default function UpcomingScreen() {
         ))}
       </View>
     );
-  } else if (error && total === 0) {
-    body = (
+  }
+
+  if (error && total === 0) {
+    return (
       <View style={styles.empty}>
         <Ionicons name="cloud-offline-outline" size={40} color={tokens.colors.muteSoft} />
         <Text style={styles.emptyTitle}>Couldn&apos;t load your plans</Text>
         <Text style={styles.emptyBody}>{error}</Text>
-        <PillButton title="Try again" springFeedback haptic="light" onPress={refresh} />
       </View>
     );
-  } else if (total === 0 && weekPresales.length === 0) {
-    body = (
+  }
+
+  if (total === 0 && weekPresales.length === 0) {
+    return (
       <View style={styles.empty}>
         <Ionicons name="calendar-clear-outline" size={40} color={tokens.colors.muteSoft} />
-        <Text style={styles.emptyTitle}>Nothing planned</Text>
+        <Text style={styles.emptyTitle}>Nothing tracked yet</Text>
         <Text style={styles.emptyBody}>
-          When you grab a ticket or mark a show you&apos;re interested in, it lands here with a countdown.
+          Grab a ticket, mark a show you&apos;re interested in, or follow artists — presales and countdowns land here.
         </Text>
         <PillButton
           title="Explore shows"
@@ -461,62 +423,42 @@ export default function UpcomingScreen() {
         />
       </View>
     );
-  } else {
-    body = (
-      <>
-        {ticketed.length > 0 ? (
-          <>
-            <Text style={styles.sectionLabel}>Ticketed</Text>
-            {ticketed.map((row, i) => renderRow(row, i))}
-          </>
-        ) : null}
-        {/* A17 — timed presale entries, between Ticketed and Interested. */}
-        {weekPresales.length > 0 ? (
-          <>
-            <Text style={styles.sectionLabel}>Presales this week</Text>
-            {weekPresales.map((presale, i) => renderPresaleRow(presale, ticketed.length + i))}
-          </>
-        ) : null}
-        {interested.length > 0 ? (
-          <>
-            <Text style={styles.sectionLabel}>Interested</Text>
-            {interested.map((row, i) =>
-              renderRow(row, ticketed.length + weekPresales.length + i)
-            )}
-          </>
-        ) : null}
-      </>
-    );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Upcoming</Text>
+    <View>
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionLabel}>Presales this week</Text>
         <SpringPressable
           haptic="light"
           onPress={() => router.push('/presales')}
           accessibilityRole="button"
           accessibilityLabel="Presale calendar"
         >
-          <Text style={styles.presaleCalendarLink}>PRESALE CALENDAR</Text>
+          <Text style={styles.calendarLink}>CALENDAR</Text>
         </SpringPressable>
       </View>
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, total === 0 && !loading ? { flexGrow: 1 } : null]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={refresh}
-            tintColor={tokens.colors.mute}
-            colors={[tokens.colors.fg]}
-            progressBackgroundColor={tokens.colors.card2}
-          />
-        }
-      >
-        {body}
-      </ScrollView>
-    </SafeAreaView>
+      {weekPresales.length > 0 ? (
+        weekPresales.map((presale, i) => renderPresaleRow(presale, i))
+      ) : (
+        <Text style={[styles.emptyBody, { paddingHorizontal: 20 }]}>No presales in the next 7 days.</Text>
+      )}
+      {ticketed.length > 0 ? (
+        <>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>Ticketed</Text>
+          </View>
+          {ticketed.map((row, i) => renderRow(row, weekPresales.length + i))}
+        </>
+      ) : null}
+      {interested.length > 0 ? (
+        <>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>Interested</Text>
+          </View>
+          {interested.map((row, i) => renderRow(row, weekPresales.length + ticketed.length + i))}
+        </>
+      ) : null}
+    </View>
   );
 }

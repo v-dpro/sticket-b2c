@@ -28,6 +28,7 @@ import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
+import { DegreeFacepile } from '../ui/DegreeFacepile';
 import { BareScore, ScoreStamp, StripeField, StubDetailsRow, StubPerforation } from '../ui/Stub';
 import { FeedCardPhotos } from './FeedCardPhotos';
 import { WereHereSheet } from './WereHereSheet';
@@ -323,9 +324,18 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
             <Pressable
               onPress={openWereHere}
               hitSlop={8}
+              style={styles.wereHereCluster}
               accessibilityRole="button"
               accessibilityLabel={`${wereHereCount} ${wereHereCount === 1 ? 'person was' : 'people were'} here`}
             >
+              {item.wasThereUsers?.length ? (
+                <DegreeFacepile
+                  people={item.wasThereUsers}
+                  size={24}
+                  max={4}
+                  surfaceColor={c.card}
+                />
+              ) : null}
               <Text style={styles.wereHereText}>
                 {wereHereCount} {wereHereCount === 1 ? 'WAS' : 'WERE'} HERE →
               </Text>
@@ -469,6 +479,11 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontWeight: '600',
       color: tokens.colors.mute,
       marginHorizontal: 5,
+    },
+    wereHereCluster: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     wereHereText: {
       fontFamily: tokens.fontFamilies.mono,

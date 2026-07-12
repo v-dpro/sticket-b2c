@@ -70,6 +70,8 @@ export interface FeedItem {
     username: string;
     displayName?: string;
     avatarUrl?: string;
+    /** 1 = you follow them · 2 = friend-of-friend (C15 degree facepile). */
+    degree?: 1 | 2;
   }[];
 
   // Like data inlined by the feed serializer (absent on older API builds —

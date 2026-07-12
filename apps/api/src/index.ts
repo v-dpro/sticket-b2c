@@ -139,6 +139,17 @@ async function getFollowStatus(viewerId: string | null, targetUserId: string): P
   return Boolean(row);
 }
 
+/** Batched per-user log counts (one groupBy for a whole page of user rows). */
+async function getShowCounts(userIds: string[]): Promise<Map<string, number>> {
+  if (!userIds.length) return new Map();
+  const rows = await prisma.userLog.groupBy({
+    by: ['userId'],
+    where: { userId: { in: userIds } },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.userId, r._count._all]));
+}
+
 async function computeProfileStats(targetUserId: string) {
   const [shows, followers, following] = await Promise.all([
     prisma.userLog.count({ where: { userId: targetUserId } }),
@@ -253,7 +264,12 @@ const FEED_LOG_INCLUDE = {
     where: { visibility: 'PUBLIC', isFlagged: false },
     take: 4,
     orderBy: { createdAt: 'desc' },
-    select: { id: true, photoUrl: true, mediaKind: true, duration: true, thumbUrl: true },
+    select: { id: true, photoUrl: true, mediaKind: true, duration: true, thumbUrl: true, userId: true },
+  },
+  coAuthors: {
+    where: { status: 'ACCEPTED' },
+    orderBy: { invitedAt: 'asc' },
+    include: { user: { select: { id: true, username: true, avatarUrl: true } } },
   },
   comments: {
     take: 3,
@@ -278,7 +294,111 @@ const FEED_LOG_INCLUDE = {
 
 type FeedLogRow = Prisma.UserLogGetPayload<{ include: typeof FEED_LOG_INCLUDE }>;
 
-function serializeFeedLog(log: FeedLogRow, wasThereSet: Set<string>, likedSet: Set<string>) {
+// ==================== VIEWER DEGREES (LinkedIn-style) ====================
+// For the authenticated viewer: degree 1 = the viewer follows that user;
+// degree 2 = someone a degree-1 user follows (excluding degree-1 users and
+// the viewer). Computed once per request with two indexed Follow queries and
+// passed down to whatever serializer needs it.
+
+type FaceUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+
+type FacePerson = {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+  degree: 1 | 2;
+};
+
+type DegreeOf = (userId: string) => 1 | 2 | undefined;
+
+type ViewerDegrees = {
+  firstDegree: Set<string>;
+  secondDegree: Set<string>;
+  degreeOf: DegreeOf;
+};
+
+async function getViewerDegrees(viewerId: string | null): Promise<ViewerDegrees> {
+  const firstDegree = new Set<string>();
+  const secondDegree = new Set<string>();
+
+  if (viewerId) {
+    const following = await prisma.follow.findMany({
+      where: { followerId: viewerId },
+      select: { followingId: true },
+    });
+    for (const f of following) firstDegree.add(f.followingId);
+
+    if (firstDegree.size) {
+      const secondHop = await prisma.follow.findMany({
+        where: { followerId: { in: [...firstDegree] } },
+        select: { followingId: true },
+        take: 5000,
+      });
+      for (const f of secondHop) {
+        if (f.followingId !== viewerId && !firstDegree.has(f.followingId)) secondDegree.add(f.followingId);
+      }
+    }
+  }
+
+  const degreeOf: DegreeOf = (userId) => (firstDegree.has(userId) ? 1 : secondDegree.has(userId) ? 2 : undefined);
+  return { firstDegree, secondDegree, degreeOf };
+}
+
+function toFacePerson(user: FaceUser, degree: 1 | 2): FacePerson {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName ?? undefined,
+    avatarUrl: user.avatarUrl ?? undefined,
+    degree,
+  };
+}
+
+// The standard "who can the viewer discover" audience, mirroring GET /feed's
+// fof rules: degree-1 users' logs may be PUBLIC or FRIENDS (the viewer
+// follows them), degree-2 users' logs must be PUBLIC.
+function degreeAudienceWhere(degrees: ViewerDegrees): Prisma.UserLogWhereInput[] {
+  const audience: Prisma.UserLogWhereInput[] = [];
+  if (degrees.firstDegree.size) {
+    audience.push({ userId: { in: [...degrees.firstDegree] }, visibility: { in: ['PUBLIC', 'FRIENDS'] } });
+  }
+  if (degrees.secondDegree.size) {
+    audience.push({ userId: { in: [...degrees.secondDegree] }, visibility: 'PUBLIC' });
+  }
+  return audience;
+}
+
+// Batched co-author score lookup for a page of feed rows: one query covering
+// every (co-author, event) pair, keyed `${userId}:${eventId}`. A co-author's
+// score is their OWN UserLog score for the same event (null if unscored).
+async function getCoAuthorScores(
+  logs: Array<{ eventId: string; coAuthors: Array<{ user: { id: string } }> }>
+): Promise<Map<string, number | null>> {
+  const userIds = new Set<string>();
+  const eventIds = new Set<string>();
+  for (const log of logs) {
+    for (const ca of log.coAuthors) {
+      userIds.add(ca.user.id);
+      eventIds.add(log.eventId);
+    }
+  }
+  if (!userIds.size) return new Map();
+
+  const rows = await prisma.userLog.findMany({
+    where: { userId: { in: [...userIds] }, eventId: { in: [...eventIds] } },
+    select: { userId: true, eventId: true, score: true },
+  });
+  return new Map(rows.map((r) => [`${r.userId}:${r.eventId}`, r.score]));
+}
+
+function serializeFeedLog(
+  log: FeedLogRow,
+  wasThereSet: Set<string>,
+  likedSet: Set<string>,
+  degreeOf: DegreeOf,
+  coAuthorScores: Map<string, number | null>
+) {
   return {
     id: log.id,
     type: 'log' as const,
@@ -301,8 +421,15 @@ function serializeFeedLog(log: FeedLogRow, wasThereSet: Set<string>, likedSet: S
         mediaKind: p.mediaKind,
         duration: p.duration ?? undefined,
         thumbUrl: p.thumbUrl ?? undefined,
+        userId: p.userId,
       })),
     },
+    coAuthors: (log.coAuthors ?? []).map((ca) => ({
+      id: ca.user.id,
+      username: ca.user.username,
+      avatarUrl: ca.user.avatarUrl ?? undefined,
+      score: coAuthorScores.get(`${ca.user.id}:${log.eventId}`) ?? null,
+    })),
     event: {
       id: log.event.id,
       name: log.event.name,
@@ -340,6 +467,7 @@ function serializeFeedLog(log: FeedLogRow, wasThereSet: Set<string>, likedSet: S
       username: w.user.username,
       displayName: w.user.displayName ?? undefined,
       avatarUrl: w.user.avatarUrl ?? undefined,
+      degree: degreeOf(w.user.id),
     })),
     likeCount: log._count.likes,
     likedByMe: likedSet.has(log.id),
@@ -1582,11 +1710,14 @@ app.get('/users/:id/followers', async (req) => {
     include: { follower: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
   });
 
+  const showCountByUser = await getShowCounts(rows.map((r) => r.follower.id));
+
   return rows.map((r) => ({
     id: r.follower.id,
     username: r.follower.username,
     displayName: r.follower.displayName ?? undefined,
     avatarUrl: r.follower.avatarUrl ?? undefined,
+    showCount: showCountByUser.get(r.follower.id) ?? 0,
   }));
 });
 
@@ -1604,11 +1735,14 @@ app.get('/users/:id/following', async (req) => {
     include: { following: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
   });
 
+  const showCountByUser = await getShowCounts(rows.map((r) => r.following.id));
+
   return rows.map((r) => ({
     id: r.following.id,
     username: r.following.username,
     displayName: r.following.displayName ?? undefined,
     avatarUrl: r.following.avatarUrl ?? undefined,
+    showCount: showCountByUser.get(r.following.id) ?? 0,
   }));
 });
 
@@ -2198,6 +2332,61 @@ app.get('/users/me/concert-life', async (req) => {
       upcomingCount: tickets.length,
       trackingCount: tracking.length,
     },
+  };
+});
+
+// GET /users/me/collection - the viewer's logged history rolled up by artist,
+// venue, and city (counts DESC). One query; grouping happens in memory.
+app.get('/users/me/collection', async (req) => {
+  const userId = requireAccessUserId(req as any);
+
+  const logs = await prisma.userLog.findMany({
+    where: { userId },
+    select: {
+      event: {
+        select: {
+          date: true,
+          artist: { select: { id: true, name: true, imageUrl: true } },
+          venue: { select: { id: true, name: true, city: true } },
+        },
+      },
+    },
+  });
+
+  const artistMap = new Map<string, { artist: { id: string; name: string; imageUrl?: string }; count: number; lastSeen: Date }>();
+  const venueMap = new Map<string, { venue: { id: string; name: string; city: string }; count: number }>();
+  const cityMap = new Map<string, number>();
+
+  for (const l of logs) {
+    const { artist, venue, date } = l.event;
+
+    const a = artistMap.get(artist.id);
+    if (a) {
+      a.count += 1;
+      if (date > a.lastSeen) a.lastSeen = date;
+    } else {
+      artistMap.set(artist.id, {
+        artist: { id: artist.id, name: artist.name, imageUrl: artist.imageUrl ?? undefined },
+        count: 1,
+        lastSeen: date,
+      });
+    }
+
+    const v = venueMap.get(venue.id);
+    if (v) v.count += 1;
+    else venueMap.set(venue.id, { venue: { id: venue.id, name: venue.name, city: venue.city }, count: 1 });
+
+    cityMap.set(venue.city, (cityMap.get(venue.city) ?? 0) + 1);
+  }
+
+  return {
+    artists: [...artistMap.values()]
+      .sort((a, b) => b.count - a.count)
+      .map((a) => ({ artist: a.artist, count: a.count, lastSeen: a.lastSeen.toISOString() })),
+    venues: [...venueMap.values()].sort((a, b) => b.count - a.count),
+    cities: [...cityMap.entries()]
+      .map(([city, count]) => ({ city, count }))
+      .sort((a, b) => b.count - a.count),
   };
 });
 
@@ -3128,6 +3317,324 @@ app.get('/discover/popular', async (req, reply) => {
   }
 });
 
+// ==================== EXPLORE ====================
+// GET /explore - one aggregated payload for the Explore tab. Every section is
+// computed with batched queries (no per-row loops); FacePerson entries carry
+// the viewer's degree (1 = you follow them, 2 = friend-of-friend).
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Distinct users per key from audience-scoped log rows, degree 1 first, capped. */
+function groupFacepiles<T>(
+  rows: T[],
+  keyOf: (row: T) => string | null | undefined,
+  userOf: (row: T) => FaceUser,
+  degreeOf: DegreeOf,
+  cap: number
+): Map<string, FacePerson[]> {
+  const usersByKey = new Map<string, Map<string, FaceUser>>();
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) continue;
+    const user = userOf(row);
+    let users = usersByKey.get(key);
+    if (!users) {
+      users = new Map();
+      usersByKey.set(key, users);
+    }
+    if (!users.has(user.id)) users.set(user.id, user);
+  }
+
+  const facesByKey = new Map<string, FacePerson[]>();
+  for (const [key, users] of usersByKey) {
+    const faces = [...users.values()]
+      // Rows come from a degree-scoped audience filter, so degreeOf is defined.
+      .map((u) => toFacePerson(u, degreeOf(u.id)!))
+      .sort((a, b) => a.degree - b.degree)
+      .slice(0, cap);
+    facesByKey.set(key, faces);
+  }
+  return facesByKey;
+}
+
+app.get('/explore', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const now = new Date();
+
+  const degrees = await getViewerDegrees(userId);
+  const audience = degreeAudienceWhere(degrees);
+  const faceUserSelect = { select: { id: true, username: true, displayName: true, avatarUrl: true } } as const;
+
+  // ---- Phase 1: independent base queries ----
+  const [presaleRows, candidateEvents, logAgg, crowdLogs] = await Promise.all([
+    // Presales starting in the next 14 days, soonest first.
+    prisma.presale.findMany({
+      where: { presaleStart: { gte: now, lte: new Date(now.getTime() + 14 * DAY_MS) } },
+      orderBy: { presaleStart: 'asc' },
+      take: 6,
+    }),
+    // Trending candidates: upcoming or recent-past (last 60 days) events.
+    prisma.event.findMany({
+      where: { date: { gte: new Date(now.getTime() - 60 * DAY_MS) } },
+      include: {
+        artist: { select: { id: true, name: true, imageUrl: true } },
+        venue: { select: { id: true, name: true, city: true } },
+        _count: { select: { logs: true, interested: true } },
+      },
+      orderBy: { date: 'asc' },
+      take: 300,
+    }),
+    // One per-event log aggregation shared by the rising-artists, spotlight-
+    // tours, and venues sections (joined back through event metadata below).
+    prisma.userLog.groupBy({
+      by: ['eventId'],
+      _count: { _all: true, score: true },
+      _avg: { score: true },
+    }),
+    // Crowd posts: recent PUBLIC shared logs with photos, not the viewer's own.
+    prisma.userLog.findMany({
+      where: {
+        visibility: 'PUBLIC',
+        sharedAt: { not: null },
+        userId: { not: userId },
+        user: { showInGalleries: true },
+        photos: { some: { visibility: 'PUBLIC', isFlagged: false } },
+      },
+      orderBy: { sharedAt: 'desc' },
+      take: 12,
+      include: {
+        user: faceUserSelect,
+        event: { select: { id: true, artist: { select: { name: true } }, venue: { select: { name: true } } } },
+        photos: {
+          where: { visibility: 'PUBLIC', isFlagged: false },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { photoUrl: true },
+        },
+      },
+    }),
+  ]);
+
+  // ---- Trending: logCount + interestedCount + a small recency boost ----
+  const trending = candidateEvents
+    .map((event) => {
+      const daysOut = Math.abs(event.date.getTime() - now.getTime()) / DAY_MS;
+      const recencyBoost = Math.max(0, 14 - daysOut) / 14;
+      return { event, rank: event._count.logs + event._count.interested + recencyBoost };
+    })
+    .filter((c) => c.rank > 0)
+    .sort((a, b) => b.rank - a.rank)
+    .slice(0, 10);
+  const trendingIds = trending.map((c) => c.event.id);
+
+  // ---- Join the log aggregation back through event metadata ----
+  const loggedEvents = logAgg.length
+    ? await prisma.event.findMany({
+        where: { id: { in: logAgg.map((a) => a.eventId) } },
+        select: { id: true, artistId: true, tourId: true, venueId: true },
+      })
+    : [];
+  const eventMetaById = new Map(loggedEvents.map((e) => [e.id, e]));
+
+  const logCountByArtist = new Map<string, number>();
+  const logCountByVenue = new Map<string, number>();
+  const tourAgg = new Map<string, { logCount: number; scoreSum: number; scoreCount: number }>();
+  for (const agg of logAgg) {
+    const meta = eventMetaById.get(agg.eventId);
+    if (!meta) continue;
+    logCountByArtist.set(meta.artistId, (logCountByArtist.get(meta.artistId) ?? 0) + agg._count._all);
+    logCountByVenue.set(meta.venueId, (logCountByVenue.get(meta.venueId) ?? 0) + agg._count._all);
+    if (meta.tourId) {
+      const t = tourAgg.get(meta.tourId) ?? { logCount: 0, scoreSum: 0, scoreCount: 0 };
+      t.logCount += agg._count._all;
+      if (agg._avg.score != null && agg._count.score > 0) {
+        t.scoreSum += agg._avg.score * agg._count.score;
+        t.scoreCount += agg._count.score;
+      }
+      tourAgg.set(meta.tourId, t);
+    }
+  }
+
+  const topTourIds = [...tourAgg.entries()]
+    .sort((a, b) => b[1].logCount - a[1].logCount)
+    .slice(0, 6)
+    .map(([id]) => id);
+  const topVenueIds = [...logCountByVenue.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([id]) => id);
+
+  // ---- Phase 2: metadata + facepile source rows for the picked ids ----
+  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows] =
+    await Promise.all([
+      // Rising-artist candidates ranked below by followerCount + logCount.
+      prisma.artist.findMany({
+        select: { id: true, name: true, imageUrl: true, _count: { select: { followers: true } } },
+        orderBy: { followers: { _count: 'desc' } },
+        take: 300,
+      }),
+      topTourIds.length
+        ? prisma.tour.findMany({
+            where: { id: { in: topTourIds } },
+            include: { artist: { select: { id: true, name: true } }, _count: { select: { events: true } } },
+          })
+        : [],
+      topVenueIds.length
+        ? prisma.venue.findMany({
+            where: { id: { in: topVenueIds } },
+            select: { id: true, name: true, city: true, imageUrl: true, _count: { select: { events: true } } },
+          })
+        : [],
+      // Presale rows only carry a denormalized artistName; resolve to Artist ids.
+      presaleRows.length
+        ? prisma.artist.findMany({
+            where: { name: { in: [...new Set(presaleRows.map((p) => p.artistName))], mode: 'insensitive' } },
+            select: { id: true, name: true },
+          })
+        : [],
+      trendingIds.length && audience.length
+        ? prisma.userLog.findMany({
+            where: { eventId: { in: trendingIds }, OR: audience },
+            select: { eventId: true, user: faceUserSelect },
+          })
+        : [],
+      topTourIds.length && audience.length
+        ? prisma.userLog.findMany({
+            where: { event: { tourId: { in: topTourIds } }, OR: audience },
+            select: { event: { select: { tourId: true } }, user: faceUserSelect },
+          })
+        : [],
+      trendingIds.length
+        ? prisma.logPhoto.findMany({
+            where: {
+              log: { eventId: { in: trendingIds }, visibility: 'PUBLIC', sharedAt: { not: null } },
+              visibility: 'PUBLIC',
+              isFlagged: false,
+              user: { showInGalleries: true },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 60,
+            select: { photoUrl: true, log: { select: { eventId: true } } },
+          })
+        : [],
+    ]);
+
+  // ---- Rising artists: simple totals of follows + logs ----
+  const rising = artistRows
+    .map((artist) => ({
+      artist,
+      followerCount: artist._count.followers,
+      logCount: logCountByArtist.get(artist.id) ?? 0,
+    }))
+    .map((r) => ({ ...r, rank: r.followerCount + r.logCount }))
+    .filter((r) => r.rank > 0)
+    .sort((a, b) => b.rank - a.rank)
+    .slice(0, 8);
+  const risingIds = rising.map((r) => r.artist.id);
+
+  // ---- Phase 3: rising-artist facepiles (depends on the ranking above) ----
+  const artistFriendLogs =
+    risingIds.length && audience.length
+      ? await prisma.userLog.findMany({
+          where: { event: { artistId: { in: risingIds } }, OR: audience },
+          select: { event: { select: { artistId: true } }, user: faceUserSelect },
+        })
+      : [];
+
+  const trendingFaces = groupFacepiles(trendingFriendLogs, (r) => r.eventId, (r) => r.user, degrees.degreeOf, 5);
+  const artistFaces = groupFacepiles(artistFriendLogs, (r) => r.event.artistId, (r) => r.user, degrees.degreeOf, 4);
+  const tourFaces = groupFacepiles(tourFriendLogs, (r) => r.event.tourId, (r) => r.user, degrees.degreeOf, 4);
+
+  const crowdPhotosByEvent = new Map<string, string[]>();
+  for (const p of crowdPhotoRows) {
+    const urls = crowdPhotosByEvent.get(p.log.eventId) ?? [];
+    if (urls.length < 3) {
+      urls.push(p.photoUrl);
+      crowdPhotosByEvent.set(p.log.eventId, urls);
+    }
+  }
+
+  const artistIdByName = new Map(presaleArtists.map((a) => [a.name.toLowerCase(), a.id]));
+  const tourById = new Map(tourRows.map((t) => [t.id, t]));
+  const venueById = new Map(venueRows.map((v) => [v.id, v]));
+
+  return {
+    presales: presaleRows.map((p) => ({
+      id: p.id,
+      artistId: artistIdByName.get(p.artistName.toLowerCase()) ?? null,
+      artistName: p.artistName,
+      presaleType: p.presaleType,
+      presaleStart: p.presaleStart.toISOString(),
+      code: p.code ?? undefined,
+    })),
+    trendingEvents: trending.map(({ event: e }) => ({
+      id: e.id,
+      name: e.name,
+      date: e.date.toISOString(),
+      imageUrl: e.imageUrl ?? undefined,
+      artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
+      venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
+      logCount: e._count.logs,
+      interestedCount: e._count.interested,
+      friendsWent: trendingFaces.get(e.id) ?? [],
+      crowdPhotos: crowdPhotosByEvent.get(e.id) ?? [],
+    })),
+    risingArtists: rising.map((r) => ({
+      id: r.artist.id,
+      name: r.artist.name,
+      imageUrl: r.artist.imageUrl ?? undefined,
+      followerCount: r.followerCount,
+      logCount: r.logCount,
+      friendsWent: artistFaces.get(r.artist.id) ?? [],
+    })),
+    spotlightTours: topTourIds
+      .map((id) => tourById.get(id))
+      .filter((t): t is NonNullable<typeof t> => Boolean(t))
+      .map((t) => {
+        const agg = tourAgg.get(t.id)!;
+        return {
+          id: t.id,
+          name: t.name,
+          artistId: t.artist.id,
+          artistName: t.artist.name,
+          imageUrl: t.imageUrl ?? undefined,
+          eventCount: t._count.events,
+          avgScore: agg.scoreCount > 0 ? round1(agg.scoreSum / agg.scoreCount) : undefined,
+          friendsWent: tourFaces.get(t.id) ?? [],
+        };
+      }),
+    venues: topVenueIds
+      .map((id) => venueById.get(id))
+      .filter((v): v is NonNullable<typeof v> => Boolean(v))
+      .map((v) => ({
+        id: v.id,
+        name: v.name,
+        city: v.city,
+        imageUrl: v.imageUrl ?? undefined,
+        eventCount: v._count.events,
+      })),
+    crowdPosts: crowdLogs
+      .filter((l) => l.photos.length > 0)
+      .map((l) => ({
+        logId: l.id,
+        eventId: l.event.id,
+        photoUrl: l.photos[0]!.photoUrl,
+        artistName: l.event.artist.name,
+        venueName: l.event.venue.name ?? undefined,
+        score: l.score ?? undefined,
+        user: {
+          id: l.user.id,
+          username: l.user.username,
+          displayName: l.user.displayName ?? undefined,
+          avatarUrl: l.user.avatarUrl ?? undefined,
+          // Crowd posts intentionally include people beyond the viewer's
+          // network; degree is omitted when they're not within 2 hops.
+          degree: degrees.degreeOf(l.user.id),
+        },
+      })),
+  };
+});
+
 // ==================== VENUE ROUTES ====================
 
 app.get('/venues/:id', async (req, reply) => {
@@ -3776,19 +4283,21 @@ app.get('/events/:id', async (req, reply) => {
       photos: { id: string; photoUrl: string; thumbnailUrl?: string }[];
     } | null = null;
 
-    // Friends
+    // Friends (people the viewer follows = degree 1 by construction)
     let friendsWhoWent: Array<{
       id: string;
       username: string;
       displayName?: string | null;
       avatarUrl?: string | null;
       rating?: number | null;
+      degree: 1;
     }> = [];
     let friendsInterested: Array<{
       id: string;
       username: string;
       displayName?: string | null;
       avatarUrl?: string | null;
+      degree: 1;
     }> = [];
 
     if (userId) {
@@ -3845,9 +4354,10 @@ app.get('/events/:id', async (req, reply) => {
         friendsWhoWent = friendLogs.map((l) => ({
           ...l.user,
           rating: l.rating,
+          degree: 1 as const,
         }));
 
-        friendsInterested = friendInterested.map((i) => i.user);
+        friendsInterested = friendInterested.map((i) => ({ ...i.user, degree: 1 as const }));
       }
     }
 
@@ -5354,6 +5864,39 @@ app.get('/artists/:id/tours', async (req, reply) => {
   }
 });
 
+// ==================== WHO-SAW FACEPILES ====================
+// People the viewer can discover who logged a show matching `eventWhere`.
+// There is no same-show-radius enforcement helper yet (see the discovery
+// settings note near PATCH /users/me/discovery), so discovery here is
+// degree <= 2 only, with per-log visibility respected via degreeAudienceWhere.
+
+async function buildWhoSawPayload(viewerId: string, eventWhere: Prisma.EventWhereInput) {
+  const degrees = await getViewerDegrees(viewerId);
+  const audience = degreeAudienceWhere(degrees);
+  if (!audience.length) return { people: [] as FacePerson[], totalCount: 0 };
+
+  const rows = await prisma.userLog.findMany({
+    where: { event: eventWhere, OR: audience },
+    distinct: ['userId'],
+    select: { userId: true, user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+  });
+
+  // Everyone here matched the degree-scoped audience, so degreeOf is defined.
+  const people = rows
+    .map((r) => toFacePerson(r.user, degrees.degreeOf(r.user.id)!))
+    .sort((a, b) => a.degree - b.degree)
+    .slice(0, 12);
+
+  return { people, totalCount: rows.length };
+}
+
+// GET /artists/:id/who-saw - discoverable people who logged this artist.
+app.get('/artists/:id/who-saw', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  return await buildWhoSawPayload(viewerId, { artistId: id });
+});
+
 // GET /tours/:id - tour detail + its events (with per-event logCount/avgScore,
 // batched via groupBy rather than one query per event).
 app.get('/tours/:id', async (req) => {
@@ -5446,6 +5989,13 @@ app.get('/tours/:id/photos', async (req) => {
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
   return { items, nextCursor };
+});
+
+// GET /tours/:id/who-saw - discoverable people who logged a show on this tour.
+app.get('/tours/:id/who-saw', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  return await buildWhoSawPayload(viewerId, { tourId: id });
 });
 
 function toSafeIdPart(input: string) {
@@ -5943,11 +6493,9 @@ app.get('/feed', async (req) => {
   // 'fof' additionally pulls friends-of-friends, but only their PUBLIC posts.
   const scope = q.scope === 'fof' ? 'fof' : 'friends';
 
-  const following = await prisma.follow.findMany({
-    where: { followerId: userId },
-    select: { followingId: true },
-  });
-  const friendIds = following.map((f) => f.followingId);
+  // Also powers the wasThereUsers degree field in the serialized items.
+  const degrees = await getViewerDegrees(userId);
+  const friendIds = [...degrees.firstDegree];
 
   // Instagram model: your own posts appear in your feed too.
   const innerCircle = [userId, ...friendIds];
@@ -5955,17 +6503,8 @@ app.get('/feed', async (req) => {
     { userId: { in: innerCircle }, visibility: { in: ['PUBLIC', 'FRIENDS'] } },
   ];
 
-  if (scope === 'fof' && friendIds.length) {
-    const secondHop = await prisma.follow.findMany({
-      where: { followerId: { in: friendIds } },
-      select: { followingId: true },
-      take: 2000,
-    });
-    const inner = new Set(innerCircle);
-    const fofIds = [...new Set(secondHop.map((f) => f.followingId))].filter((id) => !inner.has(id));
-    if (fofIds.length) {
-      audience.push({ userId: { in: fofIds }, visibility: 'PUBLIC' });
-    }
+  if (scope === 'fof' && degrees.secondDegree.size) {
+    audience.push({ userId: { in: [...degrees.secondDegree] }, visibility: 'PUBLIC' });
   }
 
   const where: Prisma.UserLogWhereInput = { OR: audience };
@@ -6003,7 +6542,8 @@ app.get('/feed', async (req) => {
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
-  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet));
+  const coAuthorScores = await getCoAuthorScores(slice);
+  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores));
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 
@@ -6043,18 +6583,20 @@ app.get('/events/:id/feed', async (req) => {
   const slice = logs.slice(0, limit);
 
   const logIds = slice.map((l) => l.id);
-  const [wasThereRows, likedRows] = await Promise.all([
+  const [wasThereRows, likedRows, degrees, coAuthorScores] = await Promise.all([
     logIds.length
       ? prisma.wasThere.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
       : Promise.resolve([] as { logId: string }[]),
     logIds.length
       ? prisma.logLike.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
       : Promise.resolve([] as { logId: string }[]),
+    getViewerDegrees(viewerId),
+    getCoAuthorScores(slice),
   ]);
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
-  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet));
+  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores));
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 
   return { items, nextCursor };
@@ -6493,7 +7035,7 @@ app.get('/logs/:id', async (req, reply) => {
           where: { visibility: 'PUBLIC', isFlagged: false },
           orderBy: { createdAt: 'desc' },
           take: 20,
-          select: { id: true, photoUrl: true },
+          select: { id: true, photoUrl: true, userId: true },
         },
         comments: {
           orderBy: { createdAt: 'asc' },
@@ -6502,6 +7044,11 @@ app.get('/logs/:id', async (req, reply) => {
         tags: {
           include: { taggedUser: { select: { id: true, username: true, avatarUrl: true } } },
           orderBy: { createdAt: 'asc' },
+        },
+        coAuthors: {
+          where: { status: 'ACCEPTED' },
+          orderBy: { invitedAt: 'asc' },
+          include: { user: { select: { id: true, username: true, avatarUrl: true } } },
         },
         _count: { select: { comments: true, wasThere: true } },
       },
@@ -6527,17 +7074,27 @@ app.get('/logs/:id', async (req, reply) => {
       }
     }
 
-    const userWasThereRow = await prisma.wasThere.findUnique({
-      where: { userId_logId: { userId: viewerId, logId: log.id } },
-      select: { id: true },
-    });
-
-    const others = await prisma.userLog.findMany({
-      where: { eventId: log.eventId, NOT: { id: log.id }, visibility: 'PUBLIC' },
-      include: { user: { select: { id: true, username: true, avatarUrl: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 12,
-    });
+    const coAuthorIds = (log.coAuthors ?? []).map((ca) => ca.user.id);
+    const [userWasThereRow, others, degrees, coAuthorScoreRows] = await Promise.all([
+      prisma.wasThere.findUnique({
+        where: { userId_logId: { userId: viewerId, logId: log.id } },
+        select: { id: true },
+      }),
+      prisma.userLog.findMany({
+        where: { eventId: log.eventId, NOT: { id: log.id }, visibility: 'PUBLIC' },
+        include: { user: { select: { id: true, username: true, avatarUrl: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 12,
+      }),
+      getViewerDegrees(viewerId),
+      coAuthorIds.length
+        ? prisma.userLog.findMany({
+            where: { eventId: log.eventId, userId: { in: coAuthorIds } },
+            select: { userId: true, score: true },
+          })
+        : Promise.resolve([] as { userId: string; score: number | null }[]),
+    ]);
+    const coAuthorScoreByUser = new Map(coAuthorScoreRows.map((r) => [r.userId, r.score]));
 
     const allComments = (log.comments ?? []).map((c) => ({
       id: c.id,
@@ -6569,7 +7126,7 @@ app.get('/logs/:id', async (req, reply) => {
         score: typeof log.score === 'number' ? log.score : undefined,
         note: log.note ?? undefined,
         visibility: log.visibility,
-        photos: (log.photos ?? []).map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.photoUrl })),
+        photos: (log.photos ?? []).map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.photoUrl, userId: p.userId })),
         section: log.section ?? undefined,
         row: log.row ?? undefined,
         seat: log.seat ?? undefined,
@@ -6579,6 +7136,12 @@ app.get('/logs/:id', async (req, reply) => {
           avatarUrl: t.taggedUser.avatarUrl ?? undefined,
         })),
       },
+      coAuthors: (log.coAuthors ?? []).map((ca) => ({
+        id: ca.user.id,
+        username: ca.user.username,
+        avatarUrl: ca.user.avatarUrl ?? undefined,
+        score: coAuthorScoreByUser.get(ca.user.id) ?? null,
+      })),
       event: {
         id: log.event.id,
         name: log.event.name,
@@ -6604,6 +7167,7 @@ app.get('/logs/:id', async (req, reply) => {
         username: l.user.username,
         avatarUrl: l.user.avatarUrl ?? undefined,
         rating: typeof l.rating === 'number' ? l.rating : undefined,
+        degree: degrees.degreeOf(l.user.id),
       })),
     };
   } catch (error) {
@@ -7652,8 +8216,19 @@ app.get('/logs/:id/likes', async (req, reply) => {
     const hasMore = likes.length > limit;
     const items = hasMore ? likes.slice(0, limit) : likes;
 
+    const showCountByUser = await getShowCounts(items.map((l) => l.userId));
+
     return {
-      likes: items,
+      likes: items.map((l) => ({
+        ...l,
+        displayName: l.user.displayName ?? undefined,
+        showCount: showCountByUser.get(l.userId) ?? 0,
+        user: {
+          ...l.user,
+          displayName: l.user.displayName ?? undefined,
+          showCount: showCountByUser.get(l.userId) ?? 0,
+        },
+      })),
       nextCursor: hasMore ? items[items.length - 1]?.id : null,
     };
   } catch (error) {

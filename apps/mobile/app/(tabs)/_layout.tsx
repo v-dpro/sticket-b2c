@@ -77,11 +77,11 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="upcoming"
+        name="timeline"
         options={{
-          title: 'Upcoming',
+          title: 'Timeline',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'albums' : 'albums-outline'} size={24} color={color} />
           ),
         }}
       />

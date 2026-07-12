@@ -29,7 +29,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CommentsBlock } from '../../components/entity/CommentsBlock';
 import { EntityNav } from '../../components/entity/EntityChrome';
-import { Facepile, QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
+import { QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
 import { EntityError, EntityPageSkeleton, ShimmerBlock } from '../../components/entity/EntityStates';
 import { formatScore, isPast, monoDateYear, sameDay } from '../../components/entity/format';
 import { PhotoGrid } from '../../components/entity/PhotoGrid';
@@ -39,6 +39,7 @@ import { SeatSectionTiles } from '../../components/entity/SeatSectionTiles';
 import { SetlistShield } from '../../components/entity/SetlistShield';
 import { PartyRow } from '../../components/party/PartyRow';
 import { FeedCard } from '../../components/feed/FeedCard';
+import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { ScoreStamp, StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
@@ -394,6 +395,22 @@ export default function EventScreen() {
   const interestedPeople = event.friendsInterested ?? [];
   const facepilePeople = whoWentPeople.length ? whoWentPeople : interestedPeople;
 
+  // Who-went caption — degree-1 (friends) vs degree-2 (friends-of-friends)
+  // counted from the same people the facepile renders; falls back to the
+  // raw logged/interested tally when neither degree is represented.
+  const whoFriendsCount = facepilePeople.filter((p) => p.degree === 1).length;
+  const whoOrbitCount = facepilePeople.filter((p) => p.degree === 2).length;
+  const whoVerb = past ? 'WENT' : 'GOING';
+  const whoCountsText =
+    whoFriendsCount > 0 || whoOrbitCount > 0
+      ? [
+          whoFriendsCount > 0 ? `${whoFriendsCount} FRIEND${whoFriendsCount === 1 ? '' : 'S'}` : null,
+          whoOrbitCount > 0 ? `${whoOrbitCount} FRIEND${whoOrbitCount === 1 ? '' : 'S'}+` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') + ` ${whoVerb}`
+      : `${event.logCount} logged · ${event.interestedCount} interested`;
+
   // Header stats — "8.4 AVG · 214 LOGS · 36 INTERESTED".
   const statBits: { num: string; label: string }[] = [];
   if (typeof event.avgRating === 'number' && Number.isFinite(event.avgRating)) {
@@ -591,10 +608,10 @@ export default function EventScreen() {
                 />
               ) : (
                 <Animated.View entering={FadeInDown.duration(240)} style={styles.whoRow}>
-                  {facepilePeople.length > 0 ? <Facepile people={facepilePeople} /> : null}
-                  <Text style={styles.whoCounts}>
-                    {event.logCount} logged · {event.interestedCount} interested
-                  </Text>
+                  {facepilePeople.length > 0 ? (
+                    <DegreeFacepile people={facepilePeople} surfaceColor={tokens.colors.bg} />
+                  ) : null}
+                  <Text style={styles.whoCounts}>{whoCountsText}</Text>
                 </Animated.View>
               )}
             </View>

@@ -1,46 +1,33 @@
-// Explore — find your next show.
+// Explore — the heart of the app (batch 5, C14): an Instagram-Explore-energy
+// mixed discovery stream for finding, following, and planning shows.
 //
-// Search hand-off + "Upcoming in your city" (discover feed) + "Presales
-// this week". Monochrome chrome, cards float on elevation, data via the
-// existing discovery/presales endpoints.
+// Header ("Explore" + omnisearch pill) over the repeating STANZA — rail →
+// full-width spotlight → crowd mosaic — assembled by ExploreStream from one
+// GET /explore payload. Monochrome chrome, mono data lines, plain entity
+// cards (C3), tear-in section entrances.
 
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import {
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
-import { Image } from 'expo-image';
+import React, { useCallback, useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated from 'react-native-reanimated';
 
+import { ExploreStream, ExploreStreamSkeleton } from '../../components/explore/ExploreStream';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { useDiscovery } from '../../hooks/useDiscovery';
-import { usePresales, type PresaleItem } from '../../hooks/usePresales';
-import { durations, tearIn } from '../../lib/motion';
+import { getExplore, type ExploreData } from '../../lib/api/explore';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
-import type { Event } from '../../types/event';
 
-function formatEventDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function presaleDayLabel(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return '';
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - today.getTime()) / 86400000);
-  if (diff <= 0) return 'NOW';
-  if (diff === 1) return 'TMRW';
-  return d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+function isEmpty(data: ExploreData): boolean {
+  return (
+    data.presales.length === 0 &&
+    data.trendingEvents.length === 0 &&
+    data.risingArtists.length === 0 &&
+    data.spotlightTours.length === 0 &&
+    data.venues.length === 0 &&
+    data.crowdPosts.length === 0
+  );
 }
 
 export default function ExploreScreen() {
@@ -66,199 +53,49 @@ export default function ExploreScreen() {
       ...t.shadows.card,
     },
     searchHint: { fontSize: 15, color: t.colors.mute },
-    scrollContent: { paddingBottom: 120 },
-    section: { marginTop: 10, marginBottom: 14 },
-    sectionHead: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      paddingHorizontal: t.density.pad,
-      marginBottom: 10,
-    },
-    // Section labels are mono data lines (Scorecard Stub — no display type here).
-    sectionTitle: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
-      fontWeight: '600',
-      letterSpacing: 1.2,
-      textTransform: 'uppercase',
-      color: t.colors.muteSoft,
-    },
-    sectionMeta: {
-      fontFamily: t.fontFamilies.mono,
-      fontSize: 11,
-      letterSpacing: 1,
-      color: t.colors.mute,
-    },
-    sectionLink: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: t.colors.mute,
-    },
-    // Entity tiles: plain cards — never stubs (C3), never dashed (not plans).
-    row: {
-      minHeight: t.density.rowH,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginHorizontal: t.density.pad,
-      marginBottom: 8,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: t.radius.card,
-      backgroundColor: t.colors.card,
-      borderWidth: 1,
-      borderColor: t.colors.hairline,
-    },
-    rowImage: {
-      width: 44,
-      height: 44,
-      borderRadius: t.radius.sm,
-      backgroundColor: t.colors.card2,
-    },
-    rowImageFallback: {
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rowBody: { flex: 1, minWidth: 0, gap: 3 },
-    rowTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
-    rowMeta: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 10.5,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: t.colors.muteSoft,
-    },
-    dateChip: {
-      minWidth: 52,
-      alignItems: 'center',
-      paddingVertical: 5,
-      paddingHorizontal: 8,
-      borderRadius: t.radius.sm,
-      backgroundColor: t.colors.card2,
-    },
-    dateChipText: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
-      letterSpacing: 0.5,
-      color: t.colors.text,
-    },
+    scrollContent: { paddingTop: 4, paddingBottom: 120 },
     empty: {
       marginHorizontal: t.density.pad,
+      marginTop: 30,
       padding: t.density.cardPad,
       borderRadius: t.radius.lg,
       backgroundColor: t.colors.card,
       alignItems: 'center',
-      gap: 8,
+      gap: 10,
       ...t.shadows.card,
     },
+    emptyTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
     emptyText: { fontSize: 14, color: t.colors.textSoft, textAlign: 'center', lineHeight: 20 },
-    skeletonRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingHorizontal: t.density.pad,
-      paddingVertical: 10,
-    },
+    emptyActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   }));
 
-  const { data, city, loading: discoverLoading, refreshing, refresh } = useDiscovery();
-  const { presales, loading: presalesLoading } = usePresales();
+  const [data, setData] = useState<ExploreData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
-  const cityEvents: Event[] = useMemo(() => {
-    const comingUp = data?.comingUp ?? [];
-    if (comingUp.length > 0) return comingUp.slice(0, 6);
-    return (data?.popular ?? []).slice(0, 6);
-  }, [data]);
+  const load = useCallback(async () => {
+    try {
+      setData(await getExplore());
+      setError(false);
+    } catch {
+      // Keep any previously loaded stream on refresh failures.
+      setError(true);
+    }
+  }, []);
 
-  const weekPresales: PresaleItem[] = useMemo(() => {
-    const now = Date.now();
-    const weekOut = now + 7 * 86400000;
-    return presales
-      .filter((p) => {
-        const start = new Date(p.presaleStart).getTime();
-        if (Number.isNaN(start)) return false;
-        const end = p.presaleEnd ? new Date(p.presaleEnd).getTime() : start;
-        // Live now, or starting within the next 7 days.
-        return start <= weekOut && (Number.isNaN(end) ? start >= now : end >= now);
-      })
-      .sort((a, b) => new Date(a.presaleStart).getTime() - new Date(b.presaleStart).getTime())
-      .slice(0, 5);
-  }, [presales]);
+  useEffect(() => {
+    load().finally(() => setLoading(false));
+  }, [load]);
 
-  const renderEventRow = (event: Event, index: number) => (
-    <Animated.View key={event.id} entering={tearIn(index * durations.stagger)}>
-      <SpringPressable
-        haptic="light"
-        onPress={() => router.push(`/event/${event.id}`)}
-        accessibilityRole="button"
-        accessibilityLabel={`${event.artist?.name ?? event.name}, ${event.venue?.name ?? ''}`}
-        style={styles.row}
-      >
-        {event.imageUrl || event.artist?.imageUrl ? (
-          <Image
-            source={{ uri: event.imageUrl ?? event.artist?.imageUrl }}
-            style={styles.rowImage}
-            contentFit="cover"
-            transition={80}
-            cachePolicy="memory-disk"
-          />
-        ) : (
-          <View style={[styles.rowImage, styles.rowImageFallback]}>
-            <Ionicons name="musical-notes-outline" size={20} color={tokens.colors.mute} />
-          </View>
-        )}
-        <View style={styles.rowBody}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {event.artist?.name ?? event.name}
-          </Text>
-          <Text style={styles.rowMeta} numberOfLines={1}>
-            {event.venue?.name}
-            {event.venue?.name ? ' · ' : ''}
-            {formatEventDate(event.date)}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={tokens.colors.muteSoft} />
-      </SpringPressable>
-    </Animated.View>
-  );
-
-  const renderPresaleRow = (presale: PresaleItem, index: number) => (
-    <Animated.View key={presale.id} entering={tearIn(index * durations.stagger)}>
-      <SpringPressable
-        haptic="light"
-        onPress={() => router.push(`/presales/${presale.id}`)}
-        accessibilityRole="button"
-        accessibilityLabel={`${presale.artistName} presale`}
-        style={styles.row}
-      >
-        <View style={styles.dateChip}>
-          <Text style={styles.dateChipText}>{presaleDayLabel(presale.presaleStart)}</Text>
-        </View>
-        <View style={styles.rowBody}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {presale.artistName}
-          </Text>
-          <Text style={styles.rowMeta} numberOfLines={1}>
-            {presale.venueName} · {presale.venueCity}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={tokens.colors.muteSoft} />
-      </SpringPressable>
-    </Animated.View>
-  );
-
-  const rowSkeleton = (key: number) => (
-    <View key={key} style={styles.skeletonRow}>
-      <Skeleton width={52} height={52} borderRadius={tokens.radius.md} />
-      <View style={{ flex: 1, gap: 8 }}>
-        <Skeleton width="65%" height={14} borderRadius={7} />
-        <Skeleton width="45%" height={11} borderRadius={6} />
-      </View>
-    </View>
-  );
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -289,61 +126,40 @@ export default function ExploreScreen() {
           />
         }
       >
-        {/* Upcoming in your city */}
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>Upcoming in your city</Text>
-            <Text style={styles.sectionMeta}>{city.toUpperCase()}</Text>
-          </View>
-
-          {discoverLoading ? (
-            <>{[0, 1, 2, 3].map(rowSkeleton)}</>
-          ) : cityEvents.length > 0 ? (
-            cityEvents.map(renderEventRow)
-          ) : (
-            <View style={styles.empty}>
-              <Ionicons name="location-outline" size={24} color={tokens.colors.mute} />
-              <Text style={styles.emptyText}>
-                Nothing on the radar in {city} yet. Search for a show to get things going.
-              </Text>
+        {loading ? (
+          <ExploreStreamSkeleton />
+        ) : error && !data ? (
+          <ErrorState
+            title="Couldn't load Explore"
+            message="Check your connection and try again."
+            onRetry={refresh}
+          />
+        ) : data && !isEmpty(data) ? (
+          <ExploreStream data={data} />
+        ) : (
+          <View style={styles.empty}>
+            <Ionicons name="ticket-outline" size={26} color={tokens.colors.mute} />
+            <Text style={styles.emptyTitle}>Nothing here yet</Text>
+            <Text style={styles.emptyText}>
+              Explore fills in as shows get logged. Log a show you&apos;ve been to, or search for
+              an artist to start tracking your next one.
+            </Text>
+            <View style={styles.emptyActions}>
               <PillButton
-                title="Search shows"
+                title="Log a show"
+                variant="primary"
+                springFeedback
+                onPress={() => router.push('/log/search')}
+              />
+              <PillButton
+                title="Search"
                 variant="secondary"
                 springFeedback
                 onPress={() => router.push('/search')}
               />
             </View>
-          )}
-        </View>
-
-        {/* Presales this week */}
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>Presales this week</Text>
-            <SpringPressable onPress={() => router.push('/presales')} accessibilityRole="button" accessibilityLabel="All presales">
-              <Text style={styles.sectionLink}>All presales</Text>
-            </SpringPressable>
           </View>
-
-          {presalesLoading ? (
-            <>{[0, 1, 2].map(rowSkeleton)}</>
-          ) : weekPresales.length > 0 ? (
-            weekPresales.map(renderPresaleRow)
-          ) : (
-            <View style={styles.empty}>
-              <Ionicons name="ticket-outline" size={24} color={tokens.colors.mute} />
-              <Text style={styles.emptyText}>
-                No presales in the next seven days. Follow artists and we&apos;ll flag their next drop.
-              </Text>
-              <PillButton
-                title="Browse all presales"
-                variant="secondary"
-                springFeedback
-                onPress={() => router.push('/presales')}
-              />
-            </View>
-          )}
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
