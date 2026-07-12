@@ -31,7 +31,7 @@ import { CommentsBlock } from '../../components/entity/CommentsBlock';
 import { EntityNav } from '../../components/entity/EntityChrome';
 import { Facepile, QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
 import { EntityError, EntityPageSkeleton, ShimmerBlock } from '../../components/entity/EntityStates';
-import { isPast, monoDateYear, sameDay } from '../../components/entity/format';
+import { formatScore, isPast, monoDateYear, sameDay } from '../../components/entity/format';
 import { PhotoGrid } from '../../components/entity/PhotoGrid';
 import { PresaleCard } from '../../components/entity/PresaleCard';
 import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
@@ -39,9 +39,9 @@ import { SeatSectionTiles } from '../../components/entity/SeatSectionTiles';
 import { SetlistShield } from '../../components/entity/SetlistShield';
 import { PartyRow } from '../../components/party/PartyRow';
 import { FeedCard } from '../../components/feed/FeedCard';
-import { ScoreChip } from '../../components/timeline/ScoreChip';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { ScoreStamp, StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
 
 import { useEvent } from '../../hooks/useEvent';
 import { useEventComments } from '../../hooks/useEventComments';
@@ -60,7 +60,7 @@ import {
   type SetlistEntry,
 } from '../../lib/api/events';
 import { getEventParties, type Party } from '../../lib/api/parties';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { FeedItem } from '../../types/feed';
@@ -273,15 +273,22 @@ export default function EventScreen() {
       gap: 6,
       marginTop: 14,
     },
-    crumb: { fontSize: 13, fontWeight: '600', color: t.colors.mute },
-    crumbSep: { fontSize: 13, color: t.colors.muteSoft },
+    crumb: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    crumbSep: { fontFamily: t.fontFamilies.mono, fontSize: 11, color: t.colors.muteSoft },
     title: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: '800',
       letterSpacing: -0.4,
       color: t.colors.fg,
       marginTop: 8,
-      lineHeight: 27,
+      lineHeight: 29,
     },
     metaLine: {
       fontFamily: t.fontFamilies.mono,
@@ -290,6 +297,45 @@ export default function EventScreen() {
       color: t.colors.mute,
       marginTop: 8,
     },
+    // Header stats line — numbers fg 700 mono, labels muteSoft.
+    statsLine: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginTop: 10,
+    },
+    statNum: { color: t.colors.fg, fontWeight: '700' },
+    // YOUR NIGHT — the one stub on this page (C3: the user's own logged
+    // night). Perforation notches punch through to the page bg.
+    stubCard: {
+      marginTop: 18,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.stub,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      overflow: 'hidden',
+      ...t.shadows.card,
+    },
+    stubBody: { paddingHorizontal: t.density.cardPad, paddingTop: t.density.cardPad, paddingBottom: 14 },
+    stubTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    stubEyebrow: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    stubTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      letterSpacing: -0.2,
+      color: t.colors.fg,
+      marginTop: 6,
+    },
+    stubFooter: { paddingHorizontal: t.density.cardPad, paddingVertical: 12 },
     actionRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -348,6 +394,29 @@ export default function EventScreen() {
   const interestedPeople = event.friendsInterested ?? [];
   const facepilePeople = whoWentPeople.length ? whoWentPeople : interestedPeople;
 
+  // Header stats — "8.4 AVG · 214 LOGS · 36 INTERESTED".
+  const statBits: { num: string; label: string }[] = [];
+  if (typeof event.avgRating === 'number' && Number.isFinite(event.avgRating)) {
+    statBits.push({ num: formatScore(event.avgRating), label: 'AVG' });
+  }
+  if (event.logCount > 0) {
+    statBits.push({ num: String(event.logCount), label: event.logCount === 1 ? 'LOG' : 'LOGS' });
+  }
+  if (event.interestedCount > 0) {
+    statBits.push({ num: String(event.interestedCount), label: 'INTERESTED' });
+  }
+
+  // Stub details strip — seat refs when the log carries them, else the date.
+  const stubDetails = userLog
+    ? [
+        userLog.section ? `SEC ${userLog.section}` : null,
+        userLog.row ? `ROW ${userLog.row}` : null,
+        userLog.seat ? `SEAT ${userLog.seat}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || monoDateYear(event.date)
+    : '';
+
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -375,8 +444,9 @@ export default function EventScreen() {
           }
         >
           <View style={styles.content}>
-            {/* ── Breadcrumb ── */}
+            {/* ── Breadcrumb — "‹ ARTIST › TOUR" ── */}
             <View style={styles.crumbRow}>
+              <Text style={styles.crumbSep}>‹</Text>
               <SpringPressable
                 haptic="light"
                 onPress={() =>
@@ -436,21 +506,49 @@ export default function EventScreen() {
                 {monoDateYear(event.date)}
               </Text>
             </SpringPressable>
+            {statBits.length > 0 ? (
+              <Text style={styles.statsLine}>
+                {statBits.map((bit, i) => (
+                  <React.Fragment key={bit.label}>
+                    {i > 0 ? ' · ' : ''}
+                    <Text style={styles.statNum}>{bit.num}</Text>
+                    {` ${bit.label}`}
+                  </React.Fragment>
+                ))}
+              </Text>
+            ) : null}
+
+            {/* ── Your night — logged shows get the stub (C3); the tap keeps
+                   the same route to the memory. ── */}
+            {userLog ? (
+              <SpringPressable
+                haptic="light"
+                onPress={() => router.push(`/log/${userLog.id}`)}
+                accessibilityRole="button"
+                accessibilityLabel="View your memory"
+                style={styles.stubCard}
+              >
+                <View style={styles.stubBody}>
+                  <View style={styles.stubTopRow}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.stubEyebrow}>Your night</Text>
+                      <Text style={styles.stubTitle}>Logged — view your memory</Text>
+                    </View>
+                    {typeof userLog.rating === 'number' ? (
+                      <ScoreStamp score={userLog.rating} size={16} />
+                    ) : null}
+                  </View>
+                </View>
+                <StubPerforation notchColor={tokens.colors.bg} />
+                <View style={styles.stubFooter}>
+                  <StubDetailsRow left={stubDetails} right="VIEW →" />
+                </View>
+              </SpringPressable>
+            ) : null}
 
             {/* ── Action row ── */}
             <View style={styles.actionRow}>
-              {userLog ? (
-                <>
-                  {typeof userLog.rating === 'number' ? <ScoreChip score={userLog.rating} /> : null}
-                  <PillButton
-                    title="View your memory"
-                    variant="secondary"
-                    springFeedback
-                    haptic="light"
-                    onPress={() => router.push(`/log/${userLog.id}`)}
-                  />
-                </>
-              ) : (
+              {!userLog ? (
                 <PillButton
                   title="Log this show"
                   variant="primary"
@@ -460,7 +558,7 @@ export default function EventScreen() {
                     router.push({ pathname: '/log/details', params: { eventId: id } })
                   }
                 />
-              )}
+              ) : null}
               <PillButton
                 title="Interested"
                 variant="secondary"
@@ -471,7 +569,7 @@ export default function EventScreen() {
                   <Ionicons
                     name={event.isInterested ? 'star' : 'star-outline'}
                     size={13}
-                    color={event.isInterested ? tokens.colors.accent : tokens.colors.mute}
+                    color={event.isInterested ? tokens.colors.fg : tokens.colors.mute}
                   />
                 }
                 onPress={() => void handleInterested()}
@@ -516,9 +614,7 @@ export default function EventScreen() {
                     {crowd.slice(0, CROWD_PREVIEW_COUNT).map((item, i) => (
                       <Animated.View
                         key={item.id}
-                        entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(
-                          240,
-                        )}
+                        entering={tearIn(Math.min(i, 8) * durations.stagger)}
                         style={styles.crowdCard}
                       >
                         <FeedCard item={item} currentUserId={user?.id} />
@@ -648,9 +744,7 @@ export default function EventScreen() {
                   {parties.map((party, i) => (
                     <Animated.View
                       key={party.id}
-                      entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(
-                        240,
-                      )}
+                      entering={tearIn(Math.min(i, 8) * durations.stagger)}
                     >
                       <PartyRow
                         party={party}

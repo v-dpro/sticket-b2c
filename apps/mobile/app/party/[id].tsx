@@ -52,9 +52,10 @@ import {
   respondToRequest,
   type PartyDetail,
 } from '../../lib/api/parties';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { StubPerforation } from '../../components/ui/Stub';
 
 export default function PartyScreen() {
   const router = useRouter();
@@ -221,21 +222,33 @@ export default function PartyScreen() {
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
     content: { paddingHorizontal: t.density.pad },
+    // The party header is a STUB — an invite is a ticket (C3). Notches
+    // punch through to the page bg on the perforation line.
+    stubCard: {
+      marginTop: 14,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.stub,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      overflow: 'hidden',
+      ...t.shadows.card,
+    },
+    stubBody: { paddingHorizontal: t.density.cardPad, paddingTop: t.density.cardPad, paddingBottom: 14 },
+    stubFooter: { paddingHorizontal: t.density.cardPad, paddingVertical: 12 },
     eyebrow: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 11,
       letterSpacing: 1.5,
       textTransform: 'uppercase',
-      color: t.colors.mute,
-      marginTop: 14,
+      color: t.colors.muteSoft,
     },
     title: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: '800',
       letterSpacing: -0.4,
       color: t.colors.fg,
       marginTop: 6,
-      lineHeight: 29,
+      lineHeight: 25,
     },
     eventLink: {
       fontFamily: t.fontFamilies.mono,
@@ -245,7 +258,7 @@ export default function PartyScreen() {
       color: t.colors.mute,
       marginTop: 8,
     },
-    hostRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
+    hostRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     hostName: { fontSize: 14, fontWeight: '600', color: t.colors.text },
     hostUsername: {
       fontFamily: t.fontFamilies.mono,
@@ -271,7 +284,36 @@ export default function PartyScreen() {
       paddingHorizontal: 14,
       paddingVertical: 8,
     },
-    statusChipText: { fontSize: 13, fontWeight: '600', color: t.colors.inverseFg },
+    statusChipText: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.inverseFg,
+    },
+    // Host-only invite affordance — dashed (planned) border, mono cue.
+    inviteRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginTop: 12,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.dash,
+      borderRadius: t.radius.card,
+      paddingHorizontal: t.density.cardPad,
+      paddingVertical: 14,
+    },
+    inviteText: { fontSize: 14, fontWeight: '600', color: t.colors.text },
+    inviteCue: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
     muteLine: { fontSize: 12.5, color: t.colors.mute, marginTop: 10, lineHeight: 18 },
     section: { marginTop: 28 },
     requestRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
@@ -358,18 +400,9 @@ export default function PartyScreen() {
   let cta: React.ReactNode = null;
   if (isHost) {
     cta = (
-      <>
-        <View style={styles.statusChip}>
-          <Text style={styles.statusChipText}>You're hosting</Text>
-        </View>
-        <PillButton
-          title="Invite friends"
-          variant="secondary"
-          springFeedback
-          haptic="light"
-          onPress={() => setInviteOpen(true)}
-        />
-      </>
+      <View style={styles.statusChip}>
+        <Text style={styles.statusChipText}>You're hosting</Text>
+      </View>
     );
   } else if (status === 'GOING') {
     // No leave-party endpoint exists yet — "Can't make it" is omitted on
@@ -452,55 +485,63 @@ export default function PartyScreen() {
           }
         >
           <View style={styles.content}>
-            {/* ── Header ── */}
-            <Text style={styles.eyebrow}>Party</Text>
-            <Text style={styles.title}>{party.title}</Text>
-            <SpringPressable
-              haptic="light"
-              onPress={() =>
-                router.push({
-                  pathname: '/event/[eventId]',
-                  params: { eventId: party.eventId },
-                })
-              }
-              accessibilityRole="button"
-              accessibilityLabel={eventName ? `Go to ${eventName}` : 'Go to the event'}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              <Text style={styles.eventLink} numberOfLines={1}>
-                {eventName ? `For ${eventName} →` : 'View event →'}
-              </Text>
-            </SpringPressable>
+            {/* ── Header — the party card is a STUB (an invite is a ticket) ── */}
+            <View style={styles.stubCard}>
+              <View style={styles.stubBody}>
+                <Text style={styles.eyebrow}>Party</Text>
+                <Text style={styles.title}>{party.title}</Text>
+                <SpringPressable
+                  haptic="light"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/event/[eventId]',
+                      params: { eventId: party.eventId },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={eventName ? `Go to ${eventName}` : 'Go to the event'}
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  <Text style={styles.eventLink} numberOfLines={1}>
+                    {eventName ? `For ${eventName} →` : 'View event →'}
+                  </Text>
+                </SpringPressable>
 
-            {/* ── Host row ── */}
-            <View style={styles.hostRow}>
-              <Avatar uri={party.host.avatarUrl} name={hostName} size={32} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.hostName} numberOfLines={1}>
-                  Hosted by {hostName}
-                </Text>
-                <Text style={styles.hostUsername} numberOfLines={1}>
-                  @{party.host.username}
-                </Text>
+                {/* ── When / where ── */}
+                {party.startsAt || party.location || party.visibility === 'INVITE' ? (
+                  <View style={styles.metaBlock}>
+                    {party.startsAt ? (
+                      <Text style={styles.metaLine}>{monoDateTime(party.startsAt)}</Text>
+                    ) : null}
+                    {party.location ? (
+                      <Text style={styles.metaLine} numberOfLines={2}>
+                        {party.location}
+                      </Text>
+                    ) : null}
+                    {party.visibility === 'INVITE' ? (
+                      <Text style={styles.metaLine}>Invite only</Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+
+              <StubPerforation notchColor={tokens.colors.bg} />
+
+              {/* ── Host row ── */}
+              <View style={styles.stubFooter}>
+                <View style={styles.hostRow}>
+                  <Avatar uri={party.host.avatarUrl} name={hostName} size={32} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.hostName} numberOfLines={1}>
+                      Hosted by {hostName}
+                    </Text>
+                    <Text style={styles.hostUsername} numberOfLines={1}>
+                      @{party.host.username}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
-
-            {/* ── When / where ── */}
-            {party.startsAt || party.location || party.visibility === 'INVITE' ? (
-              <View style={styles.metaBlock}>
-                {party.startsAt ? (
-                  <Text style={styles.metaLine}>{monoDateTime(party.startsAt)}</Text>
-                ) : null}
-                {party.location ? (
-                  <Text style={styles.metaLine} numberOfLines={2}>
-                    {party.location}
-                  </Text>
-                ) : null}
-                {party.visibility === 'INVITE' ? (
-                  <Text style={styles.metaLine}>Invite only</Text>
-                ) : null}
-              </View>
-            ) : null}
 
             {party.description ? (
               <Text style={styles.description}>{party.description}</Text>
@@ -510,6 +551,20 @@ export default function PartyScreen() {
             {cta ? <View style={styles.ctaRow}>{cta}</View> : null}
             {ctaNote ? <Text style={styles.muteLine}>{ctaNote}</Text> : null}
 
+            {/* ── Host: invite friends (dashed = not-yet-there people) ── */}
+            {isHost ? (
+              <SpringPressable
+                haptic="light"
+                onPress={() => setInviteOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Invite friends"
+                style={styles.inviteRow}
+              >
+                <Text style={styles.inviteText}>Invite friends</Text>
+                <Text style={styles.inviteCue}>Invite →</Text>
+              </SpringPressable>
+            ) : null}
+
             {/* ── Host: pending requests ── */}
             {isHost && pendingRequests.length > 0 ? (
               <View style={styles.section}>
@@ -517,7 +572,7 @@ export default function PartyScreen() {
                 {pendingRequests.map((m, i) => (
                   <Animated.View
                     key={m.user.id}
-                    entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+                    entering={tearIn(Math.min(i, 8) * durations.stagger)}
                     style={styles.requestRow}
                   >
                     <Avatar
@@ -590,13 +645,13 @@ export default function PartyScreen() {
                   party.announcements.map((a, i) => (
                     <Animated.View
                       key={a.id}
-                      entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+                      entering={tearIn(Math.min(i, 8) * durations.stagger)}
                       style={styles.announcement}
                     >
+                      <Text style={styles.announcementText}>{a.text}</Text>
                       <Text style={styles.announcementMeta}>
                         @{a.author.username} · {monoDateTime(a.createdAt)}
                       </Text>
-                      <Text style={styles.announcementText}>{a.text}</Text>
                     </Animated.View>
                   ))
                 ) : (

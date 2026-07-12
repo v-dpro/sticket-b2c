@@ -20,13 +20,13 @@ export function InviteButton({ style }: InviteButtonProps) {
       paddingVertical: 14,
       gap: 8,
       borderWidth: 1,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
       borderStyle: 'dashed',
     },
     text: {
       fontSize: 16,
       fontWeight: '700',
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
   }));
 
@@ -44,7 +44,7 @@ export function InviteButton({ style }: InviteButtonProps) {
 
   return (
     <Pressable style={[styles.container, style]} onPress={() => void handleInvite()}>
-      <Ionicons name="paper-plane" size={18} color={tokens.colors.brandPurple} />
+      <Ionicons name="paper-plane" size={18} color={tokens.colors.mute} />
       <Text style={styles.text}>Invite Friends</Text>
     </Pressable>
   );

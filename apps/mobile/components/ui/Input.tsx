@@ -54,8 +54,8 @@ export function Input({
       paddingHorizontal: spacing.lg,
     },
     inputFocused: {
-      borderColor: t.colors.brandCyan,
-      shadowColor: t.colors.brandCyan,
+      borderColor: t.colors.line,
+      shadowColor: t.colors.fg,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.2,
       shadowRadius: 8,
@@ -102,7 +102,7 @@ export function Input({
         <TextInput
           style={[styles.input, style]}
           placeholderTextColor={tokens.colors.textMuted}
-          selectionColor={tokens.colors.brandCyan}
+          selectionColor={tokens.colors.fg}
           onFocus={(e) => {
             setFocused(true);
             props.onFocus?.(e);

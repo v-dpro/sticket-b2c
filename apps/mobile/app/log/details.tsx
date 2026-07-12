@@ -1,5 +1,5 @@
-// LOG FLOW · STEP 2 — details, minimal. Event header card + optional seat
-// + optional one-line note + "Log it". ~5 seconds of a 30-second loop.
+// LOG FLOW · STEP 2 — details, minimal. Poster-style event header + optional
+// seat tiles + optional one-line note + "Log it". ~5 seconds of a 30-second loop.
 // Route contract:
 //   in:  { eventId } (+ optional display params from select-event:
 //          eventName, eventDate, artistImage, venueName, venueCity )
@@ -7,7 +7,6 @@
 //          venueName, eventDate, first, xpGain, xpAfter, leveledUp, badges }
 //        (existing log → edit mode → PATCH → replace /log/[id])
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,9 +16,9 @@ import {
   Platform,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FlowHeader } from '../../components/log/FlowHeader';
@@ -34,12 +33,23 @@ import { useTheme } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import type { EventDetails } from '../../types/event';
 
+// Mono date for the poster header: "TONIGHT" when the show is today,
+// otherwise "JUL 12 2026".
 function monoDate(iso?: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  if (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  ) {
+    return 'TONIGHT';
+  }
   return d
-    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .replace(',', '')
     .toUpperCase();
 }
 
@@ -107,7 +117,6 @@ export default function LogDetails() {
   // Display values — params paint instantly, the fetch fills the gaps.
   const eventName = event?.name || (params.eventName ? String(params.eventName) : 'Your show');
   const eventDate = event?.date || (params.eventDate ? String(params.eventDate) : undefined);
-  const artistImage = event?.artist?.imageUrl || (params.artistImage ? String(params.artistImage) : undefined);
   const venueLine = [
     event?.venue?.name || (params.venueName ? String(params.venueName) : ''),
     event?.venue?.city || (params.venueCity ? String(params.venueCity) : ''),
@@ -181,7 +190,7 @@ export default function LogDetails() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
         <Stack.Screen options={{ headerShown: false }} />
-        <FlowHeader icon="back" label="The details" onPress={goBack} />
+        <FlowHeader icon="back" label="Logging" onPress={goBack} />
         <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: pad }}>
           <ErrorState title="Couldn't load show" message={loadError} onRetry={loadEvent} />
         </View>
@@ -192,7 +201,7 @@ export default function LogDetails() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <FlowHeader icon="back" label="The details" onPress={goBack} />
+      <FlowHeader icon="back" label="Logging" onPress={goBack} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -200,63 +209,33 @@ export default function LogDetails() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Event header card */}
-          <View
-            style={{
-              backgroundColor: c.card,
-              borderRadius: tokens.radius.xl,
-              borderWidth: 1,
-              borderColor: c.hairline,
-              padding: tokens.density.cardPad,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 14,
-              marginTop: 8,
-            }}
-          >
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                backgroundColor: c.card2,
-                overflow: 'hidden',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {artistImage ? (
-                <Image source={{ uri: artistImage }} style={{ width: '100%', height: '100%' }} />
-              ) : (
-                <Ionicons name="musical-notes-outline" size={20} color={c.mute} />
-              )}
-            </View>
-            <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-              <Text style={{ color: c.fg, fontSize: 18, fontWeight: '800' }} numberOfLines={2}>
+          {/* Event block — poster-style header, no card chrome */}
+          <View style={{ marginTop: 8, gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text
+                style={{ flex: 1, color: c.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}
+                numberOfLines={2}
+              >
                 {eventName}
               </Text>
-              {venueLine ? (
-                <Text style={{ color: c.mute, fontSize: 13, fontWeight: '400' }} numberOfLines={1}>
-                  {venueLine}
-                </Text>
-              ) : null}
-              {eventDate ? (
-                <Text
-                  style={{
-                    fontFamily: tokens.fontFamilies.mono,
-                    fontVariant: ['tabular-nums'],
-                    fontSize: 10.5,
-                    fontWeight: '600',
-                    letterSpacing: 1,
-                    color: c.mute,
-                    marginTop: 2,
-                  }}
-                >
-                  {monoDate(eventDate)}
-                </Text>
-              ) : null}
+              {isLoading ? <ActivityIndicator size="small" color={c.mute} /> : null}
             </View>
-            {isLoading ? <ActivityIndicator size="small" color={c.mute} /> : null}
+            {venueLine || eventDate ? (
+              <Text
+                style={{
+                  fontFamily: tokens.fontFamilies.mono,
+                  fontVariant: ['tabular-nums'],
+                  fontSize: 11,
+                  fontWeight: '600',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  color: c.mute,
+                }}
+                numberOfLines={1}
+              >
+                {[venueLine, monoDate(eventDate)].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
           </View>
 
           {/* Seat — optional, compact inline */}
@@ -271,18 +250,12 @@ export default function LogDetails() {
                 color: c.mute,
               }}
             >
-              Seat · optional
+              Your seat · optional
             </Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <LogField compact mono placeholder="Section" value={section} onChangeText={setSection} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <LogField compact mono placeholder="Row" value={row} onChangeText={setRow} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <LogField compact mono placeholder="Seat" value={seat} onChangeText={setSeat} />
-              </View>
+              <SeatTile label="Sec" value={section} onChangeText={setSection} />
+              <SeatTile label="Row" value={row} onChangeText={setRow} />
+              <SeatTile label="Seat" value={seat} onChangeText={setSeat} />
             </View>
           </View>
 
@@ -298,7 +271,7 @@ export default function LogDetails() {
                 color: c.mute,
               }}
             >
-              Note · optional
+              One line · optional
             </Text>
             <LogField
               placeholder="One line you’ll want to remember"
@@ -328,5 +301,66 @@ export default function LogDetails() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+// SeatTile — one third of the SEC / ROW / SEAT strip: centered mono label
+// over a centered mono value, on a card surface (ticket-stub data tile).
+function SeatTile({
+  label,
+  value,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+}) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: c.card,
+        borderRadius: tokens.radius.card,
+        borderWidth: 1,
+        borderColor: c.hairline,
+        paddingVertical: 12,
+        alignItems: 'center',
+        gap: 4,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: tokens.fontFamilies.mono,
+          fontSize: 10,
+          fontWeight: '600',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          color: c.muteSoft,
+        }}
+      >
+        {label}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder="—"
+        placeholderTextColor={c.muteSoft}
+        selectionColor={c.accent}
+        textAlign="center"
+        style={{
+          alignSelf: 'stretch',
+          paddingVertical: 0,
+          paddingHorizontal: 6,
+          fontFamily: tokens.fontFamilies.mono,
+          fontVariant: ['tabular-nums'],
+          fontSize: 20,
+          fontWeight: '700',
+          color: c.fg,
+        }}
+      />
+    </View>
   );
 }

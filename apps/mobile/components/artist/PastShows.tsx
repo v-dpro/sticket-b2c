@@ -52,7 +52,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
     dateMonth: {
       fontSize: 10,
       fontWeight: '600',
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       textTransform: 'uppercase',
     },
     dateDay: {
@@ -91,7 +91,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
       padding: 8,
     },
     logButton: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 16,
@@ -111,7 +111,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
     },
     loadMoreText: {
       fontSize: 14,
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
     },
   }));
 
@@ -166,7 +166,7 @@ export function PastShows({ shows, loading, hasMore, onLoadMore, onShowPress, on
     if (!loading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={tokens.colors.brandPurple} />
+        <ActivityIndicator size="small" color={tokens.colors.mute} />
       </View>
     );
   };

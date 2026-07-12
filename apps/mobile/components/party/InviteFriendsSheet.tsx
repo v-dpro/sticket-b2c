@@ -20,12 +20,12 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { useSession } from '../../hooks/useSession';
 import { getSuggestions, searchUsers } from '../../lib/api/friends';
 import { getFollowers } from '../../lib/api/users';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
@@ -180,7 +180,7 @@ export function InviteFriendsSheet({
   const renderRow = ({ item, index }: { item: Candidate; index: number }) => {
     const isSelected = selected.has(item.id);
     return (
-      <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger).duration(240)}>
+      <Animated.View entering={tearIn(Math.min(index, 8) * durations.stagger)}>
         <SpringPressable
           haptic="light"
           onPress={() => toggle(item.id)}

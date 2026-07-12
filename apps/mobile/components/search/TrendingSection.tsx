@@ -98,7 +98,7 @@ export function TrendingSection({ data, onSearchSelect }: TrendingSectionProps) 
                   <Image source={{ uri: artist.imageUrl }} style={styles.artistImage} />
                 ) : (
                   <View style={[styles.artistImage, styles.artistPlaceholder]}>
-                    <Ionicons name="person" size={22} color={tokens.colors.brandPurple} />
+                    <Ionicons name="person" size={22} color={tokens.colors.mute} />
                   </View>
                 )}
                 <Text style={styles.artistName} numberOfLines={1}>
@@ -121,7 +121,7 @@ export function TrendingSection({ data, onSearchSelect }: TrendingSectionProps) 
                 onPress={() => onSearchSelect(query)}
                 accessibilityRole="button"
               >
-                <Ionicons name="trending-up" size={14} color={tokens.colors.brandPurple} />
+                <Ionicons name="trending-up" size={14} color={tokens.colors.mute} />
                 <Text style={styles.searchTagText}>{query}</Text>
               </Pressable>
             ))}

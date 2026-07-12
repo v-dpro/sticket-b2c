@@ -1,13 +1,16 @@
-// MemoryCard — a shared log with a photo: the photo IS the memory (A19).
-// Full-bleed image (height ≈ 63% of width), radius 22, bottom scrim; all
-// text lives ON the photo: artist 21/800 white bottom-left, venue · date
-// in uppercase letterspaced mono below it, score chip top-right (optional
-// "#1 OF N" rank chip top-left), like/comment counts as a small mono line
-// bottom-right inside the scrim. No caption furniture below the card.
+// MemoryCard — a shared log with a photo. A logged memory IS a stub (C3):
+// full-bleed photo on top (rounded by the card frame), then the stub
+// construction on the card surface below — StubPerforation punching through
+// to the stage bg, and a mono StubDetailsRow ("VENUE · JUL 11 2026" · "№ A1B2"
+// from the log id). The score is a BareScore (C2 — bare giant digits ON the
+// photo, no chip); artist 21/800 white on the bottom scrim; the optional
+// "#1 OF N" rank renders as a bordered mono chip top-left. Card radius is
+// radius.stub with a hairline border; total height = photo + details strip
+// (the MemoryDeck accommodates mixed card heights).
 //
-// PHOTO PAGER — when the entry carries >1 photo the card becomes a mini
+// PHOTO PAGER — when the entry carries >1 photo the photo area becomes a mini
 // carousel: a horizontal paging FlatList of the photos slides INSIDE the
-// card frame while every overlay (scrim, chips, text, dots) lives in a
+// photo frame while every overlay (scrim, score, text, dots) lives in a
 // fixed layer painted on top — photos move beneath, chrome never does.
 // Tiny page dots sit bottom-center on the scrim (white active /
 // rgba(255,255,255,.35) idle) and a light haptic fires on page snap.
@@ -20,9 +23,9 @@
 // (a scroll view only claims the responder on move) so a tap anywhere
 // still opens the log, while a horizontal drag cancels the press.
 //
-// The scrim and over-photo chip/dot colors are deliberately literal — they
-// sit on top of a photo and are theme-independent by design (per the
-// handoff; the "fg" of the over-photo world is always white).
+// The scrim and over-photo colors are deliberately literal — they sit on
+// top of a photo and are theme-independent by design (per the handoff;
+// the "fg" of the over-photo world is always white).
 
 import React, { useCallback, useRef, useState } from 'react';
 import {
@@ -40,9 +43,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import type { TimelineEntry, TimelinePhoto } from '../../lib/api/timeline';
 import { haptics } from '../../lib/motion';
-import { useThemedStyles } from '../../lib/theme-context';
+import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { BareScore, StubDetailsRow, StubPerforation } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
-import { formatScore, formatShortDate } from './format';
+import { formatScore } from './format';
 
 type MemoryCardProps = {
   entry: TimelineEntry;
@@ -74,14 +78,31 @@ function coAuthorLabel(entry: TimelineEntry): string {
   return rest.length > 0 ? `w/ @${first.username} +${rest.length}` : `w/ @${first.username}`;
 }
 
+/** ISO date → "Jul 11 2026" (the details row uppercases it). */
+function stubDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return d
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .replace(',', '');
+}
+
 export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
+  const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
     card: {
       width: '100%',
-      // Height ≈ 63% of width (~216pt at 340pt wide).
+      borderRadius: t.radius.stub, // 14
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.hairline,
+      overflow: 'hidden', // rounds the photo top AND clips the notch punches
+      backgroundColor: t.colors.card,
+    },
+    // The photo area — keeps the old card proportions; the details strip
+    // below grows the card, which the deck accommodates.
+    photoArea: {
+      width: '100%',
       aspectRatio: 100 / 63,
-      borderRadius: t.radius.xl, // 22
-      overflow: 'hidden',
       backgroundColor: t.colors.card2, // shows while the photo loads
     },
     photo: {
@@ -121,19 +142,21 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
       alignItems: 'flex-start',
       justifyContent: 'space-between',
     },
-    chip: {
-      backgroundColor: CHIP_BG,
-      borderWidth: 1,
-      borderColor: CHIP_BORDER,
-      borderRadius: 10,
-      paddingVertical: 5,
-      paddingHorizontal: 10,
+    // Rank chip — a flat ScoreStamp shape carrying text: bordered mono,
+    // no fill (over-photo fg is white).
+    rankChip: {
+      borderWidth: 1.5,
+      borderColor: '#FFFFFF',
+      borderRadius: t.radius.chip, // 10
+      paddingVertical: 4,
+      paddingHorizontal: 9,
     },
-    chipText: {
+    rankChipText: {
       fontFamily: t.fontFamilies.mono,
       fontVariant: ['tabular-nums'],
-      fontSize: 14,
-      fontWeight: '800',
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
       color: '#FFFFFF',
     },
     bottomBlock: {
@@ -199,19 +222,25 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
     dotActive: {
       backgroundColor: DOT_ACTIVE,
     },
+    detailsRow: {
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      paddingBottom: 12,
+    },
   }));
 
   const photos = entry.photos as PagerPhoto[];
   const isPager = photos.length > 1;
 
   // ── Pager state ────────────────────────────────────────────────
-  // Card width (measured — the paging unit), live page for the dots, and
-  // the last settled page for the snap haptic.
+  // Photo-area width (measured — the paging unit; measured INSIDE the card
+  // border so slides match the FlatList's own width exactly), live page for
+  // the dots, and the last settled page for the snap haptic.
   const [pageW, setPageW] = useState(0);
   const [page, setPage] = useState(0);
   const lastSnapPage = useRef(0);
 
-  const onCardLayout = useCallback((e: LayoutChangeEvent) => {
+  const onPhotoAreaLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
     setPageW((prev) => (w > 0 && Math.abs(w - prev) > 0.5 ? w : prev));
   }, []);
@@ -269,10 +298,11 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
 
   const photo = photos[0];
   const coAuthors = coAuthorLabel(entry);
-  const metaParts = [
-    `${entry.venue.name} · ${formatShortDate(entry.event.date)}`,
-    coAuthors || null,
-  ].filter(Boolean);
+
+  // Stub details — only segments that exist (timeline entries carry no
+  // section/row today; tickets do — same row format when they land).
+  const detailsLeft = [entry.venue.name, stubDate(entry.event.date)].filter(Boolean).join(' · ');
+  const detailsRight = `№ ${entry.logId.slice(-4).toUpperCase()}`;
 
   const a11yParts = [
     `${entry.artist.name} at ${entry.venue.name}, shared memory`,
@@ -288,100 +318,105 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
       accessibilityRole="button"
       accessibilityLabel={a11yParts.join(', ')}
       style={styles.card}
-      onLayout={onCardLayout}
     >
-      {/* Photo layer — slides beneath the fixed overlay chrome. */}
-      {isPager && pageW > 0 ? (
-        <FlatList
-          data={photos}
-          keyExtractor={(p) => p.id}
-          renderItem={renderSlide}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          directionalLockEnabled
-          nestedScrollEnabled
-          onScroll={onPagerScroll}
-          scrollEventThrottle={16}
-          onMomentumScrollEnd={onPagerMomentumEnd}
-          getItemLayout={(_, i) => ({ length: pageW, offset: pageW * i, index: i })}
-          initialNumToRender={1}
-          maxToRenderPerBatch={2}
-          windowSize={3}
-          style={styles.photo}
-        />
-      ) : photo ? (
-        <Image
-          source={{ uri: photo.photoUrl || photo.thumbnailUrl }}
-          style={styles.photo}
-          contentFit="cover"
-          transition={80}
-          cachePolicy="memory-disk"
-          recyclingKey={photo.id}
-        />
-      ) : null}
-
-      {/* Fixed overlay layer — scrim, chips, text, dots. pointerEvents="none"
-          throughout, so horizontal pans reach the pager beneath. */}
-      {/* Bottom scrim: transparent until 40%, then settles to near-ink. */}
-      <LinearGradient
-        colors={SCRIM_COLORS}
-        locations={SCRIM_LOCATIONS}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.scrim}
-        pointerEvents="none"
-      />
-
-      <View style={styles.topRow} pointerEvents="none">
-        {rankLabel ? (
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{rankLabel}</Text>
-          </View>
-        ) : (
-          <View />
-        )}
-        {typeof entry.score === 'number' ? (
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{formatScore(entry.score)}</Text>
-          </View>
+      <View style={styles.photoArea} onLayout={onPhotoAreaLayout}>
+        {/* Photo layer — slides beneath the fixed overlay chrome. */}
+        {isPager && pageW > 0 ? (
+          <FlatList
+            data={photos}
+            keyExtractor={(p) => p.id}
+            renderItem={renderSlide}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            directionalLockEnabled
+            nestedScrollEnabled
+            onScroll={onPagerScroll}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={onPagerMomentumEnd}
+            getItemLayout={(_, i) => ({ length: pageW, offset: pageW * i, index: i })}
+            initialNumToRender={1}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            style={styles.photo}
+          />
+        ) : photo ? (
+          <Image
+            source={{ uri: photo.photoUrl || photo.thumbnailUrl }}
+            style={styles.photo}
+            contentFit="cover"
+            transition={80}
+            cachePolicy="memory-disk"
+            recyclingKey={photo.id}
+          />
         ) : null}
-      </View>
 
-      <View style={styles.bottomBlock} pointerEvents="none">
-        <Text style={styles.artist} numberOfLines={1}>
-          {entry.artist.name}
-        </Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.meta} numberOfLines={1}>
-            {metaParts.join(' · ')}
+        {/* Fixed overlay layer — scrim, score, text, dots. pointerEvents="none"
+            throughout, so horizontal pans reach the pager beneath. */}
+        {/* Bottom scrim: transparent until 40%, then settles to near-ink. */}
+        <LinearGradient
+          colors={SCRIM_COLORS}
+          locations={SCRIM_LOCATIONS}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.scrim}
+          pointerEvents="none"
+        />
+
+        <View style={styles.topRow} pointerEvents="none">
+          {rankLabel ? (
+            <View style={styles.rankChip}>
+              <Text style={styles.rankChipText}>{rankLabel}</Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          {/* C2: the score's ON-MEDIA body — bare giant digits, no chip. */}
+          {typeof entry.score === 'number' ? <BareScore score={entry.score} size={34} /> : null}
+        </View>
+
+        <View style={styles.bottomBlock} pointerEvents="none">
+          <Text style={styles.artist} numberOfLines={1}>
+            {entry.artist.name}
           </Text>
-          {entry.likeCount > 0 || entry.commentCount > 0 ? (
-            <View style={styles.counts}>
-              {entry.likeCount > 0 ? (
-                <View style={styles.count}>
-                  <Ionicons name="heart" size={11} color={OVERLAY_MUTE} />
-                  <Text style={styles.countText}>{entry.likeCount}</Text>
-                </View>
-              ) : null}
-              {entry.commentCount > 0 ? (
-                <View style={styles.count}>
-                  <Ionicons name="chatbubble" size={10} color={OVERLAY_MUTE} />
-                  <Text style={styles.countText}>{entry.commentCount}</Text>
+          {coAuthors || entry.likeCount > 0 || entry.commentCount > 0 ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.meta} numberOfLines={1}>
+                {coAuthors}
+              </Text>
+              {entry.likeCount > 0 || entry.commentCount > 0 ? (
+                <View style={styles.counts}>
+                  {entry.likeCount > 0 ? (
+                    <View style={styles.count}>
+                      <Ionicons name="heart" size={11} color={OVERLAY_MUTE} />
+                      <Text style={styles.countText}>{entry.likeCount}</Text>
+                    </View>
+                  ) : null}
+                  {entry.commentCount > 0 ? (
+                    <View style={styles.count}>
+                      <Ionicons name="chatbubble" size={10} color={OVERLAY_MUTE} />
+                      <Text style={styles.countText}>{entry.commentCount}</Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
             </View>
           ) : null}
         </View>
+
+        {isPager ? (
+          <View style={styles.dotsRow} pointerEvents="none">
+            {photos.map((p, i) => (
+              <View key={p.id} style={[styles.dot, i === page && styles.dotActive]} />
+            ))}
+          </View>
+        ) : null}
       </View>
 
-      {isPager ? (
-        <View style={styles.dotsRow} pointerEvents="none">
-          {photos.map((p, i) => (
-            <View key={p.id} style={[styles.dot, i === page && styles.dotActive]} />
-          ))}
-        </View>
-      ) : null}
+      {/* Stub construction (C3) — the tear line punches through to the
+          stage bg the deck floats over; details in ticket mono below. */}
+      <StubPerforation notchColor={tokens.colors.bg} style={{ marginTop: 4 }} />
+      <StubDetailsRow left={detailsLeft} right={detailsRight} style={styles.detailsRow} />
     </SpringPressable>
   );
 }

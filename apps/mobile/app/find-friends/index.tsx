@@ -131,7 +131,7 @@ export default function FindFriendsScreen() {
     },
     modalClose: {
       fontSize: 16,
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontWeight: '800',
     },
   }));
@@ -142,7 +142,7 @@ export default function FindFriendsScreen() {
     if (searchLoading) {
       return (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color={tokens.colors.brandPurple} />
+          <ActivityIndicator size="large" color={tokens.colors.mute} />
         </View>
       );
     }
@@ -177,14 +177,14 @@ export default function FindFriendsScreen() {
           <View style={styles.quickActions}>
             <Pressable style={styles.quickAction} onPress={() => setShowQRCode(true)}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="qr-code" size={24} color={tokens.colors.brandPurple} />
+                <Ionicons name="qr-code" size={24} color={tokens.colors.mute} />
               </View>
               <Text style={styles.quickActionText}>My QR Code</Text>
             </Pressable>
 
             <Pressable style={styles.quickAction} onPress={() => setShowScanner(true)}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="scan" size={24} color={tokens.colors.brandPurple} />
+                <Ionicons name="scan" size={24} color={tokens.colors.mute} />
               </View>
               <Text style={styles.quickActionText}>Scan Code</Text>
             </Pressable>
@@ -192,9 +192,9 @@ export default function FindFriendsScreen() {
             <Pressable style={styles.quickAction} onPress={() => void syncContacts()} disabled={contactsLoading}>
               <View style={styles.quickActionIcon}>
                 {contactsLoading ? (
-                  <ActivityIndicator color={tokens.colors.brandPurple} />
+                  <ActivityIndicator color={tokens.colors.mute} />
                 ) : (
-                  <Ionicons name="people" size={24} color={tokens.colors.brandPurple} />
+                  <Ionicons name="people" size={24} color={tokens.colors.mute} />
                 )}
               </View>
               <Text style={styles.quickActionText}>Contacts</Text>
@@ -214,7 +214,7 @@ export default function FindFriendsScreen() {
 
           {suggestionsLoading ? (
             <View style={{ paddingVertical: 12 }}>
-              <ActivityIndicator color={tokens.colors.brandPurple} />
+              <ActivityIndicator color={tokens.colors.mute} />
             </View>
           ) : suggestions.length > 0 ? (
             <View style={styles.section}>

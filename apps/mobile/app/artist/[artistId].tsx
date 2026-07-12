@@ -37,6 +37,7 @@ import {
 import { formatScore, monoDate, yearOf } from '../../components/entity/format';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { ScoreStamp } from '../../components/ui/Stub';
 
 import { useArtist } from '../../hooks/useArtist';
 import {
@@ -49,7 +50,7 @@ import {
   type ArtistTour,
 } from '../../lib/api/artists';
 import { getArtistEventsBandsintown } from '../../lib/api/logShow';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
@@ -175,20 +176,21 @@ export default function ArtistScreen() {
       const ratings = history
         .map((h) => h.rating)
         .filter((r): r is number => typeof r === 'number');
-      const avg = ratings.length
-        ? formatScore(ratings.reduce((a, b) => a + b, 0) / ratings.length)
-        : '—';
+      // Numeric avg kept for the ScoreStamp (the user's own score body).
+      const avgNum = ratings.length
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : null;
       const years = history
         .map((h) => new Date(h.event?.date ?? '').getFullYear())
         .filter((y) => Number.isFinite(y));
       const firstYear = years.length ? String(Math.min(...years)) : '—';
-      return { shows: String(history.length), avg, firstYear };
+      return { shows: String(history.length), avgNum, firstYear };
     }
     // Degraded: my-history unavailable (e.g. signed out / request failed).
     if (artist && artist.userShowCount > 0) {
       return {
         shows: String(artist.userShowCount),
-        avg: '—',
+        avgNum: null,
         firstYear: artist.userFirstShow ? yearOf(artist.userFirstShow.date) || '—' : '—',
       };
     }
@@ -231,7 +233,15 @@ export default function ArtistScreen() {
       textTransform: 'uppercase',
       color: t.colors.mute,
     },
-    youStatsRow: { flexDirection: 'row', gap: 12 },
+    youStatsRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
+    youScoreBlock: { flex: 1, gap: 6, alignItems: 'flex-start' },
+    youScoreLabel: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
     row: {
       minHeight: t.density.rowH,
       flexDirection: 'row',
@@ -354,7 +364,15 @@ export default function ArtistScreen() {
               <Text style={styles.youLabel}>YOU × {artist.name.toUpperCase()}</Text>
               <View style={styles.youStatsRow}>
                 <StatBlock value={youStats.shows} label="Shows" />
-                <StatBlock value={youStats.avg} label="Avg score" />
+                {youStats.avgNum != null ? (
+                  // The user's own score wears the stamp (C2 flat-surface body).
+                  <View style={styles.youScoreBlock}>
+                    <ScoreStamp score={youStats.avgNum} size={14} />
+                    <Text style={styles.youScoreLabel}>Avg score</Text>
+                  </View>
+                ) : (
+                  <StatBlock value="—" label="Avg score" />
+                )}
                 <StatBlock value={youStats.firstYear} label="First seen" />
               </View>
             </Animated.View>
@@ -375,7 +393,7 @@ export default function ArtistScreen() {
               {upcoming.slice(0, 8).map((show, i) => (
                 <Animated.View
                   key={show.id}
-                  entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+                  entering={tearIn(Math.min(i, 8) * durations.stagger)}
                 >
                   <SpringPressable
                     haptic="light"
@@ -427,7 +445,7 @@ export default function ArtistScreen() {
             tours.map((tour, i) => (
               <Animated.View
                 key={tour.id}
-                entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+                entering={tearIn(Math.min(i, 8) * durations.stagger)}
               >
                 <SpringPressable
                   haptic="light"

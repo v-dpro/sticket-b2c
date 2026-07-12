@@ -24,7 +24,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     statValue: {
       fontSize: 24,
       fontWeight: '900',
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
     statLabel: {
       fontSize: 12,
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
 
         <Pressable style={styles.row} onPress={() => { haptics.light(); router.push('/admin/users'); }} accessibilityRole="button">
           <View style={styles.rowIconWrap}>
-            <Ionicons name="people" size={18} color={tokens.colors.brandPurple} />
+            <Ionicons name="people" size={18} color={tokens.colors.mute} />
           </View>
           <View style={styles.rowInfo}>
             <Text style={styles.rowTitle}>User Management</Text>

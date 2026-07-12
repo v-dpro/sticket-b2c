@@ -69,7 +69,7 @@ export default function TermsOfServiceScreen() {
     contact: {
       fontSize: 14,
       fontWeight: '800',
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       marginTop: 8,
     },
   }));

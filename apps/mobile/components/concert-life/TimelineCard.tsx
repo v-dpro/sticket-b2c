@@ -36,7 +36,7 @@ const makeTypeConfig = (colors: ThemeColors) => ({
     badgeType: 'upcoming' as const,
   },
   ticket: {
-    color: colors.brandCyan,
+    color: colors.fg,
     badgeLabel: 'Ticket',
     badgeType: 'ticket' as const,
   },
@@ -46,7 +46,7 @@ const makeTypeConfig = (colors: ThemeColors) => ({
     badgeType: 'tracking' as const,
   },
   presale: {
-    color: colors.brandPurple,
+    color: colors.fg,
     badgeLabel: 'Presale',
     badgeType: 'presale' as const,
   },
@@ -116,7 +116,7 @@ export function TimelineCard({
       marginBottom: 8,
     },
     today: {
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
       fontWeight: '700',
     },
     ratingRow: {
@@ -132,7 +132,7 @@ export function TimelineCard({
     seatInfo: {
       fontSize: 13,
       fontWeight: '600',
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
     },
     maxPrice: {
       fontSize: 13,

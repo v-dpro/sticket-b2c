@@ -173,7 +173,7 @@ export function ProfileStatsView({ headerComponent, logs, years, selectedYear, o
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} />}
+      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.mute} />}
     >
       {headerComponent}
       <YearFilter years={years} selectedYear={selectedYear} onSelect={onYearSelect} />

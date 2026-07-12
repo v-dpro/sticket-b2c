@@ -41,7 +41,7 @@ export function SectionHead({ eyebrow, title, accentColor, action }: SectionHead
 
   return (
     <View style={styles.container}>
-      <Eyebrow text={eyebrow} color={accentColor ?? tokens.colors.brandCyan} />
+      <Eyebrow text={eyebrow} color={accentColor ?? tokens.colors.muteSoft} />
       <View style={styles.row}>
         <Text style={styles.title}>{title}</Text>
         {action && (

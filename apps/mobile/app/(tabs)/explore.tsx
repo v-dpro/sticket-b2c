@@ -15,14 +15,14 @@ import {
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useDiscovery } from '../../hooks/useDiscovery';
 import { usePresales, type PresaleItem } from '../../hooks/usePresales';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { Event } from '../../types/event';
 
@@ -54,7 +54,7 @@ export default function ExploreScreen() {
       paddingBottom: t.density.gap,
       gap: t.density.gap,
     },
-    title: { fontSize: 32, fontWeight: '800', letterSpacing: -0.6, color: t.colors.fg },
+    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
     searchBar: {
       height: 46,
       borderRadius: t.radius.full,
@@ -75,35 +75,62 @@ export default function ExploreScreen() {
       paddingHorizontal: t.density.pad,
       marginBottom: 10,
     },
-    sectionTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, color: t.colors.fg },
+    // Section labels are mono data lines (Scorecard Stub — no display type here).
+    sectionTitle: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
     sectionMeta: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 11,
       letterSpacing: 1,
       color: t.colors.mute,
     },
-    sectionLink: { fontSize: 13, fontWeight: '600', color: t.colors.mute },
+    sectionLink: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 11,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
+    // Entity tiles: plain cards — never stubs (C3), never dashed (not plans).
     row: {
       minHeight: t.density.rowH,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      paddingHorizontal: t.density.pad,
-      paddingVertical: 8,
+      marginHorizontal: t.density.pad,
+      marginBottom: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: t.radius.card,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
     },
     rowImage: {
-      width: 52,
-      height: 52,
-      borderRadius: t.radius.md,
+      width: 44,
+      height: 44,
+      borderRadius: t.radius.sm,
       backgroundColor: t.colors.card2,
     },
     rowImageFallback: {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    rowBody: { flex: 1, minWidth: 0, gap: 2 },
-    rowTitle: { fontSize: 15, fontWeight: '600', color: t.colors.text },
-    rowMeta: { fontSize: 13, color: t.colors.mute },
+    rowBody: { flex: 1, minWidth: 0, gap: 3 },
+    rowTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
+    rowMeta: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
     dateChip: {
       minWidth: 52,
       alignItems: 'center',
@@ -162,7 +189,7 @@ export default function ExploreScreen() {
   }, [presales]);
 
   const renderEventRow = (event: Event, index: number) => (
-    <Animated.View key={event.id} entering={FadeInDown.delay(index * durations.stagger).duration(240)}>
+    <Animated.View key={event.id} entering={tearIn(index * durations.stagger)}>
       <SpringPressable
         haptic="light"
         onPress={() => router.push(`/event/${event.id}`)}
@@ -199,7 +226,7 @@ export default function ExploreScreen() {
   );
 
   const renderPresaleRow = (presale: PresaleItem, index: number) => (
-    <Animated.View key={presale.id} entering={FadeInDown.delay(index * durations.stagger).duration(240)}>
+    <Animated.View key={presale.id} entering={tearIn(index * durations.stagger)}>
       <SpringPressable
         haptic="light"
         onPress={() => router.push(`/presales/${presale.id}`)}

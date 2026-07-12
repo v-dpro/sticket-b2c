@@ -14,9 +14,9 @@ type PillProps = {
 const makeVariantMap = (
   colors: ThemeColors,
 ): Record<PillVariant, { bg: string; border: string; text: string }> => ({
-  cyan: { bg: 'rgba(0, 212, 255, 0.10)', border: 'rgba(0, 212, 255, 0.30)', text: colors.brandCyan },
-  purple: { bg: 'rgba(139, 92, 246, 0.10)', border: 'rgba(139, 92, 246, 0.30)', text: colors.brandPurple },
-  pink: { bg: 'rgba(232, 121, 249, 0.10)', border: 'rgba(232, 121, 249, 0.30)', text: colors.brandPink },
+  cyan: { bg: colors.card2, border: colors.line, text: colors.fg },
+  purple: { bg: colors.card2, border: colors.line, text: colors.fg },
+  pink: { bg: colors.card2, border: colors.line, text: colors.fg },
   gold: { bg: 'rgba(255, 215, 0, 0.10)', border: 'rgba(255, 215, 0, 0.30)', text: colors.gold },
   success: { bg: 'rgba(34, 197, 94, 0.10)', border: 'rgba(34, 197, 94, 0.30)', text: colors.success },
   warning: { bg: 'rgba(245, 158, 11, 0.10)', border: 'rgba(245, 158, 11, 0.30)', text: colors.warning },

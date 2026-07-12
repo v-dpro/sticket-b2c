@@ -47,7 +47,7 @@ export function FlowHeader({ icon, label, onPress }: FlowHeaderProps) {
           fontWeight: '600',
           letterSpacing: 2,
           textTransform: 'uppercase',
-          color: c.mute,
+          color: c.muteSoft,
         }}
       >
         {label}

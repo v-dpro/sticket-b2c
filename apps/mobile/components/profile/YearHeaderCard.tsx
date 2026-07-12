@@ -66,7 +66,7 @@ export function YearHeaderCard({ data }: YearHeaderCardProps) {
       lineHeight: 20,
     },
     statValue: {
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
       fontWeight: '700',
     },
     progressSection: {

@@ -1,8 +1,9 @@
 // MemoryFloatCard — the featured card of the floating memory viewer
 // (/memory/[logId]). Same anatomy as FeedCard v3 ("the post is the photo"):
 // the media carousel IS the card (FeedCardPhotos, card variant) with the
-// identical over-photo chrome — blurred author pill (top-left), mono score
-// chip (top-right), artist 800 / venue·date mono / caption on the bottom
+// identical over-photo chrome — blurred author pill (top-left), the score
+// as giant bare mono digits on media / rotated stamp on the flat fallback
+// (C2), artist 800 / StubDetailsRow venue·date strip / caption on the bottom
 // scrim, plus the was-here facepile bottom-right when the serializer inlined
 // attendees.
 //
@@ -17,9 +18,10 @@ import type { FeedItem, FeedPhoto } from '../../types/feed';
 import type { ThemeTokens } from '../../lib/theme';
 import { useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
+import { BareScore, StubDetailsRow } from '../ui/Stub';
 import { FeedCardPhotos } from '../feed/FeedCardPhotos';
 import { WereHereFacepile, type FacepileUser } from '../feed/WereHereFacepile';
-import { formatMemoryAge, formatMemoryDate, formatMemoryScore } from './format';
+import { formatMemoryAge, formatMemoryDate } from './format';
 
 export interface MemoryCardUser {
   id: string;
@@ -130,9 +132,10 @@ export function MemoryFloatCard({
           <View />
         )}
         {score != null ? (
-          <View style={styles.scoreChip}>
-            <Text style={styles.scoreText}>{formatMemoryScore(score)}</Text>
-          </View>
+          // C2 — the on-media score body. The no-media fallback is a FIXED
+          // dark media tile (white chrome), so the bare digits apply there
+          // too; ScoreStamp would ink theme-fg (dark-on-dark in light mode).
+          <BareScore score={score} />
         ) : null}
       </View>
 
@@ -144,9 +147,7 @@ export function MemoryFloatCard({
             </Text>
           ) : null}
           {venueDate ? (
-            <Text style={styles.venueDate} numberOfLines={1}>
-              {venueDate}
-            </Text>
+            <StubDetailsRow left={venueDate} onMedia style={styles.venueDate} />
           ) : null}
           {data.note ? (
             <Text style={styles.caption} numberOfLines={2}>
@@ -247,23 +248,6 @@ const buildStyles = (tokens: ThemeTokens) =>
       letterSpacing: 0.4,
       color: 'rgba(255,255,255,0.6)',
     },
-    scoreChip: {
-      minWidth: 30,
-      paddingHorizontal: 8,
-      height: 26,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.16)',
-      backgroundColor: 'rgba(11,11,16,0.55)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    scoreText: {
-      fontFamily: tokens.fontFamilies.monoBold,
-      fontVariant: ['tabular-nums'],
-      fontSize: 14,
-      color: '#FFFFFF',
-    },
     overlayBottom: {
       flexDirection: 'row',
       alignItems: 'flex-end',
@@ -280,12 +264,9 @@ const buildStyles = (tokens: ThemeTokens) =>
       lineHeight: 26,
       color: '#FFFFFF',
     },
+    // Layout-only — type comes from StubDetailsRow (onMedia).
     venueDate: {
-      fontFamily: tokens.fontFamilies.monoSemi,
-      fontSize: 10.5,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: 'rgba(255,255,255,0.82)',
+      alignSelf: 'stretch',
       marginTop: 5,
     },
     caption: {

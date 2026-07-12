@@ -73,7 +73,7 @@ export function BadgeGrid({ badges }: BadgeGridProps) {
               <Image source={{ uri: badge.iconUrl }} style={styles.badgeIcon} />
             ) : (
               <View style={styles.badgeIconPlaceholder}>
-                <Ionicons name="ribbon-outline" size={18} color={tokens.colors.brandPurple} />
+                <Ionicons name="ribbon-outline" size={18} color={tokens.colors.mute} />
               </View>
             )}
             <Text style={styles.badgeName} numberOfLines={1}>

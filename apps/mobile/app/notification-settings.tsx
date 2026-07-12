@@ -84,7 +84,7 @@ export default function NotificationSettingsScreen() {
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={tokens.colors.brandPurple} />
+          <ActivityIndicator size="large" color={tokens.colors.mute} />
         </View>
       </Screen>
     );
@@ -99,7 +99,7 @@ export default function NotificationSettingsScreen() {
           <Ionicons name="arrow-back" size={22} color={tokens.colors.textHi} />
         </Pressable>
         <Text style={styles.title}>Notification Settings</Text>
-        {saving ? <ActivityIndicator size="small" color={tokens.colors.brandPurple} /> : <View style={{ width: 20 }} />}
+        {saving ? <ActivityIndicator size="small" color={tokens.colors.mute} /> : <View style={{ width: 20 }} />}
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -112,7 +112,7 @@ export default function NotificationSettingsScreen() {
             <Switch
               value={prefs.pushEnabled}
               onValueChange={(value) => void updatePref('pushEnabled', value)}
-              trackColor={{ false: tokens.colors.hairline, true: tokens.colors.brandPurple }}
+              trackColor={{ false: tokens.colors.hairline, true: tokens.colors.success }}
               thumbColor={tokens.colors.textHi}
             />
           </View>
@@ -260,7 +260,7 @@ function SettingRow({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: tokens.colors.hairline, true: tokens.colors.brandPurple }}
+        trackColor={{ false: tokens.colors.hairline, true: tokens.colors.success }}
         thumbColor={tokens.colors.textHi}
         disabled={disabled}
       />
@@ -290,7 +290,7 @@ function EmailOption({
     },
     emailOptionSelected: {
       backgroundColor: 'rgba(139, 92, 246, 0.12)',
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
     },
     emailOptionText: {
       fontSize: 13,
@@ -298,7 +298,7 @@ function EmailOption({
       fontWeight: '700',
     },
     emailOptionTextSelected: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
   }));
   return (

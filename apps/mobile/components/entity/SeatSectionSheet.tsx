@@ -10,10 +10,10 @@ import React, { useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { EventSeatSection, SeatSectionPhoto } from '../../lib/api/events';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { PhotoLightbox } from '../event/PhotoLightbox';
@@ -37,7 +37,7 @@ export function SeatSectionSheet({ section, onClose }: SeatSectionSheetProps) {
 
   const renderPhoto = ({ item, index }: { item: SeatSectionPhoto; index: number }) => (
     <Animated.View
-      entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger).duration(240)}
+      entering={tearIn(Math.min(index, 8) * durations.stagger)}
       style={styles.cell}
     >
       <Pressable

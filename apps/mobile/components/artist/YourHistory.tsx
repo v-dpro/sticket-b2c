@@ -50,7 +50,7 @@ export function YourHistory({ showCount, firstShow, lastShow, onSeeAllPress }: Y
       width: 56,
       height: 56,
       borderRadius: 28,
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 16,
@@ -94,7 +94,7 @@ export function YourHistory({ showCount, firstShow, lastShow, onSeeAllPress }: Y
           end={{ x: 1, y: 0 }}
           style={styles.emptyCard}
         >
-          <Ionicons name="musical-notes-outline" size={32} color={tokens.colors.brandPurple} />
+          <Ionicons name="musical-notes-outline" size={32} color={tokens.colors.mute} />
           <Text style={styles.emptyTitle}>You haven't seen them yet</Text>
           <Text style={styles.emptySubtitle}>Check out their upcoming shows below!</Text>
         </LinearGradient>
@@ -139,7 +139,7 @@ export function YourHistory({ showCount, firstShow, lastShow, onSeeAllPress }: Y
             )}
           </View>
 
-          <Ionicons name="chevron-forward" size={20} color={tokens.colors.brandPurple} />
+          <Ionicons name="chevron-forward" size={20} color={tokens.colors.mute} />
         </LinearGradient>
       </Pressable>
     </View>

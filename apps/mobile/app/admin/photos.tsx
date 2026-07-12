@@ -177,7 +177,7 @@ export default function AdminPhotosScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.brandPurple} />
+          <ActivityIndicator color={tokens.colors.mute} />
         </View>
       ) : (
         <FlatList

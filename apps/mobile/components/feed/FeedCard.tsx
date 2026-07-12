@@ -1,20 +1,19 @@
-// FeedCard v3 — "the post is the photo" (Phase A, decision A21).
+// FeedCard v4 — the SCORECARD STUB feed card (Phase C reskin).
 //
-// De-Instagrammed feed card: the show photo carousel IS the card. A blurred
-// author pill (top-left), a mono score chip (top-right), the artist /
-// venue·date / caption stacked over a bottom scrim, and a who-also-went
-// facepile (bottom-right, when the serializer inlines wasThereUsers) ride
-// directly on the media. Below the card sits ONE quiet mono meta line —
-// likes + comments (with the only red in the card, the heart glyph),
-// left-aligned; the facepile carries who-went.
+// The post is a ticket stub. Full-bleed photo carousel at the top of the
+// card (author chip top-left, giant BareScore top-right ON the photo), then
+// the card surface: artist title + optional caption, the StubPerforation
+// tear line (notches punch through to the stage bg), the mono
+// StubDetailsRow ("VENUE · JUL 11 2026 · SEC 112" / "ADMIT 01"), and a
+// social row — "♥ 24 · 6 COMMENTS" left, "3 WERE HERE →" right. Photo-less
+// posts get a card2 StripeField media block behind the artist name; per C2
+// that flat stock carries the ScoreStamp, never the bare score.
 //
-// Everything the old card carried on-surface (action-button row, liked-by
-// avatars, link chips, comments preview, pinned composer, who-was-here) now
-// lives on the memory screen (/log/[id]). Interactions collapse to three:
+// Interactions are unchanged from v3:
 //   · double-tap anywhere on the media → like (heart burst + haptic)
 //   · single tap on the media → the floating memory viewer (/memory/[logId],
 //     fast-path params for instant paint)
-//   · tap the facepile → "Were here" sheet
+//   · tap "N WERE HERE →" → the Were-here sheet
 // Long-press does nothing.
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -29,8 +28,8 @@ import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
+import { BareScore, ScoreStamp, StripeField, StubDetailsRow, StubPerforation } from '../ui/Stub';
 import { FeedCardPhotos } from './FeedCardPhotos';
-import { WereHereFacepile } from './WereHereFacepile';
 import { WereHereSheet } from './WereHereSheet';
 
 interface FeedCardProps {
@@ -50,16 +49,16 @@ export function invalidateFeedLikeCache() {
   likeCache.clear();
 }
 
-// height ≈ 300 at 340pt width. FeedCardPhotos.aspectRatio is height/width;
-// the fallback tile uses RN's width/height aspectRatio (its reciprocal).
+// height ≈ 300 at 340pt width. FeedCardPhotos.aspectRatio is height/width.
 const MEDIA_ASPECT = 300 / 340;
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
+/** Stub-details date — "JUL 11 2026" (the strip uppercases itself). */
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return `${MONTHS[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
 }
 
 /** Compact mono age for the author pill, e.g. "11H", "3D", "2W". */
@@ -79,11 +78,6 @@ function formatAge(dateStr: string): string {
   const mo = Math.floor(d / 30);
   if (mo < 12) return `${mo}MO`;
   return `${Math.floor(d / 365)}Y`;
-}
-
-/** Log ratings are stored on a 1–10 scale (see log/details.tsx). */
-function formatScore(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 // Memoized: props are `item` (replaced by identity on refresh) and
@@ -197,7 +191,7 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
     });
   }, [item, router]);
 
-  // Who-also-went sheet, opened from the over-photo facepile.
+  // Who-also-went sheet, opened from the "N WERE HERE" social-row target.
   const [wereHereOpen, setWereHereOpen] = useState(false);
   const openWereHere = useCallback(() => {
     haptics.light();
@@ -214,32 +208,72 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
   const score =
     typeof item.log.rating === 'number' && item.log.rating > 0 ? item.log.rating : null;
 
-  // Over-photo chrome — painted on the media by FeedCardPhotos (card variant).
-  const overlay = (
-    <View style={styles.overlay} pointerEvents="box-none">
-      <View style={styles.overlayTop} pointerEvents="box-none">
-        {/* Solid pill (same treatment as the score chip) — per-card BlurView is a scroll-perf trap. */}
-        <View style={styles.authorPill}>
-          <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={20} />
-          <Text style={styles.authorName} numberOfLines={1}>
-            {isSelf ? 'you' : item.user.username}
-          </Text>
-          <Text style={styles.authorAge}>{formatAge(item.createdAt)}</Text>
-        </View>
-        {score != null ? (
-          <View style={styles.scoreChip}>
-            <Text style={styles.scoreText}>{formatScore(score)}</Text>
-          </View>
-        ) : null}
-      </View>
+  // ── Stub details ──
+  // Section is only serialized on LogDetail; read it defensively so it
+  // appears when an API build inlines it on the feed item.
+  const section = (item.log as { section?: string }).section;
+  const detailsLeft = `${item.event.venue.name} · ${formatDate(item.event.date)}${
+    section ? ` · SEC ${section}` : ''
+  }`;
 
-      <View style={styles.overlayBottom} pointerEvents="box-none">
-        <View style={styles.overlayBottomText} pointerEvents="box-none">
-          <Text style={styles.artistName} numberOfLines={2}>
+  const wereHereCount = item.wasThereUsers?.length
+    ? Math.max(item.wasThereCount, item.wasThereUsers.length)
+    : 0;
+
+  // Over-media chrome — author chip + score. C2: the bare score rides
+  // photos; the photo-less stripe block is flat stock, so it gets the stamp.
+  const renderOverlayTop = (onPhoto: boolean) => (
+    <View style={styles.overlayTop} pointerEvents="box-none">
+      <View style={styles.authorPill}>
+        <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={20} />
+        <Text style={styles.authorName} numberOfLines={1}>
+          {isSelf ? 'you' : item.user.username}
+        </Text>
+        <Text style={styles.authorAge}>{formatAge(item.createdAt)}</Text>
+      </View>
+      {score != null ? (
+        onPhoto ? <BareScore score={score} size={34} /> : <ScoreStamp score={score} size={15} />
+      ) : null}
+    </View>
+  );
+
+  return (
+    <Animated.View layout={LinearTransition.duration(motionDurations.expand)} style={styles.wrapper}>
+      <View style={styles.card}>
+        {/* Media — full-bleed at the top of the stub, top corners clipped */}
+        <View style={styles.mediaClip}>
+          {photos.length > 0 ? (
+            <FeedCardPhotos
+              photos={photos}
+              aspectRatio={MEDIA_ASPECT}
+              dotsPosition="right"
+              showCounter={false}
+              overlay={renderOverlayTop(true)}
+              onPressMedia={openMemoryViewer}
+              onDoubleTapLike={() => void likeFromDoubleTap()}
+            />
+          ) : (
+            <Pressable
+              style={styles.stripeBlock}
+              onPress={openMemoryViewer}
+              accessibilityRole="button"
+              accessibilityLabel="Open memory"
+            >
+              <StripeField />
+              <Text style={styles.stripeArtist} numberOfLines={2}>
+                {item.event.artist.name}
+              </Text>
+              <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+                {renderOverlayTop(false)}
+              </View>
+            </Pressable>
+          )}
+        </View>
+
+        {/* Card surface — title + caption above the tear */}
+        <View style={styles.body}>
+          <Text style={styles.title} numberOfLines={2}>
             {item.event.artist.name}
-          </Text>
-          <Text style={styles.venueDate} numberOfLines={1}>
-            {`${item.event.venue.name} · ${formatDate(item.event.date)}`}
           </Text>
           {item.log.note ? (
             <Text style={styles.caption} numberOfLines={2}>
@@ -247,61 +281,45 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
             </Text>
           ) : null}
         </View>
-        {/* Who-also-went facepile — only when the serializer inlined users */}
-        {item.wasThereUsers && item.wasThereUsers.length > 0 ? (
-          <WereHereFacepile
-            users={item.wasThereUsers}
-            totalCount={item.wasThereCount}
-            onPress={openWereHere}
-          />
-        ) : null}
-      </View>
-    </View>
-  );
 
-  return (
-    <Animated.View layout={LinearTransition.duration(motionDurations.expand)} style={styles.wrapper}>
-      {photos.length > 0 ? (
-        <FeedCardPhotos
-          photos={photos}
-          aspectRatio={MEDIA_ASPECT}
-          dotsPosition="right"
-          showCounter={false}
-          scrims
-          radius={22}
-          overlay={overlay}
-          onPressMedia={openMemoryViewer}
-          onDoubleTapLike={() => void likeFromDoubleTap()}
-        />
-      ) : (
-        <Pressable
-          style={styles.fallback}
-          onPress={openMemoryViewer}
-          accessibilityRole="button"
-          accessibilityLabel="Open memory"
-        >
-          <Ionicons name="musical-notes" size={40} color="rgba(255,255,255,0.28)" />
-          <View style={styles.fallbackScrim} pointerEvents="none" />
-          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            {overlay}
+        <StubPerforation notchColor={c.bg} />
+
+        <StubDetailsRow left={detailsLeft} right="ADMIT 01" style={styles.detailsRow} />
+
+        {/* Social row — counts left, who-went right */}
+        <View style={styles.socialRow}>
+          <View style={styles.socialLeft}>
+            {like.count > 0 ? (
+              <>
+                <Ionicons
+                  name="heart"
+                  size={12}
+                  color={like.liked ? c.like : c.mute}
+                  style={styles.heartGlyph}
+                />
+                <Text style={styles.socialText}>{like.count}</Text>
+              </>
+            ) : null}
+            {like.count > 0 && item.commentCount > 0 ? <Text style={styles.socialDot}>·</Text> : null}
+            {item.commentCount > 0 ? (
+              <Text style={styles.socialText}>
+                {item.commentCount} {item.commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
+              </Text>
+            ) : null}
           </View>
-        </Pressable>
-      )}
-
-      {/* ── Quiet mono meta line — counts only; the facepile carries who-went ── */}
-      <View style={styles.metaRow}>
-        {like.count > 0 ? (
-          <>
-            <Ionicons name="heart" size={11} color={c.error} style={styles.heartGlyph} />
-            <Text style={styles.metaText}>{like.count}</Text>
-          </>
-        ) : null}
-        {like.count > 0 && item.commentCount > 0 ? <Text style={styles.metaDot}>·</Text> : null}
-        {item.commentCount > 0 ? (
-          <Text style={styles.metaText}>
-            {item.commentCount} {item.commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
-          </Text>
-        ) : null}
+          {wereHereCount > 0 ? (
+            <Pressable
+              onPress={openWereHere}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`${wereHereCount} ${wereHereCount === 1 ? 'person was' : 'people were'} here`}
+            >
+              <Text style={styles.wereHereText}>
+                {wereHereCount} {wereHereCount === 1 ? 'WAS' : 'WERE'} HERE →
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <WereHereSheet
@@ -321,32 +339,45 @@ const buildStyles = (tokens: ThemeTokens) =>
       marginHorizontal: 20,
     },
 
-    /* No-media fallback — fixed dark tile so the white chrome stays legible. */
-    fallback: {
-      width: '100%',
-      aspectRatio: 1 / MEDIA_ASPECT,
-      borderRadius: 22,
-      overflow: 'hidden',
-      backgroundColor: '#17171E',
-      alignItems: 'center',
-      justifyContent: 'center',
+    /* The stub card. No overflow:hidden here — the perforation notches
+       punch past the card edges (media clips itself in mediaClip). */
+    card: {
+      backgroundColor: tokens.colors.card,
+      borderRadius: tokens.radius.stub,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      ...tokens.shadows.card,
     },
-    fallbackScrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(11,11,16,0.35)',
+    mediaClip: {
+      borderTopLeftRadius: tokens.radius.stub - 1,
+      borderTopRightRadius: tokens.radius.stub - 1,
+      overflow: 'hidden',
     },
 
-    /* Over-photo overlay */
-    overlay: {
-      flex: 1,
-      padding: 14,
-      justifyContent: 'space-between',
+    /* Photo-less media block — flat ticket stock (card2 + stripes). */
+    stripeBlock: {
+      height: 170,
+      backgroundColor: tokens.colors.card2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
     },
+    stripeArtist: {
+      fontSize: 24,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+      textAlign: 'center',
+      color: tokens.colors.fg,
+    },
+
+    /* Over-media chrome */
     overlayTop: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
+      padding: 12,
     },
+    /* Solid pill — per-card BlurView is a scroll-perf trap. */
     authorPill: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -369,77 +400,70 @@ const buildStyles = (tokens: ThemeTokens) =>
       letterSpacing: 0.4,
       color: 'rgba(255,255,255,0.6)',
     },
-    scoreChip: {
-      minWidth: 30,
-      paddingHorizontal: 8,
-      height: 26,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.16)',
-      backgroundColor: 'rgba(11,11,16,0.55)',
-      alignItems: 'center',
-      justifyContent: 'center',
+
+    /* Card surface */
+    body: {
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: 12,
     },
-    scoreText: {
-      fontFamily: tokens.fontFamilies.monoBold,
-      fontVariant: ['tabular-nums'],
-      fontSize: 14,
-      color: '#FFFFFF',
-    },
-    overlayBottom: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: 10,
-    },
-    overlayBottomText: {
-      flex: 1,
-      alignItems: 'flex-start',
-    },
-    artistName: {
-      fontSize: 22,
+    title: {
+      fontSize: tokens.fonts.cardTitle,
       fontWeight: '800',
-      letterSpacing: -0.4,
-      lineHeight: 26,
-      color: '#FFFFFF',
-    },
-    venueDate: {
-      fontFamily: tokens.fontFamilies.monoSemi,
-      fontSize: 10.5,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: 'rgba(255,255,255,0.82)',
-      marginTop: 5,
+      letterSpacing: -0.3,
+      color: tokens.colors.fg,
     },
     caption: {
-      fontSize: 12,
+      fontSize: 13.5,
       fontWeight: '400',
-      lineHeight: 16,
-      color: 'rgba(255,255,255,0.85)',
-      marginTop: 7,
+      lineHeight: 18,
+      color: tokens.colors.text,
+      marginTop: 5,
+    },
+    detailsRow: {
+      paddingHorizontal: 14,
+      paddingTop: 11,
     },
 
-    /* Quiet mono meta line */
-    metaRow: {
+    /* Social row */
+    socialRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 4,
-      paddingTop: 9,
-      minHeight: 16,
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      paddingBottom: 12,
+      minHeight: 18,
+    },
+    socialLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     heartGlyph: {
       marginRight: 4,
     },
-    metaText: {
-      fontFamily: tokens.fontFamilies.monoSemi,
+    socialText: {
+      fontFamily: tokens.fontFamilies.mono,
       fontVariant: ['tabular-nums'],
-      fontSize: 10.5,
-      letterSpacing: 0.5,
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
       color: tokens.colors.mute,
     },
-    metaDot: {
-      fontFamily: tokens.fontFamilies.monoSemi,
-      fontSize: 10.5,
+    socialDot: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 11,
+      fontWeight: '600',
       color: tokens.colors.mute,
       marginHorizontal: 5,
+    },
+    wereHereText: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      color: tokens.colors.muteSoft,
     },
   });

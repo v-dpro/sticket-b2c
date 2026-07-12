@@ -92,7 +92,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       marginTop: 6,
     },
     loadMoreText: {
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
       fontSize: 13,
     },
   }));
@@ -134,7 +134,7 @@ export function PhotosSection({ photos, onLoadMore, hasMore }: PhotosSectionProp
       {hasMore ? (
         <Pressable style={styles.loadMoreButton} onPress={onLoadMore}>
           <Text style={styles.loadMoreText}>Load more photos</Text>
-          <Ionicons name="chevron-forward" size={14} color={tokens.colors.brandCyan} />
+          <Ionicons name="chevron-forward" size={14} color={tokens.colors.mute} />
         </Pressable>
       ) : null}
 

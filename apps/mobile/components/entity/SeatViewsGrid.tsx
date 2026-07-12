@@ -6,10 +6,10 @@ import React, { memo } from 'react';
 import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { SeatView } from '../../types/venue';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 // Memoized: `seatViews` is replaced by identity on refetch — shallow compare holds.
@@ -65,7 +65,7 @@ export const SeatViewsGrid = memo(function SeatViewsGrid({ seatViews }: { seatVi
       {seatViews.map((view, i) => (
         <Animated.View
           key={view.id}
-          entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+          entering={tearIn(Math.min(i, 8) * durations.stagger)}
           style={styles.cell}
         >
           <Image

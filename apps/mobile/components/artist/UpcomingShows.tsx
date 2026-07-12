@@ -37,7 +37,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
       borderColor: t.colors.hairline,
     },
     dateBadge: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       borderRadius: 8,
       paddingVertical: 8,
       paddingHorizontal: 12,
@@ -77,7 +77,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
     },
     friendsText: {
       fontSize: 11,
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
     },
     interestedButton: {
       position: 'absolute',
@@ -123,7 +123,7 @@ export function UpcomingShows({ shows, onShowPress, onInterestedPress }: Upcomin
 
               {show.friendsGoing > 0 && (
                 <View style={styles.friendsBadge}>
-                  <Ionicons name="people" size={12} color={tokens.colors.brandCyan} />
+                  <Ionicons name="people" size={12} color={tokens.colors.mute} />
                   <Text style={styles.friendsText}>
                     {show.friendsGoing} friend{show.friendsGoing !== 1 ? 's' : ''} going
                   </Text>

@@ -49,7 +49,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
   return (
     <View style={styles.container}>
       <View style={styles.stat}>
-        <Ionicons name="people" size={20} color={tokens.colors.brandPurple} />
+        <Ionicons name="people" size={20} color={tokens.colors.mute} />
         <Text style={styles.statValue}>{formatNumber(followerCount)}</Text>
         <Text style={styles.statLabel}>followers</Text>
       </View>
@@ -57,7 +57,7 @@ export function ArtistStats({ followerCount, totalLogs, avgRating }: ArtistStats
       <View style={styles.divider} />
 
       <View style={styles.stat}>
-        <Ionicons name="musical-notes" size={20} color={tokens.colors.brandCyan} />
+        <Ionicons name="musical-notes" size={20} color={tokens.colors.mute} />
         <Text style={styles.statValue}>{formatNumber(totalLogs)}</Text>
         <Text style={styles.statLabel}>times logged</Text>
       </View>

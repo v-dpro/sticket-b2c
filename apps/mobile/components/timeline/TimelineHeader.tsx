@@ -1,6 +1,7 @@
 // TimelineHeader — compact pinned profile header above the timeline.
-// Avatar 56 · display name (800) · @username + city (mute) · stats row
-// (mono, tabular numerals, uppercase letterspaced labels) · white Log pill
+// Avatar 56 · display name (800) · @username + city (mute) · scorecard
+// strip ("47 SHOWS · 29 ARTISTS · 18 VENUES · 7.8 AVG" — numbers fg 700
+// tabular mono, labels 10/600 mono muteSoft uppercase) · white Log pill
 // · settings gear · edit chip.
 
 import React from 'react';
@@ -115,13 +116,13 @@ export function TimelineHeader({
       fontFamily: t.fontFamilies.mono,
       fontVariant: ['tabular-nums'],
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: '700',
       color: t.colors.fg,
     },
     statLabel: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 10,
-      fontWeight: '500',
+      fontWeight: '600',
       letterSpacing: 1.2,
       textTransform: 'uppercase',
       color: t.colors.muteSoft,

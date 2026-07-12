@@ -43,15 +43,16 @@ const buildStyles = (tokens: ThemeTokens) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      marginHorizontal: 14,
+      marginHorizontal: 20, // aligns with the feed stub cards
       marginTop: 4,
       marginBottom: 12,
       paddingHorizontal: 14,
       paddingVertical: 12,
-      borderRadius: tokens.radius.lg,
+      borderRadius: tokens.radius.card,
       borderWidth: 1,
       borderColor: tokens.colors.hairline,
       backgroundColor: tokens.colors.card,
+      ...tokens.shadows.card,
     },
     iconWrap: {
       width: 34,

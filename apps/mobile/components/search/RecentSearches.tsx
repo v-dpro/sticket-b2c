@@ -35,7 +35,7 @@ export function RecentSearches({ searches, onSelect, onRemove, onClearAll }: Rec
     },
     clearAll: {
       fontSize: 13,
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontWeight: '700',
     },
     item: {

@@ -76,7 +76,7 @@ export default function AdminFeedbackScreen() {
       marginBottom: spacing.sm,
     },
     cardTitle: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontWeight: '900',
       fontSize: 12,
       marginBottom: 6,
@@ -147,7 +147,7 @@ export default function AdminFeedbackScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.brandPurple} />
+          <ActivityIndicator color={tokens.colors.mute} />
         </View>
       ) : (
         <FlatList

@@ -9,13 +9,13 @@ import { Stack, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { FlowHeader } from '../../components/log/FlowHeader';
 import { LogRow } from '../../components/log/LogRow';
 import { PillButton } from '../../components/ui/PillButton';
 import { searchArtistsSpotify, type SearchArtist } from '../../lib/api/logShow';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme } from '../../lib/theme-context';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
@@ -128,10 +128,7 @@ export default function LogSearchArtist() {
           results.length > 0 ? (
             <View>
               {results.map((a, i) => (
-                <Animated.View
-                  key={a.id}
-                  entering={FadeInDown.duration(220).delay(Math.min(i, 8) * durations.stagger)}
-                >
+                <Animated.View key={a.id} entering={tearIn(Math.min(i, 8) * durations.stagger)}>
                   <LogRow
                     title={a.name}
                     subtitle={a.genres?.slice(0, 3).join(', ') || undefined}

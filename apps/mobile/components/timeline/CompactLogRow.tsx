@@ -1,13 +1,15 @@
-// CompactLogRow — an unshared (or photo-less) logged show: quiet row card
-// with artist (700), venue · date (mute), and the score chip on the right.
+// CompactLogRow — an unshared (or photo-less) logged show: a light stub.
+// Quiet row card with artist (700), venue · date in uppercase mono, and the
+// score as a small rotated ScoreStamp on the right (C2 — flat surface, so
+// the score wears its stamp body).
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { TimelineEntry } from '../../lib/api/timeline';
 import { useThemedStyles } from '../../lib/theme-context';
+import { ScoreStamp } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
-import { ScoreChip } from './ScoreChip';
 import { formatShortDate } from './format';
 
 type CompactLogRowProps = {
@@ -35,10 +37,14 @@ export function CompactLogRow({ entry, onPress }: CompactLogRowProps) {
       color: t.colors.fg,
     },
     meta: {
-      fontSize: 12.5,
-      fontWeight: '400',
-      color: t.colors.mute,
-      marginTop: 3,
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginTop: 4,
     },
   }));
 
@@ -58,7 +64,9 @@ export function CompactLogRow({ entry, onPress }: CompactLogRowProps) {
           {entry.venue.name} · {formatShortDate(entry.event.date)}
         </Text>
       </View>
-      {typeof entry.score === 'number' ? <ScoreChip score={entry.score} /> : null}
+      {typeof entry.score === 'number' ? (
+        <ScoreStamp score={entry.score} size={13} flat={false} />
+      ) : null}
     </SpringPressable>
   );
 }

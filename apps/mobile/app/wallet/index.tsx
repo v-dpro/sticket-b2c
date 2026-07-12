@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { differenceInDays, parseISO, format } from 'date-fns';
 
 import { MonoLabel } from '../../components/ui/MonoLabel';
-import { TicketStub } from '../../components/ui/TicketStub';
+import { StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { EmailInstructions } from '../../components/wallet/EmailInstructions';
 import { EmptyWallet } from '../../components/wallet/EmptyWallet';
@@ -37,6 +37,17 @@ const TABS: { key: TabType; label: string }[] = [
   { key: 'past', label: 'Past' },
   { key: 'selling', label: 'Selling' },
 ];
+
+/** "SEC 112 · ROW 8 · SEAT 4" for the stub's mono details strip. */
+function seatLine(ticket: Ticket): string {
+  if (ticket.isGeneralAdmission) return 'GENERAL ADMISSION';
+  const parts = [
+    ticket.section ? `SEC ${ticket.section}` : null,
+    ticket.row ? `ROW ${ticket.row}` : null,
+    ticket.seat ? `SEAT ${ticket.seat}` : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : 'GENERAL ADMISSION';
+}
 
 function WalletHeader({ onBack, onAdd }: { onBack: () => void; onAdd?: () => void }) {
   const { tokens } = useTheme();
@@ -61,7 +72,7 @@ function WalletHeader({ onBack, onAdd }: { onBack: () => void; onAdd?: () => voi
       color: t.colors.mute,
       marginBottom: 2,
     },
-    title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.6, color: t.colors.fg },
+    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
     addButton: {
       width: 40,
       height: 40,
@@ -159,29 +170,66 @@ export default function WalletScreen() {
       paddingVertical: t.spacing.sm,
       backgroundColor: t.colors.bg,
     },
-    ticketRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    // Held tickets are STUBS (C3): card bg + radius.stub + perforation
+    // separating the event header from the SEC/ROW/SEAT mono strip.
+    ticketStub: {
       backgroundColor: t.colors.card,
-      borderRadius: t.radius.lg,
-      padding: 12,
+      borderRadius: t.radius.stub,
       marginHorizontal: t.density.pad,
       marginBottom: t.spacing.sm,
-      borderWidth: 1,
-      borderColor: t.colors.hairline,
+      ...t.shadows.card,
     },
-    ticketImageWrap: { width: 56, height: 56, borderRadius: t.radius.md, overflow: 'hidden' },
-    ticketImage: { width: 56, height: 56 },
+    ticketHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      paddingBottom: 10,
+    },
+    ticketImageWrap: { width: 48, height: 48, borderRadius: t.radius.sm, overflow: 'hidden' },
+    ticketImage: { width: 48, height: 48 },
     ticketImagePlaceholder: {
       backgroundColor: t.colors.card2,
       justifyContent: 'center',
       alignItems: 'center',
     },
-    ticketInfo: { flex: 1, marginLeft: 12, gap: 2, minWidth: 0 },
-    ticketArtist: { fontSize: 15, fontWeight: '700', color: t.colors.fg },
-    ticketMeta: { fontSize: 12, color: t.colors.mute },
+    ticketInfo: { flex: 1, marginLeft: 12, gap: 3, minWidth: 0 },
+    ticketArtist: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
+    ticketMeta: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    ticketDetails: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12 },
     stubRow: { paddingHorizontal: t.density.pad, gap: t.spacing.sm, marginBottom: t.spacing.sm },
     stubWrap: { flex: 1 },
+    // Past collectible stubs (2-col grid) — same construction, compact.
+    pastStub: {
+      flex: 1,
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.stub,
+      ...t.shadows.card,
+    },
+    pastStubTop: { padding: 14, paddingBottom: 12 },
+    pastStubDate: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 9.5,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginBottom: 6,
+    },
+    pastStubArtist: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
+    pastStubVenue: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 9.5,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginTop: 5,
+    },
+    pastStubMeta: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 },
     listContent: { paddingTop: t.spacing.sm },
     emptyContainer: { flex: 1 },
     emptyPast: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: t.spacing.sm },
@@ -208,35 +256,42 @@ export default function WalletScreen() {
     };
 
     return (
-      <SpringPressable style={styles.ticketRow} onPress={handlePress} haptic="light" accessibilityRole="button">
-        {/* Cover image */}
-        <View style={styles.ticketImageWrap}>
-          {item.event.artist.imageUrl ? (
-            <Image source={{ uri: item.event.artist.imageUrl }} style={styles.ticketImage} />
-          ) : (
-            <View style={[styles.ticketImage, styles.ticketImagePlaceholder]}>
-              <Ionicons name="musical-notes" size={22} color={tokens.colors.mute} />
-            </View>
-          )}
-        </View>
+      <SpringPressable style={styles.ticketStub} onPress={handlePress} haptic="light" accessibilityRole="button">
+        {/* Event header */}
+        <View style={styles.ticketHeader}>
+          <View style={styles.ticketImageWrap}>
+            {item.event.artist.imageUrl ? (
+              <Image source={{ uri: item.event.artist.imageUrl }} style={styles.ticketImage} />
+            ) : (
+              <View style={[styles.ticketImage, styles.ticketImagePlaceholder]}>
+                <Ionicons name="musical-notes" size={22} color={tokens.colors.mute} />
+              </View>
+            )}
+          </View>
 
-        {/* Info */}
-        <View style={styles.ticketInfo}>
+          <View style={styles.ticketInfo}>
+            <Text style={styles.ticketArtist} numberOfLines={1}>
+              {item.event.artist.name}
+            </Text>
+            <Text style={styles.ticketMeta} numberOfLines={1}>
+              {item.event.venue.name} · {format(eventDate, 'MMM d')}
+            </Text>
+          </View>
+
           {isUpcoming && daysUntil <= 30 && (
             <MonoLabel size={10} color={tokens.colors.fg}>
               {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'IN 1D' : `IN ${daysUntil}D`}
             </MonoLabel>
           )}
-          <Text style={styles.ticketArtist} numberOfLines={1}>
-            {item.event.artist.name}
-          </Text>
-          <Text style={styles.ticketMeta} numberOfLines={1}>
-            {item.event.venue.name} · {format(eventDate, 'MMM d')}
-          </Text>
         </View>
 
-        {/* Chevron */}
-        <Ionicons name="chevron-forward" size={18} color={tokens.colors.muteSoft} />
+        {/* The tear line — held tickets get the stub construction (C3). */}
+        <StubPerforation notchColor={tokens.colors.bg} />
+
+        {/* Ticket meta strip */}
+        <View style={styles.ticketDetails}>
+          <StubDetailsRow left={seatLine(item)} right="ADMIT 01" />
+        </View>
       </SpringPressable>
     );
   };
@@ -260,15 +315,24 @@ export default function WalletScreen() {
 
     return (
       <SpringPressable style={styles.stubWrap} onPress={handlePress} haptic="light" accessibilityRole="button">
-        <TicketStub
-          artist={item.event.artist.name}
-          venue={item.event.venue.name}
-          city={item.event.venue.city}
-          date={format(eventDate, 'MMM d, yyyy')}
-          section={item.section}
-          row={item.row}
-          seat={item.seat}
-        />
+        <View style={styles.pastStub}>
+          <View style={styles.pastStubTop}>
+            <Text style={styles.pastStubDate} numberOfLines={1}>
+              {format(eventDate, 'MMM d, yyyy')}
+            </Text>
+            <Text style={styles.pastStubArtist} numberOfLines={2}>
+              {item.event.artist.name}
+            </Text>
+            <Text style={styles.pastStubVenue} numberOfLines={1}>
+              {item.event.venue.name}
+              {item.event.venue.city ? ` · ${item.event.venue.city}` : ''}
+            </Text>
+          </View>
+          <StubPerforation notchColor={tokens.colors.bg} />
+          <View style={styles.pastStubMeta}>
+            <StubDetailsRow left={seatLine(item)} />
+          </View>
+        </View>
       </SpringPressable>
     );
   };

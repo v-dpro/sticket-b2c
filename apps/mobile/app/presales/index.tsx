@@ -106,7 +106,7 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
           <Ionicons
             name={presale.hasAlert ? 'notifications' : 'notifications-outline'}
             size={20}
-            color={presale.hasAlert ? tokens.colors.accent : tokens.colors.muteSoft}
+            color={presale.hasAlert ? tokens.colors.fg : tokens.colors.muteSoft}
           />
         </SpringPressable>
       </View>
@@ -160,7 +160,7 @@ export default function PresalesScreen() {
       paddingTop: t.spacing.md,
       paddingBottom: t.spacing.md,
     },
-    title: { fontSize: 28, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.5 },
+    title: { fontSize: 24, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.5 },
     searchButton: { padding: 8 },
     tabs: { flexDirection: 'row', paddingHorizontal: t.density.pad, marginBottom: t.spacing.md, gap: t.spacing.sm },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: t.colors.card2, borderRadius: t.radius.md },
@@ -234,7 +234,7 @@ export default function PresalesScreen() {
             refreshing={refreshing || loading}
             onRefresh={refresh}
             tintColor={tokens.colors.mute}
-            colors={[tokens.colors.accent]}
+            colors={[tokens.colors.fg]}
           />
         }
         ListEmptyComponent={() => {

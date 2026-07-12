@@ -5,10 +5,10 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { EventComment } from '../../types/event';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';
 import { QuietEmpty } from './EntityBits';
@@ -123,7 +123,7 @@ export function CommentsBlock({ comments, posting, onPost }: CommentsBlockProps)
         comments.map((comment, i) => (
           <Animated.View
             key={comment.id}
-            entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+            entering={tearIn(Math.min(i, 8) * durations.stagger)}
             style={styles.row}
           >
             <View style={styles.avatar}>

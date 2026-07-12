@@ -306,9 +306,11 @@ export default function ShowModeScreen() {
                   <Ionicons name="images" size={24} color="#FFFFFF" />
                 </View>
               )}
+              {/* Camera chrome is fixed-dark — a white count badge with dark
+                  text reads in both themes (accent-as-ink went white-on-white). */}
               {mediaItems.length > 0 ? (
-                <View style={[cameraStyles.galleryCount, { backgroundColor: tokens.colors.accent }]}>
-                  <Text style={cameraStyles.galleryCountText}>{mediaItems.length}</Text>
+                <View style={[cameraStyles.galleryCount, { backgroundColor: '#FFFFFF' }]}>
+                  <Text style={[cameraStyles.galleryCountText, { color: '#0B0B10' }]}>{mediaItems.length}</Text>
                 </View>
               ) : null}
             </SpringPressable>

@@ -66,7 +66,7 @@ export function ProfileHeader({
     avatarText: {
       fontSize: 36,
       fontWeight: 'bold',
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
     editAvatarButton: {
       position: 'absolute',
@@ -75,7 +75,7 @@ export function ProfileHeader({
       width: 32,
       height: 32,
       borderRadius: 16,
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 3,
@@ -246,9 +246,10 @@ export function ProfileHeader({
             {isFollowing ? (
               <Text style={styles.followingButtonText}>Following</Text>
             ) : (
-              <LinearGradient colors={[tokens.colors.brandPurple, tokens.colors.brandPink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.followGradient}>
-                <Text style={styles.followButtonText}>Follow</Text>
-              </LinearGradient>
+              // C1 zero accent: Follow is the mono ink-inversion pill.
+              <View style={[styles.followGradient, { backgroundColor: tokens.colors.inverseBg }]}>
+                <Text style={[styles.followButtonText, { color: tokens.colors.inverseFg }]}>Follow</Text>
+              </View>
             )}
           </Pressable>
           {/* A15: taste reason — only while not yet following */}

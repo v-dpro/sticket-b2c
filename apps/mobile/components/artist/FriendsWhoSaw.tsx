@@ -37,7 +37,7 @@ export function FriendsWhoSaw({ friends, onFriendPress }: FriendsWhoSawProps) {
       borderRadius: 28,
       marginBottom: 8,
       borderWidth: 2,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
     },
     avatarPlaceholder: {
       backgroundColor: t.colors.surface,
@@ -47,7 +47,7 @@ export function FriendsWhoSaw({ friends, onFriendPress }: FriendsWhoSawProps) {
     avatarText: {
       fontSize: 20,
       fontWeight: 'bold',
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
     friendName: {
       fontSize: 12,
@@ -62,7 +62,7 @@ export function FriendsWhoSaw({ friends, onFriendPress }: FriendsWhoSawProps) {
     },
     countText: {
       fontSize: 11,
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontWeight: '600',
     },
   }));
@@ -91,7 +91,7 @@ export function FriendsWhoSaw({ friends, onFriendPress }: FriendsWhoSawProps) {
             </Text>
 
             <View style={styles.countBadge}>
-              <Ionicons name="musical-note" size={10} color={tokens.colors.brandPurple} />
+              <Ionicons name="musical-note" size={10} color={tokens.colors.mute} />
               <Text style={styles.countText}>{friend.showCount}x</Text>
             </View>
           </Pressable>

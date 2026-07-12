@@ -17,7 +17,7 @@ export function TextField({ label, errorText, style, ...props }: TextFieldProps)
       {label ? <Text style={{ color: colors.textMid, fontSize: 14 }}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={colors.textLo}
-        selectionColor={colors.brandCyan}
+        selectionColor={colors.fg}
         style={[
           {
             height: 48,

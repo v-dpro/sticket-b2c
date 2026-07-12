@@ -90,7 +90,7 @@ export default function AddTicketScreen() {
       borderRadius: t.radius.md,
       padding: 16,
       borderWidth: 1,
-      borderColor: t.colors.accent,
+      borderColor: t.colors.fg, // selected state reads via ink-weight border (C1)
     },
     selectedEventInfo: { flex: 1 },
     selectedArtist: { fontSize: 16, fontWeight: '700', color: t.colors.fg },
@@ -108,7 +108,7 @@ export default function AddTicketScreen() {
     searchResult: { padding: 16, borderBottomWidth: 1, borderBottomColor: t.colors.hairline },
     resultArtist: { fontSize: 15, fontWeight: '600', color: t.colors.fg },
     resultDetails: { fontSize: 13, color: t.colors.mute, marginTop: 2 },
-    manualLink: { fontSize: 14, color: t.colors.accent, textAlign: 'center', fontWeight: '600' },
+    manualLink: { fontSize: 14, color: t.colors.fg, textAlign: 'center', fontWeight: '600' },
     dateButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -122,7 +122,7 @@ export default function AddTicketScreen() {
       borderColor: t.colors.hairline,
     },
     dateButtonText: { fontSize: 16, color: t.colors.fg },
-    searchInstead: { fontSize: 14, color: t.colors.accent, textAlign: 'center', fontWeight: '600' },
+    searchInstead: { fontSize: 14, color: t.colors.fg, textAlign: 'center', fontWeight: '600' },
     gaToggle: {
       flexDirection: 'row',
       alignItems: 'center',

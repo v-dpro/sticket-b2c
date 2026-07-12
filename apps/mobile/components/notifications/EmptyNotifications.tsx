@@ -40,7 +40,7 @@ export function EmptyNotifications() {
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
-        <Ionicons name="notifications-outline" size={48} color={tokens.colors.brandPurple} />
+        <Ionicons name="notifications-outline" size={48} color={tokens.colors.mute} />
       </View>
       <Text style={styles.title}>No notifications yet</Text>
       <Text style={styles.subtitle}>

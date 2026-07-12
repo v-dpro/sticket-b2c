@@ -7,10 +7,10 @@
 import React, { memo } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { EventPhoto } from '../../types/event';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 
 // Memoized: `photos` is replaced by identity on refetch — shallow compare holds.
@@ -22,7 +22,7 @@ export const PhotoGrid = memo(function PhotoGrid({ photos }: { photos: EventPhot
       {photos.map((photo, i) => (
         <Animated.View
           key={photo.id}
-          entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+          entering={tearIn(Math.min(i, 8) * durations.stagger)}
           style={{ width: '33.333%', padding: 2 }}
         >
           <Image

@@ -1,7 +1,8 @@
 // PlanCard — an upcoming plan (ticket / interested / tracking) above the
-// Today divider. Event name leads (800); venue · date muted; mono countdown
-// chip ("in 76d") on the right. Planned-but-not-lived is drawn with a 1px
-// DASHED border (A19) — the memory isn't real yet.
+// Today divider. PLANS ARE NOT STUBS (C3): a plain card with a DASHED
+// tokens.colors.dash border — the memory isn't real yet, so no notches, no
+// perforation. Event name 17/700; venue · date in uppercase mono; bare mono
+// countdown ("IN 21D") on the right.
 
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -27,12 +28,12 @@ export function PlanCard({ item, onPress }: PlanCardProps) {
   const styles = useThemedStyles((t) => ({
     card: {
       backgroundColor: t.colors.card,
-      borderRadius: t.radius.lg, // 16
-      // Dashed = planned, not yet lived. Full 1px of the stronger line token
-      // (vs the hairline used on past cards) so the dashes read.
+      borderRadius: t.radius.card, // 16
+      // Dashed = planned, not yet lived (C3). The dedicated dash token
+      // reads clearly against both card fills.
       borderWidth: 1,
       borderStyle: 'dashed',
-      borderColor: t.colors.line,
+      borderColor: t.colors.dash,
       paddingHorizontal: t.density.cardPad,
       paddingVertical: 14,
       flexDirection: 'row',
@@ -48,28 +49,27 @@ export function PlanCard({ item, onPress }: PlanCardProps) {
       marginBottom: 3,
     },
     name: {
-      fontSize: 15,
-      fontWeight: '800',
+      fontSize: 17,
+      fontWeight: '700',
       color: t.colors.fg,
     },
     meta: {
-      fontSize: 12.5,
-      fontWeight: '400',
-      color: t.colors.mute,
-      marginTop: 3,
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginTop: 4,
     },
-    chip: {
-      backgroundColor: t.colors.card2,
-      borderRadius: t.radius.full,
-      paddingHorizontal: 10,
-      height: 24,
-      justifyContent: 'center',
-    },
-    chipText: {
+    countdown: {
       fontFamily: t.fontFamilies.mono,
       fontVariant: ['tabular-nums'],
       fontSize: 11,
       fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
     },
   }));
 
@@ -93,17 +93,15 @@ export function PlanCard({ item, onPress }: PlanCardProps) {
           {item.event.venue.name} · {formatShortDate(item.event.date)}
         </Text>
       </View>
-      <View style={styles.chip}>
-        <Text
-          style={[
-            styles.chipText,
-            // "today" is an active state — the one sanctioned small accent use here.
-            { color: isToday ? tokens.colors.accent : tokens.colors.fg },
-          ]}
-        >
-          {countdownLabel(item.date)}
-        </Text>
-      </View>
+      <Text
+        style={[
+          styles.countdown,
+          // "today" is the active state — weight, not hue (C1: accent = ink).
+          { color: isToday ? tokens.colors.accent : tokens.colors.fg, fontWeight: isToday ? '800' : '600' },
+        ]}
+      >
+        {countdownLabel(item.date)}
+      </Text>
     </SpringPressable>
   );
 }

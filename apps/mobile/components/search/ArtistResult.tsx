@@ -75,7 +75,7 @@ export function ArtistResult({ artist, onPress }: ArtistResultProps) {
         <Image source={{ uri: artist.imageUrl }} style={styles.image} />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]}>
-          <Ionicons name="person" size={22} color={tokens.colors.brandPurple} />
+          <Ionicons name="person" size={22} color={tokens.colors.mute} />
         </View>
       )}
 

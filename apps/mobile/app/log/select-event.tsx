@@ -12,13 +12,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { FlowHeader } from '../../components/log/FlowHeader';
 import { LogRow } from '../../components/log/LogRow';
 import { PillButton } from '../../components/ui/PillButton';
 import { getArtistEventsBandsintown, searchEventsByArtist, type SearchEvent } from '../../lib/api/logShow';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme } from '../../lib/theme-context';
 
@@ -233,10 +233,7 @@ function EventSection({
         const openers =
           event.lineup && event.lineup.length > 1 ? `with ${event.lineup.slice(1).join(', ')}` : undefined;
         return (
-          <Animated.View
-            key={event.id}
-            entering={FadeInDown.duration(220).delay(Math.min(i, 8) * durations.stagger)}
-          >
+          <Animated.View key={event.id} entering={tearIn(Math.min(i, 8) * durations.stagger)}>
             <LogRow
               title={event.venue.name}
               subtitle={

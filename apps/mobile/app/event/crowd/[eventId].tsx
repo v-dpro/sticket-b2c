@@ -8,7 +8,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { EntityNav } from '../../../components/entity/EntityChrome';
 import { EntityError } from '../../../components/entity/EntityStates';
@@ -16,7 +16,7 @@ import { FeedCard, invalidateFeedLikeCache } from '../../../components/feed/Feed
 import { FeedSkeleton } from '../../../components/feed/FeedSkeleton';
 import { useSession } from '../../../hooks/useSession';
 import { getEventFeed } from '../../../lib/api/events';
-import { durations } from '../../../lib/motion';
+import { durations, tearIn } from '../../../lib/motion';
 import { useSafeBack } from '../../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../../lib/theme-context';
 import type { FeedItem } from '../../../types/feed';
@@ -104,12 +104,12 @@ export default function EventCrowdFeedScreen() {
       color: t.colors.mute,
     },
     title: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: '800',
       letterSpacing: -0.4,
       color: t.colors.fg,
       marginTop: 6,
-      lineHeight: 27,
+      lineHeight: 29,
     },
     cardWrapper: { paddingBottom: 22 },
     listContent: { paddingTop: 4 },
@@ -122,10 +122,7 @@ export default function EventCrowdFeedScreen() {
   const renderItem = useCallback(
     ({ item, index }: { item: FeedItem; index: number }) => (
       <Animated.View
-        entering={FadeInDown.delay(index < STAGGER_CUTOFF ? index * durations.stagger : 0)
-          .duration(380)
-          .easing(Easing.bezier(0.2, 0.7, 0.3, 1))
-          .withInitialValues({ opacity: 0, transform: [{ translateY: 10 }] })}
+        entering={tearIn(index < STAGGER_CUTOFF ? index * durations.stagger : 0)}
         style={styles.cardWrapper}
       >
         <FeedCard item={item} currentUserId={user?.id} />

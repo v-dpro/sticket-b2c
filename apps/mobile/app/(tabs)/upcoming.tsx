@@ -1,8 +1,10 @@
 // Upcoming — your ticketed shows and the ones you're circling.
 //
 // Data comes from the existing concert-life endpoint (tickets + tracked
-// events + presale alerts). Countdown chips are mono; TODAY inverts to
-// ink. Empty state hands off to Explore.
+// events + presale alerts). Scorecard Stub: future rows are PLAIN cards
+// with a dashed `dash` border (C3 — plans never get the stub construction);
+// countdowns are mono "IN 21D" data; TODAY/LIVE invert to ink. Empty state
+// hands off to Explore.
 //
 // A17 — presales are merged into the agenda as timed entries: a "Presales
 // this week" section sits between Ticketed and Interested. Each row carries
@@ -22,14 +24,14 @@ import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { PillButton } from '../../components/ui/PillButton';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useConcertLife } from '../../hooks/useConcertLife';
 import { usePresales, type PresaleItem } from '../../hooks/usePresales';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type UpcomingRow = {
@@ -57,10 +59,9 @@ function daysUntil(dateStr: string): number {
 function countdownLabel(dateStr: string): string {
   const days = daysUntil(dateStr);
   if (days === 0) return 'TODAY';
-  if (days === 1) return '1 DAY';
-  if (days < 60) return `${days} DAYS`;
+  if (days < 60) return `IN ${days}D`;
   const months = Math.round(days / 30);
-  return `${months} MO`;
+  return `IN ${months}MO`;
 }
 
 function formatShowDate(dateStr: string): string {
@@ -124,65 +125,86 @@ export default function UpcomingScreen() {
       paddingTop: 10,
       paddingBottom: t.density.gap,
     },
-    title: { fontSize: 32, fontWeight: '800', letterSpacing: -0.6, color: t.colors.fg },
-    count: {
-      fontFamily: t.fontFamilies.mono,
+    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    presaleCalendarLink: {
+      fontFamily: t.fontFamilies.monoSemi,
       fontSize: 11,
       letterSpacing: 1,
+      textTransform: 'uppercase',
       color: t.colors.mute,
     },
     scrollContent: { paddingBottom: 120 },
     sectionLabel: {
-      fontSize: 13,
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 11,
       fontWeight: '600',
-      color: t.colors.mute,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
       paddingHorizontal: t.density.pad,
-      marginTop: 14,
-      marginBottom: 6,
+      marginTop: 18,
+      marginBottom: 10,
     },
+    // Future show rows: plain cards, dashed border (planned — never a stub).
     row: {
       minHeight: t.density.rowH,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      paddingHorizontal: t.density.pad,
-      paddingVertical: 8,
+      marginHorizontal: t.density.pad,
+      marginBottom: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: t.radius.card,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.dash,
     },
     rowImage: {
-      width: 52,
-      height: 52,
-      borderRadius: t.radius.md,
+      width: 44,
+      height: 44,
+      borderRadius: t.radius.sm,
       backgroundColor: t.colors.card2,
     },
     rowImageFallback: { alignItems: 'center', justifyContent: 'center' },
-    rowBody: { flex: 1, minWidth: 0, gap: 2 },
-    rowTitle: { fontSize: 15, fontWeight: '600', color: t.colors.text },
-    rowMeta: { fontSize: 13, color: t.colors.mute },
-    chip: {
-      minWidth: 58,
+    rowBody: { flex: 1, minWidth: 0, gap: 4 },
+    rowTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
+    rowMeta: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    countdown: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      letterSpacing: 0.5,
+      color: t.colors.fg,
+    },
+    // TODAY / LIVE — the active state inverts to ink (weight, not hue).
+    chipToday: {
       alignItems: 'center',
       paddingVertical: 5,
       paddingHorizontal: 8,
       borderRadius: t.radius.sm,
-      backgroundColor: t.colors.card2,
+      backgroundColor: t.colors.inverseBg,
     },
-    chipToday: { backgroundColor: t.colors.inverseBg },
-    chipText: {
+    chipTextToday: {
       fontFamily: t.fontFamilies.monoSemi,
       fontSize: 10.5,
       letterSpacing: 0.5,
-      color: t.colors.text,
+      color: t.colors.inverseFg,
     },
-    chipTextToday: { color: t.colors.inverseFg },
     // A17 — presale rows
-    presaleTitle: { fontSize: 15, fontWeight: '700', color: t.colors.text },
     presaleMono: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 10.5,
       letterSpacing: 0.8,
       color: t.colors.mute,
     },
-    presaleRight: { alignItems: 'flex-end', gap: 6 },
+    presaleRight: { alignItems: 'flex-end', gap: 8 },
     codeChip: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -282,7 +304,7 @@ export default function UpcomingScreen() {
   const renderRow = (row: UpcomingRow, index: number) => {
     const isToday = row.kind === 'ticketed' && daysUntil(row.date) === 0;
     return (
-      <Animated.View key={`${row.kind}-${row.id}`} entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger).duration(240)}>
+      <Animated.View key={`${row.kind}-${row.id}`} entering={tearIn(Math.min(index, 8) * durations.stagger)}>
         <SpringPressable
           haptic="light"
           disabled={!row.eventId}
@@ -320,11 +342,13 @@ export default function UpcomingScreen() {
               {row.venueCity ? ` · ${row.venueCity}` : ''} · {formatShowDate(row.date)}
             </Text>
           </View>
-          <View style={[styles.chip, isToday && styles.chipToday]}>
-            <Text style={[styles.chipText, isToday && styles.chipTextToday]}>
-              {countdownLabel(row.date)}
-            </Text>
-          </View>
+          {isToday ? (
+            <View style={styles.chipToday}>
+              <Text style={styles.chipTextToday}>TODAY</Text>
+            </View>
+          ) : (
+            <Text style={styles.countdown}>{countdownLabel(row.date)}</Text>
+          )}
         </SpringPressable>
       </Animated.View>
     );
@@ -339,7 +363,7 @@ export default function UpcomingScreen() {
     return (
       <Animated.View
         key={`presale-${presale.id}`}
-        entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger).duration(240)}
+        entering={tearIn(Math.min(index, 8) * durations.stagger)}
       >
         <SpringPressable
           haptic="light"
@@ -349,7 +373,7 @@ export default function UpcomingScreen() {
           style={styles.row}
         >
           <View style={styles.rowBody}>
-            <Text style={styles.presaleTitle} numberOfLines={1}>
+            <Text style={styles.rowTitle} numberOfLines={1}>
               {presale.artistName}
               {presale.tourName ? ` — ${presale.tourName}` : ''}
             </Text>
@@ -362,9 +386,13 @@ export default function UpcomingScreen() {
             </Text>
           </View>
           <View style={styles.presaleRight}>
-            <View style={[styles.chip, isLive && styles.chipToday]}>
-              <Text style={[styles.chipText, isLive && styles.chipTextToday]}>{countdown}</Text>
-            </View>
+            {isLive ? (
+              <View style={styles.chipToday}>
+                <Text style={styles.chipTextToday}>LIVE</Text>
+              </View>
+            ) : (
+              <Text style={styles.countdown}>{countdown}</Text>
+            )}
             {presale.code ? (
               <SpringPressable
                 haptic="none"
@@ -465,11 +493,14 @@ export default function UpcomingScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Upcoming</Text>
-        {total > 0 ? (
-          <Text style={styles.count}>
-            {total} {total === 1 ? 'SHOW' : 'SHOWS'}
-          </Text>
-        ) : null}
+        <SpringPressable
+          haptic="light"
+          onPress={() => router.push('/presales')}
+          accessibilityRole="button"
+          accessibilityLabel="Presale calendar"
+        >
+          <Text style={styles.presaleCalendarLink}>PRESALE CALENDAR</Text>
+        </SpringPressable>
       </View>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, total === 0 && !loading ? { flexGrow: 1 } : null]}

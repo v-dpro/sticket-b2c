@@ -81,7 +81,7 @@ export function RatingStars({
   gap = 2,
 }: RatingStarsProps) {
   const { tokens } = useTheme();
-  const resolvedColor = color ?? tokens.colors.brandCyan;
+  const resolvedColor = color ?? tokens.colors.fg;
   const resolvedEmptyColor = emptyColor ?? tokens.colors.textLo;
   return (
     <View

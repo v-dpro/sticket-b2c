@@ -20,7 +20,6 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
-  FadeIn,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -34,7 +33,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { FeedPhoto } from '../../types/feed';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
-import { haptics, motionDurations, springs } from '../../lib/motion';
+import { haptics, motionDurations, springs, tearIn } from '../../lib/motion';
 import { getLogLikes, likeLog, unlikeLog, type LogLikeUser } from '../../lib/api/feed';
 import { deleteLog, getCoAuthors, respondCoAuthor, type LogCoAuthor } from '../../lib/api/logs';
 import { useLogDetail } from '../../hooks/useLogDetail';
@@ -43,6 +42,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { AvatarStack } from '../../components/ui/AvatarStack';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { BareScore, ScoreStamp } from '../../components/ui/Stub';
 import { FeedCardPhotos } from '../../components/feed/FeedCardPhotos';
 import { PinnedComposer } from '../../components/feed/PinnedComposer';
 import { WhoWasHere } from '../../components/feed/WhoWasHere';
@@ -68,11 +68,6 @@ function relTime(dateStr: string): string {
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d`;
   return `${Math.floor(days / 7)}w`;
-}
-
-/** Log ratings are stored on a 1–10 scale (see log/details.tsx). */
-function formatScore(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 export default function LogDetailScreen() {
@@ -296,7 +291,6 @@ export default function LogDetailScreen() {
   const authorName = data.user.displayName || data.user.username;
 
   const score = typeof data.log.rating === 'number' && data.log.rating > 0 ? data.log.rating : null;
-  const highScore = score != null && score >= 9;
 
   const seatParts: string[] = [];
   if (data.log.section) seatParts.push(`Sec ${data.log.section}`);
@@ -327,12 +321,20 @@ export default function LogDetailScreen() {
       >
         {/* ── 1. Hero ── */}
         {photos.length > 0 ? (
-          <FeedCardPhotos
-            photos={photos}
-            aspectRatio={HERO_RATIO}
-            onPressMedia={() => {}}
-            onDoubleTapLike={() => void toggleLike(true)}
-          />
+          <View>
+            <FeedCardPhotos
+              photos={photos}
+              aspectRatio={HERO_RATIO}
+              onPressMedia={() => {}}
+              onDoubleTapLike={() => void toggleLike(true)}
+            />
+            {/* C2: on media the score is the giant bare mono digits. */}
+            {score != null ? (
+              <View pointerEvents="none" style={{ position: 'absolute', right: 16, bottom: 16 }}>
+                <BareScore score={score} />
+              </View>
+            ) : null}
+          </View>
         ) : (
           <View style={styles.heroFallback}>
             {data.event.artist.imageUrl ? (
@@ -428,7 +430,7 @@ export default function LogDetailScreen() {
               <Ionicons
                 name={like.liked ? 'heart' : 'heart-outline'}
                 size={24}
-                color={like.liked ? c.error : c.fg}
+                color={like.liked ? c.like : c.fg}
               />
             </Animated.View>
             {like.count > 0 ? <Text style={styles.actionCount}>{like.count}</Text> : null}
@@ -508,11 +510,10 @@ export default function LogDetailScreen() {
 
         {/* ── 6. Metadata strip ── */}
         <View style={styles.metaStrip}>
-          {score != null ? (
-            <View style={styles.chip}>
-              <Text style={[styles.chipScore, highScore && { color: c.accent }]}>{formatScore(score)}</Text>
-              <Text style={styles.chipScoreMax}>/10</Text>
-            </View>
+          {/* C2: one score body only — the stamp on the flat strip, unless the
+              photos already carry the bare digits. */}
+          {score != null && photos.length === 0 ? (
+            <ScoreStamp score={score} size={15} style={{ alignSelf: 'center' }} />
           ) : null}
           {seatText ? (
             <View style={styles.chip}>
@@ -547,8 +548,12 @@ export default function LogDetailScreen() {
             {data.commentCount > 0 ? `${data.commentCount} comment${data.commentCount === 1 ? '' : 's'}` : 'Comments'}
           </Text>
           {comments.length > 0 ? (
-            comments.map((cm) => (
-              <Animated.View key={cm.id} entering={FadeIn.duration(160)} style={styles.commentRow}>
+            comments.map((cm, i) => (
+              <Animated.View
+                key={cm.id}
+                entering={tearIn(Math.min(i, 8) * motionDurations.rowStagger)}
+                style={styles.commentRow}
+              >
                 <Pressable
                   onPress={() => { haptics.light(); router.push({ pathname: '/profile/[id]', params: { id: cm.user.id } }); }}
                   accessibilityRole="button"
@@ -931,17 +936,6 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontSize: 11,
       letterSpacing: 0.2,
       color: tokens.colors.mute,
-    },
-    chipScore: {
-      fontFamily: tokens.fontFamilies.monoBold,
-      fontSize: 15,
-      color: tokens.colors.fg,
-    },
-    chipScoreMax: {
-      fontFamily: tokens.fontFamilies.mono,
-      fontSize: 11,
-      color: tokens.colors.muteSoft,
-      marginBottom: -1,
     },
 
     /* Note */

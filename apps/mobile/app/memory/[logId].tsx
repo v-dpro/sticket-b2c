@@ -424,7 +424,7 @@ export default function MemoryViewerScreen() {
             <View style={styles.metaLeft}>
               {like && like.count > 0 ? (
                 <>
-                  <Ionicons name="heart" size={11} color={c.error} style={styles.heartGlyph} />
+                  <Ionicons name="heart" size={11} color={c.like} style={styles.heartGlyph} />
                   <Text style={styles.metaText}>{like.count}</Text>
                 </>
               ) : null}

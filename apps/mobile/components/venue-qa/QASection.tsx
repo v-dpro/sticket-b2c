@@ -9,10 +9,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { VenueQuestion } from '../../types/venue';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { PillButton } from '../ui/PillButton';
 import { SpringPressable } from '../ui/SpringPressable';
@@ -209,7 +209,7 @@ export function QASection({ questions, loading, error, onAsk, onAnswer, onToggle
         questions.map((question, i) => (
           <Animated.View
             key={question.id}
-            entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+            entering={tearIn(Math.min(i, 8) * durations.stagger)}
             style={styles.questionCard}
           >
             <Text style={styles.questionText}>{question.text}</Text>

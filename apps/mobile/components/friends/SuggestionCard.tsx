@@ -86,11 +86,11 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
     },
     reasonText: {
       fontSize: 11,
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontWeight: '600',
     },
     followButton: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 20,
       paddingVertical: 8,
       borderRadius: radius.full,
@@ -101,7 +101,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
     followingButton: {
       backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
     },
     followText: {
       fontSize: 13,
@@ -109,7 +109,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
       color: t.colors.onAccent, // label over the filled purple button
     },
     followingText: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
   }));
 
@@ -161,7 +161,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
       </Text>
 
       <View style={styles.reasonContainer}>
-        <Ionicons name={getReasonIcon(suggestion.reason)} size={12} color={tokens.colors.brandPurple} />
+        <Ionicons name={getReasonIcon(suggestion.reason)} size={12} color={tokens.colors.mute} />
         <Text style={styles.reasonText} numberOfLines={1}>
           {getReasonText(suggestion.reason)}
         </Text>
@@ -176,7 +176,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={suggestion.isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
+          <ActivityIndicator size="small" color={suggestion.isFollowing ? tokens.colors.fg : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, suggestion.isFollowing && styles.followingText]}>
             {suggestion.isFollowing ? 'Following' : 'Follow'}

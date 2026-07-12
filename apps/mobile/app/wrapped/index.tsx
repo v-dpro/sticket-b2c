@@ -83,7 +83,8 @@ type CardNode = HostInstance;
 export default function WrappedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useSession();
+  const { user, profile } = useSession();
+  const username = profile?.username ?? null;
   const year = useMemo(() => new Date().getFullYear(), []);
   const { status, stats, retry } = useWrappedData(user?.id ?? null, year);
 
@@ -151,7 +152,7 @@ export default function WrappedScreen() {
       let card: React.ReactNode = null;
       switch (item.key) {
         case 'title':
-          card = <TitleCard stats={stats} />;
+          card = <TitleCard stats={stats} username={username} />;
           break;
         case 'count':
           card = <BigNumberCard stats={stats} />;
@@ -184,7 +185,7 @@ export default function WrappedScreen() {
         </View>
       );
     },
-    [stats, pageH, pageW],
+    [stats, username, pageH, pageW],
   );
 
   const getItemLayout = useCallback(

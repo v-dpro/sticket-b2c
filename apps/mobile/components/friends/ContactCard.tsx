@@ -49,11 +49,11 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
     },
     contactName: {
       fontSize: 12,
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
       flex: 1,
     },
     followButton: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: radius.full,
@@ -63,7 +63,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
     followingButton: {
       backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
     },
     followText: {
       fontSize: 13,
@@ -71,7 +71,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
       color: t.colors.onAccent, // label over the filled purple button
     },
     followingText: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
   }));
 
@@ -113,7 +113,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
         </Text>
 
         <View style={styles.contactBadge}>
-          <Ionicons name="person" size={10} color={tokens.colors.brandCyan} />
+          <Ionicons name="person" size={10} color={tokens.colors.mute} />
           <Text style={styles.contactName} numberOfLines={1}>
             {contact.contactName} in contacts
           </Text>
@@ -130,7 +130,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
         hitSlop={6}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={contact.isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
+          <ActivityIndicator size="small" color={contact.isFollowing ? tokens.colors.fg : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, contact.isFollowing && styles.followingText]}>
             {contact.isFollowing ? 'Following' : 'Follow'}

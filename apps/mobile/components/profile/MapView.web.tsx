@@ -86,7 +86,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
       paddingRight: 10,
     },
     badge: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       borderRadius: 16,
       paddingHorizontal: 10,
       paddingVertical: 6,

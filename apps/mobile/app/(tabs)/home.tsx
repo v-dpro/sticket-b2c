@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { AgendaPin } from '../../components/agenda/AgendaPin';
 import { EmptyFeed } from '../../components/feed/EmptyFeed';
@@ -27,13 +27,13 @@ import { NotificationBellButton } from '../../components/notifications/Notificat
 import { PillButton } from '../../components/ui/PillButton';
 import { useFeed } from '../../hooks/useFeed';
 import { useSession } from '../../hooks/useSession';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { FeedItem } from '../../types/feed';
 
-// Entrance stagger only for the first screenful of cards — rows mounted
-// later (scroll-in) appear without delay (same pattern as the timeline).
-const STAGGER_CUTOFF = 4;
+// Entrance stagger caps after ~10 cards — rows mounted later (scroll-in)
+// tear in without delay (same pattern as the timeline).
+const STAGGER_CUTOFF = 10;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -119,14 +119,11 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // First-paint stagger: opacity + translateY(10→0), 380ms cubic-bezier, 40ms/card.
+  // First-paint stagger: the Scorecard Stub tear-in, 40ms/card.
   const renderItem = useCallback(
     ({ item, index }: { item: FeedItem; index: number }) => (
       <Animated.View
-        entering={FadeInDown.delay(index < STAGGER_CUTOFF ? index * durations.stagger : 0)
-          .duration(380)
-          .easing(Easing.bezier(0.2, 0.7, 0.3, 1))
-          .withInitialValues({ opacity: 0, transform: [{ translateY: 10 }] })}
+        entering={tearIn(index < STAGGER_CUTOFF ? index * durations.stagger : 0)}
         style={styles.cardWrapper}
       >
         <FeedCard item={item} currentUserId={user?.id} />

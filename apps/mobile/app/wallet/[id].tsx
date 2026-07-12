@@ -14,6 +14,7 @@ import { format, parseISO } from 'date-fns';
 import { BarcodeDisplay } from '../../components/wallet/BarcodeDisplay';
 import { TicketActions } from '../../components/wallet/TicketActions';
 import { TicketStatusBadge } from '../../components/wallet/TicketStatusBadge';
+import { StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useTicketDetail } from '../../hooks/useTicketDetail';
 import { deleteTicket } from '../../lib/api/tickets';
@@ -33,7 +34,7 @@ export default function TicketDetailScreen() {
     container: { flex: 1, backgroundColor: t.colors.bg },
     center: { flex: 1, backgroundColor: t.colors.bg, justifyContent: 'center', alignItems: 'center', gap: 12 },
     errorText: { fontSize: 16, color: t.colors.error },
-    backLink: { fontSize: 16, color: t.colors.accent, fontWeight: '600' },
+    backLink: { fontSize: 16, color: t.colors.fg, fontWeight: '600' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -45,51 +46,22 @@ export default function TicketDetailScreen() {
     backButton: { width: 40, height: 40, justifyContent: 'center' },
     headerTitle: { fontSize: 17, fontWeight: '700', color: t.colors.fg },
     scrollView: { flex: 1 },
-    eventCard: {
+    // The ticket is a STUB (C3): event header · perforation · SEC/ROW/SEAT
+    // mono strip. Card bg + radius.stub, notches punch through to screen bg.
+    ticketStub: {
       backgroundColor: t.colors.card,
-      borderRadius: t.radius.lg,
-      padding: 20,
+      borderRadius: t.radius.stub,
       marginHorizontal: t.density.pad,
       marginTop: 8,
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: t.colors.hairline,
+      ...t.shadows.stub,
     },
+    stubHeader: { padding: 20, alignItems: 'center' },
     artistName: { fontSize: 24, fontWeight: '800', color: t.colors.fg, textAlign: 'center', letterSpacing: -0.4 },
     venueName: { fontSize: 16, color: t.colors.textSoft, marginTop: 8, textAlign: 'center', fontWeight: '600' },
     venueCity: { fontSize: 14, color: t.colors.mute, marginTop: 2 },
     eventDate: { fontFamily: t.fontFamilies.mono, fontSize: 13, color: t.colors.fg, marginTop: 12 },
     eventTime: { fontFamily: t.fontFamilies.mono, fontSize: 13, color: t.colors.mute, marginTop: 2 },
-    seatCard: {
-      backgroundColor: t.colors.card,
-      borderRadius: t.radius.lg,
-      padding: 20,
-      marginHorizontal: t.density.pad,
-      marginTop: 12,
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: t.colors.hairline,
-    },
-    seatLabel: {
-      fontFamily: t.fontFamilies.mono,
-      fontSize: 11,
-      color: t.colors.mute,
-      textTransform: 'uppercase',
-      letterSpacing: 1.5,
-      marginBottom: 12,
-    },
-    seatGA: { fontSize: 20, fontWeight: '700', color: t.colors.fg },
-    seatGrid: { flexDirection: 'row', gap: 24 },
-    seatItem: { alignItems: 'center' },
-    seatItemLabel: {
-      fontFamily: t.fontFamilies.mono,
-      fontSize: 10,
-      color: t.colors.mute,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginBottom: 4,
-    },
-    seatItemValue: { fontFamily: t.fontFamilies.monoBold, fontSize: 22, fontWeight: '700', color: t.colors.fg },
+    stubMeta: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
     barcodeSection: { marginTop: 16 },
     barcodeLabel: {
       fontFamily: t.fontFamilies.mono,
@@ -202,46 +174,38 @@ export default function TicketDetailScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Event Info */}
-        <SpringPressable style={styles.eventCard} onPress={handleViewEvent} haptic="light" accessibilityRole="button">
-          <Text style={styles.artistName}>{ticket.event.artist.name}</Text>
-          <Text style={styles.venueName}>{ticket.event.venue.name}</Text>
-          <Text style={styles.venueCity}>
-            {ticket.event.venue.city}
-            {ticket.event.venue.state ? `, ${ticket.event.venue.state}` : ''}
-          </Text>
-          <Text style={styles.eventDate}>{format(eventDate, 'EEEE, MMMM d, yyyy')}</Text>
-          <Text style={styles.eventTime}>{format(eventDate, 'h:mm a')}</Text>
-        </SpringPressable>
+        {/* The ticket stub: event header · perforation · seat strip */}
+        <SpringPressable style={styles.ticketStub} onPress={handleViewEvent} haptic="light" accessibilityRole="button">
+          <View style={styles.stubHeader}>
+            <Text style={styles.artistName}>{ticket.event.artist.name}</Text>
+            <Text style={styles.venueName}>{ticket.event.venue.name}</Text>
+            <Text style={styles.venueCity}>
+              {ticket.event.venue.city}
+              {ticket.event.venue.state ? `, ${ticket.event.venue.state}` : ''}
+            </Text>
+            <Text style={styles.eventDate}>{format(eventDate, 'EEEE, MMMM d, yyyy')}</Text>
+            <Text style={styles.eventTime}>{format(eventDate, 'h:mm a')}</Text>
+          </View>
 
-        {/* Seat Info */}
-        <View style={styles.seatCard}>
-          <Text style={styles.seatLabel}>Your Seat</Text>
-          {ticket.isGeneralAdmission ? (
-            <Text style={styles.seatGA}>General Admission</Text>
-          ) : (
-            <View style={styles.seatGrid}>
-              {ticket.section && (
-                <View style={styles.seatItem}>
-                  <Text style={styles.seatItemLabel}>Section</Text>
-                  <Text style={styles.seatItemValue}>{ticket.section}</Text>
-                </View>
-              )}
-              {ticket.row && (
-                <View style={styles.seatItem}>
-                  <Text style={styles.seatItemLabel}>Row</Text>
-                  <Text style={styles.seatItemValue}>{ticket.row}</Text>
-                </View>
-              )}
-              {ticket.seat && (
-                <View style={styles.seatItem}>
-                  <Text style={styles.seatItemLabel}>Seat</Text>
-                  <Text style={styles.seatItemValue}>{ticket.seat}</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
+          <StubPerforation notchColor={tokens.colors.bg} />
+
+          <View style={styles.stubMeta}>
+            <StubDetailsRow
+              left={
+                ticket.isGeneralAdmission
+                  ? 'GENERAL ADMISSION'
+                  : [
+                      ticket.section ? `SEC ${ticket.section}` : null,
+                      ticket.row ? `ROW ${ticket.row}` : null,
+                      ticket.seat ? `SEAT ${ticket.seat}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'GENERAL ADMISSION'
+              }
+              right="ADMIT 01"
+            />
+          </View>
+        </SpringPressable>
 
         {/* Barcode */}
         {ticket.barcode && (

@@ -28,13 +28,13 @@ export function CodeDisplay({ code, onCopy }: CodeDisplayProps) {
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 8,
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
     },
     code: {
       fontSize: 14,
       fontWeight: '700',
       fontFamily: fontFamilies.monoBold,
-      color: t.colors.onAccent, // over the purple-filled code chip
+      color: t.colors.inverseFg,
     },
   }));
 

@@ -55,13 +55,13 @@ export function NotificationList({
           <Text style={styles.sectionTitle}>{section.date}</Text>
         </View>
       )}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} colors={[tokens.colors.brandPurple]} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.colors.mute} colors={[tokens.colors.mute]} />}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       ListFooterComponent={
         loadingMore ? (
           <View style={styles.footer}>
-            <ActivityIndicator size="small" color={tokens.colors.brandPurple} />
+            <ActivityIndicator size="small" color={tokens.colors.mute} />
           </View>
         ) : null
       }

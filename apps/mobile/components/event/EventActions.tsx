@@ -36,7 +36,7 @@ export function EventActions({
       gap: 8,
     },
     pillAccent: {
-      backgroundColor: t.colors.cyan,
+      backgroundColor: t.colors.inverseBg,
     },
     pillGhost: {
       backgroundColor: 'transparent',

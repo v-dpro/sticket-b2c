@@ -37,9 +37,10 @@ export function SearchTabs({ activeTab, onChangeTab, results }: SearchTabsProps)
       borderColor: t.colors.hairline,
       gap: 6,
     },
+    // C1 zero accent — the active tab reads via monochrome inversion.
     tabActive: {
-      backgroundColor: t.colors.brandPurple,
-      borderColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
+      borderColor: t.colors.inverseBg,
     },
     tabText: {
       fontSize: 14,
@@ -47,7 +48,7 @@ export function SearchTabs({ activeTab, onChangeTab, results }: SearchTabsProps)
       color: t.colors.textMid,
     },
     tabTextActive: {
-      color: t.colors.onAccent, // over the purple-filled active tab
+      color: t.colors.inverseFg, // over the ink-filled active tab
     },
     badge: {
       backgroundColor: t.colors.hairline,
@@ -58,7 +59,8 @@ export function SearchTabs({ activeTab, onChangeTab, results }: SearchTabsProps)
       alignItems: 'center',
     },
     badgeActive: {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)', // white scrim over the purple active tab
+      // Scrim of the opposite ink so the count chip survives the inversion.
+      backgroundColor: t.isDark ? 'rgba(11,11,16,0.12)' : 'rgba(255,255,255,0.22)',
     },
     badgeText: {
       fontSize: 11,
@@ -66,7 +68,7 @@ export function SearchTabs({ activeTab, onChangeTab, results }: SearchTabsProps)
       color: t.colors.textLo,
     },
     badgeTextActive: {
-      color: t.colors.onAccent, // over the purple-filled active tab
+      color: t.colors.inverseFg, // over the ink-filled active tab
     },
   }));
 

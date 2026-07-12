@@ -2,14 +2,14 @@
 // (tour "Shows" list, venue "All shows here" screen):
 //   title 700 · mono meta line (venue·city·date or artist·date) ·
 //   mono logCount + avgScore chips · chevron.
-// Staggers in with FadeInDown via the caller-supplied index.
+// Tears in (tearIn stagger) via the caller-supplied index.
 
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';
 import { MonoChip } from './EntityBits';
@@ -62,9 +62,7 @@ export const EventRow = memo(function EventRow({
   const showScore = typeof avgScore === 'number' && Number.isFinite(avgScore);
 
   return (
-    <Animated.View
-      entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger).duration(240)}
-    >
+    <Animated.View entering={tearIn(Math.min(index, 8) * durations.stagger)}>
       <SpringPressable
         haptic="light"
         onPress={onPress}

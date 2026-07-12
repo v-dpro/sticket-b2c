@@ -201,7 +201,7 @@ export function EventComments({
           onPress={handleSubmit}
           disabled={!newComment.trim() || posting || !currentUser}
         >
-          <Ionicons name="send" size={18} color={newComment.trim() && currentUser ? tokens.colors.brandPurple : tokens.colors.textLo} />
+          <Ionicons name="send" size={18} color={newComment.trim() && currentUser ? tokens.colors.fg : tokens.colors.textLo} />
         </Pressable>
       </View>
 

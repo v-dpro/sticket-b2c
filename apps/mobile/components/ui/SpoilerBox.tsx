@@ -47,7 +47,7 @@ export function SpoilerBox({ label = 'Spoiler', sub, children }: SpoilerBoxProps
       textAlign: 'center',
     },
     revealButton: {
-      backgroundColor: t.colors.brandCyan,
+      backgroundColor: t.colors.inverseBg,
       borderRadius: 999,
       paddingVertical: 6,
       paddingHorizontal: 14,

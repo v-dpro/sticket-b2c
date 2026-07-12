@@ -29,12 +29,12 @@ export default function FindFriendsContactsScreen() {
       height: 52,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: t.colors.brandCyan,
+      borderColor: t.colors.line,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(17, 10, 58, 0.35)',
     },
-    syncButtonText: { color: t.colors.brandCyan, fontSize: 16, fontWeight: '800' },
+    syncButtonText: { color: t.colors.fg, fontSize: 16, fontWeight: '800' },
     error: { color: t.colors.error, marginTop: 10, textAlign: 'center' },
   }));
 
@@ -56,7 +56,7 @@ export default function FindFriendsContactsScreen() {
 
       <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
         <Pressable style={styles.syncButton} onPress={() => void sync()} disabled={loading}>
-          {loading ? <ActivityIndicator color={tokens.colors.brandCyan} /> : <Text style={styles.syncButtonText}>Sync Contacts</Text>}
+          {loading ? <ActivityIndicator color={tokens.colors.mute} /> : <Text style={styles.syncButtonText}>Sync Contacts</Text>}
         </Pressable>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>

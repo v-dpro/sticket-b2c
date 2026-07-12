@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 
 import { darkTokens } from '../../lib/theme';
+import { StubPerforation } from '../ui/Stub';
 import type { WrappedStats } from './useWrappedData';
 
 // The dark stage, regardless of the app theme (see header note).
@@ -123,19 +124,57 @@ function CardShell({
   );
 }
 
-// ─── Card 1 · Title ────────────────────────────────────────────────
+// ─── Card 1 · Title — the year, stamped as a stub ──────────────────
+// Eyebrow · giant "’26" year mark · a stub-bordered stat strip (2px fg
+// border, perforation punching through to the stage bg, mono admit footer).
 
-export function TitleCard({ stats }: { stats: WrappedStats }) {
+function StubStat({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={styles.stubStat}>
+      <Text style={styles.stubStatValue} numberOfLines={1} allowFontScaling={false}>
+        {value}
+      </Text>
+      <Text style={styles.stubStatLabel}>{label}</Text>
+    </View>
+  );
+}
+
+export function TitleCard({ stats, username }: { stats: WrappedStats; username?: string | null }) {
   return (
     <CardShell year={stats.year}>
-      <BrandMark />
-      <View style={{ height: 28 }} />
       <Eyebrow>STICKET WRAPPED</Eyebrow>
-      <View style={{ height: 14 }} />
-      <Text style={styles.titleBig}>{`YOUR\n${stats.year}\nIN SHOWS`}</Text>
-      <View style={{ height: 22 }} />
-      <AccentLine />
-      <View style={{ height: 56 }} />
+      <View style={{ height: 4 }} />
+      <Text style={styles.yearMark} allowFontScaling={false}>
+        {shortYear(stats.year)}
+      </Text>
+      <View style={{ height: 8 }} />
+      <Text style={styles.subLine}>Your year, stamped.</Text>
+      <View style={{ height: 34 }} />
+      <View style={styles.stubStrip}>
+        <View style={styles.stubStatsRow}>
+          <StubStat
+            value={String(stats.totalShows)}
+            label={stats.totalShows === 1 ? 'SHOW' : 'SHOWS'}
+          />
+          <StubStat
+            value={String(stats.uniqueArtists)}
+            label={stats.uniqueArtists === 1 ? 'ARTIST' : 'ARTISTS'}
+          />
+          <StubStat
+            value={stats.bestNight ? stats.bestNight.score.toFixed(1) : '—'}
+            label="BEST"
+          />
+        </View>
+        {/* The tear line — notches punch through the 2px border to the stage. */}
+        <StubPerforation notchColor={c.bg} dashColor={c.dash} />
+        <View style={styles.stubFooterRow}>
+          <Text style={[styles.stubFooterText, { flexShrink: 1 }]} numberOfLines={1}>
+            {(username ?? 'STICKET').toUpperCase()}
+          </Text>
+          <Text style={styles.stubFooterText}>ADMIT ONE MORE YEAR</Text>
+        </View>
+      </View>
+      <View style={{ height: 44 }} />
       <View style={styles.swipeHint}>
         <Ionicons name="chevron-up" size={14} color={c.muteSoft} />
         <Text style={styles.swipeHintText}>SWIPE UP</Text>
@@ -387,13 +426,63 @@ const styles = StyleSheet.create({
     color: c.mute,
     textAlign: 'center',
   },
-  titleBig: {
-    fontSize: 46,
-    lineHeight: 52,
+  yearMark: {
+    fontSize: 96,
+    lineHeight: 104,
     fontWeight: '800',
-    letterSpacing: -1,
+    letterSpacing: -4,
     color: c.fg,
     textAlign: 'center',
+  },
+  // The stub-bordered stat strip — 2px fg border; overflow hidden clips the
+  // perforation punches into semicircle notches on the border itself.
+  stubStrip: {
+    alignSelf: 'stretch',
+    borderWidth: 2,
+    borderColor: c.fg,
+    borderRadius: stage.radius.stub,
+    overflow: 'hidden',
+  },
+  stubStatsRow: {
+    flexDirection: 'row',
+    paddingVertical: 18,
+    paddingHorizontal: 10,
+  },
+  stubStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  stubStatValue: {
+    fontVariant: ['tabular-nums'],
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: c.fg,
+  },
+  stubStatLabel: {
+    fontFamily: mono.mono,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: c.muteSoft,
+  },
+  stubFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  stubFooterText: {
+    fontFamily: mono.mono,
+    fontVariant: ['tabular-nums'],
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: c.muteSoft,
   },
   swipeHint: {
     alignItems: 'center',

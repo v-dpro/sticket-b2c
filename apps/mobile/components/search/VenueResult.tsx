@@ -75,7 +75,7 @@ export function VenueResult({ venue, onPress }: VenueResultProps) {
         <Image source={{ uri: venue.imageUrl }} style={styles.image} />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]}>
-          <Ionicons name="location" size={20} color={tokens.colors.brandCyan} />
+          <Ionicons name="location" size={20} color={tokens.colors.mute} />
         </View>
       )}
 

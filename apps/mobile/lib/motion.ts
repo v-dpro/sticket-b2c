@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform } from 'react-native';
 import * as ExpoHaptics from 'expo-haptics';
 import {
+  Easing as REasing,
+  Keyframe,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -47,6 +49,8 @@ export const springs = {
   number: { stiffness: 110, damping: 26 },
   /** Heart-burst overlay scale */
   burst: { stiffness: 200, damping: 14 },
+  /** Scorecard Stub: the stamp landing (scale 1.3→1, rot −8°→−3°) */
+  stamp: { stiffness: 700, damping: 22 },
 } as const;
 
 // ─── Durations (ms) — canonical timing table ──────────────────────
@@ -70,6 +74,22 @@ export const durations = {
   /** Milestone brand-gradient flash — the ONLY sanctioned gradient moment */
   milestoneFlash: 1000,
 } as const;
+
+// ─── tearIn — the Scorecard Stub list entrance ─────────────────────
+// A card tears in: +8px, 1.5°→0, 240ms on cubic(.2,.7,.3,1). Use as the
+// `entering` for staggered list/grid items (delay = index * stagger).
+export function tearIn(delayMs = 0) {
+  return new Keyframe({
+    0: { opacity: 0, transform: [{ translateY: 8 }, { rotate: '1.5deg' }] },
+    100: {
+      opacity: 1,
+      transform: [{ translateY: 0 }, { rotate: '0deg' }],
+      easing: REasing.bezier(0.2, 0.7, 0.3, 1),
+    },
+  })
+    .duration(240)
+    .delay(delayMs);
+}
 
 // ─── Durations (ms, INTERACTIONS.md) ──────────────────────────────
 export const motionDurations = {

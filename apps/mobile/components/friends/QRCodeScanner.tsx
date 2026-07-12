@@ -49,7 +49,7 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
       position: 'absolute',
       width: 40,
       height: 40,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
       borderTopWidth: 4,
       borderLeftWidth: 4,
       top: 0,
@@ -110,7 +110,7 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
       marginBottom: 24,
     },
     permissionButton: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 24,
       paddingVertical: 12,
       borderRadius: radius.full,
@@ -143,7 +143,7 @@ export function QRCodeScanner({ onClose }: QRCodeScannerProps) {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={64} color={tokens.colors.brandPurple} />
+          <Ionicons name="camera-outline" size={64} color={tokens.colors.mute} />
           <Text style={styles.permissionTitle}>Camera Access</Text>
           <Text style={styles.permissionText}>We need camera access to scan QR codes</Text>
           <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>

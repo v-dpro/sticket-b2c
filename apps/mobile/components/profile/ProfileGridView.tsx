@@ -204,7 +204,7 @@ export function ProfileGridView({
       ListFooterComponent={renderFooter}
       onEndReached={onLoadMore}
       onEndReachedThreshold={0.5}
-      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.brandPurple} />}
+      refreshControl={<RefreshControl refreshing={loading && logs.length === 0} onRefresh={onRefresh} tintColor={tokens.colors.mute} />}
       style={styles.list}
       contentContainerStyle={styles.listContent}
     />

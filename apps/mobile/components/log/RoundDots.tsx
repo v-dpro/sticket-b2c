@@ -1,6 +1,6 @@
-// RoundDots — compare-loop progress: filled dots for finished rounds, an
-// accent dot for the current one, hollow dots ahead. Grows past the base
-// count if a placement takes extra rounds.
+// RoundDots — compare-loop progress: filled ink dots for finished rounds, a
+// slightly larger ink dot for the current one, line-colored dots ahead.
+// Grows past the base count if a placement takes extra rounds.
 
 import { View } from 'react-native';
 
@@ -30,7 +30,7 @@ export function RoundDots({ round, base = 5 }: RoundDotsProps) {
               width: active ? 7 : 6,
               height: active ? 7 : 6,
               borderRadius: 4,
-              backgroundColor: done ? c.fg : active ? c.accent : c.line,
+              backgroundColor: done || active ? c.fg : c.line,
             }}
           />
         );

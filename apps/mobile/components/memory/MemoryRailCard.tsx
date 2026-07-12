@@ -1,8 +1,8 @@
 // MemoryRailCard — mini photo card (~240×300) for the memory viewer's
 // "MORE FROM {EVENT}" horizontal rail. Same embedded chrome as the featured
-// card at smaller type: solid author pill (top-left), mono score chip 12
-// (top-right), artist 15/800 + venue·date mono on the bottom scrim.
-// Tap → the rail card becomes the featured card (handled by the route).
+// card at smaller type: solid author pill (top-left), bare mono score digits
+// (top-right, C2 on-media body), artist 15/800 + venue·date mono on the
+// bottom scrim. Tap → the rail card becomes the featured card (route logic).
 
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -14,8 +14,9 @@ import type { FeedItem } from '../../types/feed';
 import type { ThemeTokens } from '../../lib/theme';
 import { useThemedStyles } from '../../lib/theme-context';
 import { Avatar } from '../ui/Avatar';
+import { BareScore } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
-import { formatMemoryDate, formatMemoryScore } from './format';
+import { formatMemoryDate } from './format';
 
 export const RAIL_CARD_WIDTH = 240;
 export const RAIL_CARD_HEIGHT = 300;
@@ -91,11 +92,7 @@ export const MemoryRailCard = memo(function MemoryRailCard({ item, onPress }: Me
               {item.user.username}
             </Text>
           </View>
-          {score != null ? (
-            <View style={styles.scoreChip}>
-              <Text style={styles.scoreText}>{formatMemoryScore(score)}</Text>
-            </View>
-          ) : null}
+          {score != null ? <BareScore score={score} size={20} /> : null}
         </View>
 
         <View style={styles.overlayBottom}>
@@ -171,23 +168,6 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontWeight: '600',
       color: '#FFFFFF',
       flexShrink: 1,
-    },
-    scoreChip: {
-      minWidth: 26,
-      paddingHorizontal: 6,
-      height: 22,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.16)',
-      backgroundColor: 'rgba(11,11,16,0.55)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    scoreText: {
-      fontFamily: tokens.fontFamilies.monoBold,
-      fontVariant: ['tabular-nums'],
-      fontSize: 12,
-      color: '#FFFFFF',
     },
     overlayBottom: {
       alignItems: 'flex-start',

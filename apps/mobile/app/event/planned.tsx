@@ -18,11 +18,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { MonoLabel } from '../../components/ui/MonoLabel';
 import { PillButton } from '../../components/ui/PillButton';
+import { StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { haptics } from '../../lib/motion';
 import { apiClient } from '../../lib/api/client';
-import { radius, fontFamilies } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 // ---------------------------------------------------------------------------
@@ -172,23 +172,21 @@ export default function PlannedShowCard() {
   }, [show?.presale?.startsAt]);
 
   const { tokens } = useTheme();
-  const accent = tokens.accentSets.cyan;
   const styles = useThemedStyles((t) => {
-    const accent = t.accentSets.cyan;
     return {
       container: {
         flex: 1,
-        backgroundColor: t.colors.ink,
+        backgroundColor: t.colors.bg,
       },
       center: {
         flex: 1,
-        backgroundColor: t.colors.ink,
+        backgroundColor: t.colors.bg,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 16,
       },
       errorText: {
-        color: t.colors.textMid,
+        color: t.colors.mute,
         fontSize: 14,
         textAlign: 'center',
       },
@@ -197,11 +195,12 @@ export default function PlannedShowCard() {
       hero: {
         height: 260,
         justifyContent: 'flex-end',
+        backgroundColor: t.colors.card2,
       },
       heroInitial: {
         fontSize: 220,
         fontWeight: '900',
-        color: 'rgba(255,255,255,0.08)', // fixed: faint watermark over the hero gradient
+        color: t.colors.line, // faint watermark on the card2 fallback
         position: 'absolute',
         top: -20,
         right: -10,
@@ -212,8 +211,8 @@ export default function PlannedShowCard() {
         left: 16,
         width: 36,
         height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.12)', // fixed: translucent control over the hero image
+        borderRadius: t.radius.full,
+        backgroundColor: t.colors.card2,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -222,31 +221,55 @@ export default function PlannedShowCard() {
         paddingHorizontal: 16,
         paddingBottom: 20,
       },
-      heroArtist: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#FFFFFF', // fixed: white title over the hero image/scrim
+      // Over-photo text rides the literal scrim (fixed light ink); the
+      // photo-less fallback uses theme tokens so both modes stay legible.
+      heroArtistOnPhoto: {
+        fontSize: 24,
+        fontWeight: '800',
+        letterSpacing: -0.4,
+        color: '#FFFFFF',
       },
-      heroVenue: {
+      heroArtistOnCard: {
+        fontSize: 24,
+        fontWeight: '800',
+        letterSpacing: -0.4,
+        color: t.colors.fg,
+      },
+      heroVenueOnPhoto: {
         fontSize: 14,
-        color: t.colors.textMid,
+        color: '#C9C9D4',
         marginTop: 4,
       },
-      heroDate: {
-        fontFamily: fontFamilies.mono,
+      heroVenueOnCard: {
+        fontSize: 14,
+        color: t.colors.mute,
+        marginTop: 4,
+      },
+      heroDateOnPhoto: {
+        fontFamily: t.fontFamilies.mono,
         fontSize: 11,
-        color: t.colors.textLo,
+        color: '#C9C9D4',
+        letterSpacing: 1,
+        marginTop: 6,
+        textTransform: 'uppercase',
+      },
+      heroDateOnCard: {
+        fontFamily: t.fontFamilies.mono,
+        fontSize: 11,
+        color: t.colors.muteSoft,
         letterSpacing: 1,
         marginTop: 6,
         textTransform: 'uppercase',
       },
 
-      // Countdown
+      // Countdown — plain card (a plan, not a stub); digits mono ink.
       countdownCard: {
         marginHorizontal: 16,
         marginTop: 16,
-        backgroundColor: t.colors.surface,
-        borderRadius: radius.md,
+        backgroundColor: t.colors.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: t.colors.hairline,
+        borderRadius: t.radius.card,
         padding: 14,
         alignItems: 'center',
       },
@@ -257,22 +280,22 @@ export default function PlannedShowCard() {
         gap: 6,
       },
       countdownValue: {
+        fontFamily: t.fontFamilies.monoBold,
         fontSize: 40,
-        fontWeight: '700',
-        color: accent.hex,
+        color: t.colors.fg,
         fontVariant: ['tabular-nums'],
+        letterSpacing: -0.5,
       },
       countdownUnit: {
-        fontFamily: fontFamilies.monoSemi,
+        fontFamily: t.fontFamilies.monoSemi,
         fontSize: 12,
-        fontWeight: '600',
-        color: t.colors.textLo,
+        color: t.colors.muteSoft,
         letterSpacing: 1.5,
       },
       doorsText: {
-        fontFamily: fontFamilies.mono,
+        fontFamily: t.fontFamilies.mono,
         fontSize: 10,
-        color: t.colors.textMuted,
+        color: t.colors.muteSoft,
         marginTop: 6,
         letterSpacing: 1,
         textTransform: 'uppercase',
@@ -285,57 +308,71 @@ export default function PlannedShowCard() {
         paddingBottom: 8,
       },
 
-      // Ticket
-      ticketRow: {
+      // Ticket — the user HOLDS this, so it gets the stub construction (C3).
+      ticketStub: {
+        marginTop: 12,
+        backgroundColor: t.colors.card,
+        borderWidth: 1,
+        borderColor: t.colors.line,
+        borderRadius: t.radius.stub,
+        overflow: 'hidden',
+        ...t.shadows.card,
+      },
+      ticketStubBody: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 12,
         gap: 12,
+        paddingHorizontal: t.density.cardPad,
+        paddingTop: 16,
+        paddingBottom: 12,
       },
       ticketIcon: {
         width: 42,
         height: 42,
-        borderRadius: radius.md,
-        backgroundColor: accent.soft,
+        borderRadius: t.radius.md,
+        backgroundColor: t.colors.card2,
         alignItems: 'center',
         justifyContent: 'center',
       },
       ticketLabel: {
-        fontFamily: fontFamilies.monoSemi,
+        fontFamily: t.fontFamilies.monoSemi,
         fontSize: 12,
-        fontWeight: '600',
-        color: t.colors.textHi,
+        color: t.colors.fg,
         letterSpacing: 1,
       },
+      ticketStubFooter: {
+        paddingHorizontal: t.density.cardPad,
+        paddingVertical: 10,
+      },
 
-      // Presale
+      // Presale — a future thing: dashed tokens.colors.dash borders.
       presaleInfoBox: {
         marginTop: 10,
         borderWidth: 1,
-        borderColor: accent.soft,
-        borderRadius: radius.md,
+        borderStyle: 'dashed',
+        borderColor: t.colors.dash,
+        borderRadius: t.radius.card,
         padding: 14,
       },
       presaleInfoText: {
         fontSize: 14,
-        color: t.colors.textHi,
+        color: t.colors.text,
         lineHeight: 20,
       },
       presaleCodeBox: {
         marginTop: 10,
-        backgroundColor: t.colors.ink,
-        borderWidth: 1,
-        borderColor: accent.line,
-        borderStyle: 'dashed',
-        borderRadius: radius.md,
-        padding: 14,
+        alignSelf: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: t.colors.line,
+        borderRadius: t.radius.chip,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
       },
       presaleCode: {
-        fontFamily: fontFamilies.monoBold,
+        fontFamily: t.fontFamilies.monoBold,
         fontSize: 12,
-        fontWeight: '700',
-        color: accent.hex,
+        color: t.colors.fg,
         letterSpacing: 3,
         marginTop: 6,
       },
@@ -349,27 +386,26 @@ export default function PlannedShowCard() {
       friendName: {
         fontSize: 14,
         fontWeight: '600',
-        color: t.colors.textHi,
+        color: t.colors.text,
       },
       friendStatus: {
-        fontFamily: fontFamilies.mono,
+        fontFamily: t.fontFamilies.mono,
         fontSize: 9.5,
-        color: t.colors.textLo,
+        color: t.colors.muteSoft,
         letterSpacing: 1,
         marginTop: 2,
       },
       messageBtn: {
         borderWidth: 1,
-        borderColor: accent.hex,
-        borderRadius: radius.full,
+        borderColor: t.colors.line,
+        borderRadius: t.radius.full,
         paddingHorizontal: 14,
         paddingVertical: 6,
       },
       messageBtnText: {
-        fontFamily: fontFamilies.monoSemi,
+        fontFamily: t.fontFamilies.monoSemi,
         fontSize: 10,
-        fontWeight: '600',
-        color: accent.hex,
+        color: t.colors.fg,
         letterSpacing: 1,
       },
 
@@ -384,14 +420,15 @@ export default function PlannedShowCard() {
         fontSize: 40,
       },
       weatherTemp: {
+        fontFamily: t.fontFamilies.monoSemi,
+        fontVariant: ['tabular-nums'],
         fontSize: 22,
-        fontWeight: '700',
-        color: t.colors.textHi,
+        color: t.colors.fg,
       },
       weatherCondition: {
-        fontFamily: fontFamilies.mono,
+        fontFamily: t.fontFamilies.mono,
         fontSize: 10,
-        color: t.colors.textLo,
+        color: t.colors.muteSoft,
         letterSpacing: 1,
         textTransform: 'uppercase',
       },
@@ -404,32 +441,34 @@ export default function PlannedShowCard() {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 8,
-        borderBottomWidth: 1,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: t.colors.hairline,
       },
       setlistNum: {
-        fontFamily: fontFamilies.mono,
+        fontFamily: t.fontFamilies.mono,
         fontSize: 12,
-        color: t.colors.textMuted,
+        color: t.colors.muteSoft,
         width: 28,
       },
       setlistSong: {
         flex: 1,
         fontSize: 14,
-        color: t.colors.textHi,
+        color: t.colors.text,
       },
       setlistPct: {
-        fontFamily: fontFamilies.monoSemi,
+        fontFamily: t.fontFamilies.monoSemi,
+        fontVariant: ['tabular-nums'],
         fontSize: 11,
-        color: accent.hex,
-        fontWeight: '600',
+        color: t.colors.fg,
       },
 
       // Spoiler box
       spoilerBox: {
         marginTop: 12,
-        backgroundColor: t.colors.surface,
-        borderRadius: radius.md,
+        backgroundColor: t.colors.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: t.colors.hairline,
+        borderRadius: t.radius.card,
         padding: 24,
         alignItems: 'center',
         justifyContent: 'center',
@@ -437,7 +476,7 @@ export default function PlannedShowCard() {
       },
       spoilerText: {
         fontSize: 13,
-        color: t.colors.textMuted,
+        color: t.colors.mute,
         fontWeight: '500',
       },
     };
@@ -448,7 +487,7 @@ export default function PlannedShowCard() {
     return (
       <View style={styles.center}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={accent.hex} />
+        <ActivityIndicator size="large" color={tokens.colors.mute} />
       </View>
     );
   }
@@ -459,13 +498,14 @@ export default function PlannedShowCard() {
         <Stack.Screen options={{ headerShown: false }} />
         <Text style={styles.errorText}>{error ?? 'Show not found'}</Text>
         <Pressable onPress={goBack} style={{ marginTop: 16 }}>
-          <Text style={{ color: accent.hex, fontSize: 14, fontWeight: '600' }}>Go Back</Text>
+          <Text style={{ color: tokens.colors.fg, fontSize: 14, fontWeight: '600' }}>Go Back</Text>
         </Pressable>
       </View>
     );
   }
 
   const artistInitial = (show.artist.name?.[0] ?? 'S').toUpperCase();
+  const hasHeroPhoto = Boolean(show.imageUrl);
 
   return (
     <View style={styles.container}>
@@ -473,21 +513,18 @@ export default function PlannedShowCard() {
       <ScrollView
         style={{ flex: 1 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={accent.hex} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={tokens.colors.mute}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* ── Hero ─────────────────────────────────────────────── */}
         <View style={styles.hero}>
-          {show.imageUrl ? (
-            <View style={StyleSheet.absoluteFill}>
-              {/* Using a gradient placeholder behind the image */}
-              <LinearGradient
-                colors={[tokens.accentSets.purple.hex, tokens.accentSets.cyan.hex]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
+          {hasHeroPhoto ? (
+            <>
               <Image
                 source={{ uri: show.imageUrl }}
                 style={StyleSheet.absoluteFill}
@@ -495,46 +532,44 @@ export default function PlannedShowCard() {
                 transition={80}
                 cachePolicy="memory-disk"
               />
-            </View>
+              {/* Scrim — fixed dark scrim over the hero image only */}
+              <LinearGradient
+                colors={['transparent', 'rgba(11,11,16,0.9)']}
+                locations={[0.3, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+            </>
           ) : (
-            <LinearGradient
-              colors={[tokens.accentSets.purple.hex, tokens.colors.ink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            >
-              <Text style={styles.heroInitial}>{artistInitial}</Text>
-            </LinearGradient>
+            // Photo-less fallback — flat card2 field with a faint watermark.
+            <Text style={styles.heroInitial}>{artistInitial}</Text>
           )}
-          {/* Scrim — fixed dark scrim over the hero image */}
-          <LinearGradient
-            colors={['transparent', 'rgba(11,11,20,0.9)']}
-            locations={[0.3, 1]}
-            style={StyleSheet.absoluteFill}
-          />
           {/* Back */}
           <Pressable
             onPress={goBack}
             style={[styles.backBtn, { top: insets.top + 8 }]}
             accessibilityRole="button"
           >
-            <Ionicons name="arrow-back" size={20} color={tokens.colors.textHi} />
+            <Ionicons name="arrow-back" size={20} color={tokens.colors.fg} />
           </Pressable>
           {/* Bottom info */}
           <View style={styles.heroBottom}>
-            <Text style={styles.heroArtist}>{show.artist.name}</Text>
-            <Text style={styles.heroVenue}>
+            <Text style={hasHeroPhoto ? styles.heroArtistOnPhoto : styles.heroArtistOnCard}>
+              {show.artist.name}
+            </Text>
+            <Text style={hasHeroPhoto ? styles.heroVenueOnPhoto : styles.heroVenueOnCard}>
               {show.venue.name} {'\u00B7'} {show.venue.city}
               {show.venue.state ? `, ${show.venue.state}` : ''}
             </Text>
-            <Text style={styles.heroDate}>{formatDate(show.date)}</Text>
+            <Text style={hasHeroPhoto ? styles.heroDateOnPhoto : styles.heroDateOnCard}>
+              {formatDate(show.date)}
+            </Text>
           </View>
         </View>
 
         {/* ── Countdown ──────────────────────────────────────── */}
         {countdown && (
           <View style={styles.countdownCard}>
-            <MonoLabel size={9.5} color={tokens.colors.textLo}>SHOW IN</MonoLabel>
+            <MonoLabel size={9.5} color={tokens.colors.muteSoft}>SHOW IN</MonoLabel>
             <View style={styles.countdownRow}>
               <Text style={styles.countdownValue}>{countdown.value}</Text>
               <Text style={styles.countdownUnit}>{countdown.unit}</Text>
@@ -550,7 +585,7 @@ export default function PlannedShowCard() {
         {/* ── Presale countdown (if presale has not started) ── */}
         {presaleCountdown && show.presale && (
           <View style={styles.countdownCard}>
-            <MonoLabel size={9.5} color={tokens.colors.textLo}>TICKETS DROP IN</MonoLabel>
+            <MonoLabel size={9.5} color={tokens.colors.muteSoft}>TICKETS DROP IN</MonoLabel>
             <View style={styles.countdownRow}>
               <Text style={styles.countdownValue}>{presaleCountdown.value}</Text>
               <Text style={styles.countdownUnit}>{presaleCountdown.unit}</Text>
@@ -561,34 +596,43 @@ export default function PlannedShowCard() {
         {/* ── Your Ticket ────────────────────────────────────── */}
         {show.ticket && (
           <View style={styles.section}>
-            <MonoLabel size={10} color={accent.hex}>YOUR TICKET</MonoLabel>
-            <View style={styles.ticketRow}>
-              <View style={styles.ticketIcon}>
-                <Ionicons name="ticket" size={22} color={accent.hex} />
+            {/* A held ticket gets the stub construction (C3). */}
+            <MonoLabel size={10}>YOUR TICKET</MonoLabel>
+            <View style={styles.ticketStub}>
+              <View style={styles.ticketStubBody}>
+                <View style={styles.ticketIcon}>
+                  <Ionicons name="ticket" size={22} color={tokens.colors.fg} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  {show.ticket.section ? (
+                    <Text style={styles.ticketLabel}>
+                      SEC {show.ticket.section}
+                      {show.ticket.row ? ` \u00B7 ROW ${show.ticket.row}` : ''}
+                      {show.ticket.seat ? ` \u00B7 SEAT ${show.ticket.seat}` : ''}
+                    </Text>
+                  ) : (
+                    <Text style={styles.ticketLabel}>GENERAL ADMISSION</Text>
+                  )}
+                </View>
+                {show.ticket.appUrl ? (
+                  <PillButton
+                    title="Open app"
+                    size="sm"
+                    variant="primary"
+                    onPress={() => {
+                      // Open ticket app link
+                      Linking.openURL(show.ticket!.appUrl!).catch(() => {});
+                    }}
+                  />
+                ) : null}
               </View>
-              <View style={{ flex: 1 }}>
-                {show.ticket.section ? (
-                  <Text style={styles.ticketLabel}>
-                    SEC {show.ticket.section}
-                    {show.ticket.row ? ` \u00B7 ROW ${show.ticket.row}` : ''}
-                    {show.ticket.seat ? ` \u00B7 SEAT ${show.ticket.seat}` : ''}
-                  </Text>
-                ) : (
-                  <Text style={styles.ticketLabel}>General Admission</Text>
-                )}
-              </View>
-              {show.ticket.appUrl ? (
-                <PillButton
-                  title="OPEN APP"
-                  size="sm"
-                  variant="solid"
-                  accentColor={accent.hex}
-                  onPress={() => {
-                    // Open ticket app link
-                    Linking.openURL(show.ticket!.appUrl!).catch(() => {});
-                  }}
+              <StubPerforation notchColor={tokens.colors.bg} />
+              <View style={styles.ticketStubFooter}>
+                <StubDetailsRow
+                  left={`${show.venue.name} \u00B7 ${show.venue.city}`}
+                  right="ADMIT 01"
                 />
-              ) : null}
+              </View>
             </View>
           </View>
         )}
@@ -596,13 +640,13 @@ export default function PlannedShowCard() {
         {/* ── Presale Info ───────────────────────────────────── */}
         {show.presale && !presaleCountdown && (
           <View style={styles.section}>
-            <MonoLabel size={10} color={accent.hex}>PRESALE</MonoLabel>
+            <MonoLabel size={10}>PRESALE</MonoLabel>
             <View style={styles.presaleInfoBox}>
               <Text style={styles.presaleInfoText}>{show.presale.info}</Text>
             </View>
             {show.presale.code ? (
               <View style={styles.presaleCodeBox}>
-                <MonoLabel size={9.5} color={tokens.colors.textLo}>CODE</MonoLabel>
+                <MonoLabel size={9.5} color={tokens.colors.muteSoft}>CODE</MonoLabel>
                 <Text style={styles.presaleCode}>{show.presale.code}</Text>
               </View>
             ) : null}
@@ -612,7 +656,7 @@ export default function PlannedShowCard() {
         {/* ── Friends Going ──────────────────────────────────── */}
         {show.friendsGoing?.length > 0 && (
           <View style={styles.section}>
-            <MonoLabel size={10} color={accent.hex}>FRIENDS GOING</MonoLabel>
+            <MonoLabel size={10}>FRIENDS GOING</MonoLabel>
             {show.friendsGoing.map((f) => (
               <Pressable
                 key={f.id}
@@ -642,7 +686,7 @@ export default function PlannedShowCard() {
         {/* ── Weather ────────────────────────────────────────── */}
         {show.weather && (
           <View style={styles.section}>
-            <MonoLabel size={10} color={accent.hex}>WEATHER</MonoLabel>
+            <MonoLabel size={10}>WEATHER</MonoLabel>
             <View style={styles.weatherRow}>
               <Text style={styles.weatherEmoji}>{show.weather.emoji}</Text>
               <Text style={styles.weatherTemp}>{show.weather.tempF}\u00B0</Text>
@@ -654,7 +698,7 @@ export default function PlannedShowCard() {
         {/* ── Setlist Predictions (SpoilerBox) ───────────────── */}
         {show.setlistPredictions && show.setlistPredictions.length > 0 && (
           <View style={styles.section}>
-            <MonoLabel size={10} color={accent.hex}>EXPECT TO HEAR</MonoLabel>
+            <MonoLabel size={10}>EXPECT TO HEAR</MonoLabel>
             {spoilerRevealed ? (
               <View style={styles.setlistList}>
                 {show.setlistPredictions.map((song, i) => (
@@ -667,7 +711,7 @@ export default function PlannedShowCard() {
               </View>
             ) : (
               <Pressable style={styles.spoilerBox} onPress={() => setSpoilerRevealed(true)}>
-                <Ionicons name="eye-off" size={24} color={tokens.colors.textMuted} />
+                <Ionicons name="eye-off" size={24} color={tokens.colors.muteSoft} />
                 <Text style={styles.spoilerText}>Tap to reveal predictions</Text>
               </Pressable>
             )}
@@ -678,10 +722,9 @@ export default function PlannedShowCard() {
         {show.ticketUrl && !show.ticket && (
           <View style={[styles.section, { alignItems: 'center', paddingBottom: 8 }]}>
             <PillButton
-              title="GET TICKETS"
-              variant="solid"
+              title="Get tickets"
+              variant="primary"
               size="lg"
-              accentColor={accent.hex}
               onPress={() => {
                 Linking.openURL(show.ticketUrl!).catch(() => {});
               }}

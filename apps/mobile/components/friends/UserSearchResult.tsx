@@ -64,11 +64,11 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
     },
     followsYouText: {
       fontSize: 10,
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontWeight: '700',
     },
     followButton: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: radius.full,
@@ -78,7 +78,7 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
     followingButton: {
       backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
     },
     followText: {
       fontSize: 13,
@@ -86,7 +86,7 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
       color: t.colors.onAccent, // label over the filled purple button
     },
     followingText: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
   }));
 
@@ -158,7 +158,7 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
         hitSlop={6}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={user.isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
+          <ActivityIndicator size="small" color={user.isFollowing ? tokens.colors.fg : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, user.isFollowing && styles.followingText]}>
             {user.isFollowing ? 'Following' : 'Follow'}

@@ -51,9 +51,11 @@ const FLASH_TOTAL = FLASH_HOLD + FOLD_MS; // ~400ms perceived reveal
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-function yearOf(iso: string): string {
+// Opponent eyebrow: "JUN 2024" — the month/year it was placed under.
+function monthYear(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : String(d.getFullYear());
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
 }
 
 function prettyDate(iso: string): string {
@@ -352,7 +354,7 @@ export default function CompareScreen() {
       return (
         <View style={{ flex: 1, paddingHorizontal: pad }}>
           <View style={{ paddingTop: 8, paddingBottom: 24, gap: 6 }}>
-            <Text style={{ color: c.fg, fontSize: 30, fontWeight: '800', letterSpacing: -0.5 }}>
+            <Text style={{ color: c.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>
               How was it?
             </Text>
             <Text style={{ color: c.mute, fontSize: 15, fontWeight: '400' }}>
@@ -374,7 +376,7 @@ export default function CompareScreen() {
     return (
       <View style={{ flex: 1, paddingHorizontal: pad }}>
         <View style={{ paddingTop: 8, paddingBottom: 18, gap: 6 }}>
-          <Text style={{ color: c.fg, fontSize: 30, fontWeight: '800', letterSpacing: -0.5 }}>
+          <Text style={{ color: c.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>
             Which night wins?
           </Text>
           <Text style={{ color: c.mute, fontSize: 15, fontWeight: '400' }}>
@@ -410,7 +412,7 @@ export default function CompareScreen() {
 
           <Animated.View style={[{ flex: 1 }, rightStyle]} key={opponent.id} entering={SlideInRight.springify().stiffness(180).damping(22)}>
             <CompareCard
-              tag={yearOf(opponent.event.date) || 'Ranked'}
+              tag={monthYear(opponent.event.date) || 'Ranked'}
               title={opponent.event.name}
               subtitle={prettyDate(opponent.event.date)}
               score={opponent.score}
@@ -424,7 +426,7 @@ export default function CompareScreen() {
 
         <Animated.View entering={FadeIn.duration(250)} style={{ marginTop: 24, alignItems: 'center', gap: 8 }}>
           <PillButton
-            title="Too close to call"
+            title="Too close — skip this one"
             variant="ghost"
             size="md"
             springFeedback
@@ -454,7 +456,11 @@ export default function CompareScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
-      <FlowHeader icon="close" label={isFirstLog ? 'First score' : 'Score it'} onPress={exitToTimeline} />
+      <FlowHeader
+        icon="close"
+        label={isFirstLog ? 'First score' : `Compare · ${round} of ${Math.max(5, round)}`}
+        onPress={exitToTimeline}
+      />
       {renderBody()}
     </SafeAreaView>
   );

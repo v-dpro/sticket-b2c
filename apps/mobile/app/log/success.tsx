@@ -1,12 +1,13 @@
 // LOG FLOW · STEP 4 — THE REVEAL. Locked choreography (durations.reveal):
 //   0.0s  bg + event name, small and mute
-//   0.3s  score odometer (SpringNumber, one decimal) — the numeral wears the
-//         brand gradient via MaskedView for ~durations.milestoneFlash, then
-//         settles to fg. Medium haptic as the count lands.
-//   1.2s  rank stamp springs in — "#3 of your 47 shows" (mono 600)
-//   1.8s  XP chip pops (inverseBg/inverseFg) + thin level bar nudges
+//   0.3s  score digits count up (SpringNumber, one decimal) — the numeral
+//         wears the brand gradient via MaskedView for ~durations.milestoneFlash,
+//         then settles to fg.
+//   1.2s  the stamp LANDS — the giant ScoreStamp border slams around the
+//         digits (scale 1.3→1, rotate −8°→−3°, springs.stamp) + medium haptic
+//   1.8s  "#N OF M" + "+N XP" bordered mono chips pop + thin level bar nudges
 //   2.4s  ONE milestone card (first new badge) + confetti + success haptic
-//   3.2s  CTA row fades in — primary "Done", ghost "Log another"
+//   3.2s  CTA row fades in — primary "Make it a memory", ghost "Done for tonight"
 // Tap anywhere earlier skips every pending phase straight to the CTA state.
 // Route contract in: { eventId?, eventName?, score?, rank?, totalScored?,
 //   xpGain?, xpAfter?, leveledUp?, badges? } — score/rank optional so older
@@ -23,9 +24,11 @@ import Animated, {
   FadeIn,
   FadeInUp,
   ZoomIn,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -35,7 +38,7 @@ import { PillButton } from '../../components/ui/PillButton';
 import { SpringNumber } from '../../components/ui/SpringNumber';
 import { getEvent } from '../../lib/api/events';
 import { levelFor } from '../../lib/game';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, springs } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 
 // Phase indices: 1 score · 2 rank · 3 xp · 4 milestone · 5 cta
@@ -129,7 +132,9 @@ export default function LogSuccess() {
     const bump = (p: number) => () => setPhase((prev) => Math.max(prev, p));
     const hasBadge = Boolean(badge);
     at(durations.reveal.intro, bump(1));
-    at(durations.reveal.intro + 800, () => haptics.medium()); // odometer lands
+    // With a score, the stamp landing (StampedScore) owns the medium haptic;
+    // the score-less "Logged." keeps the original settle beat.
+    if (!hasScore) at(durations.reveal.intro + 800, () => haptics.medium());
     at(durations.reveal.stamp, bump(2));
     at(durations.reveal.details, bump(3));
     if (hasBadge) {
@@ -206,11 +211,11 @@ export default function LogSuccess() {
               {eventName}
             </Text>
 
-            {/* 0.3s — the score odometer */}
-            <View style={{ height: 96, justifyContent: 'center' }}>
+            {/* 0.3s — digits count up · 1.2s — the stamp lands around them */}
+            <View style={{ height: 156, justifyContent: 'center' }}>
               {phase >= 1 ? (
                 hasScore ? (
-                  <GradientScore score={score} instant={skipped} />
+                  <StampedScore score={score} stamped={phase >= 2} instant={skipped} />
                 ) : (
                   <Animated.Text
                     entering={ZoomIn.springify().stiffness(260).damping(18)}
@@ -222,62 +227,30 @@ export default function LogSuccess() {
               ) : null}
             </View>
 
-            {/* 1.2s — rank stamp */}
-            <View style={{ height: 34, justifyContent: 'center' }}>
-              {phase >= 2 && hasRank ? (
-                <Animated.View entering={ZoomIn.springify().stiffness(260).damping(18)}>
-                  <Text
-                    style={{
-                      fontFamily: tokens.fontFamilies.monoSemi,
-                      fontVariant: ['tabular-nums'],
-                      fontSize: 13,
-                      fontWeight: '600',
-                      letterSpacing: 1.5,
-                      textTransform: 'uppercase',
-                      color: c.mute,
-                    }}
-                  >
-                    {totalScored <= 1 ? (
-                      'First one on the board'
-                    ) : (
-                      <>
-                        <Text style={{ color: c.fg }}>#{rank}</Text>
-                        {` of your ${totalScored} shows`}
-                      </>
-                    )}
-                  </Text>
-                </Animated.View>
-              ) : null}
-            </View>
-
-            {/* 1.8s — XP chip + level bar nudge */}
-            <View style={{ height: hasXp ? 92 : 0, width: '100%', justifyContent: 'center' }}>
-              {phase >= 3 && hasXp ? (
+            {/* 1.8s — "#N OF M" + "+N XP" bordered mono chips + level bar nudge */}
+            <View
+              style={{
+                height: hasXp ? 108 : hasRank ? 44 : 0,
+                width: '100%',
+                justifyContent: 'center',
+              }}
+            >
+              {phase >= 3 && (hasRank || hasXp) ? (
                 <View style={{ alignItems: 'center', gap: 16 }}>
                   <Animated.View
                     entering={ZoomIn.springify().stiffness(260).damping(18)}
-                    style={{
-                      backgroundColor: c.inverseBg,
-                      borderRadius: 999,
-                      paddingHorizontal: 14,
-                      height: 28,
-                      justifyContent: 'center',
-                    }}
+                    style={{ flexDirection: 'row', gap: 10 }}
                   >
-                    <Text
-                      style={{
-                        fontFamily: tokens.fontFamilies.monoSemi,
-                        fontVariant: ['tabular-nums'],
-                        fontSize: 12,
-                        fontWeight: '600',
-                        letterSpacing: 1,
-                        color: c.inverseFg,
-                      }}
-                    >
-                      +{xpGain} XP
-                    </Text>
+                    {hasRank ? (
+                      <RevealChip
+                        text={totalScored <= 1 ? 'First one on the board' : `#${rank} of ${totalScored}`}
+                      />
+                    ) : null}
+                    {hasXp ? <RevealChip text={`+${xpGain} XP`} /> : null}
                   </Animated.View>
-                  <LevelNudge xpAfter={xpAfter} xpGain={xpGain} leveledUp={leveledUp} instant={skipped} />
+                  {hasXp ? (
+                    <LevelNudge xpAfter={xpAfter} xpGain={xpGain} leveledUp={leveledUp} instant={skipped} />
+                  ) : null}
                 </View>
               ) : null}
             </View>
@@ -341,14 +314,14 @@ export default function LogSuccess() {
                   ) : (
                     <>
                       <PillButton
-                        title="Make it a memory →"
+                        title="Make it a memory"
                         variant="primary"
                         size="lg"
                         springFeedback
                         haptic="light"
                         onPress={makeMemory}
                       />
-                      <PillButton title="Done" variant="ghost" size="lg" springFeedback onPress={done} />
+                      <PillButton title="Done for tonight" variant="ghost" size="lg" springFeedback onPress={done} />
                     </>
                   )
                 ) : (
@@ -365,11 +338,16 @@ export default function LogSuccess() {
   );
 }
 
-// ─── The gradient odometer ──────────────────────────────────────────
-// SpringNumber (one decimal, mono 800, ~72pt) is the MaskedView mask, so the
-// counting numeral itself wears tokens.gradients.brand — the one sanctioned
-// gradient moment — for ~durations.milestoneFlash before fading to fg.
-function GradientScore({ score, instant }: { score: number; instant: boolean }) {
+// ─── The stamped score ──────────────────────────────────────────────
+// Digits phase: SpringNumber (one decimal, mono 800, ~80pt) is the MaskedView
+// mask, so the counting numeral itself wears tokens.gradients.brand — the one
+// sanctioned gradient moment — for ~durations.milestoneFlash before fading to
+// fg. At the stamp checkpoint the giant ScoreStamp border LANDS around the
+// digits: scale 1.3→1, rotate −8°→−3° (springs.stamp) + medium haptic. The
+// final resting body is the bordered stamp (ScoreStamp geometry at size 80).
+const STAMP_SIZE = 80;
+
+function StampedScore({ score, stamped, instant }: { score: number; stamped: boolean; instant: boolean }) {
   const { tokens } = useTheme();
   const c = tokens.colors;
 
@@ -384,10 +362,35 @@ function GradientScore({ score, instant }: { score: number; instant: boolean }) 
   }, [instant]);
   const gradientStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
 
+  // Landing progress: < 0 is the bare digits phase (no border, no tilt).
+  // On stamp it jumps to 0 (scale 1.3, −8°) and springs to 1 (scale 1, −3°).
+  const land = useSharedValue(instant ? 1 : -1);
+  useEffect(() => {
+    if (instant) {
+      land.value = 1;
+      return;
+    }
+    if (!stamped) return;
+    haptics.medium();
+    land.value = 0;
+    land.value = withSpring(1, springs.stamp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instant, stamped]);
+  const landStyle = useAnimatedStyle(() => {
+    if (land.value < 0) return { transform: [{ scale: 1 }, { rotate: '0deg' }] };
+    return {
+      transform: [
+        { scale: interpolate(land.value, [0, 1], [1.3, 1]) },
+        { rotate: `${interpolate(land.value, [0, 1], [-8, -3])}deg` },
+      ],
+    };
+  });
+  const borderStyle = useAnimatedStyle(() => ({ opacity: land.value < 0 ? 0 : 1 }));
+
   const numeralStyle: TextStyle = {
     fontFamily: tokens.fontFamilies.monoBold,
     fontVariant: ['tabular-nums'],
-    fontSize: 72,
+    fontSize: STAMP_SIZE,
     fontWeight: '800',
     letterSpacing: -2,
     color: c.fg,
@@ -395,33 +398,87 @@ function GradientScore({ score, instant }: { score: number; instant: boolean }) 
   const finalText = score.toFixed(1);
 
   return (
-    <MaskedView
-      maskElement={
-        <SpringNumber
-          // Re-key on skip: remounts with animateOnMount=false → final value instantly.
-          key={instant ? 'final' : 'counting'}
-          value={score}
-          decimals={1}
-          grouped={false}
-          animateOnMount={!instant}
-          style={numeralStyle}
-        />
-      }
+    <Animated.View style={[{ alignSelf: 'center' }, landStyle]}>
+      {/* The stamp border — ScoreStamp geometry, hidden until the landing. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            borderWidth: 3,
+            borderColor: c.fg,
+            borderRadius: Math.max(8, STAMP_SIZE * 0.35),
+          },
+          borderStyle,
+        ]}
+      />
+      <View
+        style={{
+          paddingHorizontal: Math.max(8, STAMP_SIZE * 0.5),
+          paddingVertical: Math.max(2, STAMP_SIZE * 0.16),
+        }}
+      >
+        <MaskedView
+          maskElement={
+            <SpringNumber
+              // Re-key on skip: remounts with animateOnMount=false → final value instantly.
+              key={instant ? 'final' : 'counting'}
+              value={score}
+              decimals={1}
+              grouped={false}
+              animateOnMount={!instant}
+              style={numeralStyle}
+            />
+          }
+        >
+          {/* Layout ghost — sizes the masked content to the final numeral. */}
+          <Text style={[numeralStyle, { opacity: 0 }]} allowFontScaling={false}>
+            {finalText}
+          </Text>
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: c.fg }]} />
+          <Animated.View style={[StyleSheet.absoluteFillObject, gradientStyle]}>
+            <LinearGradient
+              colors={tokens.gradients.brand as unknown as [string, string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ flex: 1 }}
+            />
+          </Animated.View>
+        </MaskedView>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ─── Bordered mono reveal chip — "#N OF M" / "+N XP" ────────────────
+function RevealChip({ text }: { text: string }) {
+  const { tokens } = useTheme();
+  const c = tokens.colors;
+  return (
+    <View
+      style={{
+        borderWidth: 1.5,
+        borderColor: c.fg,
+        borderRadius: tokens.radius.chip,
+        height: 28,
+        paddingHorizontal: 12,
+        justifyContent: 'center',
+      }}
     >
-      {/* Layout ghost — sizes the masked content to the final numeral. */}
-      <Text style={[numeralStyle, { opacity: 0 }]} allowFontScaling={false}>
-        {finalText}
+      <Text
+        style={{
+          fontFamily: tokens.fontFamilies.monoSemi,
+          fontVariant: ['tabular-nums'],
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          color: c.fg,
+        }}
+      >
+        {text}
       </Text>
-      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: c.fg }]} />
-      <Animated.View style={[StyleSheet.absoluteFillObject, gradientStyle]}>
-        <LinearGradient
-          colors={tokens.gradients.brand as unknown as [string, string, string]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1 }}
-        />
-      </Animated.View>
-    </MaskedView>
+    </View>
   );
 }
 
@@ -470,7 +527,7 @@ function LevelNudge({
             fontWeight: '600',
             letterSpacing: 1.5,
             textTransform: 'uppercase',
-            color: leveledUp ? c.accent : c.mute,
+            color: leveledUp ? c.fg : c.mute,
           }}
         >
           {leveledUp ? `Level up · ${after.name}` : after.name}

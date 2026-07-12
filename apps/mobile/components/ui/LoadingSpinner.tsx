@@ -6,7 +6,7 @@ export function LoadingSpinner({ size = 'small' }: { size?: 'small' | 'large' })
   const { tokens } = useTheme();
   return (
     <View style={{ padding: 12, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator size={size} color={tokens.colors.brandCyan} />
+      <ActivityIndicator size={size} color={tokens.colors.mute} />
     </View>
   );
 }

@@ -36,7 +36,7 @@ function HeadlineRibbon({ people, title, subtitle }: {
     ribbonCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: t.accentSets.cyan.soft,
+      backgroundColor: t.colors.accentSoft,
       borderRadius: 12,
       paddingVertical: 12,
       paddingHorizontal: 14,
@@ -181,7 +181,7 @@ export function PeopleBlock({
       fontFamily: fontFamilies.monoBold,
       fontSize: 10.5,
       fontWeight: '700',
-      color: t.accentSets.cyan.hex,
+      color: t.colors.fg,
       letterSpacing: 1,
       textTransform: 'uppercase',
     },

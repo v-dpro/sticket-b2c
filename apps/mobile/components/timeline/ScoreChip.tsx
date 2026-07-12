@@ -1,6 +1,6 @@
-// ScoreChip — small mono score pill on timeline log cards.
-// card2 fill, fg numeral; the numeral goes accent when score ≥ 9
-// (accent = small usages only, per the design mandate).
+// ScoreChip — small bordered mono score stamp (the flat ScoreStamp look for
+// legacy call sites): 1.5px fg border, no fill, mono digits. C1 zero accent —
+// the score is ink at every value; intensity reads from the number itself.
 
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -15,13 +15,13 @@ type ScoreChipProps = {
 export function ScoreChip({ score }: ScoreChipProps) {
   const { tokens } = useTheme();
   const c = tokens.colors;
-  const hot = score >= 9;
 
   return (
     <View
       style={{
-        backgroundColor: c.card2,
-        borderRadius: tokens.radius.sm,
+        borderWidth: 1.5,
+        borderColor: c.fg,
+        borderRadius: tokens.radius.chip, // 10
         paddingHorizontal: 8,
         height: 24,
         justifyContent: 'center',
@@ -32,8 +32,8 @@ export function ScoreChip({ score }: ScoreChipProps) {
           fontFamily: tokens.fontFamilies.mono,
           fontVariant: ['tabular-nums'],
           fontSize: 12,
-          fontWeight: '600',
-          color: hot ? c.accent : c.fg,
+          fontWeight: '700',
+          color: c.fg,
         }}
       >
         {formatScore(score)}

@@ -61,7 +61,7 @@ export default function FeedbackScreen() {
       borderColor: t.colors.hairline,
     },
     typeChipActive: {
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
       backgroundColor: 'rgba(139, 92, 246, 0.18)',
     },
     typeText: {
@@ -70,7 +70,7 @@ export default function FeedbackScreen() {
       color: t.colors.textLo,
     },
     typeTextActive: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
     input: {
       backgroundColor: t.colors.inkAlt,
@@ -84,7 +84,7 @@ export default function FeedbackScreen() {
       marginBottom: spacing.md,
     },
     submit: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       borderRadius: radius.md,
       paddingVertical: 14,
       alignItems: 'center',

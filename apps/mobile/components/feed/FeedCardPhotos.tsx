@@ -11,7 +11,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -20,6 +19,10 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+// RNGH FlatList: registers its native pan with the gesture system, so the
+// pager still receives horizontal drags inside GestureDetector surfaces
+// (the timeline deck) instead of the swipe falling through to the press.
+import { FlatList } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -224,9 +227,9 @@ export function FeedCardPhotos({
         ]}
       >
         {width > 0 ? (
-          <FlatList
+          <FlatList<FeedPhoto>
             data={photos}
-            keyExtractor={(p) => p.id}
+            keyExtractor={(p: FeedPhoto) => p.id}
             renderItem={renderItem}
             horizontal
             pagingEnabled
@@ -235,7 +238,7 @@ export function FeedCardPhotos({
             onScroll={handleScroll}
             scrollEventThrottle={16}
             onMomentumScrollEnd={handleMomentumEnd}
-            getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+            getItemLayout={(_: unknown, i: number) => ({ length: width, offset: width * i, index: i })}
             initialNumToRender={1}
             maxToRenderPerBatch={2}
             windowSize={3}
@@ -286,9 +289,9 @@ export function FeedCardPhotos({
           </View>
         ) : null}
 
-        {/* Heart burst overlay */}
+        {/* Heart burst overlay — hearts are always tokens.colors.like */}
         <Animated.View style={[styles.burst, burstStyle]} pointerEvents="none">
-          <Ionicons name="heart" size={96} color={c.error} />
+          <Ionicons name="heart" size={96} color={c.like} />
         </Animated.View>
       </View>
 

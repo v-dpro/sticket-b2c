@@ -1,18 +1,26 @@
 // lib/theme.ts — SINGLE SOURCE OF TRUTH
-// Sticket design tokens — "Encore, muted" identity system.
+// Sticket design tokens — "SCORECARD STUB" identity system (Phase C).
+// B1 Stagelight's cold neutrals + giant score typography as the base;
+// B2 Stub's ticket construction (perforations, notches, rotated stamp)
+// as the shape language for logged memories and tickets.
 //
 // Two palettes (darkTokens / lightTokens) share one shape: ThemeTokens.
 // Resolve the active palette with useTheme() from lib/theme-context.tsx.
 //
-// LOCKED DIRECTION (user-approved mockups):
-// - Buttons are MONOCHROME: primary = ink-on-bg inversion, secondary = card2
-//   soft pill. Never gradient-filled or purple-filled buttons.
-// - Accent (#6C55F0 dark / #5241C9 light) is for SMALL usages only:
-//   links, dots, active states.
+// LOCKED DIRECTION (user-approved, Phase C sign-off):
+// - C1 ZERO ACCENT HUE. Ink, hairlines, semantic red/green, and the
+//   3-moment gradient. Active states are ink-weight, not color — the
+//   `accent` token now RESOLVES TO INK so legacy call sites go mono.
+// - C2 The score has two bodies: on media = giant bare mono digits; on
+//   flat surfaces = the rotated 2px-border stamp. Never both at once.
+// - C3 Stub = something you attended. Perforation + notches appear only
+//   on logged memories and tickets; plans/entities/settings stay plain.
+// - C4 Native nav (iOS push + sheets), budgeted flourish: the tear-in
+//   and stamp-thunk are the signature moves.
+// - Buttons are MONOCHROME: primary = ink-on-bg inversion, secondary =
+//   card2 soft pill. Never gradient-filled or color-filled buttons.
 // - The brand gradient (#45E3FF → #7C5CFF → #EFA1EF) is RESERVED for the
 //   brand mark, the timeline "Today" divider, and ~1s milestone flashes.
-//   It is exposed as tokens (gradients.brand) but must not be applied to
-//   ordinary components.
 
 export { fontFamilies } from './fonts';
 import { fontFamilies as fontFamiliesInternal } from './fonts';
@@ -48,13 +56,18 @@ export const radius = {
   lg: 16,
   xl: 22,
   full: 9999,
+  // Scorecard Stub semantic radii (Phase C token sheet).
+  chip: 10,
+  stub: 14,
+  card: 16,
+  hero: 22,
 } as const;
 
 export const fonts = {
   // Sizes — redesign type ramp
   screenTitle: 34,
   sectionHeader: 22,
-  cardTitle: 18,
+  cardTitle: 17,
   h1: 34,
   h2: 28,
   h3: 24,
@@ -95,46 +108,47 @@ export const levels = [
 // `ink` → `bg` and use `fg` for the strongest text.
 
 const darkColors = {
-  // ── Encore-muted core surfaces ──
+  // ── Scorecard Stub core surfaces ──
   bg: '#0B0B10',
-  card: '#16161E',
-  card2: '#1F1F2A', // elevated / secondary-button fill
-  line: '#22222D', // dividers, borders at 100%
+  card: '#15151C',
+  card2: '#1E1E27', // elevated / secondary-button fill
+  line: '#23232E', // dividers, borders at 100%
   hairline: '#1C1C26', // subtle divider / card border (softer than `line`)
   lineSoft: 'rgba(255,255,255,0.07)', // subtlest dividers
+  dash: '#3A3A46', // planned/dashed borders · perforation on flat surfaces
 
   // ── Foreground ──
   fg: '#FFFFFF', // design "ink" — strongest foreground
-  text: '#E8E8EE',
+  text: '#E9E9EF',
   textSoft: '#B4B4C2', // body copy
-  mute: '#A7A7B4',
-  muteSoft: '#5A5A6C',
+  mute: '#A6A6B3',
+  muteSoft: '#7C7C89', // eyebrows, mono labels
 
   // ── Monochrome button inversion (primary buttons) ──
   inverseBg: '#FFFFFF', // white pill…
   inverseFg: '#0B0B10', // …with near-black label
 
-  // ── Accent — SMALL usages only (links, dots, active states) ──
-  accent: '#6C55F0',
-  accentSoft: 'rgba(108,85,240,0.14)',
-  accentLine: 'rgba(108,85,240,0.40)',
-  onAccent: '#FFFFFF', // text on an accent-filled chip/dot
+  // ── "Accent" — C1 ZERO ACCENT: resolves to ink. Active = weight, not hue. ──
+  accent: '#FFFFFF',
+  accentSoft: 'rgba(255,255,255,0.10)',
+  accentLine: 'rgba(255,255,255,0.28)',
+  onAccent: '#0B0B10', // ink-filled chip/dot carries bg-colored text
 
   // ── Text hierarchy (legacy names, kept near-current) ──
-  textPrimary: '#E8E8EE',
-  textHi: '#E8E8EE',
-  textMid: '#A7A7B4',
-  textLo: '#5A5A6C',
-  textSecondary: '#A7A7B4',
-  textTertiary: '#5A5A6C',
+  textPrimary: '#E9E9EF',
+  textHi: '#E9E9EF',
+  textMid: '#A6A6B3',
+  textLo: '#7C7C89',
+  textSecondary: '#A6A6B3',
+  textTertiary: '#7C7C89',
   textMuted: '#4B4B5A',
 
   // ── Legacy surfaces (deprecated aliases — prefer bg/card/card2) ──
   ink: '#0B0B10', // LEGACY: app background (NOT the design "ink" — see fg)
   pitch: '#05050B',
   navy: '#0A0B1E',
-  surface: '#16161E', // = card
-  elevated: '#1F1F2A', // = card2
+  surface: '#15151C', // = card
+  elevated: '#1E1E27', // = card2
   bone: '#EFE9DC',
   paper: '#F6F1E4', // app-specific cream for ticket-stub cards
   white: '#FFFFFF', // true white — barcode/QR scan surfaces, camera controls
@@ -152,56 +166,58 @@ const darkColors = {
   gold: '#FFD700',
   pink: '#EC4899',
 
-  // ── Semantic ──
-  primary: '#6C55F0', // = accent
-  success: '#30D158', // iOS-green (switches use this family)
+  // ── Semantic — like/error and success are the ONLY hues in the app ──
+  primary: '#FFFFFF', // = accent (ink)
+  like: '#EF4444', // heart, destructive — only
+  success: '#30D158', // copied ✓, ticket confirmed — only
   warning: '#F5A623',
   error: '#EF4444',
 
   // ── Back-compat aliases ──
   background: '#0B0B10',
-  backgroundAlt: '#16161E',
-  inkAlt: '#16161E',
-  surfaceElevated: '#1F1F2A',
+  backgroundAlt: '#15151C',
+  inkAlt: '#15151C',
+  surfaceElevated: '#1E1E27',
   border: '#1C1C26',
-  borderLight: '#22222D',
+  borderLight: '#23232E',
 } as const;
 
 export type ThemeColors = { readonly [K in keyof typeof darkColors]: string };
 
 const lightColors: ThemeColors = {
-  // ── Encore-muted core surfaces ──
+  // ── Scorecard Stub core surfaces (designed, not inverted) ──
   bg: '#FAFAFC',
   card: '#FFFFFF',
-  card2: '#F0EFF6',
-  line: '#E8E6F0',
+  card2: '#F0F0F6',
+  line: '#E7E6EF',
   hairline: '#EFEDF5',
   lineSoft: 'rgba(20,19,25,0.06)',
+  dash: '#C9C7D4', // planned/dashed borders · perforation on flat surfaces
 
   // ── Foreground ──
-  fg: '#141319',
-  text: '#1B1A22',
+  fg: '#131218',
+  text: '#1A1922',
   textSoft: '#3E3D49',
-  mute: '#6D6B7A',
-  muteSoft: '#8E8C9A',
+  mute: '#6C6B78',
+  muteSoft: '#9997A6', // eyebrows, mono labels
 
   // ── Monochrome button inversion (primary buttons) ──
-  inverseBg: '#141319', // black pill…
+  inverseBg: '#131218', // black pill…
   inverseFg: '#FFFFFF', // …with white label
 
-  // ── Accent — SMALL usages only ──
-  accent: '#5241C9',
-  accentSoft: 'rgba(82,65,201,0.10)',
-  accentLine: 'rgba(82,65,201,0.35)',
+  // ── "Accent" — C1 ZERO ACCENT: resolves to ink ──
+  accent: '#131218',
+  accentSoft: 'rgba(19,18,24,0.07)',
+  accentLine: 'rgba(19,18,24,0.22)',
   onAccent: '#FFFFFF',
 
   // ── Text hierarchy ──
-  textPrimary: '#1B1A22',
-  textHi: '#1B1A22',
-  textMid: '#6D6B7A',
-  textLo: '#8E8C9A',
-  textSecondary: '#6D6B7A',
-  textTertiary: '#8E8C9A',
+  textPrimary: '#1A1922',
+  textHi: '#1A1922',
+  textMid: '#6C6B78',
+  textLo: '#9997A6',
+  textSecondary: '#6C6B78',
+  textTertiary: '#9997A6',
   textMuted: '#A5A3B0',
 
   // ── Legacy surfaces (deprecated aliases) ──
@@ -209,7 +225,7 @@ const lightColors: ThemeColors = {
   pitch: '#F2F1F7',
   navy: '#ECEBF4',
   surface: '#FFFFFF', // = card
-  elevated: '#F0EFF6', // = card2
+  elevated: '#F0F0F6', // = card2
   bone: '#EFE9DC',
   paper: '#F6F1E4',
   white: '#FFFFFF',
@@ -227,9 +243,10 @@ const lightColors: ThemeColors = {
   gold: '#A16207',
   pink: '#C4489E',
 
-  // ── Semantic ──
-  primary: '#5241C9',
-  success: '#34C759',
+  // ── Semantic — like/error and success are the ONLY hues in the app ──
+  primary: '#131218', // = accent (ink)
+  like: '#DC2626',
+  success: '#1F9D50',
   warning: '#B45309',
   error: '#DC2626',
 
@@ -237,9 +254,9 @@ const lightColors: ThemeColors = {
   background: '#FAFAFC',
   backgroundAlt: '#FFFFFF',
   inkAlt: '#FFFFFF',
-  surfaceElevated: '#F0EFF6',
+  surfaceElevated: '#F0F0F6',
   border: '#EFEDF5',
-  borderLight: '#E8E6F0',
+  borderLight: '#E7E6EF',
 };
 
 // ────────────────────────────────────────────────────────────────────

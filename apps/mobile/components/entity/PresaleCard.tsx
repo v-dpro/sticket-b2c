@@ -54,13 +54,16 @@ export function PresaleCard({ presales }: { presales: EventPresale[] }) {
       fontSize: 11,
       color: t.colors.mute,
     },
+    // Bordered mono code chip — tap to copy; ✓ state is the sanctioned
+    // tokens.colors.success moment.
     codeRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       alignSelf: 'flex-start',
-      backgroundColor: t.colors.card2,
-      borderRadius: t.radius.sm,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+      borderRadius: t.radius.chip,
       paddingHorizontal: 10,
       paddingVertical: 7,
     },
@@ -74,7 +77,7 @@ export function PresaleCard({ presales }: { presales: EventPresale[] }) {
       fontFamily: t.fontFamilies.mono,
       fontSize: 10,
       letterSpacing: 1,
-      color: t.colors.accent,
+      color: t.colors.success,
     },
     notes: { fontSize: 12.5, color: t.colors.mute, lineHeight: 18 },
   }));
@@ -116,7 +119,10 @@ export function PresaleCard({ presales }: { presales: EventPresale[] }) {
               >
                 <Text style={styles.code}>{p.code}</Text>
                 {copiedId === p.id ? (
-                  <Text style={styles.copied}>COPIED</Text>
+                  <>
+                    <Ionicons name="checkmark" size={13} color={tokens.colors.success} />
+                    <Text style={styles.copied}>COPIED</Text>
+                  </>
                 ) : (
                   <Ionicons name="copy-outline" size={13} color={tokens.colors.mute} />
                 )}

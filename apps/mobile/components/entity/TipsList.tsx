@@ -5,10 +5,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { VenueTip } from '../../types/venue';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { PillButton } from '../ui/PillButton';
 import { SpringPressable } from '../ui/SpringPressable';
@@ -165,7 +165,7 @@ export function TipsList({ tips, onUpvote, onAdd, autoFocusComposer = false }: T
         tips.map((tip, i) => (
           <Animated.View
             key={tip.id}
-            entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+            entering={tearIn(Math.min(i, 8) * durations.stagger)}
             style={styles.tipCard}
           >
             <View style={styles.tipBody}>
@@ -190,12 +190,13 @@ export function TipsList({ tips, onUpvote, onAdd, autoFocusComposer = false }: T
               <Ionicons
                 name="arrow-up"
                 size={15}
-                color={tip.userUpvoted ? tokens.colors.accent : tokens.colors.mute}
+                color={tip.userUpvoted ? tokens.colors.fg : tokens.colors.mute}
               />
               <Text
                 style={[
                   styles.upvoteCount,
-                  tip.userUpvoted ? { color: tokens.colors.accent } : null,
+                  // Active = ink weight, not hue (C1).
+                  tip.userUpvoted ? { color: tokens.colors.fg, fontFamily: tokens.fontFamilies.monoBold } : null,
                 ]}
               >
                 {tip.upvotes}

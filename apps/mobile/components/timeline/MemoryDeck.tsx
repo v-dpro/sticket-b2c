@@ -66,7 +66,7 @@ type MemoryDeckProps = {
 };
 
 // How many cards each side of center stay mounted (the rest render null).
-const RENDER_WINDOW = 3;
+const RENDER_WINDOW = 2;
 // The farthest a single flick may carry, in cards.
 const MAX_FLICK_CARRY = 4;
 // Near-tail threshold for pagination.
@@ -221,7 +221,9 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
       letterSpacing: 1,
       color: t.colors.mute,
     },
-    stage: { flex: 1 },
+    // overflow hidden: receding cards must never escape the stage and
+    // ghost under the fixed chrome above it (header / readout / toggle).
+    stage: { flex: 1, overflow: 'hidden' },
     layer: {
       // Every card lives on a full-stage layer that centers it; the track
       // transform then slides the layer, so mixed card heights all pivot
@@ -260,12 +262,13 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
               <DeckLayer
                 key={deckItem.key}
                 index={i}
+                depth={i - index}
                 progress={progress}
                 bob={bob}
                 stride={stride}
                 interactive={i === index}
                 layerStyle={styles.layer}
-                shadowColor={tokens.shadows.elevated.shadowColor}
+                shadow={tokens.shadows.stub}
               >
                 {renderCard(deckItem, i === index)}
               </DeckLayer>
@@ -279,69 +282,70 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
 
 type DeckLayerProps = {
   index: number;
+  /** index − settled center index; static per render, sets the z-order. */
+  depth: number;
   progress: SharedValue<number>;
   bob: SharedValue<number>;
   stride: number;
   interactive: boolean;
   layerStyle: object;
-  shadowColor: string;
+  shadow: {
+    shadowColor: string;
+    shadowOffset: { width: number; height: number };
+    shadowOpacity: number;
+    shadowRadius: number;
+    elevation: number;
+  };
   children: React.ReactNode;
 };
 
 function DeckLayer({
   index,
+  depth,
   progress,
   bob,
   stride,
   interactive,
   layerStyle,
-  shadowColor,
+  shadow,
   children,
 }: DeckLayerProps) {
   const animated = useAnimatedStyle(() => {
     const d = index - progress.value;
     const abs = Math.abs(d);
+    // THE WHEEL. Cards are mounted on a drum you spin in place, not a
+    // track that slides: each card sits at angle d·STEP on a circle whose
+    // radius keeps the d=1 peek where it was tuned (stride at sin(STEP)).
+    // translateY follows the arc (neighbors bunch toward the rim) and
+    // rotateX tips each card back with perspective as it leaves center —
+    // above-center tops tip away, below-center bottoms tip away.
+    const STEP = 0.55; // radians of drum rotation per card
+    const angle = Math.max(-1.3, Math.min(1.3, d * STEP));
+    const radius = stride / Math.sin(STEP);
     // The idle bob only breathes when this card owns the center.
     const bobPx = interpolate(abs, [0, 0.25], [1, 0], 'clamp') * interpolate(bob.value, [0, 1], [2.5, -2.5]);
     return {
       transform: [
-        { translateY: d * stride + bobPx },
+        { perspective: 900 },
+        { translateY: radius * Math.sin(angle) + bobPx },
+        { rotateX: `${-angle * 57.2958 * 0.52}deg` },
         { scale: interpolate(abs, [0, 1, RENDER_WINDOW], [1, 0.94, 0.84], 'clamp') },
       ],
       // Neighbors sit just behind the floating card — dimmed enough to read
       // as a lower surface, close enough to feel like the same timeline.
       opacity: interpolate(abs, [0, 1, 2, RENDER_WINDOW], [1, 0.72, 0.38, 0.1], 'clamp'),
-      zIndex: Math.round((RENDER_WINDOW + 1 - abs) * 10),
-    };
-  });
-
-  // The floating surface: shadow belongs to the CENTER card only, and it
-  // fades out as the card leaves the stage center.
-  const surface = useAnimatedStyle(() => {
-    const abs = Math.abs(index - progress.value);
-    return {
-      shadowOpacity: interpolate(abs, [0, 0.6], [0.34, 0], 'clamp'),
     };
   });
 
   return (
     <Animated.View
-      style={[layerStyle, animated]}
+      // z-order and shadow are STATIC per settle (no per-frame layer
+      // reshuffling or shadow repaints — they were the deck's jank).
+      // The floating shadow belongs to the center card only.
+      style={[layerStyle, { zIndex: 100 - Math.abs(depth) * 10 }, animated]}
       pointerEvents={interactive ? 'box-none' : 'none'}
     >
-      <Animated.View
-        style={[
-          {
-            shadowColor,
-            shadowOffset: { width: 0, height: 14 },
-            shadowRadius: 28,
-            elevation: 12,
-          },
-          surface,
-        ]}
-      >
-        {children}
-      </Animated.View>
+      <View style={interactive ? shadow : undefined}>{children}</View>
     </Animated.View>
   );
 }

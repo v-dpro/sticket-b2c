@@ -82,7 +82,7 @@ export function EventResult({ event, onPress }: EventResultProps) {
         <Image source={{ uri: event.imageUrl }} style={styles.image} />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]}>
-          <Ionicons name="musical-notes" size={20} color={tokens.colors.brandPink} />
+          <Ionicons name="musical-notes" size={20} color={tokens.colors.mute} />
         </View>
       )}
 

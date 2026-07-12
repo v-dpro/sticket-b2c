@@ -34,10 +34,10 @@ export default function NotificationsScreen() {
       paddingBottom: 12,
     },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    title: { fontSize: 28, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.5 },
+    title: { fontSize: 24, fontWeight: '800', color: t.colors.fg, letterSpacing: -0.5 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     headerButton: { padding: 6 },
-    markAllRead: { fontSize: 14, color: t.colors.accent, fontWeight: '600' },
+    markAllRead: { fontSize: 14, color: t.colors.fg, fontWeight: '600' },
   }));
 
   const onPressNotification = (notification: Notification) => {

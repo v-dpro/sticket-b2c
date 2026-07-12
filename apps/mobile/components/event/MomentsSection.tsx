@@ -41,7 +41,7 @@ export function MomentsSection({ moments = [], onAddMoment }: MomentsSectionProp
     },
     addText: {
       fontSize: 13,
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
     },
     emptyContainer: {
       alignItems: 'center',
@@ -104,7 +104,7 @@ export function MomentsSection({ moments = [], onAddMoment }: MomentsSectionProp
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {moments.map((m) => (
             <View key={m.id} style={styles.chip}>
-              <Ionicons name={iconByType[m.type]} size={13} color={tokens.colors.brandCyan} />
+              <Ionicons name={iconByType[m.type]} size={13} color={tokens.colors.mute} />
               <Text style={styles.chipText}>{m.label}</Text>
               <Text style={styles.chipCount}>{m.count}</Text>
             </View>

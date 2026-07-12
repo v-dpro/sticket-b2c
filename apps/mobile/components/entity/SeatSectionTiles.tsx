@@ -8,10 +8,10 @@
 import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ImageBackground } from 'expo-image';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import type { EventSeatSection } from '../../lib/api/events';
-import { durations } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import { useThemedStyles } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';
 import { formatScore } from './format';
@@ -111,7 +111,7 @@ export const SeatSectionTiles = memo(function SeatSectionTiles({
         return (
           <Animated.View
             key={section.section}
-            entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(240)}
+            entering={tearIn(Math.min(i, 8) * durations.stagger)}
             style={styles.cell}
           >
             <SpringPressable

@@ -33,7 +33,7 @@ export function FriendsWhoWent({ friends, onFriendPress, onSeeAllPress }: Friend
     },
     seeAll: {
       fontSize: 13,
-      color: t.colors.cyan,
+      color: t.colors.fg,
     },
     card: {
       marginHorizontal: 16,

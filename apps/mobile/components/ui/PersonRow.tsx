@@ -27,7 +27,7 @@ function MatchPill({ score }: { score: number }) {
       style={[
         styles.matchPill,
         isHigh
-          ? { backgroundColor: tokens.colors.cyan }
+          ? { backgroundColor: tokens.colors.inverseBg }
           : { backgroundColor: tokens.colors.surface, borderWidth: 1, borderColor: tokens.colors.hairline },
       ]}
     >

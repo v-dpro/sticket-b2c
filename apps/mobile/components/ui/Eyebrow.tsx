@@ -4,7 +4,7 @@ import { useTheme } from '../../lib/theme-context';
 
 export function Eyebrow({ text, color, style }: { text: string; color?: string; style?: TextStyle }) {
   const { tokens } = useTheme();
-  return <Text style={[styles.eyebrow, { color: color ?? tokens.colors.brandCyan }, style]}>{text}</Text>;
+  return <Text style={[styles.eyebrow, { color: color ?? tokens.colors.muteSoft }, style]}>{text}</Text>;
 }
 
 const styles = StyleSheet.create({

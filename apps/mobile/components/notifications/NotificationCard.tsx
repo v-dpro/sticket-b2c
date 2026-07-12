@@ -16,15 +16,15 @@ interface NotificationCardProps {
 const makeNotificationIcons = (
   colors: ThemeColors,
 ): Record<NotificationType, { name: React.ComponentProps<typeof Ionicons>['name']; color: string }> => ({
-  follow: { name: 'person-add', color: colors.brandPurple },
-  comment: { name: 'chatbubble', color: colors.brandCyan },
+  follow: { name: 'person-add', color: colors.fg },
+  comment: { name: 'chatbubble', color: colors.fg },
   tag: { name: 'pricetag', color: colors.warning },
   was_there: { name: 'checkmark-circle', color: colors.success },
-  artist_show: { name: 'calendar', color: colors.brandPink },
+  artist_show: { name: 'calendar', color: colors.fg },
   tickets_on_sale: { name: 'ticket', color: colors.warning },
   show_reminder: { name: 'alarm', color: colors.error },
   post_show: { name: 'star', color: colors.warning },
-  friend_logged: { name: 'musical-notes', color: colors.brandPurple },
+  friend_logged: { name: 'musical-notes', color: colors.fg },
 });
 
 export function NotificationCard({ notification, onPress }: NotificationCardProps) {
@@ -92,7 +92,7 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       marginLeft: 8,
       marginTop: 8,
     },

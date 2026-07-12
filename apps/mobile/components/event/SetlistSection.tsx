@@ -55,13 +55,13 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       backgroundColor: t.colors.surface,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: t.colors.brandCyan,
+      borderColor: t.colors.line,
       borderStyle: 'dashed',
     },
     spoilerText: {
       fontSize: 15,
       fontWeight: '600',
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
       marginTop: 8,
     },
     spoilerHint: {
@@ -119,7 +119,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       fontSize: 10,
       fontWeight: '600',
       letterSpacing: 1.5,
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
       marginHorizontal: 10,
     },
     expandButton: {
@@ -133,7 +133,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
     },
     expandText: {
       fontSize: 13,
-      color: t.colors.brandCyan,
+      color: t.colors.fg,
     },
   }));
 
@@ -160,7 +160,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       <View style={styles.container}>
         <Text style={[styles.sectionLabel, { paddingHorizontal: 16 }]}>SETLIST</Text>
         <Pressable style={styles.spoilerButton} onPress={() => setRevealed(true)}>
-          <Ionicons name="eye-off" size={22} color={tokens.colors.brandCyan} />
+          <Ionicons name="eye-off" size={22} color={tokens.colors.mute} />
           <Text style={styles.spoilerText}>Reveal Setlist</Text>
           <Text style={styles.spoilerHint}>Tap to see {songs.length} songs</Text>
         </Pressable>
@@ -212,7 +212,7 @@ export function SetlistSection({ songs, isUpcoming }: SetlistSectionProps) {
       {songs.length > 5 ? (
         <Pressable style={styles.expandButton} onPress={() => setExpanded(!expanded)}>
           <Text style={styles.expandText}>{expanded ? 'Show less' : `Show all ${songs.length} songs`}</Text>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={tokens.colors.brandCyan} />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={tokens.colors.mute} />
         </Pressable>
       ) : null}
     </View>

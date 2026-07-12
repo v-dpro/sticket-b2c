@@ -25,7 +25,7 @@ import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
 import { getTour, getTourPhotos, type TourDetail, type TourPhoto } from '../../lib/api/tours';
-import { durations, haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
@@ -167,12 +167,12 @@ export default function TourScreen() {
       marginTop: 18,
     },
     name: {
-      fontSize: 28,
+      fontSize: 24,
       fontWeight: '800',
-      letterSpacing: -0.5,
+      letterSpacing: -0.4,
       color: t.colors.fg,
       marginTop: 8,
-      lineHeight: 33,
+      lineHeight: 29,
     },
     artistLink: {
       flexDirection: 'row',
@@ -338,7 +338,7 @@ export default function TourScreen() {
 
   const renderPhoto = ({ item, index }: { item: TourPhoto; index: number }) => (
     <Animated.View
-      entering={FadeInDown.delay(Math.min(index % PHOTO_PAGE, 8) * durations.stagger).duration(240)}
+      entering={tearIn(Math.min(index % PHOTO_PAGE, 8) * durations.stagger)}
       style={styles.photoCell}
     >
       <Pressable

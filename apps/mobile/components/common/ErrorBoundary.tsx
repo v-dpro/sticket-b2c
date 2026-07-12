@@ -70,13 +70,13 @@ function ErrorFallback({ onReset }: { onReset: () => void }) {
     },
     button: {
       marginTop: spacing.sm,
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: spacing.xl,
       paddingVertical: 14,
       borderRadius: radius.md,
     },
     buttonText: {
-      color: t.colors.onAccent, // text over the brandPurple button fill
+      color: t.colors.inverseFg,
       fontWeight: '800',
       fontSize: 15,
     },

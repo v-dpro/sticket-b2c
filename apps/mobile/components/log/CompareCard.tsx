@@ -1,6 +1,7 @@
 // CompareCard — one side of the "Which night wins?" duel. Tapping a card
-// picks it as the winner (spring press + medium haptic). TONIGHT wears an
-// accent mono tag; a placed opponent shows its score in mono.
+// picks it as the winner (spring press + medium haptic). TONIGHT wears the
+// stub treatment (2px ink border, punched side notches); the opponent stays
+// a plain card whose score hides behind a footer line until the choice.
 
 import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
@@ -8,20 +9,22 @@ import { Image } from 'expo-image';
 import { useTheme } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';
 
+const NOTCH = 14; // punched side-notch diameter (stub construction)
+
 type CompareCardProps = {
   /** Card headline: event name. */
   title: string;
   /** Mute second line: "Venue · City" or "Venue · 2024". */
   subtitle?: string;
-  /** Mono tag at the top — "TONIGHT" gets accent treatment. */
+  /** Mono eyebrow at the top — "TONIGHT", or the opponent's month/year. */
   tag: string;
   tonight?: boolean;
   /** Opponent's placed score (one decimal), mono. Omitted for TONIGHT. */
   score?: number;
   /**
    * Whether the opponent's score is shown. Hidden until the user commits to a
-   * choice (A7) — the slot shows a mono "?" so the pick stays a gut call; the
-   * real number flashes in during the choice-feedback fold.
+   * choice (A7) — the slot carries the "stays hidden" footer line so the pick
+   * stays a gut call; the real number flashes in during the choice-feedback fold.
    */
   revealScore?: boolean;
   photo?: string;
@@ -62,13 +65,45 @@ export function CompareCard({
         width: '100%',
         aspectRatio: 0.74,
         backgroundColor: c.card,
-        borderRadius: tokens.radius.xl,
-        borderWidth: 1,
-        borderColor: tonight ? c.line : c.hairline,
+        borderRadius: tonight ? tokens.radius.stub : tokens.radius.card,
+        borderWidth: tonight ? 2 : 1,
+        borderColor: tonight ? c.fg : c.hairline,
         padding: 16,
         justifyContent: 'space-between',
       }}
     >
+      {/* Stub notches — bg-colored circles punched through the mid edges. */}
+      {tonight ? (
+        <>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: -NOTCH / 2,
+              top: '50%',
+              marginTop: -NOTCH / 2,
+              width: NOTCH,
+              height: NOTCH,
+              borderRadius: NOTCH / 2,
+              backgroundColor: c.bg,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              right: -NOTCH / 2,
+              top: '50%',
+              marginTop: -NOTCH / 2,
+              width: NOTCH,
+              height: NOTCH,
+              borderRadius: NOTCH / 2,
+              backgroundColor: c.bg,
+            }}
+          />
+        </>
+      ) : null}
+
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text
           style={{
@@ -77,7 +112,7 @@ export function CompareCard({
             fontWeight: '600',
             letterSpacing: 2,
             textTransform: 'uppercase',
-            color: tonight ? c.accent : c.mute,
+            color: tonight ? c.fg : c.mute,
           }}
         >
           {tag}
@@ -91,7 +126,7 @@ export function CompareCard({
       </View>
 
       <View style={{ gap: 4 }}>
-        <Text style={{ color: c.fg, fontSize: 17, fontWeight: '800', lineHeight: 22 }} numberOfLines={3}>
+        <Text style={{ color: c.fg, fontSize: 20, fontWeight: '800', lineHeight: 24 }} numberOfLines={3}>
           {title}
         </Text>
         {subtitle ? (
@@ -103,18 +138,24 @@ export function CompareCard({
 
       <View style={{ minHeight: 26, justifyContent: 'flex-end' }}>
         {typeof score === 'number' ? (
-          <Text
-            style={{
-              fontFamily: tokens.fontFamilies.monoBold,
-              fontVariant: ['tabular-nums'],
-              fontSize: 22,
-              fontWeight: '800',
-              // Hidden until the choice is made — the mono "?" holds the slot.
-              color: revealScore ? c.fg : c.muteSoft,
-            }}
-          >
-            {revealScore ? score.toFixed(1) : '?'}
-          </Text>
+          revealScore ? (
+            <Text
+              style={{
+                fontFamily: tokens.fontFamilies.monoBold,
+                fontVariant: ['tabular-nums'],
+                fontSize: 22,
+                fontWeight: '800',
+                color: c.fg,
+              }}
+            >
+              {score.toFixed(1)}
+            </Text>
+          ) : (
+            // Hidden until the choice is made — the footer line holds the slot.
+            <Text style={{ color: c.mute, fontSize: 12.5, fontWeight: '400' }} numberOfLines={3}>
+              Your score stays hidden until you choose.
+            </Text>
+          )
         ) : (
           <Text
             style={{

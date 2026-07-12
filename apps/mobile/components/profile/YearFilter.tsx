@@ -25,8 +25,8 @@ export function YearFilter({ years, selectedYear, onSelect }: YearFilterProps) {
       borderColor: t.colors.hairline,
     },
     chipSelected: {
-      backgroundColor: t.colors.brandPurple,
-      borderColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
+      borderColor: t.colors.inverseBg,
     },
     chipText: {
       fontSize: 14,

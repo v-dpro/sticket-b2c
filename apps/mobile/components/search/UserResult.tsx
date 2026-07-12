@@ -36,7 +36,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
       borderRadius: 24,
     },
     avatarPlaceholder: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -64,7 +64,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
       marginTop: 2,
     },
     followButton: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: radius.full,
@@ -74,7 +74,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
     followingButton: {
       backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: t.colors.brandPurple,
+      borderColor: t.colors.line,
     },
     followText: {
       fontSize: 13,
@@ -82,7 +82,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
       color: t.colors.onAccent, // over the purple-filled follow button
     },
     followingText: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
     },
   }));
 
@@ -144,7 +144,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
         accessibilityRole="button"
       >
         {loading ? (
-          <ActivityIndicator size="small" color={isFollowing ? tokens.colors.brandPurple : tokens.colors.onAccent} />
+          <ActivityIndicator size="small" color={isFollowing ? tokens.colors.fg : tokens.colors.onAccent} />
         ) : (
           <Text style={[styles.followText, isFollowing && styles.followingText]}>{isFollowing ? 'Following' : 'Follow'}</Text>
         )}

@@ -48,9 +48,9 @@ const makeVariantStyles = (
   NewButtonVariant,
   { bg: string; border?: string; text: string; useGradient?: boolean; spinner: string }
 > => ({
-  primary: { bg: colors.brandCyan, text: colors.ink, useGradient: false, spinner: colors.ink },
-  secondary: { bg: 'transparent', border: colors.brandPurple, text: colors.brandPurple, spinner: colors.brandPurple },
-  ghost: { bg: 'transparent', text: colors.textHi, spinner: colors.brandPurple },
+  primary: { bg: colors.inverseBg, text: colors.inverseFg, useGradient: false, spinner: colors.inverseFg },
+  secondary: { bg: 'transparent', border: colors.line, text: colors.fg, spinner: colors.mute },
+  ghost: { bg: 'transparent', text: colors.textHi, spinner: colors.mute },
   destructive: { bg: colors.error, text: colors.textHi, spinner: colors.textHi },
 });
 

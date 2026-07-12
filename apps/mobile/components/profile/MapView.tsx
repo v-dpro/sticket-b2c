@@ -91,7 +91,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
       alignItems: 'center',
     },
     marker: {
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       borderRadius: 16,
       paddingHorizontal: 8,
       paddingVertical: 4,
@@ -111,7 +111,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
       borderTopWidth: 8,
       borderLeftColor: 'transparent',
       borderRightColor: 'transparent',
-      borderTopColor: t.colors.brandPurple,
+      borderTopColor: t.colors.inverseBg,
       marginTop: -1,
     },
     callout: {
@@ -134,7 +134,7 @@ export function ProfileMapView({ userId, onVenuePress }: ProfileMapViewProps) {
       marginBottom: 4,
     },
     calloutCount: {
-      color: t.colors.brandPurple,
+      color: t.colors.fg,
       fontSize: 12,
       fontWeight: '500',
     },

@@ -14,12 +14,12 @@ interface StatusPillProps {
 const makeConfig = (colors: ThemeColors) => ({
   ticket: {
     bg: 'rgba(0, 212, 255, 0.15)',
-    color: colors.brandCyan,
+    color: colors.fg,
     icon: 'ticket-outline' as const,
   },
   presale: {
     bg: 'rgba(139, 92, 246, 0.15)',
-    color: colors.brandPurple,
+    color: colors.fg,
     icon: 'notifications-outline' as const,
   },
   upcoming: {
