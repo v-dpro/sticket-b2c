@@ -107,7 +107,11 @@ const EXP_USERS: ExpUser[] = [
   { id: 'exp-user-lucy-bennett', email: 'exp-lucy@seed.sticket.dev', username: 'lucybennett', displayName: 'Lucy Bennett', city: 'New York, NY', bio: 'Collecting ticket stubs since 2015.' },
 ];
 
-const ALEX_ID = 'user-alex-chen';
+// The ANCHOR — the account the degree graph is built around. Defaults to
+// the demo user; ANCHOR_SOLE_APPLE=1 resolves the DB's single Apple-sign-in
+// user instead (the playground convention for prod), and ANCHOR_USER_ID
+// pins an explicit id. Resolved in main() before any rows are written.
+let ALEX_ID = process.env.ANCHOR_USER_ID || 'user-alex-chen';
 
 const DEGREE1_IDS = EXP_USERS.slice(0, 6).map((u) => u.id);
 const DEGREE2_IDS = EXP_USERS.slice(6, 12).map((u) => u.id);
@@ -120,15 +124,20 @@ const [diego, hana, cole, zoe, omar, lucy] = DEGREE2_IDS as [string, string, str
 // plus a handful of mutuals so the graph isn't a strict tree.
 // ---------------------------------------------------------------------------
 
-const FOLLOWS: { followerId: string; followingId: string }[] = [
-  // Alex -> degree 1
+// Anchor-dependent rows are read through this getter so the anchor can be
+// resolved at runtime (ANCHOR_SOLE_APPLE) before any row is written.
+const FOLLOWS: { followerId: string; followingId: string }[] = [];
+function buildFollows(): void {
+  FOLLOWS.length = 0;
+  FOLLOWS.push(
+  // anchor -> degree 1
   { followerId: ALEX_ID, followingId: riley },
   { followerId: ALEX_ID, followingId: jasmine },
   { followerId: ALEX_ID, followingId: marcus },
   { followerId: ALEX_ID, followingId: priya },
   { followerId: ALEX_ID, followingId: noah },
   { followerId: ALEX_ID, followingId: ella },
-  // a few follow Alex back (mutual)
+  // a few follow the anchor back (mutual)
   { followerId: riley, followingId: ALEX_ID },
   { followerId: jasmine, followingId: ALEX_ID },
   { followerId: marcus, followingId: ALEX_ID },
@@ -157,7 +166,8 @@ const FOLLOWS: { followerId: string; followingId: string }[] = [
   { followerId: zoe, followingId: cole },
   { followerId: omar, followingId: lucy },
   { followerId: lucy, followingId: omar },
-];
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Artist follows — every seed user follows 3-8 cat-* artists; Alex gets 3
@@ -713,6 +723,23 @@ async function seedPresales(future: CatEvent[]): Promise<number> {
 
 async function main() {
   console.log('Seeding Sticket EXPLORE enrichment data...');
+
+  // ANCHOR_SOLE_APPLE=1: build the graph around the DB's single Apple
+  // sign-in account (prod convention — no emails printed).
+  if (process.env.ANCHOR_SOLE_APPLE === '1') {
+    const appleUsers = await prisma.user.findMany({
+      where: { appleId: { not: null } },
+      select: { id: true },
+      take: 2,
+    });
+    if (appleUsers.length !== 1) {
+      console.error(`ERROR: ANCHOR_SOLE_APPLE=1 needs exactly 1 Apple user, found ${appleUsers.length}. Nothing was created.`);
+      process.exit(1);
+    }
+    ALEX_ID = appleUsers[0]!.id;
+    console.log('  anchor: sole Apple sign-in user');
+  }
+  buildFollows();
 
   await verifyPrereqs();
 
