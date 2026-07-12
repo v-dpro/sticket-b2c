@@ -83,8 +83,8 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
   const cardW = windowWidth - tokens.density.pad * 2;
   // Stride: how far one card-step moves the track. Derived from the memory
   // card's photo height so a full card always dominates the stage while the
-  // previous/next peek as receded slivers.
-  const stride = Math.round(cardW * 0.63 * 0.58);
+  // previous/next peek close behind its edges.
+  const stride = Math.round(cardW * 0.63 * 0.68);
 
   const count = items.length;
   const clampIndex = useCallback(
@@ -306,10 +306,11 @@ function DeckLayer({
     return {
       transform: [
         { translateY: d * stride + bobPx },
-        { scale: interpolate(abs, [0, 1, RENDER_WINDOW], [1, 0.9, 0.8], 'clamp') },
+        { scale: interpolate(abs, [0, 1, RENDER_WINDOW], [1, 0.94, 0.84], 'clamp') },
       ],
-      // Receding cards drop to a lower surface: dimmer, under the center.
-      opacity: interpolate(abs, [0, 1, 2, RENDER_WINDOW], [1, 0.5, 0.22, 0.05], 'clamp'),
+      // Neighbors sit just behind the floating card — dimmed enough to read
+      // as a lower surface, close enough to feel like the same timeline.
+      opacity: interpolate(abs, [0, 1, 2, RENDER_WINDOW], [1, 0.72, 0.38, 0.1], 'clamp'),
       zIndex: Math.round((RENDER_WINDOW + 1 - abs) * 10),
     };
   });
