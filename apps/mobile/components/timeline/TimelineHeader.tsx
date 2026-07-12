@@ -4,7 +4,8 @@
 // · settings gear · edit chip.
 
 import React from 'react';
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -146,7 +147,13 @@ export function TimelineHeader({
     <View style={styles.container}>
       <View style={styles.topRow}>
         {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          <Image
+            source={{ uri: avatarUrl }}
+            style={styles.avatar}
+            contentFit="cover"
+            transition={80}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <View style={[styles.avatar, styles.avatarFallback]}>
             <Text style={styles.avatarInitial}>{initial}</Text>

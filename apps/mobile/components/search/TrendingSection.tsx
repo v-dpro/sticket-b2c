@@ -1,11 +1,13 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import type { TrendingData } from '../../types/search';
 import { radius, spacing } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 interface TrendingSectionProps {
   data: TrendingData;
@@ -89,7 +91,7 @@ export function TrendingSection({ data, onSearchSelect }: TrendingSectionProps) 
               <Pressable
                 key={artist.id}
                 style={styles.artistCard}
-                onPress={() => router.push(`/artist/${artist.id}`)}
+                onPress={() => { haptics.light(); router.push(`/artist/${artist.id}`); }}
                 accessibilityRole="button"
               >
                 {artist.imageUrl ? (

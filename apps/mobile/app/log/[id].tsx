@@ -309,7 +309,7 @@ export default function LogDetailScreen() {
         <View style={styles.authorRow}>
           <Pressable
             style={styles.authorLeft}
-            onPress={() => router.push({ pathname: '/profile/[id]', params: { id: data.user.id } })}
+            onPress={() => { haptics.light(); router.push({ pathname: '/profile/[id]', params: { id: data.user.id } }); }}
             accessibilityRole="button"
             accessibilityLabel={`View @${data.user.username}'s profile`}
           >
@@ -328,6 +328,7 @@ export default function LogDetailScreen() {
         <View style={styles.actionRow}>
           <SpringPressable
             onPress={() => void toggleLike()}
+            haptic="none" // toggleLike fires its own tier (medium like / light unlike)
             style={styles.actionItem}
             accessibilityRole="button"
             accessibilityLabel={like.liked ? 'Unlike' : 'Like'}
@@ -403,7 +404,7 @@ export default function LogDetailScreen() {
         {/* ── 5. Title ── */}
         <Pressable
           style={styles.titleBlock}
-          onPress={() => router.push({ pathname: '/artist/[artistId]', params: { artistId: data.event.artist.id } })}
+          onPress={() => { haptics.light(); router.push({ pathname: '/artist/[artistId]', params: { artistId: data.event.artist.id } }); }}
           accessibilityRole="button"
           accessibilityLabel={`View ${data.event.artist.name}`}
         >
@@ -459,7 +460,7 @@ export default function LogDetailScreen() {
             comments.map((cm) => (
               <Animated.View key={cm.id} entering={FadeIn.duration(160)} style={styles.commentRow}>
                 <Pressable
-                  onPress={() => router.push({ pathname: '/profile/[id]', params: { id: cm.user.id } })}
+                  onPress={() => { haptics.light(); router.push({ pathname: '/profile/[id]', params: { id: cm.user.id } }); }}
                   accessibilityRole="button"
                   accessibilityLabel={`View @${cm.user.username}'s profile`}
                 >

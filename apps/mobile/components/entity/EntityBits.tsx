@@ -3,7 +3,8 @@
 // All themed via useTheme(); mono family reserved for numbers/dates/labels.
 
 import React from 'react';
-import { Image, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -169,7 +170,13 @@ export function Facepile({
           }}
         >
           {p.avatarUrl ? (
-            <Image source={{ uri: p.avatarUrl }} style={{ width: '100%', height: '100%' }} />
+            <Image
+              source={{ uri: p.avatarUrl }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+              transition={80}
+              cachePolicy="memory-disk"
+            />
           ) : (
             <Text style={{ fontSize: size * 0.4, fontWeight: '600', color: c.mute }}>
               {(p.username?.trim()?.[0] ?? '?').toUpperCase()}

@@ -236,6 +236,122 @@ function buildLogVisibilityWhere(
   return { visibility: { in: ['PUBLIC', 'FRIENDS'] } };
 }
 
+// ==================== FEED ITEM SERIALIZATION ====================
+// Shared shape for GET /feed and GET /events/:id/feed (event-scoped public
+// shared memories). Keeping this in one place means both routes stay in
+// lockstep with the client's feed-item contract.
+
+const FEED_LOG_INCLUDE = {
+  user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+  event: {
+    include: {
+      artist: { select: { id: true, name: true, imageUrl: true } },
+      venue: { select: { id: true, name: true, city: true } },
+    },
+  },
+  photos: {
+    where: { visibility: 'PUBLIC', isFlagged: false },
+    take: 4,
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, photoUrl: true, mediaKind: true, duration: true, thumbUrl: true },
+  },
+  comments: {
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+    include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+  },
+  likes: {
+    take: 2,
+    orderBy: { createdAt: 'desc' },
+    include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+  },
+  // WasThere has no createdAt column (schema is intentionally left untouched
+  // here), so `id desc` is used as a creation-order proxy — cuids are
+  // time-ordered at generation.
+  wasThere: {
+    take: 3,
+    orderBy: { id: 'desc' },
+    include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+  },
+  _count: { select: { comments: true, wasThere: true, likes: true } },
+} satisfies Prisma.UserLogInclude;
+
+type FeedLogRow = Prisma.UserLogGetPayload<{ include: typeof FEED_LOG_INCLUDE }>;
+
+function serializeFeedLog(log: FeedLogRow, wasThereSet: Set<string>, likedSet: Set<string>) {
+  return {
+    id: log.id,
+    type: 'log' as const,
+    createdAt: log.createdAt.toISOString(),
+    user: {
+      id: log.user.id,
+      username: log.user.username,
+      displayName: log.user.displayName ?? undefined,
+      avatarUrl: log.user.avatarUrl ?? undefined,
+    },
+    log: {
+      id: log.id,
+      rating: typeof log.rating === 'number' ? log.rating : undefined,
+      note: log.note ?? undefined,
+      visibility: log.visibility,
+      photos: (log.photos ?? []).map((p) => ({
+        id: p.id,
+        photoUrl: p.photoUrl,
+        thumbnailUrl: p.thumbUrl ?? p.photoUrl,
+        mediaKind: p.mediaKind,
+        duration: p.duration ?? undefined,
+        thumbUrl: p.thumbUrl ?? undefined,
+      })),
+    },
+    event: {
+      id: log.event.id,
+      name: log.event.name,
+      date: log.event.date.toISOString(),
+      artist: {
+        id: log.event.artist.id,
+        name: log.event.artist.name,
+        imageUrl: log.event.artist.imageUrl ?? undefined,
+      },
+      venue: {
+        id: log.event.venue.id,
+        name: log.event.venue.name,
+        city: log.event.venue.city,
+      },
+    },
+    commentCount: log._count.comments,
+    comments: (log.comments ?? [])
+      .slice()
+      .reverse()
+      .map((c) => ({
+        id: c.id,
+        text: c.text,
+        createdAt: c.createdAt.toISOString(),
+        user: {
+          id: c.user.id,
+          username: c.user.username,
+          displayName: c.user.displayName ?? undefined,
+          avatarUrl: c.user.avatarUrl ?? undefined,
+        },
+      })),
+    wasThereCount: log._count.wasThere,
+    userWasThere: wasThereSet.has(log.id),
+    wasThereUsers: (log.wasThere ?? []).map((w) => ({
+      id: w.user.id,
+      username: w.user.username,
+      displayName: w.user.displayName ?? undefined,
+      avatarUrl: w.user.avatarUrl ?? undefined,
+    })),
+    likeCount: log._count.likes,
+    likedByMe: likedSet.has(log.id),
+    recentLikers: (log.likes ?? []).map((l) => ({
+      id: l.user.id,
+      username: l.user.username,
+      displayName: l.user.displayName ?? undefined,
+      avatarUrl: l.user.avatarUrl ?? undefined,
+    })),
+  };
+}
+
 // ==================== SCORING (compare-to-rank) HELPERS ====================
 //
 // A new log is placed into a user's score-ranked list via a Beli-style
@@ -2119,9 +2235,9 @@ app.get('/users/:id/timeline', async (req) => {
       },
       photos: {
         where: { visibility: 'PUBLIC', isFlagged: false },
-        take: 1,
+        take: 5,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, photoUrl: true, thumbUrl: true },
+        select: { id: true, photoUrl: true, thumbUrl: true, mediaKind: true, duration: true },
       },
       _count: { select: { likes: true, comments: true } },
     },
@@ -2157,7 +2273,7 @@ app.get('/users/:id/timeline', async (req) => {
       event: { id: string; name: string; date: string };
       artist: { id: string; name: string; imageUrl?: string };
       venue: { id: string; name: string; city: string };
-      photos: { id: string; photoUrl: string; thumbnailUrl: string }[];
+      photos: { id: string; photoUrl: string; thumbnailUrl: string; mediaKind: string; duration?: number; thumbUrl?: string }[];
       coAuthors: { id: string; username: string; avatarUrl?: string }[];
       likeCount: number;
       commentCount: number;
@@ -2193,7 +2309,14 @@ app.get('/users/:id/timeline', async (req) => {
         city: log.event.venue.city,
       },
       photos: canSeeFull
-        ? log.photos.map((p) => ({ id: p.id, photoUrl: p.photoUrl, thumbnailUrl: p.thumbUrl ?? p.photoUrl }))
+        ? log.photos.map((p) => ({
+            id: p.id,
+            photoUrl: p.photoUrl,
+            thumbnailUrl: p.thumbUrl ?? p.photoUrl,
+            mediaKind: p.mediaKind,
+            duration: p.duration ?? undefined,
+            thumbUrl: p.thumbUrl ?? undefined,
+          }))
         : [],
       coAuthors: coAuthorsByLog.get(log.id) ?? [],
       likeCount: log._count.likes,
@@ -3034,50 +3157,62 @@ app.get('/venues/:id', async (req, reply) => {
   }
 });
 
-app.get('/venues/:id/events', async (req, reply) => {
-  try {
-    const { id } = req.params as { id: string };
-    const q = (req.query ?? {}) as { upcoming?: string; limit?: string; offset?: string };
-    const upcoming = q.upcoming !== 'false';
-    const limit = Math.max(1, Math.min(50, Number(q.limit ?? 20)));
-    const offset = Math.max(0, Number(q.offset ?? 0));
-    const userId = getUserIdFromRequest(req);
+// GET /venues/:id/events - events at this venue, cursor-paginated, with
+// batched (groupBy) logCount/avgScore per event rather than per-event queries.
+app.get('/venues/:id/events', async (req) => {
+  requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  const q = (req.query ?? {}) as { cursor?: string; limit?: string; scope?: string };
+  const limit = Math.max(1, Math.min(50, Number(q.limit ?? 20)));
+  const scope = q.scope === 'upcoming' || q.scope === 'past' ? q.scope : 'all';
+  const cursor = typeof q.cursor === 'string' ? q.cursor : undefined;
+  const sortAsc = scope === 'upcoming';
 
-    const now = new Date();
-    const events = await prisma.event.findMany({
-      where: {
-        venueId: id,
-        ...(upcoming ? { date: { gte: now } } : { date: { lt: now } }),
-      },
-      include: { artist: true, _count: { select: { logs: true } } },
-      orderBy: { date: upcoming ? 'asc' : 'desc' },
-      take: limit,
-      skip: offset,
-    });
+  const now = new Date();
+  const conditions: Prisma.EventWhereInput[] = [{ venueId: id }];
+  if (scope === 'upcoming') conditions.push({ date: { gte: now } });
+  else if (scope === 'past') conditions.push({ date: { lt: now } });
 
-    const loggedIds = new Set<string>();
-    if (userId && events.length) {
-      const rows = await prisma.userLog.findMany({
-        where: { userId, eventId: { in: events.map((e) => e.id) } },
-        select: { eventId: true },
-      });
-      for (const r of rows) loggedIds.add(r.eventId);
-    }
+  if (cursor) {
+    const d = new Date(cursor);
+    if (!Number.isNaN(d.getTime())) conditions.push({ date: sortAsc ? { gt: d } : { lt: d } });
+  }
 
-    return events.map((e) => ({
+  const events = await prisma.event.findMany({
+    where: { AND: conditions },
+    include: { artist: { select: { id: true, name: true } } },
+    orderBy: { date: sortAsc ? 'asc' : 'desc' },
+    take: limit + 1,
+  });
+
+  const hasMore = events.length > limit;
+  const slice = events.slice(0, limit);
+
+  const eventIds = slice.map((e) => e.id);
+  const logAgg = eventIds.length
+    ? await prisma.userLog.groupBy({
+        by: ['eventId'],
+        where: { eventId: { in: eventIds } },
+        _count: { _all: true },
+        _avg: { score: true },
+      })
+    : [];
+  const aggByEvent = new Map(logAgg.map((a) => [a.eventId, a]));
+
+  const items = slice.map((e) => {
+    const agg = aggByEvent.get(e.id);
+    return {
       id: e.id,
       name: e.name,
       date: e.date.toISOString(),
-      artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
-      ticketUrl: undefined,
-      logCount: e._count.logs,
-      userLogged: loggedIds.has(e.id),
-    }));
-  } catch (error) {
-    req.log.error({ error }, 'Get venue events error');
-    reply.status(500);
-    return { error: 'Failed to load venue events' };
-  }
+      artist: { id: e.artist.id, name: e.artist.name },
+      logCount: agg?._count._all ?? 0,
+      avgScore: agg?._avg.score ?? undefined,
+    };
+  });
+
+  const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.date.toISOString() : null;
+  return { items, nextCursor };
 });
 
 app.post('/venues/:id/ratings', async (req, reply) => {
@@ -4939,6 +5074,98 @@ app.get('/artists/:id/tours', async (req, reply) => {
   }
 });
 
+// GET /tours/:id - tour detail + its events (with per-event logCount/avgScore,
+// batched via groupBy rather than one query per event).
+app.get('/tours/:id', async (req) => {
+  requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+
+  const tour = await prisma.tour.findUnique({
+    where: { id },
+    include: { artist: { select: { id: true, name: true } } },
+  });
+  if (!tour) throw new AppError('Tour not found', 404);
+
+  const events = await prisma.event.findMany({
+    where: { tourId: id },
+    include: { venue: { select: { id: true, name: true, city: true } } },
+    orderBy: { date: 'asc' },
+  });
+
+  const eventIds = events.map((e) => e.id);
+  const logAgg = eventIds.length
+    ? await prisma.userLog.groupBy({
+        by: ['eventId'],
+        where: { eventId: { in: eventIds } },
+        _count: { _all: true },
+        _avg: { score: true },
+      })
+    : [];
+  const aggByEvent = new Map(logAgg.map((a) => [a.eventId, a]));
+
+  return {
+    tour: {
+      id: tour.id,
+      name: tour.name,
+      year: tour.year ?? undefined,
+      artist: { id: tour.artist.id, name: tour.artist.name },
+    },
+    events: events.map((e) => {
+      const agg = aggByEvent.get(e.id);
+      return {
+        id: e.id,
+        name: e.name,
+        date: e.date.toISOString(),
+        venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
+        logCount: agg?._count._all ?? 0,
+        avgScore: agg?._avg.score ?? undefined,
+      };
+    }),
+  };
+});
+
+// GET /tours/:id/photos - PUBLIC shared log photos across all of the tour's
+// events, newest first.
+app.get('/tours/:id/photos', async (req) => {
+  requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  const q = (req.query ?? {}) as { cursor?: string; limit?: string };
+  const limit = Math.max(1, Math.min(40, Number(q.limit ?? 24)));
+  const cursor = typeof q.cursor === 'string' ? q.cursor : undefined;
+
+  const where: Prisma.LogPhotoWhereInput = {
+    log: { event: { tourId: id }, visibility: 'PUBLIC', sharedAt: { not: null } },
+    visibility: 'PUBLIC',
+    isFlagged: false,
+  };
+  if (cursor) {
+    const d = new Date(cursor);
+    if (!Number.isNaN(d.getTime())) where.createdAt = { lt: d };
+  }
+
+  const photos = await prisma.logPhoto.findMany({
+    where,
+    include: { log: { select: { id: true, eventId: true, event: { select: { name: true } } } } },
+    orderBy: { createdAt: 'desc' },
+    take: limit + 1,
+  });
+
+  const hasMore = photos.length > limit;
+  const slice = photos.slice(0, limit);
+
+  const items = slice.map((p) => ({
+    id: p.id,
+    photoUrl: p.photoUrl,
+    thumbnailUrl: p.thumbUrl ?? p.photoUrl,
+    eventId: p.log.eventId,
+    eventName: p.log.event.name,
+    logId: p.log.id,
+  }));
+
+  const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
+  return { items, nextCursor };
+});
+
 function toSafeIdPart(input: string) {
   return input
     .trim()
@@ -5468,32 +5695,7 @@ app.get('/feed', async (req) => {
 
   const logs = await prisma.userLog.findMany({
     where,
-    include: {
-      user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-      event: {
-        include: {
-          artist: { select: { id: true, name: true, imageUrl: true } },
-          venue: { select: { id: true, name: true, city: true } },
-        },
-      },
-      photos: {
-        where: { visibility: 'PUBLIC', isFlagged: false },
-        take: 4,
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, photoUrl: true, mediaKind: true, duration: true, thumbUrl: true },
-      },
-      comments: {
-        take: 3,
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
-      },
-      likes: {
-        take: 2,
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
-      },
-      _count: { select: { comments: true, wasThere: true, likes: true } },
-    },
+    include: FEED_LOG_INCLUDE,
     orderBy: { createdAt: 'desc' },
     take: limit + 1,
   });
@@ -5519,75 +5721,154 @@ app.get('/feed', async (req) => {
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
-  const items = slice.map((log) => ({
-    id: log.id,
-    type: 'log' as const,
-    createdAt: log.createdAt.toISOString(),
-    user: {
-      id: log.user.id,
-      username: log.user.username,
-      displayName: log.user.displayName ?? undefined,
-      avatarUrl: log.user.avatarUrl ?? undefined,
-    },
-    log: {
-      id: log.id,
-      rating: typeof log.rating === 'number' ? log.rating : undefined,
-      note: log.note ?? undefined,
-      visibility: log.visibility,
-      photos: (log.photos ?? []).map((p) => ({
-        id: p.id,
-        photoUrl: p.photoUrl,
-        thumbnailUrl: p.thumbUrl ?? p.photoUrl,
-        mediaKind: p.mediaKind,
-        duration: p.duration ?? undefined,
-        thumbUrl: p.thumbUrl ?? undefined,
-      })),
-    },
-    event: {
-      id: log.event.id,
-      name: log.event.name,
-      date: log.event.date.toISOString(),
-      artist: {
-        id: log.event.artist.id,
-        name: log.event.artist.name,
-        imageUrl: log.event.artist.imageUrl ?? undefined,
-      },
-      venue: {
-        id: log.event.venue.id,
-        name: log.event.venue.name,
-        city: log.event.venue.city,
-      },
-    },
-    commentCount: log._count.comments,
-    comments: (log.comments ?? [])
-      .slice()
-      .reverse()
-      .map((c) => ({
-        id: c.id,
-        text: c.text,
-        createdAt: c.createdAt.toISOString(),
-        user: {
-          id: c.user.id,
-          username: c.user.username,
-          displayName: c.user.displayName ?? undefined,
-          avatarUrl: c.user.avatarUrl ?? undefined,
-        },
-      })),
-    wasThereCount: log._count.wasThere,
-    userWasThere: wasThereSet.has(log.id),
-    likeCount: log._count.likes,
-    likedByMe: likedSet.has(log.id),
-    recentLikers: (log.likes ?? []).map((l) => ({
-      id: l.user.id,
-      username: l.user.username,
-      displayName: l.user.displayName ?? undefined,
-      avatarUrl: l.user.avatarUrl ?? undefined,
-    })),
-  }));
+  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet));
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 
   return { items, nextCursor, hasNoFriends: friendIds.length === 0 };
+});
+
+// GET /events/:id/feed - Public shared memory posts for this event, from ALL
+// users (not just people the viewer follows). Same item shape as GET /feed.
+app.get('/events/:id/feed', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+  const q = (req.query ?? {}) as { cursor?: string; limit?: string };
+  const limit = Math.max(1, Math.min(30, Number(q.limit ?? 15)));
+  const cursor = typeof q.cursor === 'string' ? q.cursor : undefined;
+
+  const where: Prisma.UserLogWhereInput = {
+    eventId,
+    visibility: 'PUBLIC',
+    sharedAt: { not: null },
+  };
+  if (cursor) {
+    const d = new Date(cursor);
+    if (!Number.isNaN(d.getTime())) where.createdAt = { lt: d };
+  }
+
+  const logs = await prisma.userLog.findMany({
+    where,
+    include: FEED_LOG_INCLUDE,
+    orderBy: { createdAt: 'desc' },
+    take: limit + 1,
+  });
+
+  const hasMore = logs.length > limit;
+  const slice = logs.slice(0, limit);
+
+  const logIds = slice.map((l) => l.id);
+  const [wasThereRows, likedRows] = await Promise.all([
+    logIds.length
+      ? prisma.wasThere.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
+      : Promise.resolve([] as { logId: string }[]),
+    logIds.length
+      ? prisma.logLike.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
+      : Promise.resolve([] as { logId: string }[]),
+  ]);
+  const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
+  const likedSet = new Set(likedRows.map((l) => l.logId));
+
+  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet));
+  const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
+
+  return { items, nextCursor };
+});
+
+// GET /events/:id/seat-sections - photos + ratings grouped by seat section
+// for this event, combining SeatView entries (photo-rating combo posts) with
+// section-tagged photos pulled from publicly shared logs.
+app.get('/events/:id/seat-sections', async (req) => {
+  requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+
+  const [seatViews, logPhotos] = await Promise.all([
+    prisma.seatView.findMany({
+      where: { eventId },
+      select: { id: true, section: true, row: true, photoUrl: true, thumbnailUrl: true, rating: true, createdAt: true },
+    }),
+    prisma.logPhoto.findMany({
+      where: {
+        log: { eventId, section: { not: null }, visibility: 'PUBLIC', sharedAt: { not: null } },
+      },
+      select: {
+        id: true,
+        photoUrl: true,
+        thumbUrl: true,
+        createdAt: true,
+        log: { select: { section: true, row: true } },
+      },
+    }),
+  ]);
+
+  type PhotoEntry = { id: string; photoUrl: string; thumbnailUrl?: string; source: 'seatview' | 'log'; createdAt: Date };
+  type SectionGroup = { display: string; rows: Set<string>; ratings: number[]; photos: PhotoEntry[] };
+  const groups = new Map<string, SectionGroup>();
+
+  function getGroup(rawSection: string): SectionGroup {
+    const display = rawSection.trim();
+    const key = display.toUpperCase();
+    let g = groups.get(key);
+    if (!g) {
+      g = { display, rows: new Set(), ratings: [], photos: [] };
+      groups.set(key, g);
+    }
+    return g;
+  }
+
+  for (const v of seatViews) {
+    if (!v.section?.trim()) continue;
+    const g = getGroup(v.section);
+    if (v.row?.trim()) g.rows.add(v.row.trim());
+    if (typeof v.rating === 'number') g.ratings.push(v.rating);
+    if (v.photoUrl) {
+      g.photos.push({
+        id: v.id,
+        photoUrl: v.photoUrl,
+        thumbnailUrl: v.thumbnailUrl ?? undefined,
+        source: 'seatview',
+        createdAt: v.createdAt,
+      });
+    }
+  }
+
+  for (const p of logPhotos) {
+    const section = p.log.section;
+    if (!section?.trim()) continue;
+    const g = getGroup(section);
+    if (p.log.row?.trim()) g.rows.add(p.log.row.trim());
+    g.photos.push({
+      id: p.id,
+      photoUrl: p.photoUrl,
+      thumbnailUrl: p.thumbUrl ?? undefined,
+      source: 'log',
+      createdAt: p.createdAt,
+    });
+  }
+
+  const sections = Array.from(groups.values())
+    .map((g) => {
+      const sortedPhotos = g.photos.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const avgRating = g.ratings.length ? g.ratings.reduce((s, r) => s + r, 0) / g.ratings.length : undefined;
+      return {
+        section: g.display,
+        row: g.rows.size === 1 ? Array.from(g.rows)[0] : undefined,
+        photoCount: g.photos.length,
+        avgRating,
+        photos: sortedPhotos.slice(0, 6).map((p) => ({
+          id: p.id,
+          photoUrl: p.photoUrl,
+          thumbnailUrl: p.thumbnailUrl ?? p.photoUrl,
+          source: p.source,
+        })),
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.photoCount - a.photoCount || (b.avgRating ?? -1) - (a.avgRating ?? -1) || a.section.localeCompare(b.section)
+    );
+
+  return { sections };
 });
 
 // ==================== LOG ROUTES ====================

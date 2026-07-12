@@ -1,11 +1,13 @@
 import React from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import type { VenueResult as VenueResultType } from '../../types/search';
 import { spacing } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 interface VenueResultProps {
   venue: VenueResultType;
@@ -62,6 +64,7 @@ export function VenueResult({ venue, onPress }: VenueResultProps) {
   }));
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     onPress?.();
     router.push(`/venue/${venue.id}`);
   };

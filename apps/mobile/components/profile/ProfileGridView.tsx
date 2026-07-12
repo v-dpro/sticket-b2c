@@ -1,5 +1,6 @@
 import React from 'react';
-import { FlatList, Image, Pressable, RefreshControl, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format } from 'date-fns';
 

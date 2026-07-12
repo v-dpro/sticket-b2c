@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 
 import type { UserResult as UserResultType } from '../../types/search';
 import { followUser, unfollowUser } from '../../lib/api/users';
 import { radius, spacing } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 interface UserResultProps {
   user: UserResultType;
@@ -85,6 +87,7 @@ export function UserResult({ user, onPress, onFollowChange }: UserResultProps) {
   }));
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     onPress?.();
     router.push(`/profile/${user.id}`);
   };

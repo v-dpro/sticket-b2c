@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -20,6 +20,7 @@ import { MonoLabel } from '../../components/ui/MonoLabel';
 import { PillButton } from '../../components/ui/PillButton';
 import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { haptics } from '../../lib/motion';
 import { apiClient } from '../../lib/api/client';
 import { radius, fontFamilies } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -490,7 +491,9 @@ export default function PlannedShowCard() {
               <Image
                 source={{ uri: show.imageUrl }}
                 style={StyleSheet.absoluteFill}
-                resizeMode="cover"
+                contentFit="cover"
+                transition={80}
+                cachePolicy="memory-disk"
               />
             </View>
           ) : (
@@ -614,7 +617,7 @@ export default function PlannedShowCard() {
               <Pressable
                 key={f.id}
                 style={styles.friendRow}
-                onPress={() => router.push(`/profile/${f.id}`)}
+                onPress={() => { haptics.light(); router.push(`/profile/${f.id}`); }}
               >
                 <Avatar uri={f.avatarUrl} name={f.displayName ?? f.username} size={34} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
@@ -625,6 +628,7 @@ export default function PlannedShowCard() {
                   style={styles.messageBtn}
                   onPress={() => {
                     // Navigate to direct message or profile
+                    haptics.light();
                     router.push(`/profile/${f.id}`);
                   }}
                 >

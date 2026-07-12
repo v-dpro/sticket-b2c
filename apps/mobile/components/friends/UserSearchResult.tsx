@@ -7,6 +7,7 @@ import type { UserSearchResult as UserSearchResultType } from '../../types/frien
 import { followUser, unfollowUser } from '../../lib/api/users';
 import { radius, spacing } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 
 type UserSearchResultProps = {
@@ -92,6 +93,7 @@ export function UserSearchResult({ user, onFollowChange }: UserSearchResultProps
   const [loading, setLoading] = useState(false);
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     router.push(`/profile/${user.id}`);
   };
 

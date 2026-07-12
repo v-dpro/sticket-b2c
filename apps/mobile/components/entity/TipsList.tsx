@@ -179,7 +179,7 @@ export function TipsList({ tips, onUpvote, onAdd, autoFocusComposer = false }: T
             </View>
             <SpringPressable
               onPress={() => {
-                haptics.light();
+                // light tick comes from SpringPressable's default haptic
                 onUpvote(tip.id);
               }}
               accessibilityRole="button"

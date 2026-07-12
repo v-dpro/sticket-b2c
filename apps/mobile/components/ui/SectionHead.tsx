@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { fontFamilies } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { Eyebrow } from './Eyebrow';
 
@@ -24,8 +23,9 @@ export function SectionHead({ eyebrow, title, accentColor, action }: SectionHead
       alignItems: 'baseline',
       justifyContent: 'space-between',
     },
+    // System stack — the serif/grotesk families were removed from the font
+    // gate (font diet); this component has no live screen usages.
     title: {
-      fontFamily: fontFamilies.displayItalic,
       fontSize: 26,
       fontWeight: '400',
       letterSpacing: -0.5,
@@ -33,7 +33,6 @@ export function SectionHead({ eyebrow, title, accentColor, action }: SectionHead
       marginTop: 4,
     },
     action: {
-      fontFamily: fontFamilies.ui,
       fontSize: 12,
       fontWeight: '600',
       letterSpacing: 0.3,

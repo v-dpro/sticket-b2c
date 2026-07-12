@@ -7,12 +7,12 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Dimensions,
   Pressable,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';

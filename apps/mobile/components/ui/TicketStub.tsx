@@ -37,7 +37,8 @@ export function TicketStub({
       <View style={styles.topSection}>
         <Text style={[styles.date, { fontFamily: mono }]}>{date}</Text>
         <Text style={styles.artist}>{artist}</Text>
-        <Text style={[styles.venue, { fontFamily: tokens.fontFamilies.ui }]}>
+        {/* System stack (font diet) — Space Grotesk no longer loads. */}
+        <Text style={styles.venue}>
           {venue} {city ? `· ${city}` : ''}
         </Text>
       </View>

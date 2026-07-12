@@ -22,6 +22,42 @@ export async function getVenueShows(
   return response.data;
 }
 
+// ---------------------------------------------------------------------------
+// Entity deep-dive (additive)
+// ---------------------------------------------------------------------------
+
+// GET /venues/:id/events?cursor&limit&scope — cursor-paginated event rows for
+// the "All shows here" screen (the offset-based getVenueShows above predates
+// this and stays for older call sites).
+export type VenueEventsScope = 'all' | 'upcoming' | 'past';
+
+export interface VenueEventItem {
+  id: string;
+  name: string;
+  date: string;
+  artist: {
+    id: string;
+    name: string;
+  };
+  logCount: number;
+  avgScore: number | null;
+}
+
+export interface VenueEventsResponse {
+  items: VenueEventItem[];
+  nextCursor?: string | null;
+}
+
+export async function getVenueEvents(
+  venueId: string,
+  options?: { cursor?: string; limit?: number; scope?: VenueEventsScope },
+): Promise<VenueEventsResponse> {
+  const response = await apiClient.get(`/venues/${venueId}/events`, {
+    params: options,
+  });
+  return response.data;
+}
+
 // Submit venue ratings
 export async function submitVenueRatings(venueId: string, ratings: VenueRatingsSubmission): Promise<void> {
   await apiClient.post(`/venues/${venueId}/ratings`, ratings);

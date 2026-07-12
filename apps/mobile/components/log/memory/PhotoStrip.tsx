@@ -5,7 +5,8 @@
 // static scrim color).
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { useTheme } from '../../../lib/theme-context';
 import { SpringPressable } from '../../ui/SpringPressable';

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -342,7 +342,7 @@ export default function HangPage() {
   const renderHero = () => (
     <View style={styles.hero}>
       {hang.coverImageUrl ? (
-        <Image source={{ uri: hang.coverImageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image source={{ uri: hang.coverImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
       ) : (
         <LinearGradient
           colors={[tokens.colors.card2, tokens.colors.card]}

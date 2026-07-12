@@ -12,7 +12,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +20,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -198,7 +198,10 @@ export function FeedCardPhotos({
           <Image
             source={{ uri: item.thumbnailUrl || item.photoUrl }}
             style={styles.media}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={80}
+            cachePolicy="memory-disk"
+            recyclingKey={item.id}
           />
         </Pressable>
       );
@@ -386,7 +389,14 @@ function VideoSlide({
     >
       <VideoView player={player} style={styles.media} contentFit="cover" nativeControls={false} />
       {!started ? (
-        <Image source={{ uri: poster }} style={[StyleSheet.absoluteFill, styles.media]} resizeMode="cover" />
+        <Image
+          source={{ uri: poster }}
+          style={[StyleSheet.absoluteFill, styles.media]}
+          contentFit="cover"
+          transition={80}
+          cachePolicy="memory-disk"
+          recyclingKey={item.id}
+        />
       ) : null}
       {!playing ? (
         <View style={styles.playOverlay} pointerEvents="none">

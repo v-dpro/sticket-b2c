@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { format, isFuture, parseISO } from 'date-fns';
@@ -7,6 +8,7 @@ import { format, isFuture, parseISO } from 'date-fns';
 import type { EventResult as EventResultType } from '../../types/search';
 import { spacing } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 interface EventResultProps {
   event: EventResultType;
@@ -69,6 +71,7 @@ export function EventResult({ event, onPress }: EventResultProps) {
   const upcoming = isFuture(eventDate);
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     onPress?.();
     router.push(`/event/${event.id}`);
   };

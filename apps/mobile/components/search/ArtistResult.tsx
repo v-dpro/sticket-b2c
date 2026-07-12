@@ -1,11 +1,13 @@
 import React from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import type { ArtistResult as ArtistResultType } from '../../types/search';
 import { spacing } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 interface ArtistResultProps {
   artist: ArtistResultType;
@@ -62,6 +64,7 @@ export function ArtistResult({ artist, onPress }: ArtistResultProps) {
   }));
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     onPress?.();
     router.push(`/artist/${artist.id}`);
   };

@@ -108,6 +108,7 @@ export function PresaleCard({ presales }: { presales: EventPresale[] }) {
             {p.code ? (
               <SpringPressable
                 onPress={() => void handleCopy(p)}
+                haptic="none" // handleCopy fires success/error immediately — avoid a double tick
                 accessibilityRole="button"
                 accessibilityLabel={`Copy presale code ${p.code}`}
                 style={styles.codeRow}

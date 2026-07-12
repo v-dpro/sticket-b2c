@@ -6,10 +6,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { View, StyleSheet, LogBox } from 'react-native';
 import { useFonts } from 'expo-font';
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_600SemiBold, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { SpaceGrotesk_400Regular, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -97,21 +94,14 @@ function RootShell() {
   const { user, profile, isLoading } = useSession();
   const { tokens, resolvedMode } = useTheme();
 
+  // Font diet: the design system is system font + mono. Only the JetBrains
+  // Mono weights load — fonts gate splash-hide, so this directly cuts cold
+  // start (Instrument Serif / Inter / Space Grotesk had zero live usages).
   const [fontsLoaded] = useFonts({
-    'InstrumentSerif': InstrumentSerif_400Regular,
-    'InstrumentSerif-Italic': InstrumentSerif_400Regular_Italic,
     'JetBrainsMono': JetBrainsMono_400Regular,
     'JetBrainsMono-Medium': JetBrainsMono_500Medium,
     'JetBrainsMono-Semi': JetBrainsMono_600SemiBold,
     'JetBrainsMono-Bold': JetBrainsMono_700Bold,
-    'Inter': Inter_400Regular,
-    'Inter-Medium': Inter_500Medium,
-    'Inter-Semi': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
-    'SpaceGrotesk': SpaceGrotesk_400Regular,
-    'SpaceGrotesk-Medium': SpaceGrotesk_500Medium,
-    'SpaceGrotesk-Semi': SpaceGrotesk_600SemiBold,
-    'SpaceGrotesk-Bold': SpaceGrotesk_700Bold,
   });
 
   useEffect(() => {
@@ -167,7 +157,17 @@ function RootShell() {
             animationDuration: durations.fadeThrough,
             contentStyle: { backgroundColor: tokens.colors.bg },
           }}
-        />
+        >
+          {/* Floating memory viewer — transparent modal so the feed ghosts through. */}
+          <Stack.Screen
+            name="memory/[logId]"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'fade',
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+        </Stack>
       </ErrorBoundary>
     </View>
   );

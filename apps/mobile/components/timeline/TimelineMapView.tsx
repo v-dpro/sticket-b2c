@@ -10,7 +10,8 @@
 // the scroll view's already-fetched data — no fetching here.
 
 import React, { useMemo } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import type { TimelineMonth, TimelineUpcomingItem } from '../../lib/api/timeline';
@@ -53,7 +54,13 @@ function Marker({ marker, onPress }: { marker: MapMarker; onPress: () => void })
       style={styles.markerCell}
     >
       {marker.kind === 'photo' ? (
-        <Image source={{ uri: marker.thumbnailUrl }} style={styles.photoThumb} />
+        <Image
+          source={{ uri: marker.thumbnailUrl }}
+          style={styles.photoThumb}
+          contentFit="cover"
+          transition={80}
+          cachePolicy="memory-disk"
+        />
       ) : marker.kind === 'dot' ? (
         <View style={styles.loggedDot} />
       ) : (

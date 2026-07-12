@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { Image, Text, View, type StyleProp } from 'react-native';
+import { Text, View, type StyleProp } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../lib/theme-context';
@@ -42,6 +43,10 @@ export const Avatar = memo(function Avatar({ uri, size = 'md', name, gradientBor
   const inner = uri ? (
     <Image
       source={{ uri }}
+      contentFit="cover"
+      transition={80}
+      cachePolicy="memory-disk"
+      recyclingKey={uri}
       style={[
         {
           width: dimension,

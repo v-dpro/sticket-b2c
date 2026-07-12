@@ -1,10 +1,12 @@
-import { Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
 
 import type { Notification, NotificationType } from '../../types/notification';
 import type { ThemeColors } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 interface NotificationCardProps {
   notification: Notification;
@@ -97,7 +99,13 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
   }));
 
   return (
-    <Pressable style={[styles.container, !notification.read && styles.unread]} onPress={onPress}>
+    <Pressable
+      style={[styles.container, !notification.read && styles.unread]}
+      onPress={() => {
+        haptics.light(); // navigation tick
+        onPress();
+      }}
+    >
       <View style={styles.iconContainer}>
         {notification.actor?.avatarUrl ? (
           <Image source={{ uri: notification.actor.avatarUrl }} style={styles.avatar} />

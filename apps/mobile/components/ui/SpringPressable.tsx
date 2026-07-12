@@ -31,7 +31,11 @@ type SpringPressableProps = Omit<PressableProps, 'style' | 'disabled'> & {
   style?: StyleProp<ViewStyle>;
   /** Scale while pressed. Default 0.97 per spec. */
   pressScale?: number;
-  /** Haptic fired on press. Default 'none' (callers opt in per haptics table). */
+  /**
+   * Haptic fired on press. Default 'light' — every tap ticks (app-wide
+   * interactivity default). Pass 'none' to opt out (e.g. when the onPress
+   * handler fires its own tiered haptic) or a heavier tier per the table.
+   */
   haptic?: HapticKind;
   disabled?: boolean;
   /** When disabled, taps shake instead of being swallowed. Default true. */
@@ -42,7 +46,7 @@ export function SpringPressable({
   children,
   style,
   pressScale = 0.97,
-  haptic = 'none',
+  haptic = 'light',
   disabled = false,
   shakeWhenDisabled = true,
   onPress,

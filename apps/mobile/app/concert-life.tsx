@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Image,
   RefreshControl,
   ScrollView,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -473,7 +473,7 @@ function StoryTimeline({
                       {/* Cover photo */}
                       <View style={s.storyCover}>
                         {photo ? (
-                          <Image source={{ uri: photo }} style={s.storyCoverImage} resizeMode="cover" />
+                          <Image source={{ uri: photo }} style={s.storyCoverImage} contentFit="cover" />
                         ) : (
                           <View style={s.storyCoverFallback} />
                         )}
@@ -579,7 +579,7 @@ function CompactTimeline({
                     {/* Artwork */}
                     <View style={s.compactArtwork}>
                       {artwork ? (
-                        <Image source={{ uri: artwork }} style={s.compactArtworkImage} resizeMode="cover" />
+                        <Image source={{ uri: artwork }} style={s.compactArtworkImage} contentFit="cover" />
                       ) : (
                         <View style={s.compactArtworkFallback} />
                       )}

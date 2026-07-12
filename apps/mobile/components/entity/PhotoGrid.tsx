@@ -4,15 +4,17 @@
 // tiles are not tappable (no /log/[logId] destination to route to). When
 // the API grows a logId field, wire onPressPhoto here.
 
-import React from 'react';
-import { Image, View } from 'react-native';
+import React, { memo } from 'react';
+import { View } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import type { EventPhoto } from '../../types/event';
 import { durations } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 
-export function PhotoGrid({ photos }: { photos: EventPhoto[] }) {
+// Memoized: `photos` is replaced by identity on refetch — shallow compare holds.
+export const PhotoGrid = memo(function PhotoGrid({ photos }: { photos: EventPhoto[] }) {
   const { tokens } = useTheme();
 
   return (
@@ -26,6 +28,9 @@ export function PhotoGrid({ photos }: { photos: EventPhoto[] }) {
           <Image
             source={{ uri: photo.thumbnailUrl ?? photo.photoUrl }}
             accessibilityLabel={`Photo by ${photo.user?.username ?? 'a fan'}`}
+            contentFit="cover"
+            transition={80}
+            cachePolicy="memory-disk"
             style={{
               width: '100%',
               aspectRatio: 1,
@@ -37,4 +42,4 @@ export function PhotoGrid({ photos }: { photos: EventPhoto[] }) {
       ))}
     </View>
   );
-}
+});

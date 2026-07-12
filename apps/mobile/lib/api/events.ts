@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { Event, EventComment, EventDetails, EventPhoto } from '../../types/event';
+import type { FeedItem } from '../../types/feed';
 
 export async function getEventById(eventId: string): Promise<Event> {
   const response = await apiClient.get(`/events/${eventId}`);
@@ -110,6 +111,50 @@ export async function getArtistPresales(artistId: string): Promise<EventPresale[
     params: { artistId, limit: 50 },
   });
   return Array.isArray(response.data) ? response.data : [];
+}
+
+// ---------------------------------------------------------------------------
+// Entity deep-dive (additive)
+// ---------------------------------------------------------------------------
+
+// GET /events/:id/feed — public memory posts for one event, same item shape
+// as the home feed (rendered with the existing FeedCard).
+export interface EventFeedResponse {
+  items: FeedItem[];
+  nextCursor?: string | null;
+}
+
+export async function getEventFeed(
+  eventId: string,
+  options?: { cursor?: string; limit?: number },
+): Promise<EventFeedResponse> {
+  const response = await apiClient.get(`/events/${eventId}/feed`, {
+    params: options,
+  });
+  return response.data;
+}
+
+// GET /events/:id/seat-sections — the "seat views" map: photos grouped by
+// section with a per-section average rating (1–5).
+export interface SeatSectionPhoto {
+  id: string;
+  photoUrl: string;
+  thumbnailUrl?: string;
+  source?: string;
+}
+
+export interface EventSeatSection {
+  section: string;
+  photoCount: number;
+  avgRating: number | null;
+  photos: SeatSectionPhoto[];
+}
+
+export async function getEventSeatSections(
+  eventId: string,
+): Promise<{ sections: EventSeatSection[] }> {
+  const response = await apiClient.get(`/events/${eventId}/seat-sections`);
+  return response.data;
 }
 
 // ---------------------------------------------------------------------------

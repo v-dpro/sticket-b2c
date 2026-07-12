@@ -8,7 +8,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Image,
   RefreshControl,
   ScrollView,
   Share,
@@ -17,6 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -307,7 +307,7 @@ export default function ArtistScreen() {
               <Image
                 source={{ uri: heroImage }}
                 style={{ ...StyleSheet.absoluteFillObject, width: '100%', height: heroHeight }}
-                resizeMode="cover"
+                contentFit="cover"
               />
               <LinearGradient
                 colors={['transparent', tokens.colors.bg]}

@@ -9,11 +9,13 @@
 
 import React from 'react';
 import { Redirect, Tabs } from 'expo-router';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '../../hooks/useSession';
+import { haptics } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 
 export default function TabsLayout() {
@@ -29,6 +31,8 @@ export default function TabsLayout() {
   return (
     <Tabs
       initialRouteName="home"
+      // Every tab switch gives the light interactivity tick.
+      screenListeners={{ tabPress: () => haptics.light() }}
       screenOptions={{
         headerShown: false,
         // Tab → tab: crossfade, no slide (motion contract).
@@ -96,7 +100,13 @@ export default function TabsLayout() {
                     { borderColor: focused ? c.fg : 'transparent' },
                   ]}
                 >
-                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                    transition={80}
+                    cachePolicy="memory-disk"
+                  />
                 </View>
               );
             }

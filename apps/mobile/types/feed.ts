@@ -63,6 +63,14 @@ export interface FeedItem {
   comments: FeedComment[]; // preview
   wasThereCount: number;
   userWasThere: boolean;
+  // First few was-there users, inlined by the feed serializer for the
+  // over-photo facepile (absent on older API builds — render nothing).
+  wasThereUsers?: {
+    id: string;
+    username: string;
+    displayName?: string;
+    avatarUrl?: string;
+  }[];
 
   // Like data inlined by the feed serializer (absent on older API builds —
   // FeedCard falls back to a lazy GET /logs/:id/likes when missing).

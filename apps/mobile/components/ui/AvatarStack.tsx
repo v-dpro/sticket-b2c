@@ -1,4 +1,5 @@
-import { View, Image, Text } from 'react-native';
+import { View, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { useThemedStyles } from '../../lib/theme-context';
 
 interface Avatar {

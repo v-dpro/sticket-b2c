@@ -1,24 +1,26 @@
 // FeedCard v3 — "the post is the photo" (Phase A, decision A21).
 //
 // De-Instagrammed feed card: the show photo carousel IS the card. A blurred
-// author pill (top-left), a mono score chip (top-right) and the artist /
-// venue·date / caption stacked over a bottom scrim ride directly on the media.
-// Below the card sits ONE quiet mono meta line — likes + comments (with the
-// only red in the card, the heart glyph) on the left, "N WERE HERE →" on the
-// right.
+// author pill (top-left), a mono score chip (top-right), the artist /
+// venue·date / caption stacked over a bottom scrim, and a who-also-went
+// facepile (bottom-right, when the serializer inlines wasThereUsers) ride
+// directly on the media. Below the card sits ONE quiet mono meta line —
+// likes + comments (with the only red in the card, the heart glyph),
+// left-aligned; the facepile carries who-went.
 //
 // Everything the old card carried on-surface (action-button row, liked-by
 // avatars, link chips, comments preview, pinned composer, who-was-here) now
-// lives on the memory screen (/log/[id]). Interactions collapse to two:
+// lives on the memory screen (/log/[id]). Interactions collapse to three:
 //   · double-tap anywhere on the media → like (heart burst + haptic)
-//   · single tap (media, meta line, "N WERE HERE →") → open the memory
+//   · single tap on the media → the floating memory viewer (/memory/[logId],
+//     fast-path params for instant paint)
+//   · tap the facepile → "Were here" sheet
 // Long-press does nothing.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { BlurView } from 'expo-blur';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 
 import type { FeedItem, FeedPhoto } from '../../types/feed';
@@ -28,6 +30,8 @@ import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 import { FeedCardPhotos } from './FeedCardPhotos';
+import { WereHereFacepile } from './WereHereFacepile';
+import { WereHereSheet } from './WereHereSheet';
 
 interface FeedCardProps {
   item: FeedItem;
@@ -82,7 +86,10 @@ function formatScore(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-export function FeedCard({ item, currentUserId }: FeedCardProps) {
+// Memoized: props are `item` (replaced by identity on refresh) and
+// `currentUserId` (string), so the default shallow compare is correct —
+// parent list re-renders (scroll/pagination state) skip unchanged cards.
+export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCardProps) {
   const router = useRouter();
   const { tokens } = useTheme();
   const c = tokens.colors;
@@ -165,10 +172,37 @@ export function FeedCard({ item, currentUserId }: FeedCardProps) {
     }
   }, [applyLike, item.log.id, like]);
 
-  const openLog = useCallback(() => {
+  // Single tap → the floating memory viewer, with fast-path params so the
+  // featured card paints instantly before GET /logs/:id hydrates the rest.
+  const openMemoryViewer = useCallback(() => {
     haptics.light();
-    router.push({ pathname: '/log/[id]', params: { id: item.log.id } });
-  }, [item.log.id, router]);
+    const first = item.log.photos?.[0];
+    const fastPhoto = first
+      ? first.mediaKind === 'video'
+        ? first.thumbUrl || first.thumbnailUrl
+        : first.thumbnailUrl || first.photoUrl
+      : item.event.artist.imageUrl;
+    const rating =
+      typeof item.log.rating === 'number' && item.log.rating > 0 ? item.log.rating : null;
+    router.push({
+      pathname: '/memory/[logId]',
+      params: {
+        logId: item.log.id,
+        eventId: item.event.id,
+        eventName: item.event.name,
+        artistName: item.event.artist.name,
+        ...(fastPhoto ? { photoUrl: fastPhoto } : {}),
+        ...(rating != null ? { score: String(rating) } : {}),
+      },
+    });
+  }, [item, router]);
+
+  // Who-also-went sheet, opened from the over-photo facepile.
+  const [wereHereOpen, setWereHereOpen] = useState(false);
+  const openWereHere = useCallback(() => {
+    haptics.light();
+    setWereHereOpen(true);
+  }, []);
 
   // ── Media ──
   const photos: FeedPhoto[] = item.log.photos?.length
@@ -184,13 +218,14 @@ export function FeedCard({ item, currentUserId }: FeedCardProps) {
   const overlay = (
     <View style={styles.overlay} pointerEvents="box-none">
       <View style={styles.overlayTop} pointerEvents="box-none">
-        <BlurView intensity={18} tint="dark" style={styles.authorPill}>
+        {/* Solid pill (same treatment as the score chip) — per-card BlurView is a scroll-perf trap. */}
+        <View style={styles.authorPill}>
           <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={20} />
           <Text style={styles.authorName} numberOfLines={1}>
             {isSelf ? 'you' : item.user.username}
           </Text>
           <Text style={styles.authorAge}>{formatAge(item.createdAt)}</Text>
-        </BlurView>
+        </View>
         {score != null ? (
           <View style={styles.scoreChip}>
             <Text style={styles.scoreText}>{formatScore(score)}</Text>
@@ -199,16 +234,26 @@ export function FeedCard({ item, currentUserId }: FeedCardProps) {
       </View>
 
       <View style={styles.overlayBottom} pointerEvents="box-none">
-        <Text style={styles.artistName} numberOfLines={2}>
-          {item.event.artist.name}
-        </Text>
-        <Text style={styles.venueDate} numberOfLines={1}>
-          {`${item.event.venue.name} · ${formatDate(item.event.date)}`}
-        </Text>
-        {item.log.note ? (
-          <Text style={styles.caption} numberOfLines={2}>
-            {item.log.note}
+        <View style={styles.overlayBottomText} pointerEvents="box-none">
+          <Text style={styles.artistName} numberOfLines={2}>
+            {item.event.artist.name}
           </Text>
+          <Text style={styles.venueDate} numberOfLines={1}>
+            {`${item.event.venue.name} · ${formatDate(item.event.date)}`}
+          </Text>
+          {item.log.note ? (
+            <Text style={styles.caption} numberOfLines={2}>
+              {item.log.note}
+            </Text>
+          ) : null}
+        </View>
+        {/* Who-also-went facepile — only when the serializer inlined users */}
+        {item.wasThereUsers && item.wasThereUsers.length > 0 ? (
+          <WereHereFacepile
+            users={item.wasThereUsers}
+            totalCount={item.wasThereCount}
+            onPress={openWereHere}
+          />
         ) : null}
       </View>
     </View>
@@ -225,13 +270,13 @@ export function FeedCard({ item, currentUserId }: FeedCardProps) {
           scrims
           radius={22}
           overlay={overlay}
-          onPressMedia={openLog}
+          onPressMedia={openMemoryViewer}
           onDoubleTapLike={() => void likeFromDoubleTap()}
         />
       ) : (
         <Pressable
           style={styles.fallback}
-          onPress={openLog}
+          onPress={openMemoryViewer}
           accessibilityRole="button"
           accessibilityLabel="Open memory"
         >
@@ -243,36 +288,32 @@ export function FeedCard({ item, currentUserId }: FeedCardProps) {
         </Pressable>
       )}
 
-      {/* ── Quiet mono meta line ── */}
+      {/* ── Quiet mono meta line — counts only; the facepile carries who-went ── */}
       <View style={styles.metaRow}>
-        <View style={styles.metaLeft}>
-          {like.count > 0 ? (
-            <>
-              <Ionicons name="heart" size={11} color={c.error} style={styles.heartGlyph} />
-              <Text style={styles.metaText}>{like.count}</Text>
-            </>
-          ) : null}
-          {like.count > 0 && item.commentCount > 0 ? <Text style={styles.metaDot}>·</Text> : null}
-          {item.commentCount > 0 ? (
-            <Text style={styles.metaText}>
-              {item.commentCount} {item.commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
-            </Text>
-          ) : null}
-        </View>
-
-        {item.wasThereCount > 0 ? (
-          <Pressable
-            onPress={openLog}
-            accessibilityRole="button"
-            accessibilityLabel={`${item.wasThereCount} ${item.wasThereCount === 1 ? 'person was' : 'people were'} here`}
-          >
-            <Text style={styles.metaAction}>{item.wasThereCount} WERE HERE →</Text>
-          </Pressable>
+        {like.count > 0 ? (
+          <>
+            <Ionicons name="heart" size={11} color={c.error} style={styles.heartGlyph} />
+            <Text style={styles.metaText}>{like.count}</Text>
+          </>
+        ) : null}
+        {like.count > 0 && item.commentCount > 0 ? <Text style={styles.metaDot}>·</Text> : null}
+        {item.commentCount > 0 ? (
+          <Text style={styles.metaText}>
+            {item.commentCount} {item.commentCount === 1 ? 'COMMENT' : 'COMMENTS'}
+          </Text>
         ) : null}
       </View>
+
+      <WereHereSheet
+        visible={wereHereOpen}
+        onClose={() => setWereHereOpen(false)}
+        logId={item.log.id}
+        currentUserId={currentUserId}
+        totalCount={item.wasThereCount}
+      />
     </Animated.View>
   );
-}
+});
 
 const buildStyles = (tokens: ThemeTokens) =>
   StyleSheet.create({
@@ -315,7 +356,7 @@ const buildStyles = (tokens: ThemeTokens) =>
       paddingVertical: 4,
       borderRadius: tokens.radius.full,
       overflow: 'hidden',
-      backgroundColor: 'rgba(11,11,16,0.5)',
+      backgroundColor: 'rgba(11,11,16,0.55)',
     },
     authorName: {
       fontSize: 11,
@@ -346,6 +387,12 @@ const buildStyles = (tokens: ThemeTokens) =>
       color: '#FFFFFF',
     },
     overlayBottom: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 10,
+    },
+    overlayBottomText: {
+      flex: 1,
       alignItems: 'flex-start',
     },
     artistName: {
@@ -375,14 +422,9 @@ const buildStyles = (tokens: ThemeTokens) =>
     metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       paddingHorizontal: 4,
       paddingTop: 9,
       minHeight: 16,
-    },
-    metaLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     heartGlyph: {
       marginRight: 4,
@@ -399,11 +441,5 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontSize: 10.5,
       color: tokens.colors.mute,
       marginHorizontal: 5,
-    },
-    metaAction: {
-      fontFamily: tokens.fontFamilies.monoSemi,
-      fontSize: 10.5,
-      letterSpacing: 0.5,
-      color: tokens.colors.mute,
     },
   });

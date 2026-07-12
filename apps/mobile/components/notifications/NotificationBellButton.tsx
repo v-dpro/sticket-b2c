@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 
 import { NotificationBadge } from './NotificationBadge';
 import { useTheme } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 
 type NotificationBellButtonProps = {
   color?: string;
@@ -18,7 +19,7 @@ export function NotificationBellButton({ color, size = 24, badgeSize = 'small' }
 
   return (
     <Pressable
-      onPress={() => router.push('/notifications')}
+      onPress={() => { haptics.light(); router.push('/notifications'); }}
       style={styles.button}
       accessibilityRole="button"
       accessibilityLabel="Notifications"

@@ -20,6 +20,7 @@ import {
   type TextStyle,
   View,
 } from 'react-native';
+import { haptics } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 import { SpringPressable } from './SpringPressable';
 
@@ -52,7 +53,11 @@ type PillButtonProps = {
    * existing screens keep the plain pressed-state behavior.
    */
   springFeedback?: boolean;
-  /** Haptic on press when springFeedback is on. Default 'none'. */
+  /**
+   * Haptic on press (both spring and plain paths). Default 'light' —
+   * every button tap ticks (app-wide interactivity default). Pass 'none'
+   * to opt out, or a heavier tier for commit actions.
+   */
   haptic?: 'light' | 'medium' | 'heavy' | 'none';
 };
 
@@ -80,7 +85,7 @@ export function PillButton({
   disabled = false,
   icon,
   springFeedback = false,
-  haptic = 'none',
+  haptic = 'light',
 }: PillButtonProps) {
   const { tokens } = useTheme();
   const c = tokens.colors;
@@ -149,7 +154,11 @@ export function PillButton({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // Same tick as the spring path — buttons feel interactive app-wide.
+        if (haptic !== 'none') haptics[haptic]();
+        onPress();
+      }}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={title}

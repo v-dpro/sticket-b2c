@@ -7,12 +7,12 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
-  Image,
   RefreshControl,
   ScrollView,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -193,7 +193,13 @@ export default function UpcomingScreen() {
           style={styles.row}
         >
           {row.imageUrl ? (
-            <Image source={{ uri: row.imageUrl }} style={styles.rowImage} />
+            <Image
+              source={{ uri: row.imageUrl }}
+              style={styles.rowImage}
+              contentFit="cover"
+              transition={80}
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={[styles.rowImage, styles.rowImageFallback]}>
               <Ionicons

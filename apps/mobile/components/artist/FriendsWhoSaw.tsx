@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import type { FriendSaw } from '../../types/artist';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';

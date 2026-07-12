@@ -391,7 +391,7 @@ export default function LogMemory() {
           >
             <SpringPressable
               onPress={() => {
-                haptics.light();
+                // light tick comes from SpringPressable's default haptic
                 setRatingsOpen((o) => !o);
               }}
               accessibilityRole="button"

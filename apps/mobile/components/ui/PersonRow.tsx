@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, Image } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { fontFamilies } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 

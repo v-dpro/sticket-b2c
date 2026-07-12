@@ -2,7 +2,8 @@
 // Uses the existing event comments API via callbacks from the page.
 
 import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -130,6 +131,9 @@ export function CommentsBlock({ comments, posting, onPost }: CommentsBlockProps)
                 <Image
                   source={{ uri: comment.user.avatarUrl }}
                   style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                  transition={80}
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <Text style={styles.avatarInitial}>

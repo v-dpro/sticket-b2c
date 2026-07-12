@@ -7,6 +7,7 @@ import type { FriendSuggestion, SuggestionReason } from '../../types/friends';
 import { followUser, unfollowUser } from '../../lib/api/users';
 import { radius } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 
 type SuggestionCardProps = {
@@ -115,6 +116,7 @@ export function SuggestionCard({ suggestion, onFollowChange, onDismiss }: Sugges
   const [loading, setLoading] = useState(false);
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     router.push(`/profile/${suggestion.id}`);
   };
 

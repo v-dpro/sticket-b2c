@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, Image } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { radius, fontFamilies } from '../../lib/theme';
 import { useThemedStyles } from '../../lib/theme-context';
 import { PersonRow } from './PersonRow';

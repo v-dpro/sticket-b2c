@@ -7,6 +7,7 @@ import type { ContactMatch } from '../../types/friends';
 import { followUser, unfollowUser } from '../../lib/api/users';
 import { radius } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { haptics } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 
 type ContactCardProps = {
@@ -77,6 +78,7 @@ export function ContactCard({ contact, onFollowChange }: ContactCardProps) {
   const [loading, setLoading] = useState(false);
 
   const handlePress = () => {
+    haptics.light(); // navigation tick
     router.push(`/profile/${contact.id}`);
   };
 

@@ -30,6 +30,10 @@ import { durations } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { FeedItem } from '../../types/feed';
 
+// Entrance stagger only for the first screenful of cards — rows mounted
+// later (scroll-in) appear without delay (same pattern as the timeline).
+const STAGGER_CUTOFF = 4;
+
 export default function HomeScreen() {
   const router = useRouter();
   const { tokens } = useTheme();
@@ -118,7 +122,7 @@ export default function HomeScreen() {
   const renderItem = useCallback(
     ({ item, index }: { item: FeedItem; index: number }) => (
       <Animated.View
-        entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger)
+        entering={FadeInDown.delay(index < STAGGER_CUTOFF ? index * durations.stagger : 0)
           .duration(380)
           .easing(Easing.bezier(0.2, 0.7, 0.3, 1))
           .withInitialValues({ opacity: 0, transform: [{ translateY: 10 }] })}
@@ -185,6 +189,10 @@ export default function HomeScreen() {
         data={items}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        removeClippedSubviews
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={7}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

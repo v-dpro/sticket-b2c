@@ -5,12 +5,22 @@
 import React from 'react';
 import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { EventPhoto } from '../../types/event';
 
 const { width } = Dimensions.get('window');
 
+// Structural subset of EventPhoto — `user` is optional so authorless photos
+// (e.g. per-section seat views) can reuse the same viewer.
+export interface LightboxPhoto {
+  photoUrl: string;
+  user?: {
+    username: string;
+    avatarUrl?: string;
+  };
+  section?: string;
+}
+
 interface PhotoLightboxProps {
-  photo: EventPhoto | null;
+  photo: LightboxPhoto | null;
   onClose: () => void;
 }
 
@@ -26,16 +36,18 @@ export function PhotoLightbox({ photo, onClose }: PhotoLightboxProps) {
           <>
             <Image source={{ uri: photo.photoUrl }} style={styles.lightboxImage} resizeMode="contain" />
             <View style={styles.photoInfo}>
-              <View style={styles.userInfo}>
-                {photo.user.avatarUrl ? (
-                  <Image source={{ uri: photo.user.avatarUrl }} style={styles.userAvatar} />
-                ) : (
-                  <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>{photo.user.username.charAt(0)}</Text>
-                  </View>
-                )}
-                <Text style={styles.userName}>@{photo.user.username}</Text>
-              </View>
+              {photo.user ? (
+                <View style={styles.userInfo}>
+                  {photo.user.avatarUrl ? (
+                    <Image source={{ uri: photo.user.avatarUrl }} style={styles.userAvatar} />
+                  ) : (
+                    <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>{photo.user.username.charAt(0)}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.userName}>@{photo.user.username}</Text>
+                </View>
+              ) : null}
               {photo.section ? <Text style={styles.sectionText}>Section {photo.section}</Text> : null}
             </View>
           </>

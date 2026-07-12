@@ -3,7 +3,8 @@
 // subtitle, mono trailing metadata, hairline separator.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { useTheme } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';

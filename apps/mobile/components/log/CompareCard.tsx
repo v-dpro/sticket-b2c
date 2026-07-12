@@ -2,7 +2,8 @@
 // picks it as the winner (spring press + medium haptic). TONIGHT wears an
 // accent mono tag; a placed opponent shows its score in mono.
 
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { useTheme } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';

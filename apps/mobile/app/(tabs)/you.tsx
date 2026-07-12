@@ -1,7 +1,12 @@
-// app/(tabs)/you.tsx — THE TIMELINE. Your live-events life on one scroll:
-// profile header (pinned) → FUTURE plans → brand-gradient TODAY divider →
-// PAST months, newest first. Cards float (settle to full scale/opacity as
-// they approach the viewport center — see components/timeline/FloatCard).
+// app/(tabs)/you.tsx — THE TIMELINE, as a MEMORY CAROUSEL. Your live-events
+// life on one scroll: profile header (pinned) → FUTURE plans → brand-gradient
+// TODAY divider → PAST months, newest first. Memory cards are the carousel:
+// the vertical list center-snaps each memory card to the viewport center
+// (snapToOffsets computed from an onLayout height registry — see the
+// "Carousel snap mechanics" block below), where FloatCard's strong curve
+// makes the settled card dominant while neighbors recede (curve="memory";
+// plan/compact/marker rows keep the gentle float and travel between snaps).
+// Inside a card, extra photos of that memory page horizontally (MemoryCard).
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -10,7 +15,9 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
   type FlatList,
+  type HostInstance,
   type ListRenderItemInfo,
   type ViewStyle,
 } from 'react-native';
@@ -21,6 +28,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
   interpolate,
+  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -31,7 +39,7 @@ import Animated, {
 import { getUserTimeline, type TimelineEntry, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
 import { getUserStats } from '../../lib/api/profile';
 import { getErrorMessage } from '../../lib/api/errorUtils';
-import { durations } from '../../lib/motion';
+import { durations, haptics } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import type { ProfileStats } from '../../types/profile';
@@ -55,6 +63,14 @@ const STAGGER_CUTOFF = 12;
 // Map view backfills the rest of history when opened (it's only meaningful
 // complete) — hard cap on how many extra pages it may pull.
 const MAP_BACKFILL_MAX_PAGES = 10;
+// List content paddingTop — the snap-offset walk must start from the same
+// origin the contentContainerStyle uses.
+const CONTENT_TOP_PAD = 16;
+// A memory card's photo is 63% of its width (MemoryCard aspectRatio 100/63).
+const MEMORY_ASPECT = 0.63;
+// Momentum may only rest ON a snap offset (or in a free zone) — this is the
+// match tolerance for deciding which, in px.
+const SNAP_SETTLE_TOLERANCE = 8;
 
 // ─── Flattened list rows ───────────────────────────────────────────
 
@@ -65,6 +81,11 @@ type Row =
   | { kind: 'month'; key: string; label: string }
   | { kind: 'entry'; key: string; entry: TimelineEntry }
   | { kind: 'emptyPast'; key: string };
+
+/** Shared + photographed ⇒ memory card (the carousel's snap targets). */
+function isMemoryEntry(entry: TimelineEntry): boolean {
+  return entry.sharedAt !== null && entry.photos.length > 0;
+}
 
 /** Append a page of months, merging the boundary month when it spans pages. */
 function mergeMonths(prev: TimelineMonth[], next: TimelineMonth[]): TimelineMonth[] {
@@ -230,10 +251,80 @@ export default function YouScreen() {
   // Pages pulled by the map's backfill loop (counts toward the hard cap).
   const mapBackfillPages = useRef(0);
 
-  // Scroll offset shared value — drives every FloatCard worklet.
+  // ── Carousel snap mechanics ───────────────────────────────────
+  // The flattened rows are variable-height, so per-row offsets are built
+  // from an onLayout height registry: every row wrapper reports its height
+  // (row spacing is PADDING on the wrapper — not margin — precisely so one
+  // onLayout captures the row's full extent), and rows the virtualized list
+  // hasn't mounted yet fall back to per-kind estimates (memory cards are
+  // width-derived, so their "estimate" is exact). The snapOffsets memo
+  // below walks the rows accumulating heights; each MEMORY row contributes
+  // one offset that puts the card's center on the WINDOW's vertical center
+  // — the same center FloatCard settles toward, so a snapped card rests at
+  // full scale/opacity. Non-memory rows contribute no offset: they travel
+  // between snaps.
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const rowHeights = useRef<Map<string, number>>(new Map());
+  const layoutDirty = useRef(false);
+  const [layoutVersion, setLayoutVersion] = useState(0);
+
+  // Batch measurement arrivals into one recompute per frame.
+  const onRowLayout = useCallback((key: string, height: number) => {
+    const prev = rowHeights.current.get(key);
+    if (prev !== undefined && Math.abs(prev - height) < 0.5) return;
+    rowHeights.current.set(key, height);
+    if (layoutDirty.current) return;
+    layoutDirty.current = true;
+    requestAnimationFrame(() => {
+      layoutDirty.current = false;
+      setLayoutVersion((v) => v + 1);
+    });
+  }, []);
+
+  // Where the list viewport sits in the window (header + toggle bar live
+  // above it) — needed to translate "window center" into a content offset.
+  const listWrapRef = useRef<HostInstance>(null);
+  const [listWindow, setListWindow] = useState<{ pageY: number; height: number } | null>(null);
+  const onListWrapLayout = useCallback(() => {
+    listWrapRef.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => {
+      setListWindow((prev) =>
+        prev && Math.abs(prev.pageY - y) < 0.5 && Math.abs(prev.height - h) < 0.5
+          ? prev
+          : { pageY: y, height: h },
+      );
+    });
+  }, []);
+  const [contentHeight, setContentHeight] = useState(0);
+
+  // Scroll offset shared value — drives every FloatCard worklet. Momentum
+  // end hops to JS once per settle to fire the snap haptic.
   const scrollY = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
+  // Which snap offset the list last settled on (null = free zone).
+  const settledSnapIndex = useRef<number | null>(null);
+  const snapOffsetsRef = useRef<number[]>([]);
+
+  const onMomentumSettled = useCallback((settledY: number) => {
+    const offsets = snapOffsetsRef.current;
+    let index: number | null = null;
+    for (let i = 0; i < offsets.length; i++) {
+      if (Math.abs(offsets[i]! - settledY) <= SNAP_SETTLE_TOLERANCE) {
+        index = i;
+        break;
+      }
+    }
+    if (index !== null && index !== settledSnapIndex.current) {
+      haptics.light(); // the carousel clicked onto a new memory
+    }
+    settledSnapIndex.current = index;
+  }, []);
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+    onMomentumEnd: (event) => {
+      runOnJS(onMomentumSettled)(event.contentOffset.y);
+    },
   });
 
   const styles = useThemedStyles((t) => ({
@@ -248,11 +339,13 @@ export default function YouScreen() {
       letterSpacing: 2,
       color: t.colors.mute,
     },
-    labelWrap: { marginBottom: 10 },
-    planWrap: { marginBottom: 12 },
-    todayWrap: { marginTop: 12, marginBottom: 22 },
-    monthWrap: { marginTop: 6, marginBottom: 12 },
-    entryWrap: { marginBottom: t.density.gap },
+    // Row spacing is PADDING (not margin) so each wrapper's onLayout height
+    // is the row's full extent — the snap-offset walk depends on it.
+    labelWrap: { paddingBottom: 10 },
+    planWrap: { paddingBottom: 12 },
+    todayWrap: { paddingTop: 12, paddingBottom: 22 },
+    monthWrap: { paddingTop: 6, paddingBottom: 12 },
+    entryWrap: { paddingBottom: t.density.gap },
     footer: { paddingVertical: 20, alignItems: 'center' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     // Scroll/Map chips — right-aligned strip just below the header (the
@@ -405,6 +498,61 @@ export default function YouScreen() {
     return out;
   }, [upcoming, months]);
 
+  // Center-snap offsets — one per MEMORY card (see "Carousel snap
+  // mechanics" above). Ascending by construction; clamped to the
+  // scrollable range so no offset asks for an unreachable position.
+  const snapOffsets = useMemo<number[]>(() => {
+    void layoutVersion; // measured row heights changed → recompute
+    const gap = tokens.density.gap;
+    const memoryCardH = (windowWidth - tokens.density.pad * 2) * MEMORY_ASPECT;
+    // Estimates for not-yet-measured rows (paddings included, matching the
+    // wrapper styles). Real onLayout heights replace these as rows mount.
+    const estimateHeight = (row: Row): number => {
+      switch (row.kind) {
+        case 'label':
+          return 23;
+        case 'plan':
+          return 90;
+        case 'today':
+          return 47;
+        case 'month':
+          return 32;
+        case 'emptyPast':
+          return 168;
+        case 'entry':
+          return isMemoryEntry(row.entry) ? memoryCardH + gap : 66 + gap;
+      }
+    };
+    // Distance from the list's top edge down to the window's vertical
+    // center — the settle point FloatCard measures against.
+    const centerFromTop = listWindow ? windowHeight / 2 - listWindow.pageY : windowHeight / 2;
+    const maxOffset =
+      listWindow && contentHeight > 0
+        ? Math.max(0, contentHeight - listWindow.height)
+        : Number.POSITIVE_INFINITY;
+
+    const offsets: number[] = [];
+    let y = CONTENT_TOP_PAD;
+    for (const row of rows) {
+      const h = rowHeights.current.get(row.key) ?? estimateHeight(row);
+      if (row.kind === 'entry' && isMemoryEntry(row.entry)) {
+        // The card fills the row above its bottom spacing padding.
+        const cardCenter = y + (h - gap) / 2;
+        const target = Math.min(Math.max(Math.round(cardCenter - centerFromTop), 0), maxOffset);
+        // Keep strictly ascending (top-clamping can collide early offsets).
+        if (offsets.length === 0 || target > offsets[offsets.length - 1]!) {
+          offsets.push(target);
+        }
+      }
+      y += h;
+    }
+    return offsets;
+  }, [rows, layoutVersion, listWindow, contentHeight, windowWidth, windowHeight, tokens]);
+
+  // The momentum-settle handler reads offsets through a ref so it never
+  // needs re-binding into the animated scroll handler.
+  snapOffsetsRef.current = snapOffsets;
+
   // ── Navigation ────────────────────────────────────────────────
 
   const openLog = useCallback(
@@ -464,17 +612,20 @@ export default function YouScreen() {
       const entering = FadeInDown.duration(300).delay(
         index < STAGGER_CUTOFF ? index * durations.stagger : 0,
       );
+      // Every wrapper feeds the snap-offset height registry.
+      const reportLayout = (e: { nativeEvent: { layout: { height: number } } }) =>
+        onRowLayout(item.key, e.nativeEvent.layout.height);
 
       switch (item.kind) {
         case 'label':
           return (
-            <Animated.View entering={entering} style={styles.labelWrap}>
+            <Animated.View entering={entering} style={styles.labelWrap} onLayout={reportLayout}>
               <Text style={styles.sectionLabel}>{item.text}</Text>
             </Animated.View>
           );
         case 'plan':
           return (
-            <Animated.View entering={entering} style={styles.planWrap}>
+            <Animated.View entering={entering} style={styles.planWrap} onLayout={reportLayout}>
               <FloatCard scrollY={scrollY}>
                 <PlanCard item={item.item} onPress={() => openEvent(item.item.event.id)} />
               </FloatCard>
@@ -482,21 +633,23 @@ export default function YouScreen() {
           );
         case 'today':
           return (
-            <Animated.View entering={entering} style={styles.todayWrap}>
+            <Animated.View entering={entering} style={styles.todayWrap} onLayout={reportLayout}>
               <TodayDivider />
             </Animated.View>
           );
         case 'month':
           return (
-            <Animated.View entering={entering} style={styles.monthWrap}>
+            <Animated.View entering={entering} style={styles.monthWrap} onLayout={reportLayout}>
               <MonthMarker label={item.label} />
             </Animated.View>
           );
         case 'entry': {
-          const isMemory = item.entry.sharedAt !== null && item.entry.photos.length > 0;
+          const isMemory = isMemoryEntry(item.entry);
           return (
-            <Animated.View entering={entering} style={styles.entryWrap}>
-              <FloatCard scrollY={scrollY}>
+            <Animated.View entering={entering} style={styles.entryWrap} onLayout={reportLayout}>
+              {/* Memories are the carousel — strong curve; compact rows travel
+                  between snaps on the gentle one. */}
+              <FloatCard scrollY={scrollY} curve={isMemory ? 'memory' : 'ambient'}>
                 {isMemory ? (
                   <MemoryCard
                     entry={item.entry}
@@ -516,13 +669,13 @@ export default function YouScreen() {
         }
         case 'emptyPast':
           return (
-            <Animated.View entering={entering}>
+            <Animated.View entering={entering} onLayout={reportLayout}>
               <EmptyPastBlock onLog={openLogFlow} />
             </Animated.View>
           );
       }
     },
-    [styles, scrollY, openEvent, openLog, openLogFlow, topRank],
+    [styles, scrollY, openEvent, openLog, openLogFlow, topRank, onRowLayout],
   );
 
   // ── Render ────────────────────────────────────────────────────
@@ -628,32 +781,48 @@ export default function YouScreen() {
         </Animated.View>
       ) : (
         <Animated.View key="scroll" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
-          <Animated.FlatList
-            ref={listRef}
-            data={rows}
-            renderItem={renderRow}
-            keyExtractor={(row: Row) => row.key}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            refreshControl={refreshControl}
-            onEndReached={() => void loadMore()}
-            onEndReachedThreshold={0.4}
-            onScrollToIndexFailed={onScrollToIndexFailed}
-            showsVerticalScrollIndicator={false}
-            initialNumToRender={10}
-            contentContainerStyle={{
-              paddingHorizontal: tokens.density.pad,
-              paddingTop: 16,
-              paddingBottom: 48,
-            }}
-            ListFooterComponent={
-              loadingMore ? (
-                <View style={styles.footer}>
-                  <ActivityIndicator color={tokens.colors.mute} />
-                </View>
-              ) : null
-            }
-          />
+          {/* Plain View: measureInWindow anchor for the snap-center math. */}
+          <View ref={listWrapRef} onLayout={onListWrapLayout} style={styles.viewFill}>
+            <Animated.FlatList
+              ref={listRef}
+              data={rows}
+              renderItem={renderRow}
+              keyExtractor={(row: Row) => row.key}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              refreshControl={refreshControl}
+              onEndReached={() => void loadMore()}
+              onEndReachedThreshold={0.4}
+              onScrollToIndexFailed={onScrollToIndexFailed}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              initialNumToRender={10}
+              maxToRenderPerBatch={4}
+              windowSize={7}
+              // THE CAROUSEL: momentum settles each memory card onto the
+              // window center. Ends stay free (snapToStart/End false) so the
+              // plans strip and the footer remain restable; everything else
+              // between snaps is travel.
+              snapToOffsets={snapOffsets.length > 0 ? snapOffsets : undefined}
+              snapToStart={false}
+              snapToEnd={false}
+              decelerationRate="fast"
+              directionalLockEnabled
+              onContentSizeChange={(_w: number, h: number) => setContentHeight(h)}
+              contentContainerStyle={{
+                paddingHorizontal: tokens.density.pad,
+                paddingTop: CONTENT_TOP_PAD,
+                paddingBottom: 48,
+              }}
+              ListFooterComponent={
+                loadingMore ? (
+                  <View style={styles.footer}>
+                    <ActivityIndicator color={tokens.colors.mute} />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
         </Animated.View>
       )}
     </SafeAreaView>

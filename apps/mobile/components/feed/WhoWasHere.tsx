@@ -187,7 +187,7 @@ export function WhoWasHere({ logId, wasThereCount, currentUserId }: WhoWasHerePr
                 entering={FadeInDown.delay(i * motionDurations.rowStagger).duration(220)}
               >
                 <Pressable
-                  onPress={() => router.push({ pathname: '/profile/[id]', params: { id: a.id } })}
+                  onPress={() => { haptics.light(); router.push({ pathname: '/profile/[id]', params: { id: a.id } }); }}
                   style={styles.row}
                   accessibilityRole="button"
                   accessibilityLabel={`View ${a.username}'s profile`}

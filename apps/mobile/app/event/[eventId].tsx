@@ -1,9 +1,11 @@
 // Event entity page — breadcrumb → header → your-log/interested actions →
-// who went → crowd memories → spoiler-shielded setlist → presales →
-// compact comments.
+// who went → FROM THE CROWD (FeedCards → full crowd feed) → SEAT VIEWS
+// (section tile map → per-section sheet) → spoiler-shielded setlist →
+// presales → compact comments.
 //
 // APIs: GET /events/:id (detail incl. userLog/friends/interested) ·
-// POST/DELETE /events/:id/interested · GET /events/:id/photos ·
+// POST/DELETE /events/:id/interested · GET /events/:id/feed (crowd posts) ·
+// GET /events/:id/seat-sections · GET /events/:id/photos (grid fallback) ·
 // GET /events/:id/setlist · GET /presales?artistId= (matched client-side) ·
 // GET/POST /events/:id/comments.
 
@@ -25,11 +27,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { CommentsBlock } from '../../components/entity/CommentsBlock';
 import { EntityNav } from '../../components/entity/EntityChrome';
 import { Facepile, QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
-import { EntityError, EntityPageSkeleton } from '../../components/entity/EntityStates';
+import { EntityError, EntityPageSkeleton, ShimmerBlock } from '../../components/entity/EntityStates';
 import { isPast, monoDateYear, sameDay } from '../../components/entity/format';
 import { PhotoGrid } from '../../components/entity/PhotoGrid';
 import { PresaleCard } from '../../components/entity/PresaleCard';
+import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
+import { SeatSectionTiles } from '../../components/entity/SeatSectionTiles';
 import { SetlistShield } from '../../components/entity/SetlistShield';
+import { FeedCard } from '../../components/feed/FeedCard';
 import { ScoreChip } from '../../components/timeline/ScoreChip';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
@@ -37,17 +42,27 @@ import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useEvent } from '../../hooks/useEvent';
 import { useEventComments } from '../../hooks/useEventComments';
 import { useEventPhotos } from '../../hooks/useEventPhotos';
+import { useSession } from '../../hooks/useSession';
 import {
   getArtistPresales,
+  getEventFeed,
+  getEventSeatSections,
   getSetlist,
   markInterested,
   removeInterested,
   type EventPresale,
+  type EventSeatSection,
 } from '../../lib/api/events';
-import { haptics } from '../../lib/motion';
+import { durations, haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { SetlistSong } from '../../types/event';
+import type { FeedItem } from '../../types/feed';
+
+type AsyncStatus = 'loading' | 'ready' | 'error';
+
+/** First N crowd posts shown inline before "See all →". */
+const CROWD_PREVIEW_COUNT = 3;
 
 export default function EventScreen() {
   const router = useRouter();
@@ -64,6 +79,7 @@ export default function EventScreen() {
   const tourId = params.tourId ? String(params.tourId) : '';
 
   const { event, loading, error, refetch, updateInterested } = useEvent(id);
+  const { user } = useSession();
   const photosState = useEventPhotos(id);
   const commentsState = useEventComments(id);
 
@@ -71,6 +87,47 @@ export default function EventScreen() {
   const [interestedBusy, setInterestedBusy] = useState(false);
   const [setlistSongs, setSetlistSongs] = useState<SetlistSong[]>([]);
   const [presales, setPresales] = useState<EventPresale[]>([]);
+
+  // From the crowd — first page of the event's public memory posts.
+  const [crowd, setCrowd] = useState<FeedItem[]>([]);
+  const [crowdStatus, setCrowdStatus] = useState<AsyncStatus>('loading');
+
+  // Seat views — photos grouped by section.
+  const [seatSections, setSeatSections] = useState<EventSeatSection[]>([]);
+  const [seatStatus, setSeatStatus] = useState<AsyncStatus>('loading');
+  const [openSection, setOpenSection] = useState<EventSeatSection | null>(null);
+
+  const loadCrowd = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await getEventFeed(id, { limit: CROWD_PREVIEW_COUNT });
+      setCrowd(Array.isArray(res?.items) ? res.items : []);
+      setCrowdStatus('ready');
+    } catch {
+      // Endpoint unavailable — the section falls back to the photo grid.
+      setCrowd([]);
+      setCrowdStatus('error');
+    }
+  }, [id]);
+
+  const loadSeatSections = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await getEventSeatSections(id);
+      setSeatSections(Array.isArray(res?.sections) ? res.sections : []);
+      setSeatStatus('ready');
+    } catch {
+      setSeatSections([]);
+      setSeatStatus('error');
+    }
+  }, [id]);
+
+  useEffect(() => {
+    setCrowdStatus('loading');
+    setSeatStatus('loading');
+    void loadCrowd();
+    void loadSeatSections();
+  }, [loadCrowd, loadSeatSections]);
 
   // Setlist — the detail payload is used first; the dedicated endpoint
   // fills in when the detail carries none.
@@ -128,6 +185,8 @@ export default function EventScreen() {
         photosState.refresh(),
         commentsState.refresh(),
         loadPresales(),
+        loadCrowd(),
+        loadSeatSections(),
       ]);
     } finally {
       setRefreshing(false);
@@ -199,6 +258,8 @@ export default function EventScreen() {
       flexWrap: 'wrap',
     },
     section: { marginTop: 28 },
+    crowdCard: { paddingBottom: 22 },
+    seeAllRow: { flexDirection: 'row', marginTop: 2 },
     whoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     whoCounts: {
       fontFamily: t.fontFamilies.mono,
@@ -397,19 +458,75 @@ export default function EventScreen() {
               )}
             </View>
 
-            {/* ── Crowd memories ── */}
+            {/* ── From the crowd ── */}
             <View style={styles.section}>
-              <SectionLabel>Crowd memories</SectionLabel>
-              {photosState.photos.length > 0 ? (
+              <SectionLabel>From the crowd</SectionLabel>
+              {crowdStatus === 'loading' ? (
+                <View style={{ gap: 12 }}>
+                  <ShimmerBlock height={220} borderRadius={22} />
+                  <ShimmerBlock width="46%" height={12} borderRadius={6} />
+                </View>
+              ) : crowd.length > 0 ? (
+                <>
+                  {/* FeedCard carries its own 20pt gutters — unwind the page pad. */}
+                  <View style={{ marginHorizontal: -tokens.density.pad }}>
+                    {crowd.slice(0, CROWD_PREVIEW_COUNT).map((item, i) => (
+                      <Animated.View
+                        key={item.id}
+                        entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(
+                          240,
+                        )}
+                        style={styles.crowdCard}
+                      >
+                        <FeedCard item={item} currentUserId={user?.id} />
+                      </Animated.View>
+                    ))}
+                  </View>
+                  <View style={styles.seeAllRow}>
+                    <PillButton
+                      title={`See all ${Math.max(event.logCount, crowd.length)} →`}
+                      variant="secondary"
+                      springFeedback
+                      haptic="light"
+                      onPress={() =>
+                        router.push({
+                          pathname: '/event/crowd/[eventId]',
+                          params: { eventId: id, eventName: event.name },
+                        })
+                      }
+                    />
+                  </View>
+                </>
+              ) : photosState.photos.length > 0 ? (
+                // Crowd feed empty but photos exist — keep the flat grid.
                 <PhotoGrid photos={photosState.photos} />
               ) : (
                 <QuietEmpty
                   text={
                     past
-                      ? 'No photos from the crowd yet.'
-                      : 'Photos land here once the night happens.'
+                      ? 'No memories from the crowd yet.'
+                      : 'Memories land here once the night happens.'
                   }
                 />
+              )}
+            </View>
+
+            {/* ── Seat views ── */}
+            <View style={styles.section}>
+              <SectionLabel>Seat views</SectionLabel>
+              {seatStatus === 'loading' ? (
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <ShimmerBlock height={120} borderRadius={tokens.radius.md} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ShimmerBlock height={120} borderRadius={tokens.radius.md} />
+                  </View>
+                </View>
+              ) : seatSections.length > 0 ? (
+                <SeatSectionTiles sections={seatSections} onPressSection={setOpenSection} />
+              ) : (
+                <QuietEmpty text="No seat views yet — add one when you log this show." />
               )}
             </View>
 
@@ -441,6 +558,8 @@ export default function EventScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <SeatSectionSheet section={openSection} onClose={() => setOpenSection(null)} />
     </View>
   );
 }

@@ -9,6 +9,7 @@ import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import { isAdminUser } from '../../lib/admin/isAdmin';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { haptics } from '../../lib/motion';
 
 function StatCard({ label, value }: { label: string; value: string }) {
   const styles = useThemedStyles((t) => ({
@@ -178,7 +179,7 @@ export default function AdminDashboard() {
 
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-        <Pressable style={styles.row} onPress={() => router.push('/admin/reports')} accessibilityRole="button">
+        <Pressable style={styles.row} onPress={() => { haptics.light(); router.push('/admin/reports'); }} accessibilityRole="button">
           <View style={styles.rowIconWrap}>
             <Ionicons name="flag" size={18} color={tokens.colors.error} />
           </View>
@@ -189,7 +190,7 @@ export default function AdminDashboard() {
           <Ionicons name="chevron-forward" size={18} color={tokens.colors.textLo} />
         </Pressable>
 
-        <Pressable style={styles.row} onPress={() => router.push('/admin/photos')} accessibilityRole="button">
+        <Pressable style={styles.row} onPress={() => { haptics.light(); router.push('/admin/photos'); }} accessibilityRole="button">
           <View style={styles.rowIconWrap}>
             <Ionicons name="images" size={18} color={tokens.colors.warning} />
           </View>
@@ -200,7 +201,7 @@ export default function AdminDashboard() {
           <Ionicons name="chevron-forward" size={18} color={tokens.colors.textLo} />
         </Pressable>
 
-        <Pressable style={styles.row} onPress={() => router.push('/admin/users')} accessibilityRole="button">
+        <Pressable style={styles.row} onPress={() => { haptics.light(); router.push('/admin/users'); }} accessibilityRole="button">
           <View style={styles.rowIconWrap}>
             <Ionicons name="people" size={18} color={tokens.colors.brandPurple} />
           </View>
@@ -211,7 +212,7 @@ export default function AdminDashboard() {
           <Ionicons name="chevron-forward" size={18} color={tokens.colors.textLo} />
         </Pressable>
 
-        <Pressable style={styles.row} onPress={() => router.push('/admin/feedback')} accessibilityRole="button">
+        <Pressable style={styles.row} onPress={() => { haptics.light(); router.push('/admin/feedback'); }} accessibilityRole="button">
           <View style={styles.rowIconWrap}>
             <Ionicons name="chatbubbles" size={18} color={tokens.colors.success} />
           </View>

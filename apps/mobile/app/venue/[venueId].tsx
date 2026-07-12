@@ -5,7 +5,7 @@
 // GET /venues/:id/seat-views · GET/POST /venues/:id/tips ·
 // POST/DELETE /venues/:id/tips/:tipId/upvote.
 
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -64,6 +64,7 @@ function mapsUrl(venue: VenueDetails): string {
 }
 
 export default function VenueScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const goBack = useSafeBack();
   const { tokens } = useTheme();
@@ -142,6 +143,13 @@ export default function VenueScreen() {
       fontVariant: ['tabular-nums'],
       fontSize: 16,
       color: t.colors.fg,
+    },
+    showsCount: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11.5,
+      letterSpacing: 0.5,
+      color: t.colors.mute,
     },
     breakdownRow: {
       flexDirection: 'row',
@@ -278,6 +286,34 @@ export default function VenueScreen() {
                         </Text>
                         <Text style={styles.cardText}>Open in Maps</Text>
                       </View>
+                      <Ionicons name="chevron-forward" size={15} color={tokens.colors.muteSoft} />
+                    </View>
+                  </SpringPressable>
+                </Animated.View>
+
+                {/* ── All shows here · N → ── */}
+                <Animated.View entering={FadeInDown.delay(20).duration(240)}>
+                  <SpringPressable
+                    haptic="light"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/venue/shows/[venueId]',
+                        params: { venueId: id, venueName: venue.name },
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`All shows here, ${venue.totalShows} shows`}
+                    style={styles.card}
+                  >
+                    <View style={styles.cardRow}>
+                      <Ionicons name="calendar-outline" size={20} color={tokens.colors.mute} />
+                      <View style={styles.cardBody}>
+                        <Text style={styles.cardTitle}>All shows here</Text>
+                        <Text style={styles.cardText}>Every night on the books, past and next</Text>
+                      </View>
+                      {venue.totalShows > 0 ? (
+                        <Text style={styles.showsCount}>{venue.totalShows}</Text>
+                      ) : null}
                       <Ionicons name="chevron-forward" size={15} color={tokens.colors.muteSoft} />
                     </View>
                   </SpringPressable>

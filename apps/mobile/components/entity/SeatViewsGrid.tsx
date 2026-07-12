@@ -2,8 +2,9 @@
 // labels (existing GET /venues/:id/seat-views). The API carries no
 // per-view star rating, so none is shown.
 
-import React from 'react';
-import { Image, Text, View } from 'react-native';
+import React, { memo } from 'react';
+import { Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,7 +12,8 @@ import type { SeatView } from '../../types/venue';
 import { durations } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
-export function SeatViewsGrid({ seatViews }: { seatViews: SeatView[] }) {
+// Memoized: `seatViews` is replaced by identity on refetch — shallow compare holds.
+export const SeatViewsGrid = memo(function SeatViewsGrid({ seatViews }: { seatViews: SeatView[] }) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
     grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 },
@@ -69,6 +71,9 @@ export function SeatViewsGrid({ seatViews }: { seatViews: SeatView[] }) {
           <Image
             source={{ uri: view.thumbnailUrl ?? view.photoUrl }}
             accessibilityLabel={`View from section ${view.section}${view.row ? `, row ${view.row}` : ''}`}
+            contentFit="cover"
+            transition={80}
+            cachePolicy="memory-disk"
             style={styles.photo}
           />
           <Text style={styles.seat} numberOfLines={1}>
@@ -82,4 +87,4 @@ export function SeatViewsGrid({ seatViews }: { seatViews: SeatView[] }) {
       ))}
     </View>
   );
-}
+});
