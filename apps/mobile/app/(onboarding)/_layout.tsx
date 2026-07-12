@@ -20,6 +20,8 @@ export default function OnboardingLayout() {
       <Stack.Screen name="connect-spotify" />
       <Stack.Screen name="connect-music" />
       <Stack.Screen name="select-artists" />
+      <Stack.Screen name="radar" />
+      <Stack.Screen name="backfill" />
       <Stack.Screen name="presale-preview" />
       <Stack.Screen name="log-first-show" />
       <Stack.Screen name="find-friends" />

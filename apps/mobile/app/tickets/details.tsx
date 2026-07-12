@@ -6,7 +6,7 @@ import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { addTicket, updateTicket } from '../../lib/api/tickets';
-import { getEvent } from '../../lib/api/events';
+import { getEvent, promoteInterestedToGoing } from '../../lib/api/events';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import type { TicketStatus } from '../../types/ticket';
 import { useSession } from '../../hooks/useSession';
@@ -114,6 +114,11 @@ export default function TicketDetails() {
       if (status !== 'KEEPING') {
         await updateTicket(ticket.id, { status });
       }
+
+      // A18 — a ticket IS "going": silently clear any interested row so the
+      // event moves from INTERESTED to the ticketed section. Fire-and-forget;
+      // failures never block or surface in the save flow.
+      void promoteInterestedToGoing(String(eventId));
 
       router.replace({ pathname: '/tickets/success', params: { eventId: String(eventId) } });
     } catch (e) {

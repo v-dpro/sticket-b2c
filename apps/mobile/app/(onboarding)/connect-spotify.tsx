@@ -1,6 +1,9 @@
-// ONBOARDING · CONNECT SPOTIFY — value-prop card + the existing OAuth flow
-// (unchanged): GET /auth/spotify/url → WebBrowser auth session → POST
-// /auth/spotify/callback. finish() persists the step and moves to artists.
+// ONBOARDING · CONNECT SPOTIFY — step 2 of the 3-step required lane.
+// Value-prop card + the existing OAuth flow (unchanged): GET
+// /auth/spotify/url → WebBrowser auth session → POST /auth/spotify/callback
+// (which auto-follows the user's top artists server-side). finish() persists
+// the step, then: connected → radar (the aha); skipped → the minimal
+// artist-pick fallback so the radar still has taste to work with.
 
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
@@ -65,7 +68,10 @@ export default function ConnectSpotifyOnboarding() {
     // lives server-side (surfaced via /auth/me hasSpotify).
     setSpotifyConnected(connected);
     await refresh();
-    router.push('/(onboarding)/select-artists');
+    // Connected → straight to the radar (server already followed their top
+    // artists). Skipped → minimal artist pick so the radar isn't blind.
+    if (connected) router.push('/(onboarding)/radar');
+    else router.push('/(onboarding)/select-artists');
   };
 
   const onConnect = async () => {
@@ -114,7 +120,7 @@ export default function ConnectSpotifyOnboarding() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <ProgressDots total={6} current={1} />
+        <ProgressDots total={3} current={1} />
       </View>
 
       <View style={styles.body}>

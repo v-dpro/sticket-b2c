@@ -12,12 +12,9 @@ export default function Index() {
   const { user, profile, hasLoggedFirstShow, isLoading } = useSession();
   const hasCompletedOnboarding = useOnboardingStore((s) => s.hasCompletedOnboarding);
   const hasSeenWelcome = useOnboardingStore((s) => s.hasSeenWelcome);
-  const onboardingCity = useOnboardingStore((s) => s.city);
   const spotifyStepCompleted = useOnboardingStore((s) => s.spotifyStepCompleted);
+  const spotifyConnected = useOnboardingStore((s) => s.spotifyConnected);
   const artistsStepCompleted = useOnboardingStore((s) => s.artistsStepCompleted);
-  const presalePreviewShown = useOnboardingStore((s) => s.presalePreviewShown);
-  const currentStep = useOnboardingStore((s) => s.currentStep);
-  const markArtistsStepCompleted = useOnboardingStore((s) => s.markArtistsStepCompleted);
   const checkOnboardingStatus = useOnboardingStore((s) => s.checkOnboardingStatus);
 
   const [ready, setReady] = useState(false);
@@ -30,12 +27,6 @@ export default function Index() {
         await checkOnboardingStatus();
         const val = await SecureStore.getItemAsync('onboarding_complete');
         if (mounted) setSecureStoreComplete(val === 'true');
-
-        // Auto-fix: if user progressed past artists step but state wasn't persisted
-        const store = useOnboardingStore.getState();
-        if (!store.artistsStepCompleted && store.currentStep > 3) {
-          await store.markArtistsStepCompleted();
-        }
       } catch {
         // Continue even if onboarding check fails — don't block the app
       } finally {
@@ -43,7 +34,7 @@ export default function Index() {
       }
     })();
     return () => { mounted = false; };
-  }, [checkOnboardingStatus, markArtistsStepCompleted]);
+  }, [checkOnboardingStatus]);
 
   if (isLoading || !ready) {
     return (
@@ -64,21 +55,26 @@ export default function Index() {
 
   if (onboardingComplete) return <Redirect href="/(tabs)/home" />;
 
-  // Onboarding gates (in order)
+  // ── THE REQUIRED UTILITY LANE (Phase A · A5) — exactly 3 steps ──
+  //   1. welcome
+  //   2. connect Spotify (or skip)
+  //   3. PRESALE RADAR — the aha, with city folded in inline (A1 + A2).
+  //      Reaching "Enter Sticket" on the radar calls completeOnboarding(),
+  //      which flips the onboardingComplete fast-track above.
+  //
+  // Everything else — backfill (A3), find-friends (A4) — is the OPTIONAL
+  // résumé lane, offered FROM the radar. Those steps are no longer gates:
+  // the store still keeps their fields (city / artists / presalePreview /
+  // firstShow / findFriends), they simply stop routing here.
   if (!hasSeenWelcome) return <Redirect href="/(onboarding)/welcome" />;
-
-  const city = onboardingCity ?? profile?.city ?? null;
-  if (!city) return <Redirect href="/(onboarding)/set-city" />;
-
   if (!spotifyStepCompleted) return <Redirect href="/(onboarding)/connect-spotify" />;
 
-  const hasProgressedPastArtists = presalePreviewShown || currentStep > 3;
-  if (!artistsStepCompleted && !hasProgressedPastArtists) {
+  // Minimal artist-pick fallback lives INSIDE the lane, only when Spotify is
+  // skipped (a connected user is auto-followed to their top artists server-
+  // side, so the radar already has data).
+  if (!spotifyConnected && !artistsStepCompleted) {
     return <Redirect href="/(onboarding)/select-artists" />;
   }
 
-  if (!presalePreviewShown) return <Redirect href="/(onboarding)/presale-preview" />;
-  if (!hasLoggedFirstShow) return <Redirect href="/(onboarding)/log-first-show" />;
-
-  return <Redirect href="/(onboarding)/find-friends" />;
+  return <Redirect href="/(onboarding)/radar" />;
 }

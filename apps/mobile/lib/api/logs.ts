@@ -113,5 +113,49 @@ export async function tagFriendsOnLog(logId: string, userIds: string[]) {
   return res.data as { success: boolean; taggedUserIds: string[] };
 }
 
+// ─── Co-authored memories (joint posts) ─────────────────────────────
+// The log owner invites friends who were there; once a co-author accepts, the
+// memory also lands on their timeline. Backing endpoints: POST/GET
+// /logs/:id/coauthors, POST /logs/:id/coauthors/respond,
+// GET /users/me/coauthor-invites.
+
+export type CoAuthorStatus = 'INVITED' | 'ACCEPTED' | 'DECLINED';
+
+export type LogCoAuthor = {
+  user: { id: string; username: string; displayName?: string; avatarUrl?: string };
+  status: CoAuthorStatus;
+};
+
+export type CoAuthorInvite = {
+  logId: string;
+  eventName: string;
+  owner: { id: string; username: string; displayName?: string; avatarUrl?: string };
+  invitedAt: string;
+};
+
+/** Owner-only: invite users to co-author a log. Skips self/dupes server-side. */
+export async function inviteCoAuthors(logId: string, userIds: string[]) {
+  const res = await apiClient.post(`/logs/${logId}/coauthors`, { userIds });
+  return res.data as { invited: string[] };
+}
+
+/** Owner or invitee: the full co-author list with each person's status. */
+export async function getCoAuthors(logId: string) {
+  const res = await apiClient.get(`/logs/${logId}/coauthors`);
+  return res.data as LogCoAuthor[];
+}
+
+/** The invited user accepts or declines their co-author invite for a log. */
+export async function respondCoAuthor(logId: string, accept: boolean) {
+  const res = await apiClient.post(`/logs/${logId}/coauthors/respond`, { accept });
+  return res.data as { logId: string; status: CoAuthorStatus };
+}
+
+/** The viewer's pending (INVITED) co-author invites. */
+export async function getMyCoAuthorInvites() {
+  const res = await apiClient.get('/users/me/coauthor-invites');
+  return res.data as CoAuthorInvite[];
+}
+
 
 

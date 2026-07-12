@@ -21,6 +21,11 @@ interface TimelineViewProps {
   onRefresh: () => void;
   loading: boolean;
   hasMore: boolean;
+  /**
+   * A14: event ids the signed-in viewer has ALSO logged (only supplied when
+   * viewing someone else's timeline). Matching entries get a "BOTH" chip.
+   */
+  sharedEventIds?: ReadonlySet<string>;
 }
 
 type TimelineItem =
@@ -124,6 +129,7 @@ export function TimelineView({
   onRefresh,
   loading,
   hasMore,
+  sharedEventIds,
 }: TimelineViewProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
@@ -202,13 +208,29 @@ export function TimelineView({
       renderItem={({ item }) => {
         switch (item.type) {
           case 'featured':
-            return <FeaturedLogCard log={item.log} onPress={() => onLogPress(item.log)} />;
+            return (
+              <FeaturedLogCard
+                log={item.log}
+                onPress={() => onLogPress(item.log)}
+                showBothMarker={sharedEventIds?.has(item.log.event.id)}
+              />
+            );
           case 'pair':
             return (
               <View style={styles.pairRow}>
-                <CompactLogCard log={item.left} onPress={() => onLogPress(item.left)} style={{ flex: 1 }} />
+                <CompactLogCard
+                  log={item.left}
+                  onPress={() => onLogPress(item.left)}
+                  style={{ flex: 1 }}
+                  showBothMarker={sharedEventIds?.has(item.left.event.id)}
+                />
                 {item.right ? (
-                  <CompactLogCard log={item.right} onPress={() => onLogPress(item.right)} style={{ flex: 1 }} />
+                  <CompactLogCard
+                    log={item.right}
+                    onPress={() => onLogPress(item.right)}
+                    style={{ flex: 1 }}
+                    showBothMarker={sharedEventIds?.has(item.right.event.id)}
+                  />
                 ) : (
                   <View style={{ flex: 1 }} />
                 )}

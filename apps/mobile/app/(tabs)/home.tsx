@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 
+import { AgendaPin } from '../../components/agenda/AgendaPin';
 import { EmptyFeed } from '../../components/feed/EmptyFeed';
 import { FeedCard, invalidateFeedLikeCache } from '../../components/feed/FeedCard';
 import { FeedScopeToggle } from '../../components/feed/FeedScopeToggle';
@@ -236,6 +237,8 @@ export default function HomeScreen() {
       {scope === 'fof' ? (
         <Text style={styles.scopeCaption}>Including friends of friends’ public posts</Text>
       ) : null}
+      {/* A6/A10 — pinned agenda card (TONIGHT beats LAST NIGHT), above the feed. */}
+      <AgendaPin />
       {body}
     </SafeAreaView>
   );

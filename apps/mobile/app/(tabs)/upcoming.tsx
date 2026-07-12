@@ -3,9 +3,15 @@
 // Data comes from the existing concert-life endpoint (tickets + tracked
 // events + presale alerts). Countdown chips are mono; TODAY inverts to
 // ink. Empty state hands off to Explore.
+//
+// A17 — presales are merged into the agenda as timed entries: a "Presales
+// this week" section sits between Ticketed and Interested. Each row carries
+// the artist/tour (700), a mono presale datetime, a countdown chip (LIVE
+// inverts to ink), and — when the presale has a code — a tap-to-copy chip
+// (expo-clipboard + success haptic). Tapping the row opens /presales/[id].
 
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -13,6 +19,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -21,7 +28,8 @@ import { PillButton } from '../../components/ui/PillButton';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useConcertLife } from '../../hooks/useConcertLife';
-import { durations } from '../../lib/motion';
+import { usePresales, type PresaleItem } from '../../hooks/usePresales';
+import { durations, haptics } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 type UpcomingRow = {
@@ -59,6 +67,35 @@ function formatShowDate(dateStr: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// ── A17 presale helpers ─────────────────────────────────────────────
+
+/** "FRI, JUL 17 · 10:00 AM" — mono data line for a presale's start. */
+function presaleDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${day} · ${time}`.toUpperCase();
+}
+
+/** Countdown to the presale start — hour-granular since presales are timed. */
+function presaleCountdown(p: PresaleItem, now: number = Date.now()): string {
+  const start = new Date(p.presaleStart).getTime();
+  if (Number.isNaN(start)) return '';
+  if (start <= now) return 'LIVE';
+  const diff = start - now;
+  if (diff < 3600000) {
+    const mins = Math.max(1, Math.ceil(diff / 60000));
+    return `${mins} MIN`;
+  }
+  if (diff < 86400000) {
+    const hrs = Math.ceil(diff / 3600000);
+    return `${hrs} ${hrs === 1 ? 'HR' : 'HRS'}`;
+  }
+  const days = Math.ceil(diff / 86400000);
+  return `${days} ${days === 1 ? 'DAY' : 'DAYS'}`;
 }
 
 function toRow(raw: any, kind: UpcomingRow['kind']): UpcomingRow {
@@ -137,6 +174,31 @@ export default function UpcomingScreen() {
       color: t.colors.text,
     },
     chipTextToday: { color: t.colors.inverseFg },
+    // A17 — presale rows
+    presaleTitle: { fontSize: 15, fontWeight: '700', color: t.colors.text },
+    presaleMono: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 0.8,
+      color: t.colors.mute,
+    },
+    presaleRight: { alignItems: 'flex-end', gap: 6 },
+    codeChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: t.radius.sm,
+      borderWidth: 1,
+      borderColor: t.colors.line,
+    },
+    codeChipText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 10,
+      letterSpacing: 0.5,
+      color: t.colors.text,
+    },
     empty: {
       flexGrow: 1,
       alignItems: 'center',
@@ -157,6 +219,46 @@ export default function UpcomingScreen() {
   }));
 
   const { data, loading, refreshing, refresh, error } = useConcertLife();
+  // A17 — presales merged into the agenda (same source Explore uses).
+  const { presales } = usePresales();
+
+  // Tap-to-copy presale code: expo-clipboard + success haptic, then a brief
+  // "COPIED" state on the chip.
+  const [copiedPresaleId, setCopiedPresaleId] = useState<string | null>(null);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    },
+    []
+  );
+  const copyPresaleCode = useCallback(async (presale: PresaleItem) => {
+    if (!presale.code) return;
+    try {
+      await Clipboard.setStringAsync(presale.code);
+      haptics.success();
+      setCopiedPresaleId(presale.id);
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = setTimeout(() => setCopiedPresaleId(null), 1600);
+    } catch {
+      // clipboard unavailable — nothing to surface
+    }
+  }, []);
+
+  // Live now, or starting within the next 7 days (Explore's window).
+  const weekPresales = useMemo<PresaleItem[]>(() => {
+    const now = Date.now();
+    const weekOut = now + 7 * 86400000;
+    return presales
+      .filter((p) => {
+        const start = new Date(p.presaleStart).getTime();
+        if (Number.isNaN(start)) return false;
+        const end = p.presaleEnd ? new Date(p.presaleEnd).getTime() : start;
+        return start <= weekOut && (Number.isNaN(end) ? start >= now : end >= now);
+      })
+      .sort((a, b) => new Date(a.presaleStart).getTime() - new Date(b.presaleStart).getTime())
+      .slice(0, 8);
+  }, [presales]);
 
   const { ticketed, interested } = useMemo(() => {
     const today = startOfToday();
@@ -228,6 +330,67 @@ export default function UpcomingScreen() {
     );
   };
 
+  // A17 — presale row: artist/tour (700) + mono start datetime, countdown
+  // chip (LIVE inverts to ink), tap-to-copy code chip. Row → /presales/[id].
+  const renderPresaleRow = (presale: PresaleItem, index: number) => {
+    const countdown = presaleCountdown(presale);
+    const isLive = countdown === 'LIVE';
+    const copied = copiedPresaleId === presale.id;
+    return (
+      <Animated.View
+        key={`presale-${presale.id}`}
+        entering={FadeInDown.delay(Math.min(index, 8) * durations.stagger).duration(240)}
+      >
+        <SpringPressable
+          haptic="light"
+          onPress={() => router.push(`/presales/${presale.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`${presale.artistName} presale, ${presaleDateTime(presale.presaleStart)}`}
+          style={styles.row}
+        >
+          <View style={styles.rowBody}>
+            <Text style={styles.presaleTitle} numberOfLines={1}>
+              {presale.artistName}
+              {presale.tourName ? ` — ${presale.tourName}` : ''}
+            </Text>
+            <Text style={styles.rowMeta} numberOfLines={1}>
+              {presale.venueName}
+              {presale.venueCity ? ` · ${presale.venueCity}` : ''}
+            </Text>
+            <Text style={styles.presaleMono} numberOfLines={1}>
+              {presaleDateTime(presale.presaleStart)}
+            </Text>
+          </View>
+          <View style={styles.presaleRight}>
+            <View style={[styles.chip, isLive && styles.chipToday]}>
+              <Text style={[styles.chipText, isLive && styles.chipTextToday]}>{countdown}</Text>
+            </View>
+            {presale.code ? (
+              <SpringPressable
+                haptic="none"
+                onPress={() => void copyPresaleCode(presale)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  copied ? 'Presale code copied' : `Copy presale code ${presale.code}`
+                }
+                style={styles.codeChip}
+              >
+                <Ionicons
+                  name={copied ? 'checkmark' : 'copy-outline'}
+                  size={11}
+                  color={tokens.colors.mute}
+                />
+                <Text style={styles.codeChipText} numberOfLines={1}>
+                  {copied ? 'COPIED' : presale.code}
+                </Text>
+              </SpringPressable>
+            ) : null}
+          </View>
+        </SpringPressable>
+      </Animated.View>
+    );
+  };
+
   let body: React.ReactNode;
   if (loading) {
     body = (
@@ -253,7 +416,7 @@ export default function UpcomingScreen() {
         <PillButton title="Try again" springFeedback haptic="light" onPress={refresh} />
       </View>
     );
-  } else if (total === 0) {
+  } else if (total === 0 && weekPresales.length === 0) {
     body = (
       <View style={styles.empty}>
         <Ionicons name="calendar-clear-outline" size={40} color={tokens.colors.muteSoft} />
@@ -279,10 +442,19 @@ export default function UpcomingScreen() {
             {ticketed.map((row, i) => renderRow(row, i))}
           </>
         ) : null}
+        {/* A17 — timed presale entries, between Ticketed and Interested. */}
+        {weekPresales.length > 0 ? (
+          <>
+            <Text style={styles.sectionLabel}>Presales this week</Text>
+            {weekPresales.map((presale, i) => renderPresaleRow(presale, ticketed.length + i))}
+          </>
+        ) : null}
         {interested.length > 0 ? (
           <>
             <Text style={styles.sectionLabel}>Interested</Text>
-            {interested.map((row, i) => renderRow(row, ticketed.length + i))}
+            {interested.map((row, i) =>
+              renderRow(row, ticketed.length + weekPresales.length + i)
+            )}
           </>
         ) : null}
       </>

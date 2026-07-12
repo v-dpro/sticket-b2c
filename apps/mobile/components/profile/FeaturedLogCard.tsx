@@ -6,13 +6,16 @@ import { format } from 'date-fns';
 
 import type { LogEntry } from '../../types/profile';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { BothChip } from './BothChip';
 
 interface FeaturedLogCardProps {
   log: LogEntry;
   onPress: () => void;
+  /** A14: viewer has logged this event too — show the mono "BOTH" marker. */
+  showBothMarker?: boolean;
 }
 
-export function FeaturedLogCard({ log, onPress }: FeaturedLogCardProps) {
+export function FeaturedLogCard({ log, onPress, showBothMarker }: FeaturedLogCardProps) {
   const { tokens } = useTheme();
   const { event, rating, note, photos, _count } = log;
 
@@ -144,6 +147,7 @@ export function FeaturedLogCard({ log, onPress }: FeaturedLogCardProps) {
           <Text style={styles.artist} numberOfLines={1}>
             {event.artist.name}
           </Text>
+          {showBothMarker ? <BothChip style={{ marginRight: 6 }} /> : null}
           <Ionicons name="chevron-forward" size={18} color={tokens.colors.textLo} />
         </View>
 

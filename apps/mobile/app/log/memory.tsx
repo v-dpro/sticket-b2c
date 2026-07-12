@@ -16,6 +16,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,19 +24,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { clearMemoryDraft } from '../../components/log/memoryDraft';
 import { FlowHeader } from '../../components/log/FlowHeader';
 import { LogField } from '../../components/log/LogField';
+import { CoAuthorSheet, type CoAuthorPerson } from '../../components/log/memory/CoAuthorSheet';
 import { MemoryCard } from '../../components/log/memory/MemoryCard';
 import { MemoryChip } from '../../components/log/memory/MemoryChip';
 import { PhotoStrip, type PhotoItem } from '../../components/log/memory/PhotoStrip';
 import { StarRow } from '../../components/log/memory/StarRow';
 import { XpChip } from '../../components/log/memory/XpChip';
+import { Avatar } from '../../components/ui/Avatar';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useSession } from '../../hooks/useSession';
 import { useUserStats } from '../../hooks/useUserStats';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { getEvent } from '../../lib/api/events';
-import { updateLog, uploadLogPhoto } from '../../lib/api/logs';
-import { submitSeatRating, submitVenueRatings, submitVenueTip } from '../../lib/api/venues';
+import { inviteCoAuthors, updateLog, uploadLogPhoto } from '../../lib/api/logs';
+import { submitSeatRating, submitVenueRatings, submitVenueTip, uploadSeatView } from '../../lib/api/venues';
 import { haptics } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 import type { EventDetails } from '../../types/event';
@@ -140,6 +143,14 @@ export default function LogMemory() {
   const [visibility, setVisibility] = useState<Visibility>('PUBLIC');
 
   const [seatStars, setSeatStars] = useState(0);
+  // Seat-view photo — the "snap the view from your seat" capture. When present,
+  // it uploads via uploadSeatView carrying seatStars as the rating; without a
+  // photo the stars fall back to the photo-less submitSeatRating call.
+  const [seatPhoto, setSeatPhoto] = useState<{ uri: string; mimeType?: string; fileName?: string } | null>(null);
+
+  // POST TOGETHER — co-authors invited on Post (optional, never blocks).
+  const [coAuthors, setCoAuthors] = useState<CoAuthorPerson[]>([]);
+  const [coAuthorSheetOpen, setCoAuthorSheetOpen] = useState(false);
 
   const [venueStars, setVenueStars] = useState(0);
   const [venueTags, setVenueTags] = useState<string[]>([]);
@@ -227,6 +238,20 @@ export default function LogMemory() {
   const dismissPhoto = (slot: MediaSlot, key: string) =>
     setterFor(slot)((prev) => prev.filter((p) => p.key !== key));
 
+  // ── Seat-view photo (single) ──
+  const pickSeatPhoto = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.85,
+    });
+    if (res.canceled) return;
+    const a = res.assets?.[0];
+    if (!a) return;
+    haptics.light();
+    setSeatPhoto({ uri: a.uri, mimeType: a.mimeType, fileName: a.fileName ?? undefined });
+  };
+
   // ── Venue helpers ──
   const toggleTag = (key: string) =>
     setVenueTags((prev) => (prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key]));
@@ -276,23 +301,41 @@ export default function LogMemory() {
         share: true,
       });
 
-      // Venue rating + tip + seat rating: best-effort, never block the
-      // (already shared) post.
+      // Venue rating + tip + seat rating + co-author invites: best-effort,
+      // never block the (already shared) post.
       const tasks: Promise<unknown>[] = [];
       const ratings = buildVenueRatings();
       if (venueId && Object.keys(ratings).length) tasks.push(submitVenueRatings(venueId, ratings));
       if (venueId && venueTip.trim()) {
         tasks.push(submitVenueTip(venueId, { text: venueTip.trim(), category: 'general' }));
       }
-      if (venueId && section.trim() && seatStars > 0) {
-        tasks.push(
-          submitSeatRating(venueId, {
-            section: section.trim(),
-            row: row.trim() || undefined,
-            rating: seatStars,
-            eventId: eventId || undefined,
-          })
-        );
+      // Seat view: a photo carries the stars as its rating (uploadSeatView);
+      // stars alone fall back to the photo-less submitSeatRating call.
+      if (venueId && section.trim()) {
+        if (seatPhoto) {
+          tasks.push(
+            uploadSeatView(venueId, {
+              photo: { uri: seatPhoto.uri, type: seatPhoto.mimeType, name: seatPhoto.fileName },
+              section: section.trim(),
+              row: row.trim() || undefined,
+              rating: seatStars > 0 ? seatStars : undefined,
+              eventId: eventId || undefined,
+            })
+          );
+        } else if (seatStars > 0) {
+          tasks.push(
+            submitSeatRating(venueId, {
+              section: section.trim(),
+              row: row.trim() || undefined,
+              rating: seatStars,
+              eventId: eventId || undefined,
+            })
+          );
+        }
+      }
+      // POST TOGETHER — invite the chosen co-authors on this log.
+      if (coAuthors.length) {
+        tasks.push(inviteCoAuthors(logId, coAuthors.map((p) => p.id)));
       }
       if (tasks.length) await Promise.allSettled(tasks);
 
@@ -364,6 +407,69 @@ export default function LogMemory() {
               onRetry={(key) => retryPhoto('people', key)}
               onDismiss={(key) => dismissPhoto('people', key)}
             />
+          </MemoryCard>
+
+          {/* 2b · POST TOGETHER — co-authors (optional) */}
+          <MemoryCard
+            eyebrow="Post together"
+            hint="Invite co-authors — this memory lands on their timeline too."
+            right={<SectionBadge text="Optional" required={false} />}
+          >
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {coAuthors.map((p) => (
+                <SpringPressable
+                  key={p.id}
+                  onPress={() => {
+                    haptics.light();
+                    setCoAuthors((prev) => prev.filter((x) => x.id !== p.id));
+                  }}
+                  haptic="none"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove @${p.username}`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    height: 34,
+                    paddingLeft: 5,
+                    paddingRight: 10,
+                    borderRadius: 999,
+                    backgroundColor: c.card2,
+                  }}
+                >
+                  <Avatar uri={p.avatarUrl} name={p.displayName || p.username} size={24} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: c.fg }}>@{p.username}</Text>
+                  <Ionicons name="close" size={13} color={c.mute} />
+                </SpringPressable>
+              ))}
+
+              <SpringPressable
+                onPress={() => {
+                  haptics.light();
+                  setCoAuthorSheetOpen(true);
+                }}
+                haptic="none"
+                accessibilityRole="button"
+                accessibilityLabel="Invite co-authors"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  height: 34,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: c.line,
+                  borderStyle: 'dashed',
+                  backgroundColor: c.card2,
+                }}
+              >
+                <Ionicons name="person-add-outline" size={15} color={c.mute} />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: c.mute }}>
+                  {coAuthors.length ? 'Add more' : 'Add people'}
+                </Text>
+              </SpringPressable>
+            </View>
           </MemoryCard>
 
           {/* 3 · Caption (A11: photos before caption) */}
@@ -478,6 +584,70 @@ export default function LogMemory() {
                       </Text>
                     ) : null}
                   </View>
+
+                  {/* Snap the view from your seat — pairs the photo with the stars */}
+                  <View style={{ gap: 8, marginTop: 2 }}>
+                    {seatPhoto ? (
+                      <View
+                        style={{
+                          width: 96,
+                          height: 96,
+                          borderRadius: tokens.radius.md,
+                          overflow: 'hidden',
+                          backgroundColor: c.card2,
+                        }}
+                      >
+                        <Image source={{ uri: seatPhoto.uri }} style={{ width: '100%', height: '100%' }} />
+                        <SpringPressable
+                          onPress={() => {
+                            haptics.light();
+                            setSeatPhoto(null);
+                          }}
+                          haptic="none"
+                          accessibilityRole="button"
+                          accessibilityLabel="Remove seat photo"
+                          style={{
+                            position: 'absolute',
+                            top: 5,
+                            right: 5,
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: c.inverseBg,
+                          }}
+                        >
+                          <Ionicons name="close" size={13} color={c.inverseFg} />
+                        </SpringPressable>
+                      </View>
+                    ) : (
+                      <SpringPressable
+                        onPress={pickSeatPhoto}
+                        disabled={!section.trim()}
+                        haptic="none"
+                        accessibilityRole="button"
+                        accessibilityLabel="Snap the view from your seat"
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                          alignSelf: 'flex-start',
+                          height: 40,
+                          paddingHorizontal: 14,
+                          borderRadius: 999,
+                          borderWidth: 1,
+                          borderColor: c.line,
+                          borderStyle: 'dashed',
+                          backgroundColor: c.card2,
+                          opacity: section.trim() ? 1 : 0.4,
+                        }}
+                      >
+                        <Ionicons name="camera-outline" size={17} color={c.mute} />
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: c.mute }}>Snap the view from your seat</Text>
+                      </SpringPressable>
+                    )}
+                  </View>
                 </View>
 
                 {/* Venue */}
@@ -576,6 +746,14 @@ export default function LogMemory() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CoAuthorSheet
+        visible={coAuthorSheetOpen}
+        onClose={() => setCoAuthorSheetOpen(false)}
+        currentUserId={user?.id}
+        selectedIds={coAuthors.map((p) => p.id)}
+        onConfirm={setCoAuthors}
+      />
     </SafeAreaView>
   );
 }

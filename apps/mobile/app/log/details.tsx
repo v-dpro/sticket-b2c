@@ -58,14 +58,18 @@ export default function LogDetails() {
     artistImage?: string;
     venueName?: string;
     venueCity?: string;
+    // Seat prefill from a wallet ticket (A6 Tonight card).
+    section?: string;
+    row?: string;
+    seat?: string;
   }>();
   const eventId = params.eventId ? String(params.eventId) : '';
 
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [existingLogId, setExistingLogId] = useState<string | null>(null);
-  const [section, setSection] = useState('');
-  const [row, setRow] = useState('');
-  const [seat, setSeat] = useState('');
+  const [section, setSection] = useState(params.section ? String(params.section) : '');
+  const [row, setRow] = useState(params.row ? String(params.row) : '');
+  const [seat, setSeat] = useState(params.seat ? String(params.seat) : '');
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

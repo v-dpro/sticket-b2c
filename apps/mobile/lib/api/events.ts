@@ -56,6 +56,24 @@ export async function removeInterested(eventId: string): Promise<void> {
   await apiClient.delete(`/events/${eventId}/interested`);
 }
 
+// A18 — interested → going auto-promote. "Going" IS having a ticket, so once
+// a ticket exists for an event the UserInterested row is redundant intent
+// data: clear it so the event stops showing under INTERESTED and lives only
+// in the ticketed section. DELETE /events/:id/interested 500s when no row
+// exists (Prisma delete on a missing row), so we check isInterested via the
+// event payload first. Entirely best-effort: any failure leaves the row in
+// place and the ticket flow untouched. Never throws.
+export async function promoteInterestedToGoing(eventId: string): Promise<void> {
+  try {
+    const event = await getEvent(eventId);
+    if (event?.isInterested) {
+      await removeInterested(eventId);
+    }
+  } catch {
+    // best-effort cleanup — the ticket save already succeeded
+  }
+}
+
 // Import (or find) an event by artist/venue/date — used by the manual "create show" flow
 export async function importEvent(data: {
   artistName: string;
@@ -69,9 +87,38 @@ export async function importEvent(data: {
   return response.data;
 }
 
-// Get setlist (stubbed server-side for now)
-export async function getSetlist(eventId: string): Promise<any> {
+// ---------------------------------------------------------------------------
+// Crowd-sourced setlist
+// ---------------------------------------------------------------------------
+// The server replaced the old `{ songs: [] }` stub with crowd-sourced
+// entries: loggers submit songs, attendees confirm/dispute individual
+// entries. `confirmCount` is the net crowd confidence (+1 per YES, -1 per
+// NO, seeded at 1 by the submitter).
+
+export type SetlistVote = 'YES' | 'NO';
+
+export interface SetlistEntry {
+  id: string;
+  position: number;
+  songTitle: string;
+  confirmCount: number;
+  yourVote: SetlistVote | null;
+}
+
+// GET /events/:id/setlist — crowd-sourced entries ordered by position.
+export async function getSetlist(eventId: string): Promise<{ entries: SetlistEntry[] }> {
   const response = await apiClient.get(`/events/${eventId}/setlist`);
+  return response.data;
+}
+
+// POST /setlist-entries/:id/confirm { vote } — one vote per user per entry.
+// YES = +1, NO = -1; switching moves the count by 2, repeating is a no-op.
+// Returns the updated entry (with your vote applied).
+export async function voteSetlistEntry(
+  entryId: string,
+  vote: 'yes' | 'no',
+): Promise<SetlistEntry> {
+  const response = await apiClient.post(`/setlist-entries/${entryId}/confirm`, { vote });
   return response.data;
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,10 +12,12 @@ import { BadgeGrid } from '../../components/profile/BadgeGrid';
 import { StatsRow } from '../../components/profile/StatsRow';
 import { ProfileGridView } from '../../components/profile/ProfileGridView';
 import { ProfileStatsView } from '../../components/profile/ProfileStatsView';
+import { SharedHistoryCard } from '../../components/profile/SharedHistoryCard';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useProfile } from '../../hooks/useProfile';
 import { useUserLogs } from '../../hooks/useUserLogs';
 import { useFollow } from '../../hooks/useFollow';
+import { getSharedHistory, type SharedHistory } from '../../lib/api/profile';
 import type { LogEntry } from '../../types/profile';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -33,6 +35,49 @@ export default function UserProfileScreen() {
 
   const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useFollow();
   const goBack = useSafeBack();
+
+  // A13: "YOU × THEM" overlap — other users' profiles only. Refetched when
+  // follow state flips because following can reveal FRIENDS-visibility logs.
+  const [shared, setShared] = useState<SharedHistory | null>(null);
+  const isOwnProfile = profile?.isOwnProfile ?? false;
+  useEffect(() => {
+    let cancelled = false;
+    // Local-only ids (user_*) don't exist in the API DB.
+    if (!id || isOwnProfile || id.startsWith('user_')) {
+      setShared(null);
+      return;
+    }
+    getSharedHistory(id)
+      .then((data) => {
+        if (!cancelled) setShared(data);
+      })
+      .catch(() => {
+        if (!cancelled) setShared(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isOwnProfile, isFollowing]);
+
+  const sharedEventIds = useMemo(
+    () => (shared && shared.entries.length ? new Set(shared.entries.map((e) => e.eventId)) : undefined),
+    [shared]
+  );
+
+  // A15: one-line taste reason under the Follow button (only rendered while
+  // not following; ProfileHeader gates on isFollowing).
+  const tasteReason = useMemo(() => {
+    if (!shared) return null;
+    if (shared.sharedCount > 0) {
+      return shared.sharedCount === 1
+        ? 'You both saw the same show'
+        : `You both saw ${shared.sharedCount} of the same shows`;
+    }
+    if (shared.artistOverlap > 0 && shared.topSharedArtist) {
+      return `You both follow ${shared.topSharedArtist}`;
+    }
+    return null;
+  }, [shared]);
 
   const styles = useThemedStyles((t) => ({
     container: { flex: 1, backgroundColor: t.colors.bg },
@@ -119,7 +164,17 @@ export default function UserProfileScreen() {
         onFollowingPress={handleFollowing}
         isFollowing={isFollowing}
         followLoading={followLoading}
+        tasteReason={tasteReason}
       />
+
+      {/* A13: YOU × THEM overlap (renders nothing when no shared shows) */}
+      {shared && shared.sharedCount > 0 ? (
+        <SharedHistoryCard
+          name={profile.displayName || profile.username}
+          shared={shared}
+          onEntryPress={(entry) => router.push({ pathname: '/event/[eventId]', params: { eventId: entry.eventId } })}
+        />
+      ) : null}
 
       {/* Stats */}
       <StatsRow shows={profile.stats.shows} artists={profile.stats.artists} venues={profile.stats.venues} />
@@ -156,6 +211,7 @@ export default function UserProfileScreen() {
           onRefresh={refresh}
           loading={logsLoading}
           hasMore={hasMore}
+          sharedEventIds={sharedEventIds}
         />
       ) : viewMode === 'grid' ? (
         <ProfileGridView

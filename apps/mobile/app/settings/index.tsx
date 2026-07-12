@@ -178,7 +178,8 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection title="Privacy">
-          <SettingsRow icon="eye" label="Privacy Settings" onPress={() => router.push('/settings/privacy')} isLast />
+          <SettingsRow icon="eye" label="Privacy Settings" onPress={() => router.push('/settings/privacy')} />
+          <SettingsRow icon="locate" label="How people find you" onPress={() => router.push('/settings/discovery')} isLast />
         </SettingsSection>
 
         <SettingsSection title="Notifications">

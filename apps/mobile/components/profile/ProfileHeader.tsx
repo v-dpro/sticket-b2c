@@ -15,6 +15,11 @@ interface ProfileHeaderProps {
   onFollowingPress?: () => void;
   isFollowing?: boolean;
   followLoading?: boolean;
+  /**
+   * A15: one-line taste overlap shown under the Follow button while not yet
+   * following (e.g. "You both saw 2 of the same shows"). Omitted when null.
+   */
+  tasteReason?: string | null;
 }
 
 export function ProfileHeader({
@@ -25,6 +30,7 @@ export function ProfileHeader({
   onFollowingPress,
   isFollowing,
   followLoading,
+  tasteReason,
 }: ProfileHeaderProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
@@ -169,6 +175,13 @@ export function ProfileHeader({
       color: t.colors.textMid,
       textAlign: 'center',
     },
+    tasteReason: {
+      marginTop: 8,
+      fontSize: 12,
+      fontWeight: '400',
+      color: t.colors.mute,
+      textAlign: 'center',
+    },
   }));
 
   return (
@@ -228,15 +241,23 @@ export function ProfileHeader({
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </Pressable>
       ) : (
-        <Pressable style={[styles.followButton, isFollowing ? styles.followingButton : null]} onPress={onFollowPress} disabled={followLoading}>
-          {isFollowing ? (
-            <Text style={styles.followingButtonText}>Following</Text>
-          ) : (
-            <LinearGradient colors={[tokens.colors.brandPurple, tokens.colors.brandPink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.followGradient}>
-              <Text style={styles.followButtonText}>Follow</Text>
-            </LinearGradient>
-          )}
-        </Pressable>
+        <>
+          <Pressable style={[styles.followButton, isFollowing ? styles.followingButton : null]} onPress={onFollowPress} disabled={followLoading}>
+            {isFollowing ? (
+              <Text style={styles.followingButtonText}>Following</Text>
+            ) : (
+              <LinearGradient colors={[tokens.colors.brandPurple, tokens.colors.brandPink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.followGradient}>
+                <Text style={styles.followButtonText}>Follow</Text>
+              </LinearGradient>
+            )}
+          </Pressable>
+          {/* A15: taste reason — only while not yet following */}
+          {!isFollowing && tasteReason ? (
+            <Text style={styles.tasteReason} numberOfLines={1}>
+              {tasteReason}
+            </Text>
+          ) : null}
+        </>
       )}
     </View>
   );

@@ -879,7 +879,16 @@ app.get('/auth/me', async (req) => {
     buildUserProfilePayload(userId, userId),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, spotifyId: true, googleId: true, appleId: true, emailVerified: true },
+      select: {
+        email: true,
+        spotifyId: true,
+        googleId: true,
+        appleId: true,
+        emailVerified: true,
+        sameShowRadius: true,
+        tasteRadius: true,
+        showInGalleries: true,
+      },
     }),
   ]);
   if (!authUser) throw new AppError('User not found', 404);
@@ -891,6 +900,9 @@ app.get('/auth/me', async (req) => {
     hasSpotify: !!authUser.spotifyId,
     hasGoogle: !!authUser.googleId,
     hasApple: !!authUser.appleId,
+    sameShowRadius: authUser.sameShowRadius,
+    tasteRadius: authUser.tasteRadius,
+    showInGalleries: authUser.showInGalleries,
   };
 });
 
@@ -1472,6 +1484,88 @@ app.get('/users/:id/stats', async (req) => {
 app.get('/users/:id/badges', async (req) => {
   const { id } = req.params as { id: string };
   return await getBadgesForUser(id);
+});
+
+// GET /users/:id/shared-history — "YOU × THEM" overlap between the
+// authenticated viewer and :id. Returns the events BOTH have logged (the
+// target's side is only counted when their log is visible to the viewer per
+// the standard visibility/follow rules — a private log excludes the event
+// entirely), newest show first, capped at 50 rows. `artistOverlap` is the
+// number of artists both users follow; `topSharedArtist` is one of those
+// artists' names (for "You both follow X" copy on the client).
+app.get('/users/:id/shared-history', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const { id: targetUserId } = req.params as { id: string };
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, privacySetting: true },
+  });
+  if (!target) throw new AppError('User not found', 404);
+
+  // Comparing yourself against yourself is degenerate — the client renders
+  // nothing for an empty overlap, so return the empty shape.
+  if (viewerId === targetUserId) return { sharedCount: 0, artistOverlap: 0, topSharedArtist: null, entries: [] };
+
+  const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
+
+  // A private account you don't follow exposes nothing — not even artist
+  // overlap (mirrors the profile lock screen).
+  if (target.privacySetting === 'PRIVATE' && !viewerFollowsTarget) {
+    return { sharedCount: 0, artistOverlap: 0, topSharedArtist: null, entries: [] };
+  }
+
+  const visibilityWhere = buildLogVisibilityWhere(viewerId, targetUserId, target.privacySetting, viewerFollowsTarget);
+
+  const [viewerLogs, theirLogs, viewerArtistRows, theirArtistRows] = await Promise.all([
+    prisma.userLog.findMany({
+      where: { userId: viewerId },
+      select: { eventId: true, score: true },
+    }),
+    prisma.userLog.findMany({
+      where: { userId: targetUserId, ...visibilityWhere },
+      select: {
+        eventId: true,
+        score: true,
+        event: {
+          select: {
+            id: true,
+            name: true,
+            date: true,
+            venue: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { event: { date: 'desc' } },
+    }),
+    prisma.userArtistFollow.findMany({ where: { userId: viewerId }, select: { artistId: true } }),
+    prisma.userArtistFollow.findMany({
+      where: { userId: targetUserId },
+      select: { artistId: true, artist: { select: { name: true } } },
+    }),
+  ]);
+
+  const viewerLogByEvent = new Map(viewerLogs.map((l) => [l.eventId, l]));
+  const shared = theirLogs.filter((l) => viewerLogByEvent.has(l.eventId));
+
+  const entries = shared.slice(0, 50).map((l) => ({
+    eventId: l.event.id,
+    eventName: l.event.name,
+    date: l.event.date.toISOString(),
+    venueName: l.event.venue.name,
+    yourScore: viewerLogByEvent.get(l.eventId)!.score ?? null,
+    theirScore: l.score ?? null,
+  }));
+
+  const viewerArtistIds = new Set(viewerArtistRows.map((a) => a.artistId));
+  const sharedArtists = theirArtistRows.filter((a) => viewerArtistIds.has(a.artistId));
+
+  return {
+    sharedCount: shared.length,
+    artistOverlap: sharedArtists.length,
+    topSharedArtist: sharedArtists[0]?.artist.name ?? null,
+    entries,
+  };
 });
 
 app.get('/users/:id/followers', async (req) => {
@@ -2218,15 +2312,26 @@ app.get('/users/:id/timeline', async (req) => {
     if (!Number.isNaN(d.getTime())) cursorWhere.event = { date: { lt: d } };
   }
 
+  // The timeline is "shows this user was part of": their own logs plus any
+  // log they've ACCEPTED co-authorship on (joint memories land here too).
+  // Per-log visibility still applies to the log's own `visibility` column.
   const where: Prisma.UserLogWhereInput = {
-    userId: targetUserId,
-    ...visibilityWhere,
-    ...cursorWhere,
+    AND: [
+      {
+        OR: [
+          { userId: targetUserId },
+          { coAuthors: { some: { userId: targetUserId, status: 'ACCEPTED' } } },
+        ],
+      },
+      visibilityWhere,
+      cursorWhere,
+    ],
   };
 
   const logs = await prisma.userLog.findMany({
     where,
     include: {
+      user: { select: { id: true, username: true } },
       event: {
         include: {
           artist: { select: { id: true, name: true, imageUrl: true } },
@@ -2275,6 +2380,9 @@ app.get('/users/:id/timeline', async (req) => {
       venue: { id: string; name: string; city: string };
       photos: { id: string; photoUrl: string; thumbnailUrl: string; mediaKind: string; duration?: number; thumbUrl?: string }[];
       coAuthors: { id: string; username: string; avatarUrl?: string }[];
+      // Set only when this entry is a co-authored log owned by someone else —
+      // identifies the original author so the client can badge it "with @owner".
+      coAuthorOf?: { id: string; username: string };
       likeCount: number;
       commentCount: number;
     }>
@@ -2286,6 +2394,8 @@ app.get('/users/:id/timeline', async (req) => {
     // the owner always sees everything.
     const canSeeFull = isOwner || log.sharedAt !== null;
     const key = monthKey(log.event.date);
+    // A co-authored entry surfaced on this timeline is authored by someone else.
+    const isOwnLog = log.userId === targetUserId;
 
     const entry = {
       logId: log.id,
@@ -2319,6 +2429,7 @@ app.get('/users/:id/timeline', async (req) => {
           }))
         : [],
       coAuthors: coAuthorsByLog.get(log.id) ?? [],
+      coAuthorOf: isOwnLog ? undefined : { id: log.user.id, username: log.user.username },
       likeCount: log._count.likes,
       commentCount: log._count.comments,
     };
@@ -3442,6 +3553,12 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
     const fields = (file.fields ?? {}) as Record<string, { value?: unknown }>;
     const section = typeof fields.section?.value === 'string' ? fields.section.value.trim() : '';
     const row = typeof fields.row?.value === 'string' ? fields.row.value.trim() : '';
+    // Optional 1-5 rating carried alongside the photo, so a starred seat view
+    // and its sightline photo land on one SeatView row. Multipart values arrive
+    // as strings; anything outside 1-5 is dropped (photo still saves).
+    const ratingRaw = fields.rating?.value;
+    const ratingNum = typeof ratingRaw === 'string' ? Number(ratingRaw) : typeof ratingRaw === 'number' ? ratingRaw : NaN;
+    const rating = Number.isInteger(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : null;
 
     if (!section) {
       reply.status(400);
@@ -3478,6 +3595,7 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
         userId,
         section,
         row: row || null,
+        rating,
         photoUrl,
         thumbnailUrl: photoUrl,
       },
@@ -3489,6 +3607,7 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
       id: created.id,
       section: created.section,
       row: created.row ?? undefined,
+      rating: created.rating ?? undefined,
       photoUrl: created.photoUrl,
       thumbnailUrl: created.thumbnailUrl ?? undefined,
       user: { id: created.user.id, username: created.user.username },
@@ -3841,7 +3960,9 @@ app.get('/events/:id/photos', async (req, reply) => {
     const { limit = '20', offset = '0' } = (req.query ?? {}) as { limit?: string; offset?: string };
 
     const photos = await prisma.logPhoto.findMany({
-      where: { log: { eventId: id }, visibility: 'PUBLIC', isFlagged: false },
+      // `user: { showInGalleries: true }` = discovery dial opt-out (photos
+      // from users who turned galleries off never show in event galleries).
+      where: { log: { eventId: id }, visibility: 'PUBLIC', isFlagged: false, user: { showInGalleries: true } },
       include: {
         user: { select: { id: true, username: true, avatarUrl: true } },
         log: { select: { section: true } },
@@ -4008,9 +4129,168 @@ app.delete('/events/:id/comments/:commentId', async (req, reply) => {
   }
 });
 
-// GET /events/:id/setlist (stub)
-app.get('/events/:id/setlist', async (_req, _reply) => {
-  return { songs: [] };
+// ==================== CROWD-SOURCED SETLIST ROUTES ====================
+// Loggers submit the songs they remember (POST /events/:id/setlist); other
+// attendees confirm or dispute individual entries. `confirmCount` is the net
+// crowd confidence for an entry: +1 per YES vote, -1 per NO vote, seeded at 1
+// by the submitter (who also gets a YES SetlistConfirm row so they can't
+// double-count themselves later).
+
+// GET /events/:id/setlist — the crowd-sourced setlist, ordered by position.
+// (Replaces the old `{ songs: [] }` stub.)
+app.get('/events/:id/setlist', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+
+  const entries = await prisma.setlistEntry.findMany({
+    where: { eventId },
+    orderBy: [{ position: 'asc' }, { confirmCount: 'desc' }, { createdAt: 'asc' }],
+    select: { id: true, position: true, songTitle: true, confirmCount: true },
+  });
+
+  const yourVotes = entries.length
+    ? await prisma.setlistConfirm.findMany({
+        where: { userId, entryId: { in: entries.map((e) => e.id) } },
+        select: { entryId: true, vote: true },
+      })
+    : [];
+  const voteByEntry = new Map(yourVotes.map((v) => [v.entryId, v.vote]));
+
+  return {
+    entries: entries.map((e) => ({
+      id: e.id,
+      position: e.position,
+      songTitle: e.songTitle,
+      confirmCount: e.confirmCount,
+      yourVote: voteByEntry.get(e.id) ?? null,
+    })),
+  };
+});
+
+// POST /events/:id/setlist { songs: [title, ...] } — bulk add from a logger.
+// Array order defines positions 1..n. Upserts by (eventId, position, title):
+// a new entry starts at confirmCount 1; an existing entry gets +1 (recorded
+// as the submitter's YES vote, so resubmitting is idempotent per user).
+app.post('/events/:id/setlist', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { songs?: unknown };
+
+  if (!Array.isArray(body.songs) || body.songs.length === 0) {
+    throw new AppError('songs must be a non-empty array of titles', 400);
+  }
+  if (body.songs.length > 60) throw new AppError('Too many songs (max 60)', 400);
+
+  const songs = body.songs.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+  if (songs.length === 0) throw new AppError('songs must be a non-empty array of titles', 400);
+
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+  if (!event) throw new AppError('Event not found', 404);
+
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < songs.length; i++) {
+      const position = i + 1;
+      const songTitle = songs[i]!;
+
+      const existing = await tx.setlistEntry.findUnique({
+        where: { eventId_position_songTitle: { eventId, position, songTitle } },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        await tx.setlistEntry.create({
+          data: {
+            eventId,
+            position,
+            songTitle,
+            confirmCount: 1,
+            confirms: { create: { userId, vote: 'YES' } },
+          },
+        });
+        continue;
+      }
+
+      // Entry already crowd-sourced: this submission counts as the user's
+      // YES vote (no vote yet -> +1, previous NO -> +2, previous YES -> no-op).
+      const prior = await tx.setlistConfirm.findUnique({
+        where: { entryId_userId: { entryId: existing.id, userId } },
+        select: { id: true, vote: true },
+      });
+      if (prior?.vote === 'YES') continue;
+
+      await tx.setlistConfirm.upsert({
+        where: { entryId_userId: { entryId: existing.id, userId } },
+        update: { vote: 'YES' },
+        create: { entryId: existing.id, userId, vote: 'YES' },
+      });
+      await tx.setlistEntry.update({
+        where: { id: existing.id },
+        data: { confirmCount: { increment: prior ? 2 : 1 } },
+      });
+    }
+  });
+
+  const entries = await prisma.setlistEntry.findMany({
+    where: { eventId },
+    orderBy: [{ position: 'asc' }, { confirmCount: 'desc' }, { createdAt: 'asc' }],
+    select: { id: true, position: true, songTitle: true, confirmCount: true },
+  });
+
+  reply.status(201);
+  return {
+    entries: entries.map((e) => ({
+      id: e.id,
+      position: e.position,
+      songTitle: e.songTitle,
+      confirmCount: e.confirmCount,
+    })),
+  };
+});
+
+// POST /setlist-entries/:id/confirm { vote: 'yes' | 'no' } — one vote per
+// user per entry. YES = +1, NO = -1; switching your vote moves the count by
+// 2, repeating the same vote is a no-op.
+app.post('/setlist-entries/:id/confirm', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: entryId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { vote?: unknown };
+
+  const raw = typeof body.vote === 'string' ? body.vote.trim().toUpperCase() : '';
+  if (raw !== 'YES' && raw !== 'NO') throw new AppError("vote must be 'yes' or 'no'", 400);
+  const vote = raw as 'YES' | 'NO';
+
+  const entry = await prisma.setlistEntry.findUnique({ where: { id: entryId }, select: { id: true } });
+  if (!entry) throw new AppError('Setlist entry not found', 404);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const prior = await tx.setlistConfirm.findUnique({
+      where: { entryId_userId: { entryId, userId } },
+      select: { vote: true },
+    });
+
+    // no prior vote: +-1; switched vote: +-2; same vote: 0.
+    const delta = prior ? (prior.vote === vote ? 0 : vote === 'YES' ? 2 : -2) : vote === 'YES' ? 1 : -1;
+
+    await tx.setlistConfirm.upsert({
+      where: { entryId_userId: { entryId, userId } },
+      update: { vote },
+      create: { entryId, userId, vote },
+    });
+
+    if (delta === 0) {
+      return tx.setlistEntry.findUniqueOrThrow({
+        where: { id: entryId },
+        select: { id: true, position: true, songTitle: true, confirmCount: true },
+      });
+    }
+    return tx.setlistEntry.update({
+      where: { id: entryId },
+      data: { confirmCount: { increment: delta } },
+      select: { id: true, position: true, songTitle: true, confirmCount: true },
+    });
+  });
+
+  return { ...updated, yourVote: vote };
 });
 
 // POST /events/:id/moments (stub)
@@ -5137,6 +5417,8 @@ app.get('/tours/:id/photos', async (req) => {
     log: { event: { tourId: id }, visibility: 'PUBLIC', sharedAt: { not: null } },
     visibility: 'PUBLIC',
     isFlagged: false,
+    // Discovery dial: exclude photos from users who opted out of galleries.
+    user: { showInGalleries: true },
   };
   if (cursor) {
     const d = new Date(cursor);
@@ -5741,6 +6023,9 @@ app.get('/events/:id/feed', async (req) => {
     eventId,
     visibility: 'PUBLIC',
     sharedAt: { not: null },
+    // Discovery dial: users who opted out of galleries are excluded from
+    // event-scoped feeds/galleries entirely.
+    user: { showInGalleries: true },
   };
   if (cursor) {
     const d = new Date(cursor);
@@ -5784,12 +6069,14 @@ app.get('/events/:id/seat-sections', async (req) => {
 
   const [seatViews, logPhotos] = await Promise.all([
     prisma.seatView.findMany({
-      where: { eventId },
+      // Respect the showInGalleries discovery dial for both sources below.
+      where: { eventId, user: { showInGalleries: true } },
       select: { id: true, section: true, row: true, photoUrl: true, thumbnailUrl: true, rating: true, createdAt: true },
     }),
     prisma.logPhoto.findMany({
       where: {
         log: { eventId, section: { not: null }, visibility: 'PUBLIC', sharedAt: { not: null } },
+        user: { showInGalleries: true },
       },
       select: {
         id: true,
@@ -7115,6 +7402,131 @@ app.post('/logs/:id/tags', async (req, reply) => {
   return { success: true, taggedUserIds: validIds };
 });
 
+// ==================== CO-AUTHORED MEMORIES ====================
+// A log owner invites friends who were there to co-sign the memory. On accept,
+// the shared log also surfaces on the co-author's timeline (see /users/:id/
+// timeline). Mirrors the /logs/:id/tags ownership + validation style.
+
+// POST /logs/:id/coauthors — owner invites users (creates INVITED rows).
+app.post('/logs/:id/coauthors', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: logId } = req.params as { id: string };
+
+  const body = (req.body ?? {}) as { userIds?: unknown };
+  const raw = (Array.isArray(body.userIds) ? body.userIds : []) as unknown[];
+  const userIds = Array.from(
+    new Set(raw.filter((x) => typeof x === 'string').map((x) => (x as string).trim()).filter(Boolean))
+  );
+
+  if (!userIds.length) throw new AppError('userIds is required', 400);
+  if (userIds.length > 20) throw new AppError('Too many co-authors', 400);
+
+  const log = await prisma.userLog.findUnique({ where: { id: logId }, select: { id: true, userId: true } });
+  if (!log) throw new AppError('Log not found', 404);
+  if (log.userId !== userId) throw new AppError('Forbidden', 403);
+
+  const existingUsers = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true } });
+  const existingIds = new Set(existingUsers.map((u) => u.id));
+  // Skip self and any id that isn't a real user; dupes are collapsed by the set
+  // above and the unique(logId,userId) upsert.
+  const validIds = userIds.filter((id) => existingIds.has(id) && id !== userId);
+
+  await Promise.all(
+    validIds.map((coAuthorUserId) =>
+      prisma.logCoAuthor.upsert({
+        where: { logId_userId: { logId, userId: coAuthorUserId } },
+        update: {},
+        create: { logId, userId: coAuthorUserId },
+      })
+    )
+  );
+
+  reply.status(201);
+  return { invited: validIds };
+});
+
+// GET /logs/:id/coauthors — owner or an invitee sees the full co-author list.
+app.get('/logs/:id/coauthors', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: logId } = req.params as { id: string };
+
+  const log = await prisma.userLog.findUnique({ where: { id: logId }, select: { id: true, userId: true } });
+  if (!log) throw new AppError('Log not found', 404);
+
+  const rows = await prisma.logCoAuthor.findMany({
+    where: { logId },
+    include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+    orderBy: { invitedAt: 'asc' },
+  });
+
+  const isOwner = log.userId === userId;
+  const isInvitee = rows.some((r) => r.user.id === userId);
+  if (!isOwner && !isInvitee) throw new AppError('Forbidden', 403);
+
+  return rows.map((r) => ({
+    user: {
+      id: r.user.id,
+      username: r.user.username,
+      displayName: r.user.displayName ?? undefined,
+      avatarUrl: r.user.avatarUrl ?? undefined,
+    },
+    status: r.status,
+  }));
+});
+
+// POST /logs/:id/coauthors/respond — the invited user accepts or declines.
+app.post('/logs/:id/coauthors/respond', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: logId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { accept?: unknown };
+  if (typeof body.accept !== 'boolean') throw new AppError('accept (boolean) is required', 400);
+
+  const row = await prisma.logCoAuthor.findUnique({
+    where: { logId_userId: { logId, userId } },
+    select: { id: true },
+  });
+  if (!row) throw new AppError('No co-author invite for this log', 404);
+
+  const updated = await prisma.logCoAuthor.update({
+    where: { id: row.id },
+    data: { status: body.accept ? 'ACCEPTED' : 'DECLINED', respondedAt: new Date() },
+    select: { logId: true, status: true },
+  });
+
+  return { logId: updated.logId, status: updated.status };
+});
+
+// GET /users/me/coauthor-invites — the viewer's pending (INVITED) invites.
+app.get('/users/me/coauthor-invites', async (req) => {
+  const userId = requireAccessUserId(req as any);
+
+  const rows = await prisma.logCoAuthor.findMany({
+    where: { userId, status: 'INVITED' },
+    orderBy: { invitedAt: 'desc' },
+    include: {
+      log: {
+        select: {
+          id: true,
+          user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+          event: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  return rows.map((r) => ({
+    logId: r.log.id,
+    eventName: r.log.event.name,
+    owner: {
+      id: r.log.user.id,
+      username: r.log.user.username,
+      displayName: r.log.user.displayName ?? undefined,
+      avatarUrl: r.log.user.avatarUrl ?? undefined,
+    },
+    invitedAt: r.invitedAt.toISOString(),
+  }));
+});
+
 // ==================== EVENT IMPORT (BANDSINTOWN) ====================
 
 app.post('/events/import', async (req, reply) => {
@@ -7400,6 +7812,576 @@ app.post('/events/:id/hang/messages', async (req, reply) => {
     }
     throw error;
   }
+});
+
+// ==================== PARTY ROUTES (event meetups) ====================
+// A Party is a host-run pre/post-show meetup attached to an Event. Membership
+// states: HOST (creator), INVITED (host invited, hasn't answered), REQUESTED
+// (user asked to join a PUBLIC party), GOING (approved / accepted), DECLINED.
+
+const PARTY_USER_SELECT = { id: true, username: true, displayName: true, avatarUrl: true } as const;
+
+function serializePartyUser(u: { id: string; username: string; displayName: string | null; avatarUrl: string | null }) {
+  return {
+    id: u.id,
+    username: u.username,
+    displayName: u.displayName ?? undefined,
+    avatarUrl: u.avatarUrl ?? undefined,
+  };
+}
+
+type PartyCore = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  startsAt: Date | null;
+  visibility: 'PUBLIC' | 'INVITE';
+  createdAt: Date;
+  eventId: string;
+  hostId: string;
+  host: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+};
+
+function serializeParty(
+  party: PartyCore,
+  counts: { going: number; requested: number; invited: number },
+  yourStatus: string | null
+) {
+  return {
+    id: party.id,
+    eventId: party.eventId,
+    title: party.title,
+    description: party.description ?? undefined,
+    location: party.location ?? undefined,
+    startsAt: party.startsAt ? party.startsAt.toISOString() : undefined,
+    visibility: party.visibility,
+    createdAt: party.createdAt.toISOString(),
+    host: serializePartyUser(party.host),
+    // counts.going includes the host.
+    counts,
+    yourStatus,
+  };
+}
+
+/** Per-party member tallies: going (HOST + GOING), requested, invited. */
+async function getPartyCounts(partyIds: string[]) {
+  const zero = () => ({ going: 0, requested: 0, invited: 0 });
+  const map = new Map<string, ReturnType<typeof zero>>();
+  for (const id of partyIds) map.set(id, zero());
+  if (!partyIds.length) return map;
+
+  const rows = await prisma.partyMember.groupBy({
+    by: ['partyId', 'status'],
+    where: { partyId: { in: partyIds } },
+    _count: { _all: true },
+  });
+  for (const r of rows) {
+    const c = map.get(r.partyId)!;
+    if (r.status === 'HOST' || r.status === 'GOING') c.going += r._count._all;
+    else if (r.status === 'REQUESTED') c.requested += r._count._all;
+    else if (r.status === 'INVITED') c.invited += r._count._all;
+  }
+  return map;
+}
+
+async function getPartyOr404(partyId: string) {
+  const party = await prisma.party.findUnique({
+    where: { id: partyId },
+    include: { host: { select: PARTY_USER_SELECT } },
+  });
+  if (!party) throw new AppError('Party not found', 404);
+  return party;
+}
+
+// POST /events/:id/parties — create a party for an event; the creator becomes
+// its HOST member.
+app.post('/events/:id/parties', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+  const body = (req.body ?? {}) as {
+    title?: unknown;
+    description?: unknown;
+    location?: unknown;
+    startsAt?: unknown;
+    visibility?: unknown;
+  };
+
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  if (!title) throw new AppError('Title is required', 400);
+  if (title.length > 80) throw new AppError('Title too long (max 80)', 400);
+
+  const description = typeof body.description === 'string' && body.description.trim() ? body.description.trim() : null;
+  const location = typeof body.location === 'string' && body.location.trim() ? body.location.trim() : null;
+
+  let startsAt: Date | null = null;
+  if (body.startsAt !== undefined && body.startsAt !== null) {
+    const d = new Date(String(body.startsAt));
+    if (Number.isNaN(d.getTime())) throw new AppError('startsAt must be a valid ISO date', 400);
+    startsAt = d;
+  }
+
+  let visibility: 'PUBLIC' | 'INVITE' = 'PUBLIC';
+  if (body.visibility !== undefined) {
+    const v = typeof body.visibility === 'string' ? body.visibility.trim().toUpperCase() : '';
+    if (v !== 'PUBLIC' && v !== 'INVITE') throw new AppError('visibility must be PUBLIC or INVITE', 400);
+    visibility = v;
+  }
+
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+  if (!event) throw new AppError('Event not found', 404);
+
+  const party = await prisma.party.create({
+    data: {
+      eventId,
+      hostId: userId,
+      title,
+      description,
+      location,
+      startsAt,
+      visibility,
+      members: { create: { userId, status: 'HOST', respondedAt: new Date() } },
+    },
+    include: { host: { select: PARTY_USER_SELECT } },
+  });
+
+  reply.status(201);
+  return serializeParty(party, { going: 1, requested: 0, invited: 0 }, 'HOST');
+});
+
+// GET /events/:id/parties — public parties for the event, plus any INVITE
+// parties you're a member of (any status).
+app.get('/events/:id/parties', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+  const q = (req.query ?? {}) as { limit?: string; offset?: string };
+  const limit = Math.max(1, Math.min(50, Number(q.limit ?? 25)));
+  const offset = Math.max(0, Number(q.offset ?? 0));
+
+  const parties = await prisma.party.findMany({
+    where: {
+      eventId,
+      OR: [{ visibility: 'PUBLIC' }, { members: { some: { userId } } }],
+    },
+    include: { host: { select: PARTY_USER_SELECT } },
+    orderBy: [{ startsAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
+    take: limit,
+    skip: offset,
+  });
+
+  const partyIds = parties.map((p) => p.id);
+  const [countsByParty, myMemberships] = await Promise.all([
+    getPartyCounts(partyIds),
+    partyIds.length
+      ? prisma.partyMember.findMany({
+          where: { userId, partyId: { in: partyIds } },
+          select: { partyId: true, status: true },
+        })
+      : Promise.resolve([] as { partyId: string; status: string }[]),
+  ]);
+  const myStatusByParty = new Map(myMemberships.map((m) => [m.partyId, m.status]));
+
+  return {
+    parties: parties.map((p) => serializeParty(p, countsByParty.get(p.id)!, myStatusByParty.get(p.id) ?? null)),
+  };
+});
+
+// GET /parties/:id — detail with a members preview + announcements. INVITE
+// parties are only visible to their members (the host has a HOST member row).
+app.get('/parties/:id', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+
+  const party = await getPartyOr404(partyId);
+
+  const membership = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId, userId } },
+    select: { status: true },
+  });
+
+  if (party.visibility === 'INVITE' && !membership) {
+    throw new AppError('This party is invite-only', 403);
+  }
+
+  const isHost = party.hostId === userId;
+
+  const [countsByParty, memberRows, announcements] = await Promise.all([
+    getPartyCounts([partyId]),
+    prisma.partyMember.findMany({
+      // Non-hosts see the attendee list (host + going); the host also sees
+      // pending requests and outstanding invites so they can manage them.
+      where: isHost ? { partyId } : { partyId, status: { in: ['HOST', 'GOING'] } },
+      include: { user: { select: PARTY_USER_SELECT } },
+      orderBy: { createdAt: 'asc' },
+      take: 50,
+    }),
+    prisma.partyAnnouncement.findMany({
+      where: { partyId },
+      include: { author: { select: PARTY_USER_SELECT } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+  ]);
+
+  return {
+    ...serializeParty(party, countsByParty.get(partyId)!, membership?.status ?? null),
+    members: memberRows.map((m) => ({
+      user: serializePartyUser(m.user),
+      status: m.status,
+      respondedAt: m.respondedAt ? m.respondedAt.toISOString() : undefined,
+    })),
+    announcements: announcements.map((a) => ({
+      id: a.id,
+      text: a.text,
+      createdAt: a.createdAt.toISOString(),
+      author: serializePartyUser(a.author),
+    })),
+  };
+});
+
+// POST /parties/:id/join — request to join a PUBLIC party (-> REQUESTED,
+// pending host approval) or accept your invite (INVITED -> GOING). The host
+// is automatically going.
+app.post('/parties/:id/join', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+
+  const party = await getPartyOr404(partyId);
+
+  const existing = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId, userId } },
+    select: { id: true, status: true },
+  });
+
+  // Already in (or running) the party — idempotent no-op.
+  if (existing?.status === 'HOST' || existing?.status === 'GOING' || existing?.status === 'REQUESTED') {
+    return { status: existing.status };
+  }
+
+  // Accepting an invitation.
+  if (existing?.status === 'INVITED') {
+    const updated = await prisma.partyMember.update({
+      where: { id: existing.id },
+      data: { status: 'GOING', respondedAt: new Date() },
+      select: { status: true },
+    });
+    return { status: updated.status };
+  }
+
+  if (party.visibility !== 'PUBLIC') throw new AppError('This party is invite-only', 403);
+
+  // New request (or re-request after a decline) on a public party.
+  const row = existing
+    ? await prisma.partyMember.update({
+        where: { id: existing.id },
+        data: { status: 'REQUESTED', respondedAt: null },
+        select: { status: true },
+      })
+    : await prisma.partyMember.create({
+        data: { partyId, userId, status: 'REQUESTED' },
+        select: { status: true },
+      });
+
+  return { status: row.status };
+});
+
+// POST /parties/:id/respond { userId, accept } — host approves or declines a
+// pending join request.
+app.post('/parties/:id/respond', async (req) => {
+  const hostId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { userId?: unknown; accept?: unknown };
+
+  const targetUserId = typeof body.userId === 'string' ? body.userId.trim() : '';
+  if (!targetUserId) throw new AppError('userId is required', 400);
+  if (typeof body.accept !== 'boolean') throw new AppError('accept must be a boolean', 400);
+
+  const party = await getPartyOr404(partyId);
+  if (party.hostId !== hostId) throw new AppError('Only the host can respond to join requests', 403);
+
+  const member = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId, userId: targetUserId } },
+    select: { id: true, status: true },
+  });
+  if (!member || member.status !== 'REQUESTED') throw new AppError('No pending request from this user', 404);
+
+  const updated = await prisma.partyMember.update({
+    where: { id: member.id },
+    data: { status: body.accept ? 'GOING' : 'DECLINED', respondedAt: new Date() },
+    select: { userId: true, status: true },
+  });
+
+  return { userId: updated.userId, status: updated.status };
+});
+
+// POST /parties/:id/invite { userIds } — host invites users. Users who
+// already have a membership row (any status) are left untouched.
+app.post('/parties/:id/invite', async (req) => {
+  const hostId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { userIds?: unknown };
+
+  if (!Array.isArray(body.userIds) || body.userIds.length === 0) {
+    throw new AppError('userIds must be a non-empty array', 400);
+  }
+  if (body.userIds.length > 50) throw new AppError('Too many invites at once (max 50)', 400);
+
+  const party = await getPartyOr404(partyId);
+  if (party.hostId !== hostId) throw new AppError('Only the host can invite users', 403);
+
+  const requestedIds = Array.from(
+    new Set(body.userIds.filter((u): u is string => typeof u === 'string' && u.trim().length > 0).map((u) => u.trim()))
+  ).filter((id) => id !== hostId);
+  if (requestedIds.length === 0) throw new AppError('No valid userIds to invite', 400);
+
+  const users = await prisma.user.findMany({ where: { id: { in: requestedIds } }, select: { id: true } });
+  const validIds = users.map((u) => u.id);
+
+  const result = validIds.length
+    ? await prisma.partyMember.createMany({
+        data: validIds.map((uid) => ({ partyId, userId: uid, status: 'INVITED' as const })),
+        skipDuplicates: true,
+      })
+    : { count: 0 };
+
+  return { invited: result.count, notFound: requestedIds.filter((id) => !validIds.includes(id)) };
+});
+
+// POST /parties/:id/announcements { text } — host posts an announcement.
+app.post('/parties/:id/announcements', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { text?: unknown };
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) throw new AppError('Text is required', 400);
+  if (text.length > 500) throw new AppError('Text too long (max 500)', 400);
+
+  const party = await getPartyOr404(partyId);
+  if (party.hostId !== userId) throw new AppError('Only the host can post announcements', 403);
+
+  const announcement = await prisma.partyAnnouncement.create({
+    data: { partyId, authorId: userId, text },
+    include: { author: { select: PARTY_USER_SELECT } },
+  });
+
+  reply.status(201);
+  return {
+    id: announcement.id,
+    text: announcement.text,
+    createdAt: announcement.createdAt.toISOString(),
+    author: serializePartyUser(announcement.author),
+  };
+});
+
+// DELETE /parties/:id — host deletes the party (members + announcements
+// cascade at the DB level).
+app.delete('/parties/:id', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+
+  const party = await getPartyOr404(partyId);
+  if (party.hostId !== userId) throw new AppError('Only the host can delete the party', 403);
+
+  await prisma.party.delete({ where: { id: partyId } });
+  return { success: true };
+});
+
+// ==================== VENUE Q&A ROUTES ====================
+// Crowd-sourced venue questions ("where's the merch line?") with answers and
+// answer upvotes. `VenueAnswer.upvotes` is a denormalized counter kept in
+// sync with the VenueAnswerUpvote join table by the toggle endpoint.
+
+// GET /venues/:id/questions — questions with answers (best-upvoted first)
+// and, when authenticated, whether you upvoted each answer.
+app.get('/venues/:id/questions', async (req) => {
+  const { id: venueId } = req.params as { id: string };
+  const userId = getUserIdFromRequest(req);
+  const q = (req.query ?? {}) as { limit?: string; offset?: string };
+  const limit = Math.max(1, Math.min(50, Number(q.limit ?? 20)));
+  const offset = Math.max(0, Number(q.offset ?? 0));
+
+  const questions = await prisma.venueQuestion.findMany({
+    where: { venueId },
+    include: {
+      author: { select: PARTY_USER_SELECT },
+      answers: {
+        include: { author: { select: PARTY_USER_SELECT } },
+        orderBy: [{ upvotes: 'desc' }, { createdAt: 'asc' }],
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    skip: offset,
+  });
+
+  const answerIds = questions.flatMap((question) => question.answers.map((a) => a.id));
+  const upvoted = new Set<string>();
+  if (userId && answerIds.length) {
+    const rows = await prisma.venueAnswerUpvote.findMany({
+      where: { userId, answerId: { in: answerIds } },
+      select: { answerId: true },
+    });
+    for (const r of rows) upvoted.add(r.answerId);
+  }
+
+  return {
+    questions: questions.map((question) => ({
+      id: question.id,
+      text: question.text,
+      createdAt: question.createdAt.toISOString(),
+      author: serializePartyUser(question.author),
+      answerCount: question.answers.length,
+      answers: question.answers.map((a) => ({
+        id: a.id,
+        text: a.text,
+        upvotes: a.upvotes,
+        yourUpvote: upvoted.has(a.id),
+        createdAt: a.createdAt.toISOString(),
+        author: serializePartyUser(a.author),
+      })),
+    })),
+  };
+});
+
+// POST /venues/:id/questions { text }
+app.post('/venues/:id/questions', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: venueId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { text?: unknown };
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) throw new AppError('Text is required', 400);
+  if (text.length > 500) throw new AppError('Text too long (max 500)', 400);
+
+  const venue = await prisma.venue.findUnique({ where: { id: venueId }, select: { id: true } });
+  if (!venue) throw new AppError('Venue not found', 404);
+
+  const question = await prisma.venueQuestion.create({
+    data: { venueId, authorId: userId, text },
+    include: { author: { select: PARTY_USER_SELECT } },
+  });
+
+  reply.status(201);
+  return {
+    id: question.id,
+    text: question.text,
+    createdAt: question.createdAt.toISOString(),
+    author: serializePartyUser(question.author),
+    answerCount: 0,
+    answers: [],
+  };
+});
+
+// POST /questions/:id/answers { text }
+app.post('/questions/:id/answers', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: questionId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { text?: unknown };
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) throw new AppError('Text is required', 400);
+  if (text.length > 1000) throw new AppError('Text too long (max 1000)', 400);
+
+  const question = await prisma.venueQuestion.findUnique({ where: { id: questionId }, select: { id: true } });
+  if (!question) throw new AppError('Question not found', 404);
+
+  const answer = await prisma.venueAnswer.create({
+    data: { questionId, authorId: userId, text },
+    include: { author: { select: PARTY_USER_SELECT } },
+  });
+
+  reply.status(201);
+  return {
+    id: answer.id,
+    questionId: answer.questionId,
+    text: answer.text,
+    upvotes: answer.upvotes,
+    yourUpvote: false,
+    createdAt: answer.createdAt.toISOString(),
+    author: serializePartyUser(answer.author),
+  };
+});
+
+// POST /answers/:id/upvote — toggle your upvote on an answer.
+app.post('/answers/:id/upvote', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: answerId } = req.params as { id: string };
+
+  const answer = await prisma.venueAnswer.findUnique({ where: { id: answerId }, select: { id: true } });
+  if (!answer) throw new AppError('Answer not found', 404);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.venueAnswerUpvote.findUnique({
+      where: { answerId_userId: { answerId, userId } },
+      select: { id: true },
+    });
+
+    if (existing) {
+      await tx.venueAnswerUpvote.delete({ where: { id: existing.id } });
+      const updated = await tx.venueAnswer.update({
+        where: { id: answerId },
+        data: { upvotes: { decrement: 1 } },
+        select: { upvotes: true },
+      });
+      return { upvoted: false, upvotes: updated.upvotes };
+    }
+
+    await tx.venueAnswerUpvote.create({ data: { answerId, userId } });
+    const updated = await tx.venueAnswer.update({
+      where: { id: answerId },
+      data: { upvotes: { increment: 1 } },
+      select: { upvotes: true },
+    });
+    return { upvoted: true, upvotes: updated.upvotes };
+  });
+
+  return result;
+});
+
+// ==================== DISCOVERY DIALS ====================
+// Per-user discovery settings. `showInGalleries: false` is enforced in the
+// gallery/feed queries (event feed, event photos, seat-sections, tour
+// photos). NOTE: sameShowRadius / tasteRadius are stored (and surfaced via
+// GET /auth/me) but not yet enforced in /users/suggestions or discover
+// ranking — that lands with the suggestions-graph work.
+
+const DISCOVERY_RADII = new Set(['OFF', 'FRIENDS', 'FOF', 'EVERYONE']);
+
+function parseDiscoveryRadius(value: unknown, field: string): 'OFF' | 'FRIENDS' | 'FOF' | 'EVERYONE' {
+  const v = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  if (!DISCOVERY_RADII.has(v)) throw new AppError(`${field} must be one of OFF, FRIENDS, FOF, EVERYONE`, 400);
+  return v as 'OFF' | 'FRIENDS' | 'FOF' | 'EVERYONE';
+}
+
+// PATCH /users/me/discovery { sameShowRadius?, tasteRadius?, showInGalleries? }
+app.patch('/users/me/discovery', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const body = (req.body ?? {}) as {
+    sameShowRadius?: unknown;
+    tasteRadius?: unknown;
+    showInGalleries?: unknown;
+  };
+
+  const data: Prisma.UserUpdateInput = {};
+  if (body.sameShowRadius !== undefined) data.sameShowRadius = parseDiscoveryRadius(body.sameShowRadius, 'sameShowRadius');
+  if (body.tasteRadius !== undefined) data.tasteRadius = parseDiscoveryRadius(body.tasteRadius, 'tasteRadius');
+  if (body.showInGalleries !== undefined) {
+    if (typeof body.showInGalleries !== 'boolean') throw new AppError('showInGalleries must be a boolean', 400);
+    data.showInGalleries = body.showInGalleries;
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw new AppError('Provide at least one of sameShowRadius, tasteRadius, showInGalleries', 400);
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: { sameShowRadius: true, tasteRadius: true, showInGalleries: true },
+  });
+
+  return updated;
 });
 
 async function listenWithFallback() {

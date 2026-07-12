@@ -1,4 +1,16 @@
+// Onboarding store — Phase A (A1–A5) lane model.
+//
+// REQUIRED utility lane (3 steps, gates app/index): welcome → connect
+// Spotify (or skip → minimal artist pick) → PRESALE RADAR (aha, city
+// inline). The radar's "Enter Sticket" calls completeOnboarding().
+//
+// OPTIONAL résumé lane (never gates): backfill past shows, find friends.
+// Legacy fields (city / selectedArtists / artistsStepCompleted /
+// presalePreviewShown / firstShowLogged) are KEPT — same persisted keys,
+// same STORAGE_KEY — they just no longer all gate the app.
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
 interface SelectedArtist {
@@ -141,8 +153,16 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => {
     },
 
     completeOnboarding: async () => {
+      // Finishing the 3-step required lane (radar "Enter Sticket") lands
+      // here. Persist to AsyncStorage (the store payload) AND mirror the
+      // SecureStore flag app/index also reads, so completion is sticky.
       set({ hasCompletedOnboarding: true });
       await persistNow();
+      try {
+        await SecureStore.setItemAsync('onboarding_complete', 'true');
+      } catch {
+        // Best-effort — the AsyncStorage payload above already unblocks.
+      }
     },
 
     checkOnboardingStatus: async () => {

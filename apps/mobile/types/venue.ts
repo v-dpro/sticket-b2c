@@ -100,5 +100,41 @@ export interface VenueShow {
   userLogged: boolean;
 }
 
+// ── Venue Q&A (additive) ───────────────────────────────────────────
+
+export interface VenueQuestionAuthor {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+}
+
+export interface VenueQuestionAnswer {
+  id: string;
+  text: string;
+  upvotes: number;
+  yourUpvote: boolean;
+  author: VenueQuestionAuthor;
+  createdAt: string;
+}
+
+export interface VenueQuestion {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: VenueQuestionAuthor;
+  answerCount: number;
+  answers: VenueQuestionAnswer[];
+}
+
+export interface VenueQuestionsResponse {
+  questions: VenueQuestion[];
+}
+
+export interface VenueAnswerUpvoteResult {
+  upvoted: boolean;
+  upvotes: number;
+}
+
 
 

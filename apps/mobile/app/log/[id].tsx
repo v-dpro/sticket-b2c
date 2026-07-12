@@ -36,7 +36,7 @@ import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations, springs } from '../../lib/motion';
 import { getLogLikes, likeLog, unlikeLog, type LogLikeUser } from '../../lib/api/feed';
-import { deleteLog } from '../../lib/api/logs';
+import { deleteLog, getCoAuthors, respondCoAuthor, type LogCoAuthor } from '../../lib/api/logs';
 import { useLogDetail } from '../../hooks/useLogDetail';
 import { useSession } from '../../hooks/useSession';
 import { Avatar } from '../../components/ui/Avatar';
@@ -117,6 +117,44 @@ export default function LogDetailScreen() {
       cancelled = true;
     };
   }, [logId, user?.id]);
+
+  // ── Co-authors (joint posts) ──
+  // GET /logs/:id doesn't carry co-authors, so fetch them separately. The list
+  // yields both the accepted "with @…" credit row and — if the viewer has a
+  // pending invite — the inline accept/decline banner.
+  const [coAuthors, setCoAuthors] = useState<LogCoAuthor[]>([]);
+  const [inviteBusy, setInviteBusy] = useState(false);
+
+  const loadCoAuthors = useCallback(async () => {
+    if (!logId) return;
+    try {
+      setCoAuthors(await getCoAuthors(logId));
+    } catch {
+      // non-fatal — viewer may not be owner/invitee; row simply stays hidden
+      setCoAuthors([]);
+    }
+  }, [logId]);
+
+  useEffect(() => {
+    void loadCoAuthors();
+  }, [loadCoAuthors]);
+
+  const respondInvite = useCallback(
+    async (accept: boolean) => {
+      if (inviteBusy) return;
+      setInviteBusy(true);
+      try {
+        await respondCoAuthor(logId, accept);
+        haptics.success();
+        await loadCoAuthors();
+      } catch {
+        haptics.error();
+      } finally {
+        setInviteBusy(false);
+      }
+    },
+    [inviteBusy, loadCoAuthors, logId],
+  );
 
   // Heart pop animation.
   const heartScale = useSharedValue(1);
@@ -272,6 +310,9 @@ export default function LogDetailScreen() {
 
   const comments = data.allComments ?? data.comments ?? [];
 
+  const acceptedCoAuthors = coAuthors.filter((ca) => ca.status === 'ACCEPTED');
+  const myInvite = coAuthors.find((ca) => ca.user.id === user?.id && ca.status === 'INVITED');
+
   return (
     <ScreenShell styles={styles}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -323,6 +364,55 @@ export default function LogDetailScreen() {
             </View>
           </Pressable>
         </View>
+
+        {/* ── 2b. Co-author credit ("with @… +N", accepted only) ── */}
+        {acceptedCoAuthors.length > 0 ? (
+          <View style={styles.coAuthorRow}>
+            <AvatarStack
+              avatars={acceptedCoAuthors.slice(0, 3).map((ca) => ({
+                uri: ca.user.avatarUrl ?? null,
+                name: ca.user.displayName || ca.user.username,
+              }))}
+              size={18}
+            />
+            <Text style={styles.coAuthorText} numberOfLines={1}>
+              with <Text style={styles.coAuthorName}>@{acceptedCoAuthors[0].user.username}</Text>
+              {acceptedCoAuthors.length > 1 ? ` +${acceptedCoAuthors.length - 1}` : ''}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* ── 2c. Pending co-author invite for the viewer — accept / decline ── */}
+        {myInvite ? (
+          <View style={styles.inviteBanner}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inviteTitle}>You’re invited to co-author this</Text>
+              <Text style={styles.inviteSub}>Accept and it lands on your timeline too.</Text>
+            </View>
+            <View style={styles.inviteActions}>
+              <SpringPressable
+                onPress={() => void respondInvite(false)}
+                disabled={inviteBusy}
+                haptic="light"
+                style={styles.declineBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Decline co-author invite"
+              >
+                <Text style={styles.declineText}>Decline</Text>
+              </SpringPressable>
+              <SpringPressable
+                onPress={() => void respondInvite(true)}
+                disabled={inviteBusy}
+                haptic="medium"
+                style={styles.acceptBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Accept co-author invite"
+              >
+                <Text style={styles.acceptText}>Accept</Text>
+              </SpringPressable>
+            </View>
+          </View>
+        ) : null}
 
         {/* ── 3. Action row ── */}
         <View style={styles.actionRow}>
@@ -720,6 +810,83 @@ const buildStyles = (tokens: ThemeTokens) =>
     likedByName: {
       fontWeight: '600',
       color: tokens.colors.fg,
+    },
+
+    /* Co-author credit row */
+    coAuthorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingTop: 8,
+    },
+    coAuthorText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '400',
+      color: tokens.colors.mute,
+    },
+    coAuthorName: {
+      fontWeight: '600',
+      color: tokens.colors.fg,
+    },
+
+    /* Pending co-author invite banner */
+    inviteBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: 16,
+      marginTop: 12,
+      padding: 12,
+      borderRadius: tokens.radius.lg,
+      backgroundColor: tokens.colors.card2,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+    },
+    inviteTitle: {
+      fontSize: 13.5,
+      fontWeight: '700',
+      color: tokens.colors.fg,
+    },
+    inviteSub: {
+      fontSize: 12,
+      fontWeight: '400',
+      color: tokens.colors.mute,
+      marginTop: 2,
+    },
+    inviteActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    declineBtn: {
+      height: 34,
+      paddingHorizontal: 14,
+      borderRadius: tokens.radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: tokens.colors.card,
+      borderWidth: 1,
+      borderColor: tokens.colors.line,
+    },
+    declineText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: tokens.colors.mute,
+    },
+    acceptBtn: {
+      height: 34,
+      paddingHorizontal: 16,
+      borderRadius: tokens.radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: tokens.colors.inverseBg,
+    },
+    acceptText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: tokens.colors.inverseFg,
     },
 
     /* Title */

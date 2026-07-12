@@ -6,14 +6,17 @@ import { format } from 'date-fns';
 
 import type { LogEntry } from '../../types/profile';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { BothChip } from './BothChip';
 
 interface CompactLogCardProps {
   log: LogEntry;
   onPress: () => void;
   style?: any;
+  /** A14: viewer has logged this event too — show the mono "BOTH" marker. */
+  showBothMarker?: boolean;
 }
 
-export function CompactLogCard({ log, onPress, style }: CompactLogCardProps) {
+export function CompactLogCard({ log, onPress, style, showBothMarker }: CompactLogCardProps) {
   const { tokens } = useTheme();
   const { event, rating, photos } = log;
   const imageUrl = photos?.[0]?.thumbnailUrl || photos?.[0]?.photoUrl || event.artist.imageUrl || undefined;
@@ -53,6 +56,11 @@ export function CompactLogCard({ log, onPress, style }: CompactLogCardProps) {
       color: t.colors.white, // over dark scrim pill
       fontSize: 11,
       fontWeight: '700',
+    },
+    bothChip: {
+      position: 'absolute',
+      right: 8,
+      top: 8,
     },
     body: {
       padding: 10,
@@ -94,6 +102,7 @@ export function CompactLogCard({ log, onPress, style }: CompactLogCardProps) {
         <View style={styles.datePill}>
           <Text style={styles.dateText}>{dateLabel}</Text>
         </View>
+        {showBothMarker ? <BothChip style={styles.bothChip} /> : null}
       </View>
 
       <View style={styles.body}>

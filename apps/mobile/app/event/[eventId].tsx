@@ -1,18 +1,21 @@
 // Event entity page — breadcrumb → header → your-log/interested actions →
 // who went → FROM THE CROWD (FeedCards → full crowd feed) → SEAT VIEWS
-// (section tile map → per-section sheet) → spoiler-shielded setlist →
-// presales → compact comments.
+// (section tile map → per-section sheet) → spoiler-shielded crowd setlist
+// (confirm/dispute votes) → FIND TICKETS (future shows) → presales →
+// PARTIES (host-run meetups) → compact comments.
 //
 // APIs: GET /events/:id (detail incl. userLog/friends/interested) ·
 // POST/DELETE /events/:id/interested · GET /events/:id/feed (crowd posts) ·
 // GET /events/:id/seat-sections · GET /events/:id/photos (grid fallback) ·
-// GET /events/:id/setlist · GET /presales?artistId= (matched client-side) ·
+// GET /events/:id/setlist (crowd entries) · POST /setlist-entries/:id/confirm ·
+// GET /presales?artistId= (matched client-side) · GET /events/:id/parties ·
 // GET/POST /events/:id/comments.
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   RefreshControl,
   ScrollView,
@@ -34,6 +37,7 @@ import { PresaleCard } from '../../components/entity/PresaleCard';
 import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
 import { SeatSectionTiles } from '../../components/entity/SeatSectionTiles';
 import { SetlistShield } from '../../components/entity/SetlistShield';
+import { PartyRow } from '../../components/party/PartyRow';
 import { FeedCard } from '../../components/feed/FeedCard';
 import { ScoreChip } from '../../components/timeline/ScoreChip';
 import { PillButton } from '../../components/ui/PillButton';
@@ -50,13 +54,15 @@ import {
   getSetlist,
   markInterested,
   removeInterested,
+  voteSetlistEntry,
   type EventPresale,
   type EventSeatSection,
+  type SetlistEntry,
 } from '../../lib/api/events';
+import { getEventParties, type Party } from '../../lib/api/parties';
 import { durations, haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
-import type { SetlistSong } from '../../types/event';
 import type { FeedItem } from '../../types/feed';
 
 type AsyncStatus = 'loading' | 'ready' | 'error';
@@ -85,8 +91,12 @@ export default function EventScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [interestedBusy, setInterestedBusy] = useState(false);
-  const [setlistSongs, setSetlistSongs] = useState<SetlistSong[]>([]);
+  const [setlistEntries, setSetlistEntries] = useState<SetlistEntry[]>([]);
   const [presales, setPresales] = useState<EventPresale[]>([]);
+
+  // Parties — host-run pre/post-show meetups for this event.
+  const [parties, setParties] = useState<Party[]>([]);
+  const [partiesStatus, setPartiesStatus] = useState<AsyncStatus>('loading');
 
   // From the crowd — first page of the event's public memory posts.
   const [crowd, setCrowd] = useState<FeedItem[]>([]);
@@ -122,31 +132,59 @@ export default function EventScreen() {
     }
   }, [id]);
 
+  const loadParties = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await getEventParties(id);
+      setParties(Array.isArray(res?.parties) ? res.parties : []);
+      setPartiesStatus('ready');
+    } catch {
+      setParties([]);
+      setPartiesStatus('error');
+    }
+  }, [id]);
+
   useEffect(() => {
     setCrowdStatus('loading');
     setSeatStatus('loading');
+    setPartiesStatus('loading');
     void loadCrowd();
     void loadSeatSections();
-  }, [loadCrowd, loadSeatSections]);
+    void loadParties();
+  }, [loadCrowd, loadSeatSections, loadParties]);
 
-  // Setlist — the detail payload is used first; the dedicated endpoint
-  // fills in when the detail carries none.
-  useEffect(() => {
+  // Setlist — crowd-sourced entries (the detail payload's `setlist` is a
+  // legacy stub, so the dedicated endpoint is the source of truth).
+  const loadSetlist = useCallback(async () => {
     if (!id) return;
-    let alive = true;
-    void getSetlist(id)
-      .then((data) => {
-        if (!alive) return;
-        const songs = Array.isArray(data?.songs) ? data.songs : Array.isArray(data) ? data : [];
-        setSetlistSongs(songs);
-      })
-      .catch(() => {
-        // setlist is optional — section is simply omitted
-      });
-    return () => {
-      alive = false;
-    };
+    try {
+      const data = await getSetlist(id);
+      setSetlistEntries(Array.isArray(data?.entries) ? data.entries : []);
+    } catch {
+      // setlist is optional — section is simply omitted
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadSetlist();
+  }, [loadSetlist]);
+
+  // Confirm/dispute one setlist entry — server returns the updated entry
+  // (net confirmCount + your vote), which replaces the row in place.
+  const handleSetlistVote = useCallback(async (entryId: string, vote: 'yes' | 'no') => {
+    try {
+      const updated = await voteSetlistEntry(entryId, vote);
+      setSetlistEntries((prev) =>
+        prev.map((e) =>
+          e.id === updated.id
+            ? { ...e, confirmCount: updated.confirmCount, yourVote: updated.yourVote }
+            : e,
+        ),
+      );
+    } catch {
+      haptics.error();
+    }
+  }, []);
 
   // Presales — no per-event endpoint exists; fetch the artist's presales
   // and match this event by same-day date + venue name/city.
@@ -187,6 +225,8 @@ export default function EventScreen() {
         loadPresales(),
         loadCrowd(),
         loadSeatSections(),
+        loadParties(),
+        loadSetlist(),
       ]);
     } finally {
       setRefreshing(false);
@@ -258,6 +298,10 @@ export default function EventScreen() {
       flexWrap: 'wrap',
     },
     section: { marginTop: 28 },
+    ticketPillRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+    partyList: { gap: 10 },
+    partyEmptyText: { fontSize: 13, color: t.colors.mute, lineHeight: 19 },
+    hostPillRow: { flexDirection: 'row', marginTop: 12 },
     crowdCard: { paddingBottom: 22 },
     seeAllRow: { flexDirection: 'row', marginTop: 2 },
     whoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -300,7 +344,6 @@ export default function EventScreen() {
 
   const past = isPast(event.date);
   const userLog = event.userLog ?? null;
-  const songs = event.setlist?.length ? event.setlist : setlistSongs;
   const whoWentPeople = event.friendsWhoWent ?? [];
   const interestedPeople = event.friendsInterested ?? [];
   const facepilePeople = whoWentPeople.length ? whoWentPeople : interestedPeople;
@@ -530,11 +573,57 @@ export default function EventScreen() {
               )}
             </View>
 
-            {/* ── Setlist (only when data exists; spoiler-shielded) ── */}
-            {songs.length > 0 ? (
+            {/* ── Setlist (crowd-sourced; only when entries exist; spoiler-shielded) ── */}
+            {setlistEntries.length > 0 ? (
               <View style={styles.section}>
                 <SectionLabel>Setlist</SectionLabel>
-                <SetlistShield songs={songs} />
+                <SetlistShield
+                  entries={setlistEntries}
+                  onVote={(entryId, vote) => void handleSetlistVote(entryId, vote)}
+                />
+              </View>
+            ) : null}
+
+            {/* ── Find tickets (future shows only) ── */}
+            {/* Interim plain search link-outs until affiliate links land — */}
+            {/* swap these URLs for the affiliate builders when available.  */}
+            {!past ? (
+              <View style={styles.section}>
+                <SectionLabel>Find tickets</SectionLabel>
+                <View style={styles.ticketPillRow}>
+                  <PillButton
+                    title="Ticketmaster"
+                    variant="secondary"
+                    springFeedback
+                    haptic="light"
+                    icon={
+                      <Ionicons name="open-outline" size={13} color={tokens.colors.mute} />
+                    }
+                    onPress={() =>
+                      void Linking.openURL(
+                        `https://www.ticketmaster.com/search?q=${encodeURIComponent(
+                          event.artist.name,
+                        )}`,
+                      )
+                    }
+                  />
+                  <PillButton
+                    title="StubHub"
+                    variant="secondary"
+                    springFeedback
+                    haptic="light"
+                    icon={
+                      <Ionicons name="open-outline" size={13} color={tokens.colors.mute} />
+                    }
+                    onPress={() =>
+                      void Linking.openURL(
+                        `https://www.stubhub.com/secure/search?q=${encodeURIComponent(
+                          `${event.artist.name} ${event.venue.city}`,
+                        )}`,
+                      )
+                    }
+                  />
+                </View>
               </View>
             ) : null}
 
@@ -545,6 +634,71 @@ export default function EventScreen() {
                 <PresaleCard presales={presales} />
               </View>
             ) : null}
+
+            {/* ── Parties (host-run meetups) ── */}
+            <View style={styles.section}>
+              <SectionLabel>Parties</SectionLabel>
+              {partiesStatus === 'loading' ? (
+                <View style={{ gap: 10 }}>
+                  <ShimmerBlock height={78} borderRadius={tokens.radius.lg} />
+                  <ShimmerBlock width="46%" height={12} borderRadius={6} />
+                </View>
+              ) : parties.length > 0 ? (
+                <View style={styles.partyList}>
+                  {parties.map((party, i) => (
+                    <Animated.View
+                      key={party.id}
+                      entering={FadeInDown.delay(Math.min(i, 8) * durations.stagger).duration(
+                        240,
+                      )}
+                    >
+                      <PartyRow
+                        party={party}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/party/[id]',
+                            params: { id: party.id, eventName: event.name },
+                          })
+                        }
+                      />
+                    </Animated.View>
+                  ))}
+                </View>
+              ) : (
+                <SpringPressable
+                  haptic="light"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/party/create',
+                      params: { eventId: id, eventName: event.name, eventDate: event.date },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Host a party"
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  <Text style={styles.partyEmptyText}>
+                    {partiesStatus === 'error'
+                      ? "Couldn't load parties — host one anyway."
+                      : 'No parties yet — host one.'}
+                  </Text>
+                </SpringPressable>
+              )}
+              <View style={styles.hostPillRow}>
+                <PillButton
+                  title="Host a party"
+                  variant="ghost"
+                  springFeedback
+                  haptic="light"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/party/create',
+                      params: { eventId: id, eventName: event.name, eventDate: event.date },
+                    })
+                  }
+                />
+              </View>
+            </View>
 
             {/* ── Comments ── */}
             <View style={styles.section}>

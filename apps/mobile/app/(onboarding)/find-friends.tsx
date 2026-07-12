@@ -1,7 +1,9 @@
-// ONBOARDING · FIND FRIENDS — contact-sync value prop + suggested users.
-// Suggestions load on mount (/users/suggestions); "Sync contacts" runs the
-// existing contacts wiring (useContactsSync → /users/contacts-sync). Follow
-// pills call /users/:id/follow. Continue / Skip → done.
+// ONBOARDING · FIND FRIENDS — A4: OPTIONAL (résumé lane), no longer a gate.
+// Reached from the radar's "Find your people" tertiary and from the feed's
+// empty state; Done/Skip pop back to wherever the user came from. Contact-
+// sync value prop + suggested users: suggestions load on mount
+// (/users/suggestions); "Sync contacts" runs the existing contacts wiring
+// (useContactsSync → /users/contacts-sync). Follow pills → /users/:id/follow.
 
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -11,7 +13,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { ProgressDots } from '../../components/onboarding/ProgressDots';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { followUser } from '../../lib/api/profile';
@@ -159,12 +160,14 @@ export default function FindFriendsOnboarding() {
     footer: { paddingHorizontal: t.density.pad, paddingTop: 12, paddingBottom: 12, gap: 10 },
   }));
 
+  // Optional screen — leave the way you came in (radar, feed empty state, …).
+  const close = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/home');
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <ProgressDots total={6} current={5} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Animated.Text entering={FadeInDown.duration(300)} style={styles.title}>
           Find your people
@@ -218,11 +221,11 @@ export default function FindFriendsOnboarding() {
 
       <View style={styles.footer}>
         <PillButton
-          title={followedCount ? `Continue · following ${followedCount}` : 'Continue'}
+          title={followedCount ? `Done · following ${followedCount}` : 'Done'}
           size="lg"
           springFeedback
           haptic="light"
-          onPress={() => router.push('/(onboarding)/done')}
+          onPress={close}
         />
         {followedCount === 0 ? (
           <PillButton
@@ -230,7 +233,7 @@ export default function FindFriendsOnboarding() {
             variant="ghost"
             size="lg"
             springFeedback
-            onPress={() => router.push('/(onboarding)/done')}
+            onPress={close}
           />
         ) : null}
       </View>

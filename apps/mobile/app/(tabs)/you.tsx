@@ -44,6 +44,7 @@ import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import type { ProfileStats } from '../../types/profile';
 
+import { AgendaPin } from '../../components/agenda/AgendaPin';
 import { CompactLogRow } from '../../components/timeline/CompactLogRow';
 import { FloatCard } from '../../components/timeline/FloatCard';
 import { MemoryCard } from '../../components/timeline/MemoryCard';
@@ -56,6 +57,7 @@ import { TodayDivider } from '../../components/timeline/TodayDivider';
 import { monthLabel } from '../../components/timeline/format';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
+import { WrappedChip } from '../../components/wrapped/WrappedChip';
 
 const PAGE_SIZE = 30;
 // Rows past this index skip the entrance stagger (they mount mid-scroll).
@@ -158,7 +160,7 @@ function BrandMark({ size = 44 }: { size?: number }) {
   );
 }
 
-function EmptyTimeline({ onLog }: { onLog: () => void }) {
+function EmptyTimeline({ onLog, onBackfill }: { onLog: () => void; onBackfill: () => void }) {
   const styles = useThemedStyles((t) => ({
     wrap: {
       flex: 1,
@@ -189,11 +191,13 @@ function EmptyTimeline({ onLog }: { onLog: () => void }) {
       <Text style={styles.title}>Your live-events life starts here</Text>
       <Text style={styles.sub}>Log your first show — past shows count.</Text>
       <PillButton title="Log a show" variant="primary" size="lg" onPress={onLog} springFeedback haptic="light" />
+      {/* Résumé lane (A3): recognition-card backfill of past shows. */}
+      <PillButton title="Add your past shows (2 min)" variant="ghost" size="lg" onPress={onBackfill} springFeedback />
     </Animated.View>
   );
 }
 
-function EmptyPastBlock({ onLog }: { onLog: () => void }) {
+function EmptyPastBlock({ onLog, onBackfill }: { onLog: () => void; onBackfill: () => void }) {
   const styles = useThemedStyles((t) => ({
     wrap: {
       alignItems: 'center',
@@ -221,6 +225,8 @@ function EmptyPastBlock({ onLog }: { onLog: () => void }) {
       <Text style={styles.title}>No past shows yet</Text>
       <Text style={styles.sub}>Log your first show — past shows count.</Text>
       <PillButton title="Log a show" variant="primary" onPress={onLog} springFeedback haptic="light" />
+      {/* Résumé lane (A3): recognition-card backfill of past shows. */}
+      <PillButton title="Add your past shows (2 min)" variant="ghost" onPress={onBackfill} springFeedback />
     </View>
   );
 }
@@ -473,6 +479,17 @@ export default function YouScreen() {
     return { logId: top.logId, total: stats?.shows ?? entries.length };
   }, [months, nextCursor, stats]);
 
+  // WRAPPED entry gate — cheap check on already-loaded timeline data: the
+  // "'26 Wrapped" chip only appears once the current year holds ≥3 shows.
+  const currentYear = new Date().getFullYear();
+  const currentYearShows = useMemo(() => {
+    const prefix = `${currentYear}-`;
+    return months.reduce(
+      (n, month) => (month.key.startsWith(prefix) ? n + month.entries.length : n),
+      0,
+    );
+  }, [months, currentYear]);
+
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     if (upcoming.length > 0) {
@@ -564,6 +581,7 @@ export default function YouScreen() {
     [router],
   );
   const openLogFlow = useCallback(() => router.push('/log/search'), [router]);
+  const openBackfill = useCallback(() => router.push('/(onboarding)/backfill'), [router]);
   const openSettings = useCallback(() => router.push('/settings'), [router]);
   const openEditProfile = useCallback(() => router.push('/edit-profile'), [router]);
 
@@ -670,12 +688,12 @@ export default function YouScreen() {
         case 'emptyPast':
           return (
             <Animated.View entering={entering} onLayout={reportLayout}>
-              <EmptyPastBlock onLog={openLogFlow} />
+              <EmptyPastBlock onLog={openLogFlow} onBackfill={openBackfill} />
             </Animated.View>
           );
       }
     },
-    [styles, scrollY, openEvent, openLog, openLogFlow, topRank, onRowLayout],
+    [styles, scrollY, openEvent, openLog, openLogFlow, openBackfill, topRank, onRowLayout],
   );
 
   // ── Render ────────────────────────────────────────────────────
@@ -753,7 +771,7 @@ export default function YouScreen() {
           refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
         >
-          <EmptyTimeline onLog={openLogFlow} />
+          <EmptyTimeline onLog={openLogFlow} onBackfill={openBackfill} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -766,6 +784,12 @@ export default function YouScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       {header}
+      {/* A6/A10 — pinned agenda card (TONIGHT beats LAST NIGHT), above the timeline. */}
+      <AgendaPin />
+      {/* Wrapped entry — slim pill, only once this year has ≥3 shows. */}
+      {currentYearShows >= 3 ? (
+        <WrappedChip year={currentYear} onPress={() => router.push('/wrapped')} />
+      ) : null}
       <View style={styles.toggleBar}>
         <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
       </View>

@@ -33,5 +33,19 @@ export interface ConnectedService {
   icon: string;
 }
 
+// ── Discovery dials (additive) ───────────────────────────────────
+// Backed by GET /auth/me (hydration) + PATCH /users/me/discovery (writes).
+
+export type DiscoveryRadius = 'OFF' | 'FRIENDS' | 'FOF' | 'EVERYONE';
+
+export interface DiscoverySettings {
+  /** Who can see you were logged into the same show. */
+  sameShowRadius: DiscoveryRadius;
+  /** Who your taste-based suggestions reach. */
+  tasteRadius: DiscoveryRadius;
+  /** Whether your public memories show up in event galleries. */
+  showInGalleries: boolean;
+}
+
 
 

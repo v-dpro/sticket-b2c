@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { LogEntry, ProfileStats, UserBadge, UserProfile, VenueMarker } from '../../types/profile';
+import type { DiscoverySettings } from '../../types/settings';
 
 // Get user profile
 export async function getUserProfile(userId: string): Promise<UserProfile> {
@@ -63,6 +64,34 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
   return response.data;
 }
 
+// ── Shared history ("YOU × THEM") ──────────────────────────────────
+
+export type SharedHistoryEntry = {
+  eventId: string;
+  eventName: string;
+  date: string; // ISO
+  venueName: string;
+  yourScore: number | null;
+  theirScore: number | null;
+};
+
+export type SharedHistory = {
+  /** Total events both the viewer and this user have logged (visible side only). */
+  sharedCount: number;
+  /** Count of artists both users follow. */
+  artistOverlap: number;
+  /** One of the overlapping artists' names, for "You both follow X" copy. */
+  topSharedArtist: string | null;
+  /** Shared events, newest show first, capped at 50. */
+  entries: SharedHistoryEntry[];
+};
+
+// Get the overlap between the signed-in viewer and another user.
+export async function getSharedHistory(userId: string): Promise<SharedHistory> {
+  const response = await apiClient.get(`/users/${userId}/shared-history`);
+  return response.data;
+}
+
 // Follow user
 export async function followUser(userId: string): Promise<void> {
   await apiClient.post(`/users/${userId}/follow`);
@@ -100,6 +129,35 @@ export async function getFollowing(
     params: options,
   });
   return response.data;
+}
+
+// ── Discovery dials (additive) ─────────────────────────────────────
+// GET /auth/me carries sameShowRadius / tasteRadius / showInGalleries
+// alongside the rest of the profile payload; PATCH /users/me/discovery
+// writes them back. Enums: OFF | FRIENDS | FOF | EVERYONE.
+
+export async function getMyDiscoverySettings(): Promise<DiscoverySettings> {
+  const response = await apiClient.get('/auth/me');
+  const data = (response.data ?? {}) as Partial<DiscoverySettings>;
+  return {
+    sameShowRadius: data.sameShowRadius ?? 'OFF',
+    tasteRadius: data.tasteRadius ?? 'OFF',
+    showInGalleries: Boolean(data.showInGalleries),
+  };
+}
+
+// Response only echoes back whatever the server persisted; callers should
+// merge this into existing state rather than replace it wholesale.
+export async function updateDiscoverySettings(
+  updates: Partial<DiscoverySettings>
+): Promise<Partial<DiscoverySettings>> {
+  const response = await apiClient.patch('/users/me/discovery', updates);
+  const data = (response.data ?? {}) as Partial<DiscoverySettings>;
+  const result: Partial<DiscoverySettings> = {};
+  if (data.sameShowRadius) result.sameShowRadius = data.sameShowRadius;
+  if (data.tasteRadius) result.tasteRadius = data.tasteRadius;
+  if (typeof data.showInGalleries === 'boolean') result.showInGalleries = data.showInGalleries;
+  return result;
 }
 
 // Upload avatar

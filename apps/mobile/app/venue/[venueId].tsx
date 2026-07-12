@@ -31,18 +31,20 @@ import {
 import { formatScore } from '../../components/entity/format';
 import { SeatViewsGrid } from '../../components/entity/SeatViewsGrid';
 import { TipsList } from '../../components/entity/TipsList';
+import { QASection } from '../../components/venue-qa/QASection';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
 import { useSeatViews } from '../../hooks/useSeatViews';
 import { useVenue } from '../../hooks/useVenue';
+import { useVenueQuestions } from '../../hooks/useVenueQuestions';
 import { useVenueTips } from '../../hooks/useVenueTips';
 import { haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { VenueDetails } from '../../types/venue';
 
-type VenueTab = 'info' | 'seats' | 'tips';
+type VenueTab = 'info' | 'seats' | 'tips' | 'qa';
 
 const RATING_ROWS: { key: keyof VenueDetails['ratings']; label: string }[] = [
   { key: 'sound', label: 'Sound' },
@@ -74,6 +76,7 @@ export default function VenueScreen() {
   const { venue, loading, error, refetch } = useVenue(id);
   const seatViewsState = useSeatViews(id);
   const tipsState = useVenueTips(id);
+  const qaState = useVenueQuestions(id);
 
   const [tab, setTab] = useState<VenueTab>('info');
   const [tipsAutoFocus, setTipsAutoFocus] = useState(false);
@@ -82,7 +85,7 @@ export default function VenueScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetch(), seatViewsState.refresh(), tipsState.refresh()]);
+      await Promise.all([refetch(), seatViewsState.refresh(), tipsState.refresh(), qaState.refresh()]);
     } finally {
       setRefreshing(false);
     }
@@ -265,6 +268,7 @@ export default function VenueScreen() {
               <Chip label="Info" active={tab === 'info'} onPress={() => setTab('info')} />
               <Chip label="Seat views" active={tab === 'seats'} onPress={() => setTab('seats')} />
               <Chip label="Tips" active={tab === 'tips'} onPress={() => setTab('tips')} />
+              <Chip label="Q&A" active={tab === 'qa'} onPress={() => setTab('qa')} />
             </View>
 
             {/* ── INFO ── */}
@@ -406,6 +410,19 @@ export default function VenueScreen() {
                   autoFocusComposer={tipsAutoFocus}
                 />
               )
+            ) : null}
+
+            {/* ── Q&A ── */}
+            {tab === 'qa' ? (
+              <QASection
+                questions={qaState.questions}
+                loading={qaState.loading}
+                error={qaState.error}
+                onAsk={qaState.askQuestion}
+                onAnswer={qaState.answerQuestion}
+                onToggleUpvote={qaState.toggleUpvote}
+                onRetry={qaState.refresh}
+              />
             ) : null}
           </View>
         </ScrollView>

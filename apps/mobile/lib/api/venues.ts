@@ -1,5 +1,15 @@
 import { apiClient } from './client';
-import type { SeatView, VenueDetails, VenueRatingsSubmission, VenueShow, VenueTip } from '../../types/venue';
+import type {
+  SeatView,
+  VenueAnswerUpvoteResult,
+  VenueDetails,
+  VenueQuestion,
+  VenueQuestionAnswer,
+  VenueQuestionsResponse,
+  VenueRatingsSubmission,
+  VenueShow,
+  VenueTip,
+} from '../../types/venue';
 
 // Get venue details
 export async function getVenue(venueId: string): Promise<VenueDetails> {
@@ -118,6 +128,33 @@ export async function submitSeatRating(venueId: string, data: SeatRatingSubmissi
   return response.data;
 }
 
+// ---------------------------------------------------------------------------
+// Venue Q&A (additive)
+// ---------------------------------------------------------------------------
+// GET /venues/:id/questions · POST /venues/:id/questions ·
+// POST /questions/:id/answers · POST /answers/:id/upvote (toggle).
+
+export async function getVenueQuestions(venueId: string): Promise<VenueQuestionsResponse> {
+  const response = await apiClient.get(`/venues/${venueId}/questions`);
+  return response.data;
+}
+
+export async function submitVenueQuestion(venueId: string, text: string): Promise<VenueQuestion> {
+  const response = await apiClient.post(`/venues/${venueId}/questions`, { text });
+  return response.data;
+}
+
+export async function submitQuestionAnswer(questionId: string, text: string): Promise<VenueQuestionAnswer> {
+  const response = await apiClient.post(`/questions/${questionId}/answers`, { text });
+  return response.data;
+}
+
+// Toggles the caller's upvote on an answer; the server reports the resulting state.
+export async function toggleAnswerUpvote(answerId: string): Promise<VenueAnswerUpvoteResult> {
+  const response = await apiClient.post(`/answers/${answerId}/upvote`);
+  return response.data;
+}
+
 // Submit seat view (multipart)
 export async function submitSeatView(
   venueId: string,
@@ -133,6 +170,43 @@ export async function submitSeatView(
       uri: data.photo.uri,
       type: 'image/jpeg',
       name: 'seat-view.jpg',
+    } as any
+  );
+
+  const response = await apiClient.post(`/venues/${venueId}/seat-views`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return response.data;
+}
+
+// Upload a seat-view photo together with its 1-5 rating (multipart). Pairs the
+// star rating and the sightline photo onto a single SeatView so "snap the view
+// from your seat" carries both. Mirrors uploadLogPhoto's FormData construction;
+// rating/eventId are optional. Callers fall back to submitSeatRating when there
+// is a rating but no photo.
+export async function uploadSeatView(
+  venueId: string,
+  data: {
+    photo: { uri: string; type?: string; name?: string };
+    section: string;
+    row?: string;
+    rating?: number;
+    eventId?: string;
+  }
+): Promise<SeatView> {
+  const formData = new FormData();
+  formData.append('section', data.section);
+  if (data.row) formData.append('row', data.row);
+  if (typeof data.rating === 'number' && data.rating > 0) formData.append('rating', String(data.rating));
+  if (data.eventId) formData.append('eventId', data.eventId);
+
+  formData.append(
+    'photo',
+    {
+      uri: data.photo.uri,
+      type: data.photo.type || 'image/jpeg',
+      name: data.photo.name || 'seat-view.jpg',
     } as any
   );
 

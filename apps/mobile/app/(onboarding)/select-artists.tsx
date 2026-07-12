@@ -1,6 +1,9 @@
-// ONBOARDING · SELECT ARTISTS — a grid of artist tiles (circle image + name;
-// selected = ink-inverted ring + check). Data source is unchanged: your
-// Spotify top artists, or a debounced /artists/search. Continue → presale.
+// ONBOARDING · SELECT ARTISTS — the minimal artist-pick FALLBACK inside the
+// required lane, reached only when Spotify is skipped (a connected user's
+// top artists are followed server-side already). Grid of artist tiles
+// (circle image + name; selected = ink-inverted ring + check); data source
+// unchanged: Spotify top artists or a debounced /artists/search. Continue
+// best-effort bulk-follows the picks (the radar reads server follows) → radar.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -21,6 +24,7 @@ import { ProgressDots } from '../../components/onboarding/ProgressDots';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { searchArtists } from '../../lib/api/artists';
+import { apiClient } from '../../lib/api/client';
 import { durations } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
@@ -139,6 +143,7 @@ export default function SelectArtistsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ArtistOption[]>([]);
   const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -191,16 +196,36 @@ export default function SelectArtistsScreen() {
   const gap = 16;
   const tileSize = Math.floor((width - pad * 2 - gap * 2) / 3);
 
-  const handleContinue = () => {
-    if (!canContinue) return;
+  const handleContinue = async () => {
+    if (!canContinue || saving) return;
     setSelectedArtists(selectedArtists as any);
-    router.push('/(onboarding)/presale-preview');
+    setSaving(true);
+    try {
+      // The radar reads server-side follows — persist the picks first.
+      // Idempotent: the server upserts.
+      await apiClient.post('/users/me/artists/bulk-follow', {
+        artists: selectedArtists.map((a) => ({
+          spotifyId: a.spotifyId,
+          name: a.name,
+          imageUrl: a.imageUrl,
+          genres: a.genres,
+          tier: a.tier,
+        })),
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to bulk-follow during onboarding:', e);
+      // Proceed anyway; the radar has catalog fallbacks.
+    } finally {
+      setSaving(false);
+      router.push('/(onboarding)/radar');
+    }
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: pad, paddingTop: 8, paddingBottom: 4 }}>
-        <ProgressDots total={6} current={2} />
+        <ProgressDots total={3} current={1} />
       </View>
 
       <View style={{ paddingHorizontal: pad, paddingTop: 20, gap: 10 }}>
@@ -305,12 +330,12 @@ export default function SelectArtistsScreen() {
         }}
       >
         <PillButton
-          title={canContinue ? 'Continue' : `Pick ${MIN_PICKS - count} more`}
+          title={saving ? 'Setting up…' : canContinue ? 'Continue' : `Pick ${MIN_PICKS - count} more`}
           size="lg"
           springFeedback
           haptic="light"
-          disabled={!canContinue}
-          onPress={handleContinue}
+          disabled={!canContinue || saving}
+          onPress={() => void handleContinue()}
         />
       </View>
     </SafeAreaView>

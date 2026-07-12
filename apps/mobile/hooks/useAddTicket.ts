@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { promoteInterestedToGoing } from '../lib/api/events';
 import { addTicket, searchEventsForTicket } from '../lib/api/tickets';
 import type { AddTicketData, Ticket } from '../types/ticket';
 
@@ -31,6 +32,8 @@ export function useAddTicket() {
     setLoading(true);
     try {
       const ticket = await addTicket(data);
+      // A18: a ticket means you're going — silently clear any "interested" mark.
+      if (ticket?.event?.id) void promoteInterestedToGoing(ticket.event.id);
       return ticket;
     } catch (err) {
       // eslint-disable-next-line no-console

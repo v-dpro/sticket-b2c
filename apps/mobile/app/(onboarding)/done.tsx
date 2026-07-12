@@ -39,7 +39,7 @@ export default function DoneOnboarding() {
       lineHeight: 23,
       marginTop: -6,
     },
-    footer: { paddingHorizontal: t.density.pad, paddingBottom: 12 },
+    footer: { paddingHorizontal: t.density.pad, paddingBottom: 12, gap: 10 },
   }));
 
   const finish = async () => {
@@ -82,6 +82,15 @@ export default function DoneOnboarding() {
           disabled={saving}
           icon={saving ? <ActivityIndicator size="small" color={tokens.colors.inverseFg} /> : undefined}
           onPress={() => void finish()}
+        />
+        {/* Résumé lane (A3) — optional, never a gate. */}
+        <PillButton
+          title="Add your past shows (2 min)"
+          variant="ghost"
+          size="lg"
+          springFeedback
+          disabled={saving}
+          onPress={() => router.push('/(onboarding)/backfill')}
         />
       </Animated.View>
     </SafeAreaView>

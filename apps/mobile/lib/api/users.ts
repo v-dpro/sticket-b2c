@@ -1,7 +1,9 @@
 export {
   getFollowers,
   getFollowing,
+  getMyDiscoverySettings,
   getMyProfile,
+  getSharedHistory,
   getUserBadges,
   getUserLogs,
   getUserProfile,
@@ -9,11 +11,12 @@ export {
   getUserVenueMarkers,
   followUser,
   unfollowUser,
+  updateDiscoverySettings,
   updateProfile,
   uploadAvatar,
 } from './profile';
 
-export type { FollowUserListItem } from './profile';
+export type { FollowUserListItem, SharedHistory, SharedHistoryEntry } from './profile';
 
 
 

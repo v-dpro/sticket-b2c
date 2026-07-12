@@ -1,6 +1,7 @@
 // ONBOARDING · WELCOME — the front door of the flow. Brand-gradient mark
 // (the one sanctioned gradient moment), one-line promise, and a three-line
-// "what you get" that staggers in. Primary Continue → set-city.
+// "what you get" that staggers in. Step 1 of the 3-step required lane;
+// primary Continue → connect-spotify (city is folded into the radar, A2).
 
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -59,7 +60,7 @@ export default function WelcomeOnboarding() {
 
   const onContinue = () => {
     markWelcomeSeen();
-    router.push('/(onboarding)/set-city');
+    router.push('/(onboarding)/connect-spotify');
   };
 
   return (
