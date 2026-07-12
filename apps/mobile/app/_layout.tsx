@@ -1,10 +1,11 @@
 import 'react-native-gesture-handler';
 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { View, StyleSheet, LogBox } from 'react-native';
+import { StyleSheet, LogBox } from 'react-native';
 import { useFonts } from 'expo-font';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_600SemiBold, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 
@@ -12,7 +13,6 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { initAnalytics, identify, reset as resetAnalytics } from '../lib/analytics';
 import { initSentry, setUser as setSentryUser } from '../lib/errorTracking/sentry';
-import { durations } from '../lib/motion';
 import { setupDeepLinkHandler } from '../lib/share/deepLinks';
 import { useSession } from '../hooks/useSession';
 import { ThemeProvider, useTheme } from '../lib/theme-context';
@@ -146,19 +146,25 @@ function RootShell() {
   }, [isLoading, fontsLoaded]);
 
   return (
-    <View style={[styles.container, { backgroundColor: tokens.colors.bg }]}>
+    // GestureHandlerRootView at the very root — GestureDetector surfaces
+    // (memory deck, backfill swipe cards) die without it.
+    <GestureHandlerRootView style={[styles.container, { backgroundColor: tokens.colors.bg }]}>
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <ErrorBoundary>
         <Stack
           screenOptions={{
             headerShown: false,
-            // Motion contract: screen transitions are a 200ms fade-through.
-            animation: 'fade',
-            animationDuration: durations.fadeThrough,
+            // Motion contract: navigation uses the native push (slide + swipe-
+            // back). Fades are reserved for in-place view swaps, never routes.
+            animation: 'default',
             contentStyle: { backgroundColor: tokens.colors.bg },
           }}
         >
-          {/* Floating memory viewer — transparent modal so the feed ghosts through. */}
+          {/* Compose flows present as sheets, not pushes. */}
+          <Stack.Screen name="log" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="wrapped/index" options={{ presentation: 'fullScreenModal' }} />
+          {/* Floating memory viewer — transparent modal so the feed ghosts through.
+              The card itself springs in; the fade here is only the backdrop. */}
           <Stack.Screen
             name="memory/[logId]"
             options={{
@@ -169,7 +175,7 @@ function RootShell() {
           />
         </Stack>
       </ErrorBoundary>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 

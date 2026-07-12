@@ -9,9 +9,8 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: tokens.colors.bg },
-        // Fade-through transition, 200ms — the motion contract for screens.
-        animation: 'fade',
-        animationDuration: 200,
+        // Native push — each onboarding step slides forward, swipe-back works.
+        animation: 'default',
         gestureEnabled: true,
       }}
     >

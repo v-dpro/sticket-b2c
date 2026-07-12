@@ -10,8 +10,7 @@ export default function AuthLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: tokens.colors.bg },
-        animation: 'fade',
-        animationDuration: 200,
+        animation: 'default',
       }}
     />
   );

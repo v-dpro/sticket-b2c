@@ -19,9 +19,10 @@ import {
 //
 //   1. PRESS      — every pressable scales to 0.97 on press-down (80ms
 //                   ease-out) and springs back on release (springs.press).
-//   2. TRANSITION — screen transitions are a fade-through: 200ms
-//                   (durations.fadeThrough), outgoing fades before
-//                   incoming.
+//   2. TRANSITION — navigation is the NATIVE push (slide + interactive
+//                   swipe-back); compose flows present as modal sheets.
+//                   Fades (durations.fadeThrough) are only for in-place
+//                   view swaps within a screen — never for routes.
 //   3. LISTS      — list/grid items stagger in at 40ms per row
 //                   (durations.stagger).
 //   4. REVEAL     — the log-show reveal choreography fires at

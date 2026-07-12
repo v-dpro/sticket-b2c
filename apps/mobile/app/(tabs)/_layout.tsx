@@ -35,8 +35,8 @@ export default function TabsLayout() {
       screenListeners={{ tabPress: () => haptics.light() }}
       screenOptions={{
         headerShown: false,
-        // Tab → tab: crossfade, no slide (motion contract).
-        animation: 'fade',
+        // Tab → tab: instant, like every native iOS tab bar. No crossfade.
+        animation: 'none',
         sceneStyle: { backgroundColor: c.bg },
         tabBarStyle: {
           backgroundColor: c.bg,

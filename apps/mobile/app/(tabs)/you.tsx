@@ -1,12 +1,11 @@
-// app/(tabs)/you.tsx — THE TIMELINE, as a MEMORY CAROUSEL. Your live-events
-// life on one scroll: profile header (pinned) → FUTURE plans → brand-gradient
-// TODAY divider → PAST months, newest first. Memory cards are the carousel:
-// the vertical list center-snaps each memory card to the viewport center
-// (snapToOffsets computed from an onLayout height registry — see the
-// "Carousel snap mechanics" block below), where FloatCard's strong curve
-// makes the settled card dominant while neighbors recede (curve="memory";
-// plan/compact/marker rows keep the gentle float and travel between snaps).
-// Inside a card, extra photos of that memory page horizontally (MemoryCard).
+// app/(tabs)/you.tsx — THE TIMELINE, as a FLOATING MEMORY DECK. The screen
+// itself never scrolls: a fixed stage holds the centered card on its own
+// floating surface while neighbors recede behind it, a vertical swipe moves
+// the CARDS through the stage (spring settle, haptic click per card, firmer
+// tick on month crossings), and the fixed readout above the stage carries
+// the month as it changes — MemoryDeck owns those mechanics. Deck order is
+// chronological: furthest-out plan first, then TODAY's neighbors, then past
+// months newest→oldest. The 2D map view (Scroll ⇄ Map toggle) is unchanged.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -15,10 +14,6 @@ import {
   ScrollView,
   Text,
   View,
-  useWindowDimensions,
-  type FlatList,
-  type HostInstance,
-  type ListRenderItemInfo,
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,8 +23,6 @@ import Animated, {
   FadeIn,
   FadeInDown,
   interpolate,
-  runOnJS,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -39,52 +32,30 @@ import Animated, {
 import { getUserTimeline, type TimelineEntry, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
 import { getUserStats } from '../../lib/api/profile';
 import { getErrorMessage } from '../../lib/api/errorUtils';
-import { durations, haptics } from '../../lib/motion';
+import { durations } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import type { ProfileStats } from '../../types/profile';
 
 import { AgendaPin } from '../../components/agenda/AgendaPin';
 import { CompactLogRow } from '../../components/timeline/CompactLogRow';
-import { FloatCard } from '../../components/timeline/FloatCard';
 import { MemoryCard } from '../../components/timeline/MemoryCard';
-import { MonthMarker } from '../../components/timeline/MonthMarker';
+import { MemoryDeck, type DeckItem, type MemoryDeckHandle } from '../../components/timeline/MemoryDeck';
 import { PlanCard } from '../../components/timeline/PlanCard';
 import { TimelineHeader } from '../../components/timeline/TimelineHeader';
 import { TimelineMapView } from '../../components/timeline/TimelineMapView';
 import { TimelineViewToggle, type TimelineViewMode } from '../../components/timeline/TimelineViewToggle';
-import { TodayDivider } from '../../components/timeline/TodayDivider';
 import { monthLabel } from '../../components/timeline/format';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
 import { WrappedChip } from '../../components/wrapped/WrappedChip';
 
 const PAGE_SIZE = 30;
-// Rows past this index skip the entrance stagger (they mount mid-scroll).
-const STAGGER_CUTOFF = 12;
 // Map view backfills the rest of history when opened (it's only meaningful
 // complete) — hard cap on how many extra pages it may pull.
 const MAP_BACKFILL_MAX_PAGES = 10;
-// List content paddingTop — the snap-offset walk must start from the same
-// origin the contentContainerStyle uses.
-const CONTENT_TOP_PAD = 16;
-// A memory card's photo is 63% of its width (MemoryCard aspectRatio 100/63).
-const MEMORY_ASPECT = 0.63;
-// Momentum may only rest ON a snap offset (or in a free zone) — this is the
-// match tolerance for deciding which, in px.
-const SNAP_SETTLE_TOLERANCE = 8;
 
-// ─── Flattened list rows ───────────────────────────────────────────
-
-type Row =
-  | { kind: 'label'; key: string; text: string }
-  | { kind: 'plan'; key: string; item: TimelineUpcomingItem }
-  | { kind: 'today'; key: string }
-  | { kind: 'month'; key: string; label: string }
-  | { kind: 'entry'; key: string; entry: TimelineEntry }
-  | { kind: 'emptyPast'; key: string };
-
-/** Shared + photographed ⇒ memory card (the carousel's snap targets). */
+/** Shared + photographed ⇒ full memory card; otherwise the quiet row. */
 function isMemoryEntry(entry: TimelineEntry): boolean {
   return entry.sharedAt !== null && entry.photos.length > 0;
 }
@@ -197,40 +168,6 @@ function EmptyTimeline({ onLog, onBackfill }: { onLog: () => void; onBackfill: (
   );
 }
 
-function EmptyPastBlock({ onLog, onBackfill }: { onLog: () => void; onBackfill: () => void }) {
-  const styles = useThemedStyles((t) => ({
-    wrap: {
-      alignItems: 'center',
-      paddingVertical: 28,
-      paddingHorizontal: t.density.pad,
-      gap: 6,
-    },
-    title: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: t.colors.fg,
-      textAlign: 'center',
-    },
-    sub: {
-      fontSize: 13,
-      fontWeight: '400',
-      color: t.colors.mute,
-      textAlign: 'center',
-      marginBottom: 10,
-    },
-  }));
-
-  return (
-    <View style={styles.wrap}>
-      <Text style={styles.title}>No past shows yet</Text>
-      <Text style={styles.sub}>Log your first show — past shows count.</Text>
-      <PillButton title="Log a show" variant="primary" onPress={onLog} springFeedback haptic="light" />
-      {/* Résumé lane (A3): recognition-card backfill of past shows. */}
-      <PillButton title="Add your past shows (2 min)" variant="ghost" onPress={onBackfill} springFeedback />
-    </View>
-  );
-}
-
 // ─── Screen ────────────────────────────────────────────────────────
 
 export default function YouScreen() {
@@ -251,108 +188,17 @@ export default function YouScreen() {
 
   // View mode — per-session only (deliberately not persisted).
   const [viewMode, setViewMode] = useState<TimelineViewMode>('scroll');
-  const listRef = useRef<FlatList<Row>>(null);
-  // Row key a map-marker tap wants the scroll view to land on.
+  const deckRef = useRef<MemoryDeckHandle>(null);
+  // Deck key a map-marker tap wants the stage to land on.
   const pendingScrollKey = useRef<string | null>(null);
   // Pages pulled by the map's backfill loop (counts toward the hard cap).
   const mapBackfillPages = useRef(0);
-
-  // ── Carousel snap mechanics ───────────────────────────────────
-  // The flattened rows are variable-height, so per-row offsets are built
-  // from an onLayout height registry: every row wrapper reports its height
-  // (row spacing is PADDING on the wrapper — not margin — precisely so one
-  // onLayout captures the row's full extent), and rows the virtualized list
-  // hasn't mounted yet fall back to per-kind estimates (memory cards are
-  // width-derived, so their "estimate" is exact). The snapOffsets memo
-  // below walks the rows accumulating heights; each MEMORY row contributes
-  // one offset that puts the card's center on the WINDOW's vertical center
-  // — the same center FloatCard settles toward, so a snapped card rests at
-  // full scale/opacity. Non-memory rows contribute no offset: they travel
-  // between snaps.
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const rowHeights = useRef<Map<string, number>>(new Map());
-  const layoutDirty = useRef(false);
-  const [layoutVersion, setLayoutVersion] = useState(0);
-
-  // Batch measurement arrivals into one recompute per frame.
-  const onRowLayout = useCallback((key: string, height: number) => {
-    const prev = rowHeights.current.get(key);
-    if (prev !== undefined && Math.abs(prev - height) < 0.5) return;
-    rowHeights.current.set(key, height);
-    if (layoutDirty.current) return;
-    layoutDirty.current = true;
-    requestAnimationFrame(() => {
-      layoutDirty.current = false;
-      setLayoutVersion((v) => v + 1);
-    });
-  }, []);
-
-  // Where the list viewport sits in the window (header + toggle bar live
-  // above it) — needed to translate "window center" into a content offset.
-  const listWrapRef = useRef<HostInstance>(null);
-  const [listWindow, setListWindow] = useState<{ pageY: number; height: number } | null>(null);
-  const onListWrapLayout = useCallback(() => {
-    listWrapRef.current?.measureInWindow((_x: number, y: number, _w: number, h: number) => {
-      setListWindow((prev) =>
-        prev && Math.abs(prev.pageY - y) < 0.5 && Math.abs(prev.height - h) < 0.5
-          ? prev
-          : { pageY: y, height: h },
-      );
-    });
-  }, []);
-  const [contentHeight, setContentHeight] = useState(0);
-
-  // Scroll offset shared value — drives every FloatCard worklet. Momentum
-  // end hops to JS once per settle to fire the snap haptic.
-  const scrollY = useSharedValue(0);
-  // Which snap offset the list last settled on (null = free zone).
-  const settledSnapIndex = useRef<number | null>(null);
-  const snapOffsetsRef = useRef<number[]>([]);
-
-  const onMomentumSettled = useCallback((settledY: number) => {
-    const offsets = snapOffsetsRef.current;
-    let index: number | null = null;
-    for (let i = 0; i < offsets.length; i++) {
-      if (Math.abs(offsets[i]! - settledY) <= SNAP_SETTLE_TOLERANCE) {
-        index = i;
-        break;
-      }
-    }
-    if (index !== null && index !== settledSnapIndex.current) {
-      haptics.light(); // the carousel clicked onto a new memory
-    }
-    settledSnapIndex.current = index;
-  }, []);
-
-  const onScroll = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-    },
-    onMomentumEnd: (event) => {
-      runOnJS(onMomentumSettled)(event.contentOffset.y);
-    },
-  });
 
   const styles = useThemedStyles((t) => ({
     screen: {
       flex: 1,
       backgroundColor: t.colors.bg,
     },
-    sectionLabel: {
-      fontFamily: t.fontFamilies.mono,
-      fontSize: 10,
-      fontWeight: '600',
-      letterSpacing: 2,
-      color: t.colors.mute,
-    },
-    // Row spacing is PADDING (not margin) so each wrapper's onLayout height
-    // is the row's full extent — the snap-offset walk depends on it.
-    labelWrap: { paddingBottom: 10 },
-    planWrap: { paddingBottom: 12 },
-    todayWrap: { paddingTop: 12, paddingBottom: 22 },
-    monthWrap: { paddingTop: 6, paddingBottom: 12 },
-    entryWrap: { paddingBottom: t.density.gap },
-    footer: { paddingVertical: 20, alignItems: 'center' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     // Scroll/Map chips — right-aligned strip just below the header (the
     // header's top row already carries + Log / Edit / gear).
@@ -362,6 +208,12 @@ export default function YouScreen() {
       alignItems: 'flex-end',
     },
     viewFill: { flex: 1 },
+    refreshHint: {
+      position: 'absolute',
+      top: 2,
+      alignSelf: 'center',
+      zIndex: 200,
+    },
   }));
 
   // ── Data ──────────────────────────────────────────────────────
@@ -424,7 +276,7 @@ export default function YouScreen() {
       setMonths((prev) => mergeMonths(prev, page.months ?? []));
       setNextCursor(page.nextCursor ?? null);
     } catch {
-      // Keep the cursor — the next end-reach retries.
+      // Keep the cursor — the next near-end retries.
     } finally {
       loadingMoreRef.current = false;
       setLoadingMore(false);
@@ -490,85 +342,43 @@ export default function YouScreen() {
     );
   }, [months, currentYear]);
 
-  const rows = useMemo<Row[]>(() => {
-    const out: Row[] = [];
-    if (upcoming.length > 0) {
-      out.push({ kind: 'label', key: 'upcoming-label', text: 'UPCOMING' });
-      // API returns ascending; reverse so the furthest-out plan is at the top
-      // and the next show sits right above TODAY.
-      for (let i = upcoming.length - 1; i >= 0; i--) {
-        const item = upcoming[i]!;
-        out.push({ kind: 'plan', key: `plan-${item.type}-${item.id}`, item });
-      }
+  // ── The deck ──────────────────────────────────────────────────
+  // Chronological: furthest-out plan first (swipe DOWN from the opening
+  // card to reach the future), then past entries newest→oldest (swipe UP
+  // to go deeper into history). Keys match the map view's fly-to targets.
+
+  const deckItems = useMemo<DeckItem[]>(() => {
+    const out: DeckItem[] = [];
+    // API returns ascending; reverse so the furthest-out plan is first and
+    // the next show sits right before the past.
+    for (let i = upcoming.length - 1; i >= 0; i--) {
+      const item = upcoming[i]!;
+      out.push({
+        kind: 'plan',
+        key: `plan-${item.type}-${item.id}`,
+        item,
+        monthKey: item.event.date.slice(0, 7),
+      });
     }
-    out.push({ kind: 'today', key: 'today' });
-    if (months.length === 0) {
-      out.push({ kind: 'emptyPast', key: 'empty-past' });
-    } else {
-      for (const month of months) {
-        out.push({ kind: 'month', key: `month-${month.key}`, label: monthLabel(month.key) });
-        for (const entry of month.entries) {
-          out.push({ kind: 'entry', key: `log-${entry.logId}`, entry });
-        }
+    for (const month of months) {
+      for (const entry of month.entries) {
+        out.push({ kind: 'entry', key: `log-${entry.logId}`, entry, monthKey: month.key });
       }
     }
     return out;
   }, [upcoming, months]);
 
-  // Center-snap offsets — one per MEMORY card (see "Carousel snap
-  // mechanics" above). Ascending by construction; clamped to the
-  // scrollable range so no offset asks for an unreachable position.
-  const snapOffsets = useMemo<number[]>(() => {
-    void layoutVersion; // measured row heights changed → recompute
-    const gap = tokens.density.gap;
-    const memoryCardH = (windowWidth - tokens.density.pad * 2) * MEMORY_ASPECT;
-    // Estimates for not-yet-measured rows (paddings included, matching the
-    // wrapper styles). Real onLayout heights replace these as rows mount.
-    const estimateHeight = (row: Row): number => {
-      switch (row.kind) {
-        case 'label':
-          return 23;
-        case 'plan':
-          return 90;
-        case 'today':
-          return 47;
-        case 'month':
-          return 32;
-        case 'emptyPast':
-          return 168;
-        case 'entry':
-          return isMemoryEntry(row.entry) ? memoryCardH + gap : 66 + gap;
-      }
-    };
-    // Distance from the list's top edge down to the window's vertical
-    // center — the settle point FloatCard measures against.
-    const centerFromTop = listWindow ? windowHeight / 2 - listWindow.pageY : windowHeight / 2;
-    const maxOffset =
-      listWindow && contentHeight > 0
-        ? Math.max(0, contentHeight - listWindow.height)
-        : Number.POSITIVE_INFINITY;
+  // The stage opens on the newest PAST memory (index of the first entry);
+  // upcoming-only decks open on the soonest plan (the last item).
+  const initialDeckIndex = useMemo(() => {
+    const firstEntry = deckItems.findIndex((d) => d.kind === 'entry');
+    return firstEntry >= 0 ? firstEntry : Math.max(deckItems.length - 1, 0);
+  }, [deckItems]);
 
-    const offsets: number[] = [];
-    let y = CONTENT_TOP_PAD;
-    for (const row of rows) {
-      const h = rowHeights.current.get(row.key) ?? estimateHeight(row);
-      if (row.kind === 'entry' && isMemoryEntry(row.entry)) {
-        // The card fills the row above its bottom spacing padding.
-        const cardCenter = y + (h - gap) / 2;
-        const target = Math.min(Math.max(Math.round(cardCenter - centerFromTop), 0), maxOffset);
-        // Keep strictly ascending (top-clamping can collide early offsets).
-        if (offsets.length === 0 || target > offsets[offsets.length - 1]!) {
-          offsets.push(target);
-        }
-      }
-      y += h;
-    }
-    return offsets;
-  }, [rows, layoutVersion, listWindow, contentHeight, windowWidth, windowHeight, tokens]);
-
-  // The momentum-settle handler reads offsets through a ref so it never
-  // needs re-binding into the animated scroll handler.
-  snapOffsetsRef.current = snapOffsets;
+  const readoutFor = useCallback((item: DeckItem) => {
+    const label = monthLabel(item.monthKey);
+    return item.kind === 'plan' ? `UPCOMING · ${label}` : label;
+  }, []);
 
   // ── Navigation ────────────────────────────────────────────────
 
@@ -585,10 +395,31 @@ export default function YouScreen() {
   const openSettings = useCallback(() => router.push('/settings'), [router]);
   const openEditProfile = useCallback(() => router.push('/edit-profile'), [router]);
 
-  // ── Map ⇄ Scroll fly-to ───────────────────────────────────────
+  const renderCard = useCallback(
+    (item: DeckItem) => {
+      if (item.kind === 'plan') {
+        return <PlanCard item={item.item} onPress={() => openEvent(item.item.event.id)} />;
+      }
+      if (isMemoryEntry(item.entry)) {
+        return (
+          <MemoryCard
+            entry={item.entry}
+            onPress={() => openLog(item.entry.logId)}
+            rankLabel={
+              topRank && topRank.logId === item.entry.logId ? `#1 OF ${topRank.total}` : null
+            }
+          />
+        );
+      }
+      return <CompactLogRow entry={item.entry} onPress={() => openLog(item.entry.logId)} />;
+    },
+    [openEvent, openLog, topRank],
+  );
 
-  // Map markers carry the scroll view's row keys — a tap stashes the target
-  // and flips the mode; the effect below lands the jump once the list is up.
+  // ── Map ⇄ Deck fly-to ─────────────────────────────────────────
+
+  // Map markers carry the deck's item keys — a tap stashes the target and
+  // flips the mode; the effect below lands the jump once the stage is up.
   const flyToRow = useCallback((rowKey: string) => {
     pendingScrollKey.current = rowKey;
     setViewMode('scroll');
@@ -599,102 +430,15 @@ export default function YouScreen() {
     const key = pendingScrollKey.current;
     if (!key) return;
     pendingScrollKey.current = null;
-    const index = rows.findIndex((row) => row.key === key);
+    const index = deckItems.findIndex((item) => item.key === key);
     if (index < 0) return;
-    // Give the remounted list a beat (the fade-through) before animating.
+    // Give the remounted stage a beat before flying.
     const timer = setTimeout(() => {
-      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.2 });
+      deckRef.current?.snapTo(index, true);
     }, durations.fadeThrough);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fires on mode flips only
   }, [viewMode]);
-
-  // Deep rows aren't measured yet — jump near by estimate, then re-aim.
-  const onScrollToIndexFailed = useCallback(
-    (info: { index: number; averageItemLength: number }) => {
-      listRef.current?.scrollToOffset({
-        offset: info.averageItemLength * info.index,
-        animated: true,
-      });
-      setTimeout(() => {
-        listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.2 });
-      }, 400);
-    },
-    [],
-  );
-
-  // ── Rows ──────────────────────────────────────────────────────
-
-  const renderRow = useCallback(
-    ({ item, index }: ListRenderItemInfo<Row>) => {
-      const entering = FadeInDown.duration(300).delay(
-        index < STAGGER_CUTOFF ? index * durations.stagger : 0,
-      );
-      // Every wrapper feeds the snap-offset height registry.
-      const reportLayout = (e: { nativeEvent: { layout: { height: number } } }) =>
-        onRowLayout(item.key, e.nativeEvent.layout.height);
-
-      switch (item.kind) {
-        case 'label':
-          return (
-            <Animated.View entering={entering} style={styles.labelWrap} onLayout={reportLayout}>
-              <Text style={styles.sectionLabel}>{item.text}</Text>
-            </Animated.View>
-          );
-        case 'plan':
-          return (
-            <Animated.View entering={entering} style={styles.planWrap} onLayout={reportLayout}>
-              <FloatCard scrollY={scrollY}>
-                <PlanCard item={item.item} onPress={() => openEvent(item.item.event.id)} />
-              </FloatCard>
-            </Animated.View>
-          );
-        case 'today':
-          return (
-            <Animated.View entering={entering} style={styles.todayWrap} onLayout={reportLayout}>
-              <TodayDivider />
-            </Animated.View>
-          );
-        case 'month':
-          return (
-            <Animated.View entering={entering} style={styles.monthWrap} onLayout={reportLayout}>
-              <MonthMarker label={item.label} />
-            </Animated.View>
-          );
-        case 'entry': {
-          const isMemory = isMemoryEntry(item.entry);
-          return (
-            <Animated.View entering={entering} style={styles.entryWrap} onLayout={reportLayout}>
-              {/* Memories are the carousel — strong curve; compact rows travel
-                  between snaps on the gentle one. */}
-              <FloatCard scrollY={scrollY} curve={isMemory ? 'memory' : 'ambient'}>
-                {isMemory ? (
-                  <MemoryCard
-                    entry={item.entry}
-                    onPress={() => openLog(item.entry.logId)}
-                    rankLabel={
-                      topRank && topRank.logId === item.entry.logId
-                        ? `#1 OF ${topRank.total}`
-                        : null
-                    }
-                  />
-                ) : (
-                  <CompactLogRow entry={item.entry} onPress={() => openLog(item.entry.logId)} />
-                )}
-              </FloatCard>
-            </Animated.View>
-          );
-        }
-        case 'emptyPast':
-          return (
-            <Animated.View entering={entering} onLayout={reportLayout}>
-              <EmptyPastBlock onLog={openLogFlow} onBackfill={openBackfill} />
-            </Animated.View>
-          );
-      }
-    },
-    [styles, scrollY, openEvent, openLog, openLogFlow, openBackfill, topRank, onRowLayout],
-  );
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -713,16 +457,6 @@ export default function YouScreen() {
       onSettings={openSettings}
       onEdit={openEditProfile}
       onLog={() => router.push('/log/search')}
-    />
-  );
-
-  const refreshControl = (
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={() => void onRefresh()}
-      tintColor={tokens.colors.mute}
-      colors={[tokens.colors.accent]}
-      progressBackgroundColor={tokens.colors.card2}
     />
   );
 
@@ -768,7 +502,15 @@ export default function YouScreen() {
         {header}
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
-          refreshControl={refreshControl}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void onRefresh()}
+              tintColor={tokens.colors.mute}
+              colors={[tokens.colors.accent]}
+              progressBackgroundColor={tokens.colors.card2}
+            />
+          }
           showsVerticalScrollIndicator={false}
         >
           <EmptyTimeline onLog={openLogFlow} onBackfill={openBackfill} />
@@ -794,7 +536,7 @@ export default function YouScreen() {
         <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
       </View>
       {viewMode === 'map' ? (
-        // Quick fade-through into the zoomed-out map (motion contract §2).
+        // In-place view swap — the one place a fade is still the right move.
         <Animated.View key="map" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
           <TimelineMapView
             upcoming={upcoming}
@@ -804,49 +546,21 @@ export default function YouScreen() {
           />
         </Animated.View>
       ) : (
-        <Animated.View key="scroll" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
-          {/* Plain View: measureInWindow anchor for the snap-center math. */}
-          <View ref={listWrapRef} onLayout={onListWrapLayout} style={styles.viewFill}>
-            <Animated.FlatList
-              ref={listRef}
-              data={rows}
-              renderItem={renderRow}
-              keyExtractor={(row: Row) => row.key}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              refreshControl={refreshControl}
-              onEndReached={() => void loadMore()}
-              onEndReachedThreshold={0.4}
-              onScrollToIndexFailed={onScrollToIndexFailed}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              initialNumToRender={10}
-              maxToRenderPerBatch={4}
-              windowSize={7}
-              // THE CAROUSEL: momentum settles each memory card onto the
-              // window center. Ends stay free (snapToStart/End false) so the
-              // plans strip and the footer remain restable; everything else
-              // between snaps is travel.
-              snapToOffsets={snapOffsets.length > 0 ? snapOffsets : undefined}
-              snapToStart={false}
-              snapToEnd={false}
-              decelerationRate="fast"
-              directionalLockEnabled
-              onContentSizeChange={(_w: number, h: number) => setContentHeight(h)}
-              contentContainerStyle={{
-                paddingHorizontal: tokens.density.pad,
-                paddingTop: CONTENT_TOP_PAD,
-                paddingBottom: 48,
-              }}
-              ListFooterComponent={
-                loadingMore ? (
-                  <View style={styles.footer}>
-                    <ActivityIndicator color={tokens.colors.mute} />
-                  </View>
-                ) : null
-              }
-            />
-          </View>
+        <Animated.View key="deck" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
+          {refreshing ? (
+            <View style={styles.refreshHint} pointerEvents="none">
+              <ActivityIndicator size="small" color={tokens.colors.mute} />
+            </View>
+          ) : null}
+          <MemoryDeck
+            ref={deckRef}
+            items={deckItems}
+            initialIndex={initialDeckIndex}
+            renderCard={renderCard}
+            readoutFor={readoutFor}
+            onNearEnd={() => void loadMore()}
+            onOverscrollRefresh={() => void onRefresh()}
+          />
         </Animated.View>
       )}
     </SafeAreaView>
