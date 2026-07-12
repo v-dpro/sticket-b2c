@@ -57,6 +57,9 @@ type MemoryDeckProps = {
   /** Where the stage opens — usually the newest PAST entry. */
   initialIndex: number;
   renderCard: (item: DeckItem, isCentered: boolean) => React.ReactNode;
+  /** Text-only face for off-center positions — the full card only shows
+      at center; before/after collapse to this label. */
+  renderLabel: (item: DeckItem) => React.ReactNode;
   /** Month readout text per item ("JUL 2026" / "UPCOMING · AUG 2026"). */
   readoutFor: (item: DeckItem) => string;
   onIndexChange?: (index: number) => void;
@@ -75,7 +78,7 @@ const NEAR_END = 6;
 const SETTLE_SPRING = { stiffness: 240, damping: 28, mass: 0.9 };
 
 export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function MemoryDeck(
-  { items, initialIndex, renderCard, readoutFor, onIndexChange, onNearEnd, onOverscrollRefresh },
+  { items, initialIndex, renderCard, renderLabel, readoutFor, onIndexChange, onNearEnd, onOverscrollRefresh },
   ref,
 ) {
   const { tokens } = useTheme();
@@ -171,12 +174,19 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
           if (dragStart.value <= 0 && progress.value < -0.28) {
             runOnJS(triggerRefresh)();
           }
+          // SENSITIVE COMMIT: any deliberate gesture moves at least one
+          // card — a third of a card of travel-plus-velocity is intent;
+          // only a truly tiny nudge snaps back.
+          const start = Math.round(dragStart.value);
           const velocity = -e.velocityY / stride; // cards/second
-          let target = Math.round(progress.value + velocity * 0.16);
-          target = Math.max(
-            Math.round(dragStart.value) - MAX_FLICK_CARRY,
-            Math.min(Math.round(dragStart.value) + MAX_FLICK_CARRY, target),
-          );
+          const carried = progress.value - dragStart.value + velocity * 0.28;
+          let target: number;
+          if (Math.abs(carried) < 0.16) {
+            target = start;
+          } else {
+            const steps = Math.max(1, Math.round(Math.abs(carried)));
+            target = start + Math.sign(carried) * Math.min(steps, MAX_FLICK_CARRY);
+          }
           target = Math.max(0, Math.min(max, target));
           progress.value = withSpring(target, SETTLE_SPRING);
           runOnJS(settle)(target);
@@ -271,6 +281,7 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
                 interactive={i === index}
                 layerStyle={styles.layer}
                 shadow={tokens.shadows.stub}
+                label={renderLabel(deckItem)}
               >
                 {renderCard(deckItem, i === index)}
               </DeckLayer>
@@ -298,6 +309,8 @@ type DeckLayerProps = {
     shadowRadius: number;
     elevation: number;
   };
+  /** Text-only face shown at off-center positions. */
+  label: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -310,6 +323,7 @@ function DeckLayer({
   interactive,
   layerStyle,
   shadow,
+  label,
   children,
 }: DeckLayerProps) {
   const animated = useAnimatedStyle(() => {
@@ -340,6 +354,18 @@ function DeckLayer({
     };
   });
 
+  // The FULL card lives only at center: it blooms in as the card arrives
+  // and dissolves as it leaves…
+  const cardFace = useAnimatedStyle(() => {
+    const abs = Math.abs(index - progress.value);
+    return { opacity: interpolate(abs, [0, 0.35, 0.75], [1, 0.85, 0], 'clamp') };
+  });
+  // …while the before/after positions show only the TEXT of that night.
+  const labelFace = useAnimatedStyle(() => {
+    const abs = Math.abs(index - progress.value);
+    return { opacity: interpolate(abs, [0.3, 0.75], [0, 1], 'clamp') };
+  });
+
   return (
     <Animated.View
       // z-order and shadow are STATIC per settle (no per-frame layer
@@ -348,7 +374,18 @@ function DeckLayer({
       style={[layerStyle, { zIndex: 100 - Math.abs(depth) * 10 }, animated]}
       pointerEvents={interactive ? 'box-none' : 'none'}
     >
-      <View style={interactive ? shadow : undefined}>{children}</View>
+      <View style={interactive ? shadow : undefined}>
+        <Animated.View style={cardFace}>{children}</Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center' },
+            labelFace,
+          ]}
+        >
+          {label}
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 }

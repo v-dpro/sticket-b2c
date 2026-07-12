@@ -45,7 +45,7 @@ import { PlanCard } from '../../components/timeline/PlanCard';
 import { TimelineHeader } from '../../components/timeline/TimelineHeader';
 import { TimelineMapView } from '../../components/timeline/TimelineMapView';
 import { TimelineViewToggle, type TimelineViewMode } from '../../components/timeline/TimelineViewToggle';
-import { monthLabel } from '../../components/timeline/format';
+import { countdownLabel, formatShortDate, monthLabel } from '../../components/timeline/format';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
 import { WrappedChip } from '../../components/wrapped/WrappedChip';
@@ -213,6 +213,24 @@ export default function YouScreen() {
       top: 2,
       alignSelf: 'center',
       zIndex: 200,
+    },
+    // Text-only face for off-center deck positions.
+    deckLabel: { alignItems: 'center', gap: 5, paddingHorizontal: 24 },
+    deckLabelName: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: t.colors.fg,
+      textAlign: 'center',
+    },
+    deckLabelMeta: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      textAlign: 'center',
     },
   }));
 
@@ -395,6 +413,38 @@ export default function YouScreen() {
   const openSettings = useCallback(() => router.push('/settings'), [router]);
   const openEditProfile = useCallback(() => router.push('/edit-profile'), [router]);
 
+  // Off-center deck positions collapse to text: just the night's name and
+  // its mono meta line — the full card blooms in only at center.
+  const renderLabel = useCallback(
+    (item: DeckItem) => {
+      if (item.kind === 'plan') {
+        const ev = item.item.event;
+        return (
+          <View style={styles.deckLabel}>
+            <Text style={styles.deckLabelName} numberOfLines={1}>
+              {ev.name}
+            </Text>
+            <Text style={styles.deckLabelMeta} numberOfLines={1}>
+              {[ev.venue?.name, countdownLabel(ev.date)].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+        );
+      }
+      const entry = item.entry;
+      return (
+        <View style={styles.deckLabel}>
+          <Text style={styles.deckLabelName} numberOfLines={1}>
+            {entry.artist.name}
+          </Text>
+          <Text style={styles.deckLabelMeta} numberOfLines={1}>
+            {[entry.venue.name, formatShortDate(entry.event.date)].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+      );
+    },
+    [styles],
+  );
+
   const renderCard = useCallback(
     (item: DeckItem) => {
       if (item.kind === 'plan') {
@@ -557,6 +607,7 @@ export default function YouScreen() {
             items={deckItems}
             initialIndex={initialDeckIndex}
             renderCard={renderCard}
+            renderLabel={renderLabel}
             readoutFor={readoutFor}
             onNearEnd={() => void loadMore()}
             onOverscrollRefresh={() => void onRefresh()}
