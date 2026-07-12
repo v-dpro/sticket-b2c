@@ -48,6 +48,7 @@ import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { haptics, motionDurations, springs } from '../../lib/motion';
 import { getLogDetail, getLogLikes, likeLog } from '../../lib/api/feed';
 import { getEventFeed } from '../../lib/api/events';
+import { getCoAuthors } from '../../lib/api/logs';
 import { useSession } from '../../hooks/useSession';
 import {
   MemoryFloatCard,
@@ -140,7 +141,13 @@ export default function MemoryViewerScreen() {
         const hydrated = feedItemToMemoryCard(detail);
         setFeatured((prev) =>
           prev.logId === hydrated.logId
-            ? { ...hydrated, photos: hydrated.photos.length ? hydrated.photos : prev.photos }
+            ? {
+                ...hydrated,
+                photos: hydrated.photos.length ? hydrated.photos : prev.photos,
+                // detail payloads never carry co-authors — keep any that the
+                // coauthors fetch already landed (the two hydrations race).
+                coAuthors: prev.coAuthors,
+              }
             : prev,
         );
         setFeaturedItem((prev) => prev ?? detail);
@@ -152,6 +159,29 @@ export default function MemoryViewerScreen() {
       cancelled = true;
     };
   }, [logId]);
+
+  // Joint post (C13): no feed/detail payload inlines co-authors, so fetch
+  // them per featured log (rail swaps re-key this). GET /logs/:id/coauthors
+  // is owner/invitee-only — other viewers 403 and the byline stays solo.
+  useEffect(() => {
+    const id = featured.logId;
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await getCoAuthors(id);
+        if (cancelled) return;
+        const accepted = rows.filter((r) => r.status === 'ACCEPTED').map((r) => r.user);
+        if (!accepted.length) return;
+        setFeatured((prev) => (prev.logId === id ? { ...prev, coAuthors: accepted } : prev));
+      } catch {
+        // viewer may not be owner/invitee — non-fatal
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [featured.logId]);
 
   // ── Likes for the featured card (meta line + double-tap) ──
   const [like, setLike] = useState<LikeState | null>(null);

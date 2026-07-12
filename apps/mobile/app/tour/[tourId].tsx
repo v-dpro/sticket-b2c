@@ -20,14 +20,21 @@ import { EntityNav } from '../../components/entity/EntityChrome';
 import { MonoChip, QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
 import { EntityError, RowSkeletons, ShimmerBlock } from '../../components/entity/EntityStates';
 import { EventRow } from '../../components/entity/EventRow';
+import {
+  detectFestivalWeekend,
+  FestivalWeekend,
+  type FestivalLogRef,
+} from '../../components/entity/FestivalWeekend';
 import { formatScore, monoDateYear } from '../../components/entity/format';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
-import { getTour, getTourPhotos, type TourDetail, type TourPhoto } from '../../lib/api/tours';
+import { getUserTimeline } from '../../lib/api/timeline';
+import { getTour, getTourPhotos, type TourDetail, type TourEvent, type TourPhoto } from '../../lib/api/tours';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { useSession } from '../../hooks/useSession';
 
 const PHOTO_PAGE = 30;
 
@@ -135,6 +142,55 @@ export default function TourScreen() {
 
   const events = detail?.events ?? [];
 
+  // ── FESTIVAL MODE (C12) — client-side shape detection only ──
+  // 2+ events at one venue within a 4-day window ⇒ the show list renders
+  // as a festival weekend (day tabs + schedule rows). Everything else is
+  // untouched — plain tours keep the exact EventRow list below.
+  const festival = useMemo(() => detectFestivalWeekend(events), [events]);
+
+  // The viewer's own logs on the weekend's sets (per-set ScoreStamps +
+  // the stub card's "M LOGGED · BEST" line). Sourced from the owner
+  // timeline — the only client API that pairs eventId with the log's
+  // score — walking its date-descending cursor until it passes the
+  // weekend's earliest set. Quietly optional: on failure the schedule
+  // simply renders without stamps.
+  const { user } = useSession();
+  const userId = user?.id ?? null;
+  const [myLogsByEvent, setMyLogsByEvent] = useState<Record<string, FestivalLogRef>>({});
+
+  useEffect(() => {
+    if (!festival || !userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const wanted = new Set(festival.events.map((e) => e.id));
+        const earliest = new Date(festival.events[0]!.date).getTime();
+        const found: Record<string, FestivalLogRef> = {};
+        let cursor: string | undefined;
+        for (let page = 0; page < 6; page++) {
+          const res = await getUserTimeline(userId, { cursor, limit: 50 });
+          for (const month of res.months) {
+            for (const entry of month.entries) {
+              if (wanted.has(entry.event.id) && !found[entry.event.id]) {
+                found[entry.event.id] = { logId: entry.logId, score: entry.score };
+              }
+            }
+          }
+          if (!res.nextCursor) break;
+          const cursorTime = new Date(res.nextCursor).getTime();
+          if (Number.isFinite(cursorTime) && cursorTime < earliest) break;
+          cursor = res.nextCursor;
+        }
+        if (!cancelled) setMyLogsByEvent(found);
+      } catch {
+        // quiet — stamps are an enhancement, the schedule stands alone
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [festival, userId]);
+
   // Community avg — log-count-weighted mean of the events' avg scores;
   // param fallback keeps the chip alive before/without the detail.
   const avgScore = useMemo(() => {
@@ -154,6 +210,20 @@ export default function TourScreen() {
     const fromParams = params.avgScore ? Number(params.avgScore) : NaN;
     return Number.isFinite(fromParams) ? fromParams : null;
   }, [events, params.avgScore]);
+
+  // Shared by the plain show rows and the festival schedule rows.
+  const openEvent = useCallback(
+    (event: TourEvent) =>
+      router.push({
+        pathname: '/event/[eventId]',
+        params: {
+          eventId: event.id,
+          tourId,
+          ...(tourName ? { tourName } : {}),
+        },
+      }),
+    [router, tourId, tourName],
+  );
 
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
@@ -254,16 +324,22 @@ export default function TourScreen() {
                 <MonoChip label={String(tourYear)} />
               ) : null}
               {events.length > 0 ? (
-                <MonoChip label={`${events.length} ${events.length === 1 ? 'SHOW' : 'SHOWS'}`} />
+                <MonoChip
+                  label={
+                    festival
+                      ? `${events.length} SETS`
+                      : `${events.length} ${events.length === 1 ? 'SHOW' : 'SHOWS'}`
+                  }
+                />
               ) : null}
               {avgScore != null ? <MonoChip label={`AVG ${formatScore(avgScore)}`} /> : null}
             </Animated.View>
           </>
         )}
 
-        {/* ── Shows ── */}
+        {/* ── Shows (or the festival-weekend schedule) ── */}
         <View style={styles.section}>
-          <SectionLabel>Shows</SectionLabel>
+          <SectionLabel>{festival ? 'Schedule' : 'Shows'}</SectionLabel>
           {status === 'loading' ? (
             <View style={{ marginHorizontal: -tokens.density.pad }}>
               <RowSkeletons count={4} />
@@ -287,6 +363,13 @@ export default function TourScreen() {
             </>
           ) : events.length === 0 ? (
             <QuietEmpty text="No shows on record for this tour yet." />
+          ) : festival ? (
+            <FestivalWeekend
+              festival={festival}
+              tourName={tourName}
+              myLogs={myLogsByEvent}
+              onPressEvent={openEvent}
+            />
           ) : (
             events.map((event, i) => (
               <EventRow
@@ -296,16 +379,7 @@ export default function TourScreen() {
                 meta={`${event.venue.name} · ${event.venue.city} · ${monoDateYear(event.date)}`}
                 logCount={event.logCount}
                 avgScore={event.avgScore}
-                onPress={() =>
-                  router.push({
-                    pathname: '/event/[eventId]',
-                    params: {
-                      eventId: event.id,
-                      tourId,
-                      ...(tourName ? { tourName } : {}),
-                    },
-                  })
-                }
+                onPress={() => openEvent(event)}
               />
             ))
           )}

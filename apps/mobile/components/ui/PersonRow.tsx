@@ -50,6 +50,9 @@ export type PersonRowProps = {
   name: string;
   username: string;
   avatar?: string;
+  /** Mono shows-fact line, e.g. "47 SHOWS · 12 ARTISTS" (C11). Falls
+   *  back to the relationship label, then the mono handle. */
+  fact?: string;
   matchScore?: number; // 0-100
   relationship: 'friend' | 'fof' | 'stranger';
   mutualName?: string; // for FoF "VIA @name"
@@ -66,6 +69,7 @@ export function PersonRow({
   name,
   username,
   avatar,
+  fact,
   matchScore,
   relationship,
   mutualName,
@@ -117,17 +121,18 @@ export function PersonRow({
       alignItems: 'center',
       gap: 6,
     },
-    username: {
-      fontSize: 13.5,
+    name: {
+      fontSize: 15,
       fontWeight: '700',
       color: t.colors.textHi,
       flexShrink: 1,
     },
     kindLabel: {
-      fontFamily: fontFamilies.monoMedium,
-      fontSize: 9,
-      fontWeight: '500',
-      letterSpacing: 1.2,
+      fontFamily: fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 0.6,
       textTransform: 'uppercase',
       marginTop: 2,
     },
@@ -150,31 +155,36 @@ export function PersonRow({
     },
   }));
 
-  // Derive kind label
+  // Derive kind label — emphasis is weight/ink, never hue (C1)
   let kindText = '';
   let kindColor: string = colors.textLo;
 
   if (relationship === 'friend') {
     kindText = 'FOLLOWING';
-    kindColor = colors.cyan;
+    kindColor = colors.fg;
   } else if (relationship === 'fof' && mutualName) {
     kindText = `VIA @${mutualName}`;
     kindColor = colors.textLo;
   } else if (matchScore !== undefined && matchScore >= 85) {
     kindText = 'MATCH';
-    kindColor = colors.cyan;
+    kindColor = colors.fg;
   }
 
-  // Derive action button style
+  // Second line leads with the shows fact when the payload carries it (C11).
+  const factText = fact ?? (kindText !== '' ? kindText : `@${username}`);
+  const factColor = fact ? colors.textLo : kindColor;
+
+  // Derive action button style — ink inversion when actionable,
+  // bordered when following (matches search/UserResult).
   const getActionStyle = () => {
     if (actionPending) {
       return { bg: colors.surface, text: colors.textLo, border: colors.hairline };
     }
     if (relationship === 'friend') {
-      return { bg: 'transparent', text: colors.textHi, border: colors.hairline };
+      return { bg: 'transparent', text: colors.fg, border: colors.line };
     }
-    // stranger default — white label on filled accent
-    return { bg: colors.cyan, text: colors.onAccent, border: 'transparent' };
+    // stranger default — bg-colored label on the ink-filled pill
+    return { bg: colors.inverseBg, text: colors.onAccent, border: 'transparent' };
   };
 
   const actionStyle = getActionStyle();
@@ -202,17 +212,17 @@ export function PersonRow({
           )}
         </View>
 
-        {/* Name section */}
+        {/* Name section — display name leads, mono fact under it */}
         <View style={styles.nameSection}>
           <View style={styles.nameRow}>
-            <Text style={styles.username} numberOfLines={1}>
-              @{username}
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
             </Text>
             {matchScore !== undefined && <MatchPill score={matchScore} />}
           </View>
-          {kindText !== '' && (
-            <Text style={[styles.kindLabel, { color: kindColor }]}>{kindText}</Text>
-          )}
+          <Text style={[styles.kindLabel, { color: factColor }]} numberOfLines={1}>
+            {factText}
+          </Text>
         </View>
 
         {/* Action button */}

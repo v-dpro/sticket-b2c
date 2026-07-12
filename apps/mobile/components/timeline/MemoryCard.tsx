@@ -75,10 +75,17 @@ const CHIP_BORDER = 'rgba(255,255,255,0.16)';
 const DOT_IDLE = 'rgba(255,255,255,0.35)';
 const DOT_ACTIVE = '#FFFFFF'; // over-photo fg is always white (A19)
 
+// C13 joint-post byline — one card owned by both: "maya × jordan". The
+// owner's name is only on the wire for entries authored by someone else
+// (coAuthorOf); on the viewer's own log this deck lives on their own tab,
+// so "you" stands in. (The strip uppercases it.)
 function coAuthorLabel(entry: TimelineEntry): string {
   const [first, ...rest] = entry.coAuthors;
   if (!first) return '';
-  return rest.length > 0 ? `w/ @${first.username} +${rest.length}` : `w/ @${first.username}`;
+  const owner = entry.coAuthorOf ? `@${entry.coAuthorOf.username}` : 'you';
+  return rest.length > 0
+    ? `${owner} × @${first.username} +${rest.length}`
+    : `${owner} × @${first.username}`;
 }
 
 /** ISO date → "Jul 11 2026" (the details row uppercases it). */
@@ -306,11 +313,18 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
 
   // Stub details — only segments that exist (timeline entries carry no
   // section/row today; tickets do — same row format when they land).
+  // Joint post (C13): the right slot admits everyone on the byline —
+  // "ADMIT 02" instead of the № serial. The dual side-by-side scores stay
+  // degraded to the single BareScore: the timeline payload carries only the
+  // log's own score, never the co-author's (would need coAuthors[].score).
   const detailsLeft = [entry.venue.name, stubDate(entry.event.date)].filter(Boolean).join(' · ');
-  const detailsRight = `№ ${entry.logId.slice(-4).toUpperCase()}`;
+  const detailsRight = entry.coAuthors.length
+    ? `ADMIT ${String(entry.coAuthors.length + 1).padStart(2, '0')}`
+    : `№ ${entry.logId.slice(-4).toUpperCase()}`;
 
   const a11yParts = [
     `${entry.artist.name} at ${entry.venue.name}, shared memory`,
+    coAuthors ? `joint memory, ${coAuthors}` : null,
     isPager ? `${photos.length} photos, swipe sideways to browse` : null,
     typeof entry.score === 'number' ? `scored ${formatScore(entry.score)}` : null,
     rankLabel ? `ranked ${rankLabel.toLowerCase()}` : null,

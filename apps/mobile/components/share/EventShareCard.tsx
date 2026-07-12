@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ShareWordmark } from './ShareCardShell';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Fixed-dark share poster: content sits over a hero image + a hardcoded dark
@@ -33,8 +34,8 @@ export function EventShareCard({ artistName, artistImage, venueName, venueCity, 
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Ionicons name="ticket" size={16} color="#7C5CFF" />
-            <Text style={styles.logoText}>sticket</Text>
+            {/* The gradient wordmark — the sanctioned brand-mark moment. */}
+            <ShareWordmark size={16} />
           </View>
         </View>
 
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C5CFF',
+    color: '#FFFFFF',
   },
   wasHere: {
     fontSize: 14,

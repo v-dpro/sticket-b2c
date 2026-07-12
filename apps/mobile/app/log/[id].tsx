@@ -115,8 +115,8 @@ export default function LogDetailScreen() {
 
   // ── Co-authors (joint posts) ──
   // GET /logs/:id doesn't carry co-authors, so fetch them separately. The list
-  // yields both the accepted "with @…" credit row and — if the viewer has a
-  // pending invite — the inline accept/decline banner.
+  // yields both the accepted "maya × jordan" byline (C13) and — if the viewer
+  // has a pending invite — the inline accept/decline banner.
   const [coAuthors, setCoAuthors] = useState<LogCoAuthor[]>([]);
   const [inviteBusy, setInviteBusy] = useState(false);
 
@@ -356,10 +356,31 @@ export default function LogDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel={`View @${data.user.username}'s profile`}
           >
-            <Avatar uri={data.user.avatarUrl} name={authorName} size={36} />
+            {/* Joint post (C13): one memory owned by both — stacked avatars
+                and a "maya × jordan" byline instead of a "with @…" credit. */}
+            {acceptedCoAuthors.length > 0 ? (
+              <AvatarStack
+                avatars={[
+                  { uri: data.user.avatarUrl ?? null, name: authorName },
+                  ...acceptedCoAuthors.slice(0, 2).map((ca) => ({
+                    uri: ca.user.avatarUrl ?? null,
+                    name: ca.user.displayName || ca.user.username,
+                  })),
+                ]}
+                size={36}
+              />
+            ) : (
+              <Avatar uri={data.user.avatarUrl} name={authorName} size={36} />
+            )}
             <View style={styles.authorInfo}>
               <Text style={styles.authorLine} numberOfLines={1}>
-                <Text style={styles.authorName}>{data.user.username}</Text>
+                <Text style={styles.authorName}>
+                  {data.user.username}
+                  {acceptedCoAuthors.length > 0
+                    ? ` × ${acceptedCoAuthors[0].user.username}`
+                    : ''}
+                  {acceptedCoAuthors.length > 1 ? ` +${acceptedCoAuthors.length - 1}` : ''}
+                </Text>
                 <Text style={styles.authorMuted}>  logged a show</Text>
               </Text>
               <Text style={styles.authorTime}>{relTime(data.createdAt)}</Text>
@@ -367,24 +388,7 @@ export default function LogDetailScreen() {
           </Pressable>
         </View>
 
-        {/* ── 2b. Co-author credit ("with @… +N", accepted only) ── */}
-        {acceptedCoAuthors.length > 0 ? (
-          <View style={styles.coAuthorRow}>
-            <AvatarStack
-              avatars={acceptedCoAuthors.slice(0, 3).map((ca) => ({
-                uri: ca.user.avatarUrl ?? null,
-                name: ca.user.displayName || ca.user.username,
-              }))}
-              size={18}
-            />
-            <Text style={styles.coAuthorText} numberOfLines={1}>
-              with <Text style={styles.coAuthorName}>@{acceptedCoAuthors[0].user.username}</Text>
-              {acceptedCoAuthors.length > 1 ? ` +${acceptedCoAuthors.length - 1}` : ''}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* ── 2c. Pending co-author invite for the viewer — accept / decline ── */}
+        {/* ── 2b. Pending co-author invite for the viewer — accept / decline ── */}
         {myInvite ? (
           <View style={styles.inviteBanner}>
             <View style={{ flex: 1 }}>
@@ -813,25 +817,6 @@ const buildStyles = (tokens: ThemeTokens) =>
       color: tokens.colors.mute,
     },
     likedByName: {
-      fontWeight: '600',
-      color: tokens.colors.fg,
-    },
-
-    /* Co-author credit row */
-    coAuthorRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingTop: 8,
-    },
-    coAuthorText: {
-      flex: 1,
-      fontSize: 13,
-      fontWeight: '400',
-      color: tokens.colors.mute,
-    },
-    coAuthorName: {
       fontWeight: '600',
       color: tokens.colors.fg,
     },

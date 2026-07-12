@@ -115,7 +115,7 @@ export function ShareSheet({
 
           <Pressable style={styles.option} onPress={onCopyLink} accessibilityRole="button">
             <View style={[styles.iconContainer, { backgroundColor: '#8B5CF620' }]}>
-              <Ionicons name="link" size={24} color={tokens.colors.brandPurple} />
+              <Ionicons name="link" size={24} color={tokens.colors.mute} />
             </View>
             <Text style={styles.optionLabel}>Copy Link</Text>
           </Pressable>

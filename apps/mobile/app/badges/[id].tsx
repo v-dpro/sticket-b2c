@@ -7,7 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useBadges } from '../../hooks/useBadges';
-import { BadgeIcon, getRarityColor } from '../../components/badges/BadgeIcon';
+import { BadgeIcon, getMilestoneCount } from '../../components/badges/BadgeIcon';
 import { BadgeProgress } from '../../components/badges/BadgeProgress';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 
@@ -27,8 +27,6 @@ export default function BadgeDetailScreen() {
   const badge = allBadges.find((b) => b.id === id);
   const earned = earnedBadges.find((b) => b.badge.id === id);
   const progress = badge ? getProgress(badge.id) : undefined;
-
-  const rarityColor = badge ? getRarityColor(tokens.colors, badge.rarity) : tokens.colors.accent;
 
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg, paddingHorizontal: 24 },
@@ -53,7 +51,7 @@ export default function BadgeDetailScreen() {
       borderColor: t.colors.hairline,
       backgroundColor: t.colors.card,
     },
-    title: { fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
+    title: { fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4, color: t.colors.fg },
     description: { color: t.colors.mute, fontSize: 14, textAlign: 'center' },
     metaRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
     pill: {
@@ -65,7 +63,8 @@ export default function BadgeDetailScreen() {
       borderRadius: 999,
       backgroundColor: t.colors.card2,
     },
-    pillText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+    // Mono chips (C10) — rarity survives only as a small mono word.
+    pillText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', letterSpacing: 0.5, color: t.colors.fg },
     earnedAt: { marginTop: 6, color: t.colors.muteSoft, fontSize: 12, fontWeight: '500' },
     sectionCard: {
       padding: 16,
@@ -104,18 +103,24 @@ export default function BadgeDetailScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
-            <BadgeIcon icon={badge.icon} earned={Boolean(earned)} rarity={badge.rarity} size={120} />
+            <BadgeIcon
+              icon={badge.icon}
+              earned={Boolean(earned)}
+              rarity={badge.rarity}
+              count={getMilestoneCount(badge.criteria)}
+              size={120}
+            />
 
-            <Text style={[styles.title, { color: rarityColor }]}>{badge.name}</Text>
+            <Text style={styles.title}>{badge.name}</Text>
             <Text style={styles.description}>{badge.description}</Text>
 
             <View style={styles.metaRow}>
-              <View style={[styles.pill, { backgroundColor: `${rarityColor}20` }]}>
-                <Text style={[styles.pillText, { color: rarityColor }]}>{badge.rarity.toUpperCase()}</Text>
+              <View style={styles.pill}>
+                <Text style={styles.pillText}>{badge.rarity.toUpperCase()}</Text>
               </View>
               <View style={styles.pill}>
-                <Ionicons name="star" size={12} color={tokens.colors.warning} />
-                <Text style={[styles.pillText, { color: tokens.colors.warning }]}>+{badge.points} pts</Text>
+                <Ionicons name="star" size={12} color={tokens.colors.muteSoft} />
+                <Text style={styles.pillText}>+{badge.points} pts</Text>
               </View>
             </View>
 

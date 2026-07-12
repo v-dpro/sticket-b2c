@@ -71,6 +71,9 @@ export type TimelineEntry = {
   venue: TimelineVenue;
   photos: TimelinePhoto[]; // ≤ 1 today
   coAuthors: TimelineCoAuthor[];
+  // Set only when this entry is a co-authored log owned by someone else —
+  // identifies the original author for the joint "maya × jordan" byline.
+  coAuthorOf?: { id: string; username: string };
   likeCount: number;
   commentCount: number;
 };

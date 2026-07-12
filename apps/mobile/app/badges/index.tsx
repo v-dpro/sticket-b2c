@@ -59,7 +59,15 @@ export default function BadgesScreen() {
     },
     stat: { alignItems: 'center', minWidth: 90 },
     statValue: { fontFamily: t.fontFamilies.monoBold, fontSize: 22, fontWeight: '700', color: t.colors.fg },
-    statLabel: { fontSize: 12, color: t.colors.mute, marginTop: 4, fontWeight: '500' },
+    statLabel: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      color: t.colors.muteSoft,
+      marginTop: 6,
+    },
     divider: { width: 1, height: 40, backgroundColor: t.colors.line },
   }));
 
@@ -104,7 +112,7 @@ export default function BadgesScreen() {
             <View style={styles.divider} />
             <View style={styles.stat}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="star" size={16} color={tokens.colors.warning} />
+                <Ionicons name="star" size={16} color={tokens.colors.muteSoft} />
                 <Text style={styles.statValue}>{totalPoints}</Text>
               </View>
               <Text style={styles.statLabel}>Points</Text>

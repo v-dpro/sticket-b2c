@@ -18,8 +18,19 @@ function UserRow({ item, onPress }: { item: FollowUserListItem; onPress: () => v
     avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: t.colors.hairline },
     avatarPlaceholder: { backgroundColor: t.colors.card2, alignItems: 'center', justifyContent: 'center' },
     avatarText: { color: t.colors.fg, fontWeight: '700' },
-    displayName: { color: t.colors.fg, fontSize: 14, fontWeight: '600' },
-    username: { color: t.colors.mute, fontSize: 12, marginTop: 2 },
+    displayName: { color: t.colors.fg, fontSize: 15, fontWeight: '700' },
+    // Mono data line (C11) — follow list payload carries no show counts,
+    // so the second line is the mono handle.
+    username: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginTop: 2,
+    },
   }));
 
   return (

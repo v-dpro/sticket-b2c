@@ -1,8 +1,18 @@
+// MilestoneShareCard — the IG-story milestone export (batch 3 template).
+// Dark-stage brand artifact: gradient wordmark, the milestone as a rotated
+// stamp, one line of copy, perforated ADMIT sign-off.
+
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme, useThemedStyles } from '../../lib/theme-context';
+
+import {
+  MONO_SEMI,
+  SHARE_DARK,
+  ShareCardShell,
+  ShareFooter,
+  ShareMono,
+} from './ShareCardShell';
 
 interface MilestoneShareCardProps {
   badgeName: string;
@@ -12,107 +22,94 @@ interface MilestoneShareCardProps {
   username: string;
 }
 
-export function MilestoneShareCard({ badgeName, badgeIcon, badgeColor, description, username }: MilestoneShareCardProps) {
-  const { tokens } = useTheme();
-  const styles = useThemedStyles((t) => ({
-    card: {
-      width: 350,
-      height: 450,
-      borderRadius: 24,
-      overflow: 'hidden',
-      backgroundColor: t.colors.ink,
-      padding: 24,
-      justifyContent: 'space-between',
-    },
-    background: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-    },
-    logo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    logoText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: t.colors.textHi,
-    },
-    badgeSection: {
-      alignItems: 'center',
-    },
-    badgeIcon: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
-      borderWidth: 3,
-      backgroundColor: t.colors.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    unlocked: {
-      fontSize: 14,
-      color: t.colors.textMid,
-      marginBottom: 8,
-    },
-    badgeName: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    description: {
-      fontSize: 14,
-      color: t.colors.textLo,
-      textAlign: 'center',
-    },
-    userSection: {
-      alignItems: 'center',
-    },
-    username: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: t.colors.brandPurple,
-    },
-    footer: {
-      textAlign: 'center',
-      fontSize: 12,
-      color: t.colors.textLo,
-    },
-  }));
+/** "50 Shows" → { number: "50", word: "SHOW" } — big-number stamps when the
+ *  milestone is numeric; otherwise the badge icon + name carry the stamp. */
+function stampParts(badgeName: string): { number: string; word: string } | null {
+  const m = badgeName.match(/^(\d+)\s+(.+)$/);
+  if (!m) return null;
+  return { number: m[1]!, word: m[2]!.replace(/s$/i, '').toUpperCase() };
+}
+
+export function MilestoneShareCard({ badgeName, badgeIcon, description, username }: MilestoneShareCardProps) {
+  const parts = stampParts(badgeName);
+  const today = new Date()
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .toUpperCase();
 
   return (
-    <View style={styles.card}>
-      <LinearGradient colors={[`${badgeColor}40`, tokens.colors.ink]} style={styles.background} />
+    <ShareCardShell>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 26 }}>
+        <ShareMono>{username.toUpperCase()}</ShareMono>
 
-      <View style={styles.header}>
-        <View style={styles.logo}>
-          {/* sticket brand mark — fixed */}
-          <Ionicons name="ticket" size={16} color="#7C5CFF" />
-          <Text style={styles.logoText}>sticket</Text>
-        </View>
-      </View>
-
-      <View style={styles.badgeSection}>
-        <View style={[styles.badgeIcon, { borderColor: badgeColor }]}
+        {/* The milestone, stamped. */}
+        <View
+          style={{
+            borderWidth: 3,
+            borderColor: SHARE_DARK.fg,
+            borderRadius: 18,
+            paddingHorizontal: 30,
+            paddingVertical: 18,
+            alignItems: 'center',
+            gap: 2,
+            transform: [{ rotate: '-4deg' }],
+          }}
         >
-          <Ionicons name={badgeIcon as any} size={48} color={badgeColor} />
+          {parts ? (
+            <>
+              <Text
+                style={{
+                  fontFamily: MONO_SEMI,
+                  fontSize: 12,
+                  letterSpacing: 3,
+                  color: SHARE_DARK.fg,
+                }}
+              >
+                {parts.word}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 84,
+                  fontWeight: '800',
+                  color: SHARE_DARK.fg,
+                  fontVariant: ['tabular-nums'],
+                  lineHeight: 90,
+                }}
+              >
+                {parts.number}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name={badgeIcon as any} size={44} color={SHARE_DARK.fg} />
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: '800',
+                  color: SHARE_DARK.fg,
+                  textAlign: 'center',
+                  marginTop: 8,
+                }}
+              >
+                {badgeName}
+              </Text>
+            </>
+          )}
         </View>
 
-        <Text style={styles.unlocked}>🎉 Badge Unlocked!</Text>
-        <Text style={[styles.badgeName, { color: badgeColor }]}>{badgeName}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text
+          style={{
+            fontSize: 14,
+            color: SHARE_DARK.mute,
+            textAlign: 'center',
+            lineHeight: 21,
+            paddingHorizontal: 12,
+          }}
+        >
+          {description}
+        </Text>
       </View>
 
-      <View style={styles.userSection}>
-        <Text style={styles.username}>@{username}</Text>
-      </View>
-
-      <Text style={styles.footer}>Track your concerts at sticket.in</Text>
-    </View>
+      <ShareFooter left={today} right="ADMIT ONE MORE" />
+    </ShareCardShell>
   );
 }

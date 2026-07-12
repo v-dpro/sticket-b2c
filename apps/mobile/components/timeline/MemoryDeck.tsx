@@ -36,6 +36,7 @@ import Animated, {
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDecay,
   withRepeat,
@@ -404,9 +405,19 @@ function DeckLayer({
   shadow,
   children,
 }: DeckLayerProps) {
+  // Reduced-motion fallback (handoff §3): the wheel becomes a plain
+  // crossfade pager — no drum tilt, no travel, no bob. Haptics stay.
+  const reducedMotion = useReducedMotion();
+
   const animated = useAnimatedStyle(() => {
     const d = index - progress.value;
     const abs = Math.abs(d);
+    if (reducedMotion) {
+      return {
+        transform: [{ translateY: 0 }, { rotateX: '0deg' }, { scale: 1 }],
+        opacity: interpolate(abs, [0, 0.5], [1, 0], 'clamp'),
+      };
+    }
     // THE WHEEL. Cards are mounted on a drum you spin in place: each card
     // sits at angle d·STEP on a circle; translateY follows the arc and
     // rotateX tips the card back with perspective as it leaves center.

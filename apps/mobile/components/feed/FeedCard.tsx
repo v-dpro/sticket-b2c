@@ -208,6 +208,16 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
   const score =
     typeof item.log.rating === 'number' && item.log.rating > 0 ? item.log.rating : null;
 
+  // ── Joint post (C13) ──
+  // Co-authors are only serialized on the timeline today; read them
+  // defensively so the "maya × jordan" byline + "ADMIT 02" strip light up
+  // when an API build inlines them on the feed item. The side-by-side dual
+  // scores stay degraded to the author's single score — no payload carries
+  // the co-author's own score (would need coAuthors[].score).
+  const coAuthors =
+    (item as { coAuthors?: { id: string; username: string }[] }).coAuthors ?? [];
+  const admitLabel = `ADMIT ${String(coAuthors.length + 1).padStart(2, '0')}`;
+
   // ── Stub details ──
   // Section is only serialized on LogDetail; read it defensively so it
   // appears when an API build inlines it on the feed item.
@@ -228,6 +238,8 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
         <Avatar uri={item.user.avatarUrl} name={item.user.displayName || item.user.username} size={20} />
         <Text style={styles.authorName} numberOfLines={1}>
           {isSelf ? 'you' : item.user.username}
+          {coAuthors.length > 0 ? ` × ${coAuthors[0].username}` : ''}
+          {coAuthors.length > 1 ? ` +${coAuthors.length - 1}` : ''}
         </Text>
         <Text style={styles.authorAge}>{formatAge(item.createdAt)}</Text>
       </View>
@@ -284,7 +296,7 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
 
         <StubPerforation notchColor={c.bg} />
 
-        <StubDetailsRow left={detailsLeft} right="ADMIT 01" style={styles.detailsRow} />
+        <StubDetailsRow left={detailsLeft} right={admitLabel} style={styles.detailsRow} />
 
         {/* Social row — counts left, who-went right */}
         <View style={styles.socialRow}>

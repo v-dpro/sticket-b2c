@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import type { BadgeRarity } from '../../types/badge';
+import type { BadgeCriteria, BadgeRarity } from '../../types/badge';
+import { radius } from '../../lib/theme';
 import { useTheme } from '../../lib/theme-context';
 
 type RarityPalette = {
@@ -13,7 +14,8 @@ type RarityPalette = {
   warning: string;
 };
 
-/** Semantic rarity hue, resolved from the active theme palette. */
+/** Semantic rarity hue — SANCTIONED only for the EarnedBadgeModal
+ *  celebration (C10). Tiles stay mono ink. */
 export function getRarityColor(c: RarityPalette, rarity: BadgeRarity): string {
   switch (rarity) {
     case 'common':
@@ -31,19 +33,29 @@ export function getRarityColor(c: RarityPalette, rarity: BadgeRarity): string {
   }
 }
 
+/** Numeric milestones ("50 Shows") lead with the giant number. */
+export function getMilestoneCount(criteria: BadgeCriteria): number | undefined {
+  return 'count' in criteria ? criteria.count : undefined;
+}
+
+// The badge mark is a STAMP (C10): earned = 2px ink border with the
+// stamp's resting −3° tilt; locked = dashed `dash` border at mute.
+// No rarity fills on tiles — rarity survives only as a mono word.
 export function BadgeIcon({
   icon,
   earned,
-  rarity,
+  count,
   size,
 }: {
   icon: string;
   earned: boolean;
   rarity: BadgeRarity;
+  /** Leading number for numeric milestones — replaces the glyph. */
+  count?: number;
   size: number;
 }) {
   const { tokens } = useTheme();
-  const c = getRarityColor(tokens.colors, rarity);
+  const ink = earned ? tokens.colors.fg : tokens.colors.mute;
 
   return (
     <View
@@ -52,13 +64,29 @@ export function BadgeIcon({
         {
           width: size,
           height: size,
-          borderRadius: size / 2,
-          borderColor: earned ? c : tokens.colors.hairline,
-          backgroundColor: earned ? `${c}20` : tokens.colors.card2,
+          borderRadius: size >= 96 ? radius.stub : radius.chip,
+          borderColor: earned ? tokens.colors.fg : tokens.colors.dash,
+          borderStyle: earned ? 'solid' : 'dashed',
+          transform: earned ? [{ rotate: '-3deg' }] : undefined,
         },
       ]}
     >
-      <Ionicons name={icon as any} size={Math.round(size * 0.45)} color={earned ? c : tokens.colors.muteSoft} />
+      {count !== undefined ? (
+        <Text
+          style={{
+            fontFamily: tokens.fontFamilies.mono,
+            fontVariant: ['tabular-nums'],
+            fontSize: Math.round(size * 0.4),
+            fontWeight: '700',
+            letterSpacing: -0.5,
+            color: ink,
+          }}
+        >
+          {count}
+        </Text>
+      ) : (
+        <Ionicons name={icon as any} size={Math.round(size * 0.45)} color={ink} />
+      )}
     </View>
   );
 }

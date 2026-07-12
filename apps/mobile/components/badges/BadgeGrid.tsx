@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import type { Badge, BadgeProgress, UserBadge } from '../../types/badge';
+import { durations, tearIn } from '../../lib/motion';
 import { BadgeCard } from './BadgeCard';
 
 interface BadgeGridProps {
@@ -17,19 +19,20 @@ export function BadgeGrid({ badges, earnedBadges, progress, onBadgePress }: Badg
 
   return (
     <View style={styles.grid}>
-      {badges.map((badge) => {
+      {badges.map((badge, i) => {
         const earned = earnedMap.get(badge.id);
         const prog = progressMap.get(badge.id);
 
         return (
-          <BadgeCard
-            key={badge.id}
-            badge={badge}
-            earned={Boolean(earned)}
-            earnedAt={earned?.earnedAt}
-            progress={prog}
-            onPress={() => onBadgePress?.(badge)}
-          />
+          <Animated.View key={badge.id} entering={tearIn(Math.min(i, 8) * durations.stagger)}>
+            <BadgeCard
+              badge={badge}
+              earned={Boolean(earned)}
+              earnedAt={earned?.earnedAt}
+              progress={prog}
+              onPress={() => onBadgePress?.(badge)}
+            />
+          </Animated.View>
         );
       })}
     </View>

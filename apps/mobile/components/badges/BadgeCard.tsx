@@ -2,9 +2,9 @@ import React from 'react';
 import { Text, View } from 'react-native';
 
 import type { Badge, BadgeProgress } from '../../types/badge';
-import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { useThemedStyles } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';
-import { BadgeIcon, getRarityColor } from './BadgeIcon';
+import { BadgeIcon, getMilestoneCount } from './BadgeIcon';
 
 interface BadgeCardProps {
   badge: Badge;
@@ -16,9 +16,7 @@ interface BadgeCardProps {
 }
 
 export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }: BadgeCardProps) {
-  const { tokens } = useTheme();
   const iconSize = size === 'small' ? 56 : size === 'large' ? 96 : 72;
-  const rarityColor = getRarityColor(tokens.colors, badge.rarity);
 
   const styles = useThemedStyles((t) => ({
     container: { alignItems: 'center', width: 96 },
@@ -33,21 +31,43 @@ export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }:
       backgroundColor: t.colors.card2,
       overflow: 'hidden',
     },
-    progressFill: { height: '100%' },
+    progressFill: { height: '100%', backgroundColor: t.colors.fg },
     name: { fontSize: 12, fontWeight: '700', color: t.colors.fg, textAlign: 'center' },
     nameUnearned: { color: t.colors.mute },
-    rarityPill: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-    rarityText: { fontFamily: t.fontFamilies.mono, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-    progressText: { fontFamily: t.fontFamilies.mono, fontSize: 11, color: t.colors.muteSoft, marginTop: 6 },
+    rarityText: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      color: t.colors.muteSoft,
+      marginTop: 6,
+    },
+    progressText: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      color: t.colors.muteSoft,
+      marginTop: 6,
+    },
   }));
 
   return (
     <SpringPressable style={styles.container} onPress={onPress} haptic="light" accessibilityRole="button">
       <View style={styles.iconWrap}>
-        <BadgeIcon icon={badge.icon} earned={earned} rarity={badge.rarity} size={iconSize} />
+        <BadgeIcon
+          icon={badge.icon}
+          earned={earned}
+          rarity={badge.rarity}
+          count={getMilestoneCount(badge.criteria)}
+          size={iconSize}
+        />
         {!earned && progress ? (
           <View style={styles.progressStrip}>
-            <View style={[styles.progressFill, { width: `${progress.percentage}%`, backgroundColor: rarityColor }]} />
+            <View style={[styles.progressFill, { width: `${progress.percentage}%` }]} />
           </View>
         ) : null}
       </View>
@@ -57,9 +77,7 @@ export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }:
       </Text>
 
       {earned ? (
-        <View style={[styles.rarityPill, { backgroundColor: `${rarityColor}20` }]}>
-          <Text style={[styles.rarityText, { color: rarityColor }]}>{badge.rarity}</Text>
-        </View>
+        <Text style={styles.rarityText}>{badge.rarity}</Text>
       ) : progress ? (
         <Text style={styles.progressText}>
           {progress.current}/{progress.target}

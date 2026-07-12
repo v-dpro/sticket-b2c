@@ -5,7 +5,7 @@
 //
 // Follows the app's Modal-sheet pattern (see ShareSheet): blurred backdrop,
 // slide-up card panel. Fully tokenized via useTheme(); monochrome, mono
-// reserved for the count label.
+// for the count label and the per-row handle line (C11).
 
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -220,15 +220,21 @@ const buildStyles = (tokens: ThemeTokens) =>
       flex: 1,
     },
     name: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '700',
       color: tokens.colors.fg,
     },
+    // Mono data line (C11) — likes payload carries no show counts, so
+    // the second line is the mono handle.
     handle: {
-      fontSize: 12,
-      fontWeight: '400',
-      color: tokens.colors.mute,
-      marginTop: 1,
+      fontFamily: tokens.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: tokens.colors.muteSoft,
+      marginTop: 2,
     },
     center: {
       paddingVertical: 40,

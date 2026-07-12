@@ -63,7 +63,8 @@ export function EarnedBadgeModal({
       paddingVertical: 7,
       borderRadius: 999,
     },
-    pillText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+    // Chips go mono (C10) — the celebration lives in the ring + confetti.
+    pillText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', letterSpacing: 0.5, color: t.colors.fg },
     button: { backgroundColor: t.colors.inverseBg, paddingHorizontal: 40, paddingVertical: 12, borderRadius: 999 },
     buttonText: { color: t.colors.inverseFg, fontSize: 16, fontWeight: '700' },
   }));
@@ -105,12 +106,12 @@ export function EarnedBadgeModal({
           <Text style={styles.description}>{badge.description}</Text>
 
           <View style={styles.statsRow}>
-            <View style={[styles.pill, { backgroundColor: `${rarityColor}20` }]}>
-              <Text style={[styles.pillText, { color: rarityColor }]}>{badge.rarity.toUpperCase()}</Text>
+            <View style={styles.pill}>
+              <Text style={styles.pillText}>{badge.rarity.toUpperCase()}</Text>
             </View>
             <View style={styles.pill}>
-              <Ionicons name="star" size={12} color={tokens.colors.warning} />
-              <Text style={[styles.pillText, { color: tokens.colors.warning }]}>+{badge.points} pts</Text>
+              <Ionicons name="star" size={12} color={tokens.colors.muteSoft} />
+              <Text style={styles.pillText}>+{badge.points} pts</Text>
             </View>
           </View>
 

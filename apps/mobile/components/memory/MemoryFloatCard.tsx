@@ -52,6 +52,9 @@ export interface MemoryCardData {
   commentCount?: number;
   wasThereCount?: number;
   wasThereUsers?: FacepileUser[];
+  // Accepted co-authors (C13 joint post) — no feed payload carries them, so
+  // the viewer route fills this from GET /logs/:id/coauthors where allowed.
+  coAuthors?: MemoryCardUser[];
 }
 
 /** Project a feed item (feed / event feed / log detail) onto the card shape. */
@@ -110,6 +113,10 @@ export function MemoryFloatCard({
   const score = typeof data.score === 'number' && data.score > 0 ? data.score : null;
   const venueDate = [data.venueName, formatMemoryDate(data.eventDate)].filter(Boolean).join(' · ');
   const facepileUsers = data.wasThereUsers ?? [];
+  // C13 joint post — the pill becomes a "maya × jordan" byline. Dual scores
+  // stay degraded to the single BareScore: no payload carries the co-author's
+  // own score (would need coAuthors[].score).
+  const coAuthors = data.coAuthors ?? [];
 
   // Over-photo chrome — identical treatment to FeedCard v3.
   const overlay = (
@@ -125,6 +132,8 @@ export function MemoryFloatCard({
             />
             <Text style={styles.authorName} numberOfLines={1}>
               {isSelf ? 'you' : data.user.username}
+              {coAuthors.length > 0 ? ` × ${coAuthors[0].username}` : ''}
+              {coAuthors.length > 1 ? ` +${coAuthors.length - 1}` : ''}
             </Text>
             {data.createdAt ? <Text style={styles.authorAge}>{formatMemoryAge(data.createdAt)}</Text> : null}
           </View>

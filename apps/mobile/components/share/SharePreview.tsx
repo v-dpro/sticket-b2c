@@ -36,7 +36,7 @@ export function SharePreview({ data, link }: SharePreviewProps) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 10,
-      backgroundColor: t.colors.brandPurple,
+      backgroundColor: t.colors.inverseBg,
       paddingHorizontal: 18,
       paddingVertical: 12,
       borderRadius: 999,
