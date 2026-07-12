@@ -1,18 +1,21 @@
-// MemoryDeck — the timeline as a FIXED STAGE, not a scrolling page.
-// The screen never scrolls: the centered card floats on its own surface
-// (full scale, shadow, gentle idle bob) while neighbors recede behind it
-// (scaled, dimmed, layered under). A vertical swipe drives the CARDS
-// through the stage with spring physics — one flick, one card (fast
-// flicks may carry a few) — and the fixed month readout above the stage
-// ticks over as the centered card crosses month boundaries.
+// MemoryDeck — the timeline as a WHEEL you spin in place.
+// The screen never scrolls: one big vertical card owns the stage; the
+// nights before and after appear as fixed TEXT SLOTS above and below it
+// (the full card only exists at center — it blooms in as it lands). A
+// vertical swipe turns the wheel: cards arc on a drum with perspective
+// tilt; every card that passes center CLICKS (light haptic, medium on a
+// month crossing); a hard flick free-spins through many cards with decay
+// — scroll speed IS travel speed — then snaps to the nearest night. The
+// month readout above the stage ticks live as the wheel turns.
 //
 // Contract with you.tsx:
-//   items      — chronological deck (future plans first, then past
-//                entries newest→oldest), stable `key` per item (the map
-//                view's fly-to targets these same keys).
-//   onNearEnd  — fired when the centered card approaches the deck's tail
-//                (pagination hook).
-//   snapTo     — imperative jump (map marker fly-to) via ref.
+//   items       — chronological deck (future plans first, then past
+//                 entries newest→oldest), stable `key` per item.
+//   renderCard  — the full card (center only).
+//   renderLabel — the text-only face for the before/after slots.
+//   accessory   — right side of the readout row (the Scroll ⇄ Map toggle
+//                 lives here so the stage gets its height back).
+//   snapTo      — imperative jump (map marker fly-to) via ref.
 
 import React, {
   forwardRef,
@@ -31,8 +34,10 @@ import Animated, {
   cancelAnimation,
   interpolate,
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
+  withDecay,
   withRepeat,
   withSpring,
   withTiming,
@@ -57,37 +62,50 @@ type MemoryDeckProps = {
   /** Where the stage opens — usually the newest PAST entry. */
   initialIndex: number;
   renderCard: (item: DeckItem, isCentered: boolean) => React.ReactNode;
-  /** Text-only face for off-center positions — the full card only shows
-      at center; before/after collapse to this label. */
+  /** Text-only face for the fixed before/after slots. */
   renderLabel: (item: DeckItem) => React.ReactNode;
   /** Month readout text per item ("JUL 2026" / "UPCOMING · AUG 2026"). */
   readoutFor: (item: DeckItem) => string;
+  /** Rendered at the right of the readout row (Scroll ⇄ Map toggle). */
+  accessory?: React.ReactNode;
   onIndexChange?: (index: number) => void;
   onNearEnd?: () => void;
   /** Pull-down past the first card triggers this (deck's pull-to-refresh). */
   onOverscrollRefresh?: () => void;
 };
 
-// How many cards each side of center stay mounted (the rest render null).
-const RENDER_WINDOW = 2;
-// The farthest a single flick may carry, in cards.
-const MAX_FLICK_CARRY = 4;
+// Horizontal inset of the card layers — wider than screen pad so the big
+// vertical card leaves air for the wheel's tilt.
+const CARD_INSET = 28;
+// Height of each fixed text slot (before/after nights).
+const LABEL_SLOT = 48;
+// Flicks faster than this (cards/second) free-spin the wheel with decay.
+const SPIN_VELOCITY = 1.4;
 // Near-tail threshold for pagination.
 const NEAR_END = 6;
-// Spring for the settle — tight, no bounce past the neighbor.
-const SETTLE_SPRING = { stiffness: 240, damping: 28, mass: 0.9 };
+// Spring for the settle — snappy, no bounce past the neighbor.
+const SETTLE_SPRING = { stiffness: 320, damping: 30, mass: 0.8 };
 
 export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function MemoryDeck(
-  { items, initialIndex, renderCard, renderLabel, readoutFor, onIndexChange, onNearEnd, onOverscrollRefresh },
+  {
+    items,
+    initialIndex,
+    renderCard,
+    renderLabel,
+    readoutFor,
+    accessory,
+    onIndexChange,
+    onNearEnd,
+    onOverscrollRefresh,
+  },
   ref,
 ) {
   const { tokens } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
-  const cardW = windowWidth - tokens.density.pad * 2;
-  // Stride: how far one card-step moves the track. Derived from the memory
-  // card's photo height (stub cards run taller with the details strip) so a
-  // full card dominates the stage while the previous/next peek behind it.
-  const stride = Math.round(cardW * 0.63 * 0.8);
+  const cardW = windowWidth - CARD_INSET * 2;
+  // One card-step of wheel travel — most of the card's height, so the
+  // incoming card sweeps through the stage while the outgoing one exits.
+  const stride = Math.round(cardW * 1.05);
 
   const count = items.length;
   const clampIndex = useCallback(
@@ -97,7 +115,7 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
 
   const progress = useSharedValue(clampIndex(initialIndex));
   const dragStart = useSharedValue(0);
-  // Idle bob — only the settled center card breathes (±3px, slow).
+  // Idle bob — only the settled center card breathes (±2.5px, slow).
   const bob = useSharedValue(0);
   const [index, setIndex] = useState(clampIndex(initialIndex));
   const indexRef = useRef(index);
@@ -120,21 +138,46 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
     }
   }, [count, clampIndex, progress]);
 
+  // THE CLICK. Fires on every card crossing — during the drag, during a
+  // free spin, during the settle. Light per card; medium when the wheel
+  // crosses into a different month. Also keeps `index` live so the
+  // mounted window and the label slots ride along with a long spin.
+  const tick = useCallback(
+    (curr: number) => {
+      const prev = indexRef.current;
+      if (curr === prev) return;
+      const prevMonth = items[prev]?.monthKey;
+      const nextMonth = items[curr]?.monthKey;
+      if (prevMonth && nextMonth && prevMonth !== nextMonth) haptics.medium();
+      else haptics.light();
+      setIndex(curr);
+      onIndexChange?.(curr);
+      if (count > 0 && curr >= count - NEAR_END) onNearEnd?.();
+    },
+    [items, count, onIndexChange, onNearEnd],
+  );
+
+  useAnimatedReaction(
+    () => {
+      const max = Math.max(count - 1, 0);
+      return Math.round(Math.max(0, Math.min(max, progress.value)));
+    },
+    (curr, prev) => {
+      if (prev !== null && curr !== prev) runOnJS(tick)(curr);
+    },
+    [count, tick],
+  );
+
+  // Settle only reconciles final state — the last crossing already ticked.
   const settle = useCallback(
     (target: number) => {
-      const prev = indexRef.current;
-      if (target !== prev) {
-        const prevMonth = items[prev]?.monthKey;
-        const nextMonth = items[target]?.monthKey;
-        // Crossing a month boundary lands harder than a card click.
-        if (prevMonth && nextMonth && prevMonth !== nextMonth) haptics.medium();
-        else haptics.light();
+      if (target !== indexRef.current) {
         setIndex(target);
         onIndexChange?.(target);
       }
       if (count > 0 && target >= count - NEAR_END) onNearEnd?.();
     },
-    [items, count, onIndexChange, onNearEnd],
+    [count, onIndexChange, onNearEnd],
   );
 
   const triggerRefresh = useCallback(() => {
@@ -148,8 +191,6 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
     () =>
       Gesture.Pan()
         // Vertical intent only — the in-card photo pager owns horizontal.
-        // Tight thresholds: the horizontal-vs-vertical call happens fast so
-        // the pager gets the drag before it reads as a press.
         .activeOffsetY([-10, 10])
         .failOffsetX([-12, 12])
         .onStart(() => {
@@ -174,22 +215,34 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
           if (dragStart.value <= 0 && progress.value < -0.28) {
             runOnJS(triggerRefresh)();
           }
-          // SENSITIVE COMMIT: any deliberate gesture moves at least one
-          // card — a third of a card of travel-plus-velocity is intent;
-          // only a truly tiny nudge snaps back.
-          const start = Math.round(dragStart.value);
           const velocity = -e.velocityY / stride; // cards/second
-          const carried = progress.value - dragStart.value + velocity * 0.28;
-          let target: number;
-          if (Math.abs(carried) < 0.16) {
-            target = start;
+          if (Math.abs(velocity) > SPIN_VELOCITY) {
+            // WHEEL SPIN: momentum carries through as many cards as the
+            // flick deserves — the reaction above clicks each one — then
+            // snaps to the nearest night when the spin dies.
+            progress.value = withDecay(
+              { velocity, deceleration: 0.9975, clamp: [0, max] },
+              () => {
+                const target = Math.max(0, Math.min(max, Math.round(progress.value)));
+                progress.value = withSpring(target, SETTLE_SPRING);
+                runOnJS(settle)(target);
+              },
+            );
           } else {
-            const steps = Math.max(1, Math.round(Math.abs(carried)));
-            target = start + Math.sign(carried) * Math.min(steps, MAX_FLICK_CARRY);
+            // SENSITIVE COMMIT: any deliberate gesture moves at least one
+            // card; only a truly tiny nudge snaps back.
+            const start = Math.round(dragStart.value);
+            const carried = progress.value - dragStart.value + velocity * 0.35;
+            let target: number;
+            if (Math.abs(carried) < 0.12) {
+              target = start;
+            } else {
+              target = start + Math.sign(carried) * Math.max(1, Math.round(Math.abs(carried)));
+            }
+            target = Math.max(0, Math.min(max, target));
+            progress.value = withSpring(target, SETTLE_SPRING);
+            runOnJS(settle)(target);
           }
-          target = Math.max(0, Math.min(max, target));
-          progress.value = withSpring(target, SETTLE_SPRING);
-          runOnJS(settle)(target);
         }),
     [count, stride, progress, dragStart, settle, triggerRefresh],
   );
@@ -212,11 +265,12 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
     root: { flex: 1 },
     readoutRow: {
       flexDirection: 'row',
-      alignItems: 'baseline',
+      alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: t.density.pad,
       paddingTop: 4,
-      paddingBottom: 10,
+      paddingBottom: 8,
+      gap: 12,
     },
     readout: {
       fontFamily: t.fontFamilies.mono,
@@ -233,44 +287,63 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
       letterSpacing: 1,
       color: t.colors.mute,
     },
-    // overflow hidden: receding cards must never escape the stage and
-    // ghost under the fixed chrome above it (header / readout / toggle).
+    // overflow hidden: transiting cards must never escape the stage and
+    // ghost under the fixed chrome above it.
     stage: { flex: 1, overflow: 'hidden' },
     layer: {
-      // Every card lives on a full-stage layer that centers it; the track
-      // transform then slides the layer, so mixed card heights all pivot
-      // around the same stage center. paddingBottom biases that center up
-      // — the card should hang just above the true middle, not below it.
+      // Every card lives on a full-stage layer that centers it; the wheel
+      // transform slides the layer, so mixed card heights all pivot
+      // around the same stage center.
       position: 'absolute',
-      top: 0,
-      bottom: 0,
-      left: t.density.pad,
-      right: t.density.pad,
+      top: LABEL_SLOT,
+      bottom: LABEL_SLOT,
+      left: CARD_INSET,
+      right: CARD_INSET,
       justifyContent: 'center',
-      paddingBottom: 76,
+    },
+    // Fixed text slots — the night before (top) and after (bottom).
+    slot: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: LABEL_SLOT,
+      justifyContent: 'center',
+      zIndex: 300,
     },
   }));
 
   const item = items[index];
   const readout = item ? readoutFor(item) : '';
+  const prevItem = index > 0 ? items[index - 1] : null;
+  const nextItem = index < count - 1 ? items[index + 1] : null;
 
   return (
     <View style={styles.root}>
-      {/* Fixed readout — the date lives HERE and ticks as cards pass. */}
+      {/* Fixed readout — the date lives HERE and ticks as the wheel turns. */}
       <View style={styles.readoutRow}>
-        {/* Key on the text: month changes re-enter with a small drop. */}
-        <Animated.View key={readout} entering={FadeIn.duration(160)}>
-          <Text style={styles.readout}>{readout}</Text>
-        </Animated.View>
-        <Text style={styles.counter}>
-          {count > 0 ? `${index + 1} OF ${count}` : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexShrink: 1 }}>
+          {/* Key on the text: month changes re-enter with a small fade. */}
+          <Animated.View key={readout} entering={FadeIn.duration(140)}>
+            <Text style={styles.readout}>{readout}</Text>
+          </Animated.View>
+          <Text style={styles.counter}>{count > 0 ? `${index + 1}/${count}` : ''}</Text>
+        </View>
+        {accessory}
       </View>
 
       <GestureDetector gesture={pan}>
         <View style={styles.stage} collapsable={false}>
+          {/* The night BEFORE — text only, pinned above the card. */}
+          <View style={[styles.slot, { top: 0 }]} pointerEvents="none">
+            {prevItem ? (
+              <Animated.View key={prevItem.key} entering={FadeIn.duration(160)}>
+                {renderLabel(prevItem)}
+              </Animated.View>
+            ) : null}
+          </View>
+
           {items.map((deckItem, i) =>
-            Math.abs(i - index) <= RENDER_WINDOW ? (
+            Math.abs(i - index) <= 1 ? (
               <DeckLayer
                 key={deckItem.key}
                 index={i}
@@ -281,12 +354,20 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
                 interactive={i === index}
                 layerStyle={styles.layer}
                 shadow={tokens.shadows.stub}
-                label={renderLabel(deckItem)}
               >
                 {renderCard(deckItem, i === index)}
               </DeckLayer>
             ) : null,
           )}
+
+          {/* The night AFTER — text only, pinned below the card. */}
+          <View style={[styles.slot, { bottom: 0 }]} pointerEvents="none">
+            {nextItem ? (
+              <Animated.View key={nextItem.key} entering={FadeIn.duration(160)}>
+                {renderLabel(nextItem)}
+              </Animated.View>
+            ) : null}
+          </View>
         </View>
       </GestureDetector>
     </View>
@@ -295,7 +376,7 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
 
 type DeckLayerProps = {
   index: number;
-  /** index − settled center index; static per render, sets the z-order. */
+  /** index − live center index; static per render, sets the z-order. */
   depth: number;
   progress: SharedValue<number>;
   bob: SharedValue<number>;
@@ -309,8 +390,6 @@ type DeckLayerProps = {
     shadowRadius: number;
     elevation: number;
   };
-  /** Text-only face shown at off-center positions. */
-  label: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -323,69 +402,41 @@ function DeckLayer({
   interactive,
   layerStyle,
   shadow,
-  label,
   children,
 }: DeckLayerProps) {
   const animated = useAnimatedStyle(() => {
     const d = index - progress.value;
     const abs = Math.abs(d);
-    // THE WHEEL. Cards are mounted on a drum you spin in place, not a
-    // track that slides: each card sits at angle d·STEP on a circle whose
-    // radius keeps the d=1 peek where it was tuned (stride at sin(STEP)).
-    // translateY follows the arc (neighbors bunch toward the rim) and
-    // rotateX tips each card back with perspective as it leaves center —
-    // above-center tops tip away, below-center bottoms tip away.
+    // THE WHEEL. Cards are mounted on a drum you spin in place: each card
+    // sits at angle d·STEP on a circle; translateY follows the arc and
+    // rotateX tips the card back with perspective as it leaves center.
     const STEP = 0.55; // radians of drum rotation per card
     const angle = Math.max(-1.3, Math.min(1.3, d * STEP));
     const radius = stride / Math.sin(STEP);
     // The idle bob only breathes when this card owns the center.
-    const bobPx = interpolate(abs, [0, 0.25], [1, 0], 'clamp') * interpolate(bob.value, [0, 1], [2.5, -2.5]);
+    const bobPx =
+      interpolate(abs, [0, 0.25], [1, 0], 'clamp') * interpolate(bob.value, [0, 1], [2.5, -2.5]);
     return {
       transform: [
         { perspective: 900 },
         { translateY: radius * Math.sin(angle) + bobPx },
         { rotateX: `${-angle * 57.2958 * 0.52}deg` },
-        { scale: interpolate(abs, [0, 1, RENDER_WINDOW], [1, 0.94, 0.84], 'clamp') },
+        { scale: interpolate(abs, [0, 1], [1, 0.92], 'clamp') },
       ],
-      // A real card stack: the previous/next card stays FULLY readable —
-      // depth comes from scale, position, and the center card's shadow,
-      // never from dimming. Only the far cards fade as they leave.
-      opacity: interpolate(abs, [0, 1, 1.6, RENDER_WINDOW], [1, 1, 0.75, 0.35], 'clamp'),
+      // Only the centered card is a card — it dissolves to nothing as it
+      // leaves (the fixed text slots carry the before/after nights).
+      opacity: interpolate(abs, [0, 0.55, 0.9], [1, 0.55, 0], 'clamp'),
     };
-  });
-
-  // The FULL card lives only at center: it blooms in as the card arrives
-  // and dissolves as it leaves…
-  const cardFace = useAnimatedStyle(() => {
-    const abs = Math.abs(index - progress.value);
-    return { opacity: interpolate(abs, [0, 0.35, 0.75], [1, 0.85, 0], 'clamp') };
-  });
-  // …while the before/after positions show only the TEXT of that night.
-  const labelFace = useAnimatedStyle(() => {
-    const abs = Math.abs(index - progress.value);
-    return { opacity: interpolate(abs, [0.3, 0.75], [0, 1], 'clamp') };
   });
 
   return (
     <Animated.View
-      // z-order and shadow are STATIC per settle (no per-frame layer
-      // reshuffling or shadow repaints — they were the deck's jank).
-      // The floating shadow belongs to the center card only.
+      // z-order and shadow are STATIC per tick (no per-frame layer
+      // reshuffling or shadow repaints). Shadow rides the center card.
       style={[layerStyle, { zIndex: 100 - Math.abs(depth) * 10 }, animated]}
       pointerEvents={interactive ? 'box-none' : 'none'}
     >
-      <View style={interactive ? shadow : undefined}>
-        <Animated.View style={cardFace}>{children}</Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center' },
-            labelFace,
-          ]}
-        >
-          {label}
-        </Animated.View>
-      </View>
+      <View style={interactive ? shadow : undefined}>{children}</View>
     </Animated.View>
   );
 }

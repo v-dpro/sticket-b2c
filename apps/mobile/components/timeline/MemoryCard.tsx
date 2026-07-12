@@ -105,7 +105,9 @@ export function MemoryCard({ entry, onPress, rankLabel }: MemoryCardProps) {
     // below grows the card, which the deck accommodates.
     photoArea: {
       width: '100%',
-      aspectRatio: 100 / 63,
+      // Vertical-leaning: phone photos are portrait — the frame leans tall
+      // (the deck's stage budget caps how tall it can go).
+      aspectRatio: 0.95,
       backgroundColor: t.colors.card2, // shows while the photo loads
     },
     photo: {

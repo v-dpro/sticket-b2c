@@ -582,12 +582,12 @@ export default function YouScreen() {
       {currentYearShows >= 3 ? (
         <WrappedChip year={currentYear} onPress={() => router.push('/wrapped')} />
       ) : null}
-      <View style={styles.toggleBar}>
-        <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
-      </View>
       {viewMode === 'map' ? (
         // In-place view swap — the one place a fade is still the right move.
         <Animated.View key="map" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
+          <View style={styles.toggleBar}>
+            <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
+          </View>
           <TimelineMapView
             upcoming={upcoming}
             months={months}
@@ -609,6 +609,8 @@ export default function YouScreen() {
             renderCard={renderCard}
             renderLabel={renderLabel}
             readoutFor={readoutFor}
+            // The toggle rides the readout row — the stage keeps its height.
+            accessory={<TimelineViewToggle mode={viewMode} onChange={setViewMode} />}
             onNearEnd={() => void loadMore()}
             onOverscrollRefresh={() => void onRefresh()}
           />
