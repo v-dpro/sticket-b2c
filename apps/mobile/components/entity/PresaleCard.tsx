@@ -98,7 +98,8 @@ export function PresaleCard({ presales }: { presales: EventPresale[] }) {
         <View key={p.id}>
           {i > 0 ? <View style={styles.divider} /> : null}
           <View style={styles.row}>
-            <Text style={styles.type}>{p.presaleType} presale</Text>
+            {/* Some feeds already end the type with "presale" — don't double it. */}
+            <Text style={styles.type}>{`${p.presaleType.replace(/\s*presale\s*$/i, '')} presale`}</Text>
             <Text style={styles.window}>
               {monoDateTime(p.presaleStart)}
               {p.presaleEnd ? (
