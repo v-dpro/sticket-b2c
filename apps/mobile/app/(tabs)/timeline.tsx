@@ -13,6 +13,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { getUserTimeline, type TimelineEntry, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
 import { getErrorMessage } from '../../lib/api/errorUtils';
+import { onSnapToToday } from '../../lib/navigation/timelineBus';
 import { durations } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
@@ -334,6 +335,15 @@ export default function TimelineScreen() {
       0,
     );
   }, [months, currentYear]);
+
+  // The center ticket's tap: spin the wheel home to today (the newest
+  // past entry — the boundary where plans meet history).
+  useEffect(() => {
+    return onSnapToToday(() => {
+      if (viewMode !== 'scroll') setViewMode('scroll');
+      deckRef.current?.snapTo(initialDeckIndex, true);
+    });
+  }, [initialDeckIndex, viewMode]);
 
   // Keep the deck index in range as pages merge/refresh.
   useEffect(() => {

@@ -36,6 +36,51 @@ function placeholderImage(seed: string, w = 800, h = 800): string {
   return `https://picsum.photos/seed/${seed}/${w}/${h}`;
 }
 
+// Real concert/festival photography (Unsplash CDN, every URL verified live)
+// — logs get believable stage/crowd shots instead of picsum noise.
+const CONCERT_PHOTOS = [
+  'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1200&q=80',
+  'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&q=80',
+  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&q=80',
+  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&q=80',
+  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80',
+  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&q=80',
+  'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80',
+  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&q=80',
+  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&q=80',
+  'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&q=80',
+  'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=1200&q=80',
+  'https://images.unsplash.com/photo-1563841930606-67e2bce48b78?w=1200&q=80',
+  'https://images.unsplash.com/photo-1522158637959-30385a09e0da?w=1200&q=80',
+  'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=1200&q=80',
+  'https://images.unsplash.com/photo-1509824227185-9c5a01ceba0d?w=1200&q=80',
+  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80',
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80',
+  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&q=80',
+  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&q=80',
+  'https://images.unsplash.com/photo-1471478331149-c72f17e33c73?w=1200&q=80',
+  'https://images.unsplash.com/photo-1524650359799-842906ca1c06?w=1200&q=80',
+  'https://images.unsplash.com/photo-1518976024611-28bf4b48222e?w=1200&q=80',
+  'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=1200&q=80',
+  'https://images.unsplash.com/photo-1496337589254-7e19d01cec44?w=1200&q=80',
+  'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=1200&q=80',
+  'https://images.unsplash.com/photo-1484755560615-a4c64e778a6c?w=1200&q=80',
+  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&q=80',
+  'https://images.unsplash.com/photo-1461784121038-f088ca1e7714?w=1200&q=80',
+  'https://images.unsplash.com/photo-1521337581100-8ca9a73a5f79?w=1200&q=80',
+  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&q=80',
+] as const;
+
+function concertPhoto(seed: string): string {
+  return CONCERT_PHOTOS[stableHash(seed) % CONCERT_PHOTOS.length]!;
+}
+
+/** Realistic face avatars (pravatar, stable per user). */
+function faceAvatar(seed: string): string {
+  return `https://i.pravatar.cc/300?img=${(stableHash(seed) % 70) + 1}`;
+}
+
+
 /** FNV-1a style string hash — deterministic, no external deps. */
 function stableHash(s: string): number {
   let h = 2166136261;
@@ -375,7 +420,7 @@ async function seedUsers(): Promise<void> {
         city: u.city,
         homeCity: u.city,
         bio: u.bio,
-        avatarUrl: placeholderImage(u.id, 400, 400),
+        avatarUrl: faceAvatar(u.id),
         passwordHash: SEED_PASSWORD_HASH,
       },
       create: {
@@ -386,7 +431,7 @@ async function seedUsers(): Promise<void> {
         city: u.city,
         homeCity: u.city,
         bio: u.bio,
-        avatarUrl: placeholderImage(u.id, 400, 400),
+        avatarUrl: faceAvatar(u.id),
         passwordHash: SEED_PASSWORD_HASH,
         emailVerified: true,
       },
@@ -515,7 +560,7 @@ function buildLogRows(plans: LogPlan[], hubEvents: CatEvent[]): LogRow[] {
         score: s.score,
         scoreRank: s.scoreRank,
         note: captionOverrides.get(`${userId}:${p.event.id}`) ?? pickCaption(`cap:${userId}:${p.event.id}`),
-        photos: Array.from({ length: photoCount }, (_, i) => placeholderImage(`exp-photo-${id}-${i + 1}`, 1200, 900)),
+        photos: Array.from({ length: photoCount }, (_, i) => concertPhoto(`exp-photo-${id}-${i + 1}`)),
         createdAt,
       });
     }

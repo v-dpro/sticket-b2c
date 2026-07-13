@@ -398,7 +398,10 @@ function serializeFeedLog(
   likedSet: Set<string>,
   degreeOf: DegreeOf,
   coAuthorScores: Map<string, number | null>,
-  trendingTags: Map<string, string>
+  trendingTags: Map<string, string>,
+  // eventId -> discoverable same-event loggers (degree-1 first, ≤5) — the
+  // "friends who attended" circles. Manual WasThere taps union in below.
+  sameEventAttendees: Map<string, { id: string; username: string; displayName?: string; avatarUrl?: string; degree?: 1 | 2 }[]> = new Map()
 ) {
   return {
     id: log.id,
@@ -464,15 +467,30 @@ function serializeFeedLog(
           avatarUrl: c.user.avatarUrl ?? undefined,
         },
       })),
-    wasThereCount: log._count.wasThere,
     userWasThere: wasThereSet.has(log.id),
-    wasThereUsers: (log.wasThere ?? []).map((w) => ({
-      id: w.user.id,
-      username: w.user.username,
-      displayName: w.user.displayName ?? undefined,
-      avatarUrl: w.user.avatarUrl ?? undefined,
-      degree: degreeOf(w.user.id),
-    })),
+    // Circles = manual "was there" taps UNION everyone the viewer can see
+    // who logged the same show (excluding the author), degree-1 first.
+    ...(() => {
+      const manual = (log.wasThere ?? []).map((w) => ({
+        id: w.user.id,
+        username: w.user.username,
+        displayName: w.user.displayName ?? undefined,
+        avatarUrl: w.user.avatarUrl ?? undefined,
+        degree: degreeOf(w.user.id),
+      }));
+      const attendees = (sameEventAttendees.get(log.eventId) ?? []).filter(
+        (a) => a.id !== log.userId
+      );
+      const seen = new Set<string>();
+      const merged = [...manual, ...attendees]
+        .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+        .sort((a, b) => (a.degree ?? 3) - (b.degree ?? 3))
+        .slice(0, 5);
+      return {
+        wasThereUsers: merged,
+        wasThereCount: Math.max(log._count.wasThere, merged.length),
+      };
+    })(),
     likeCount: log._count.likes,
     likedByMe: likedSet.has(log.id),
     recentLikers: (log.likes ?? []).map((l) => ({
@@ -563,6 +581,58 @@ async function computeTrends(scope: Prisma.UserLogWhereInput): Promise<TrendEntr
 // the page's eventIds counts every (event, tag) pair among public shared
 // logs, then each row gets its first caption hashtag that meets
 // TREND_THRESHOLD on its own event. One query for the whole batch.
+/**
+ * Same-event attendees for a feed page — the "friends who attended"
+ * circles. For every eventId on the page, the viewer's degree-1 (PUBLIC or
+ * FRIENDS logs) and degree-2 (PUBLIC only) users who logged that event.
+ * One batched query; degree-1 first, ≤5 per event.
+ */
+async function getSameEventAttendees(
+  logs: Array<{ eventId: string; userId: string }>,
+  viewerId: string,
+  degrees: Awaited<ReturnType<typeof getViewerDegrees>>
+): Promise<Map<string, { id: string; username: string; displayName?: string; avatarUrl?: string; degree?: 1 | 2 }[]>> {
+  const eventIds = [...new Set(logs.map((l) => l.eventId))];
+  const out = new Map<string, { id: string; username: string; displayName?: string; avatarUrl?: string; degree?: 1 | 2 }[]>();
+  if (eventIds.length === 0) return out;
+  const d1 = [...degrees.firstDegree];
+  const d2 = [...degrees.secondDegree];
+  if (d1.length === 0 && d2.length === 0) return out;
+  const rows = await prisma.userLog.findMany({
+    where: {
+      eventId: { in: eventIds },
+      userId: { not: viewerId },
+      OR: [
+        ...(d1.length ? [{ userId: { in: d1 }, visibility: { in: ['PUBLIC', 'FRIENDS'] as any } }] : []),
+        ...(d2.length ? [{ userId: { in: d2 }, visibility: 'PUBLIC' as any }] : []),
+      ],
+    },
+    select: {
+      eventId: true,
+      user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+    },
+  });
+  for (const row of rows) {
+    const arr = out.get(row.eventId) ?? [];
+    if (arr.some((p) => p.id === row.user.id)) continue;
+    arr.push({
+      id: row.user.id,
+      username: row.user.username,
+      displayName: row.user.displayName ?? undefined,
+      avatarUrl: row.user.avatarUrl ?? undefined,
+      degree: degrees.degreeOf(row.user.id),
+    });
+    out.set(row.eventId, arr);
+  }
+  for (const [k, arr] of out) {
+    out.set(
+      k,
+      arr.sort((a, b) => (a.degree ?? 3) - (b.degree ?? 3)).slice(0, 5)
+    );
+  }
+  return out;
+}
+
 async function getTrendingTags(
   logs: Array<{ id: string; eventId: string; note: string | null }>
 ): Promise<Map<string, string>> {
@@ -7008,9 +7078,13 @@ app.get('/feed', async (req) => {
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
-  const [coAuthorScores, trendingTags] = await Promise.all([getCoAuthorScores(slice), getTrendingTags(slice)]);
+  const [coAuthorScores, trendingTags, sameEventAttendees] = await Promise.all([
+    getCoAuthorScores(slice),
+    getTrendingTags(slice),
+    getSameEventAttendees(slice, userId, degrees),
+  ]);
   const items = slice.map((log) =>
-    serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores, trendingTags)
+    serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores, trendingTags, sameEventAttendees)
   );
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
@@ -7062,11 +7136,12 @@ app.get('/events/:id/feed', async (req) => {
     getCoAuthorScores(slice),
     getTrendingTags(slice),
   ]);
+  const sameEventAttendees = await getSameEventAttendees(slice, viewerId, degrees);
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
   const items = slice.map((log) =>
-    serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores, trendingTags)
+    serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores, trendingTags, sameEventAttendees)
   );
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 

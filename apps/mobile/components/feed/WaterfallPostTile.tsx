@@ -49,7 +49,9 @@ interface WaterfallPostTileProps {
 // ── Pseudo-aspect ───────────────────────────────────────────────────
 // height/width ratios; the id hash keeps each tile's crop stable across
 // renders, recycling, and pagination.
-const PSEUDO_RATIOS = [0.75, 0.85, 1.0, 1.2] as const;
+// Vertical-first: phone photos are portrait — tiles lean TALL (h/w), with
+// the occasional square for rhythm. Bigger cards, RedNote energy.
+const PSEUDO_RATIOS = [1.25, 1.35, 1.15, 1.0] as const;
 
 export function postPseudoRatio(item: FeedItem): number {
   const id = item.log.photos?.[0]?.id ?? item.log.id;

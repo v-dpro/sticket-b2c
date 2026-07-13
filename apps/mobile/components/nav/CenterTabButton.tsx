@@ -1,20 +1,33 @@
-// CenterTabButton — the raised ink circle in the middle of the tab bar.
-// TAP opens the Timeline. HOLD pops a "+ Log" pill above it (medium
-// haptic); release-after-sliding-up OR tapping the pill starts the log
-// flow. A tiny "HOLD ↑" whisper sits above the circle so the gesture is
-// discoverable.
+// CenterTabButton — a HALF TICKET peeking out of the tab bar, like a stub
+// in a shirt pocket. TAP: the ticket nudges upward and the wheel spins home
+// to today. HOLD: the "+ Log" pill pops above it (medium haptic) — tap the
+// pill or slide up and release to start logging. A tiny "HOLD ↑" whisper
+// floats above so the gesture is discoverable.
 
 import React, { useCallback, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { haptics } from '../../lib/motion';
+import { emitSnapToToday } from '../../lib/navigation/timelineBus';
+import { haptics, springs } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 const HOLD_MS = 380;
 const SLIDE_TRIGGER = 48;
+// The ticket: a portrait stub whose bottom half hides inside the tab bar.
+const TICKET_W = 46;
+const TICKET_H = 64;
+const PEEK = 36; // visible height above the clip
 
 type CenterTabButtonProps = {
   /** The tab's own navigation press (opens Timeline). */
@@ -26,7 +39,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
   const router = useRouter();
   const { tokens } = useTheme();
   const focused = accessibilityState?.selected ?? false;
-  void focused; // selection reads through the filled circle itself
+  void focused;
 
   const [popup, setPopup] = useState(false);
   const [slideArmed, setSlideArmed] = useState(false);
@@ -35,11 +48,22 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
   const startY = useRef(0);
   const armed = useRef(false);
 
+  // The tap nudge — the ticket pops up a little and settles back.
+  const nudge = useSharedValue(0);
+  const nudgeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: nudge.value }],
+  }));
+
   const styles = useThemedStyles((t) => ({
-    wrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 2, overflow: 'visible' },
+    wrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      overflow: 'visible',
+    },
     hint: {
       position: 'absolute',
-      top: -26,
+      top: -18,
       alignSelf: 'center',
       fontFamily: t.fontFamilies.mono,
       fontSize: 8,
@@ -47,19 +71,39 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
       letterSpacing: 1,
       color: t.colors.muteSoft,
     },
-    circle: {
-      width: 54,
-      height: 54,
-      borderRadius: 27,
-      marginTop: -14,
+    // The pocket — clips the ticket's lower half.
+    pocket: {
+      width: TICKET_W + 12,
+      height: PEEK,
+      overflow: 'hidden',
       alignItems: 'center',
-      justifyContent: 'center',
+    },
+    ticket: {
+      width: TICKET_W,
+      height: TICKET_H,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
+      borderBottomLeftRadius: 6,
+      borderBottomRightRadius: 6,
       backgroundColor: t.colors.inverseBg,
+      alignItems: 'center',
+      paddingTop: 7,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
       elevation: 8,
+    },
+    // The stub perforation — a dashed tear across the ticket.
+    perf: {
+      position: 'absolute',
+      top: 26,
+      left: 5,
+      right: 5,
+      borderBottomWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.inverseFg,
+      opacity: 0.35,
     },
     backdrop: { flex: 1 },
     logPill: {
@@ -93,12 +137,20 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
     holdTimer.current = null;
   };
 
+  const tapTicket = useCallback(() => {
+    // Nudge up, settle back — and the wheel spins home to today.
+    nudge.value = withSequence(withTiming(-7, { duration: 110 }), withSpring(0, springs.press));
+    onPress?.();
+    // Let the tab switch land, then snap (also fires when already there).
+    setTimeout(() => emitSnapToToday(), 80);
+  }, [nudge, onPress]);
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.hint}>HOLD ↑</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Timeline. Hold to log a show."
+        accessibilityLabel="Timeline — jump to today. Hold to log a show."
         onPressIn={(e) => {
           holdActive.current = false;
           armed.current = false;
@@ -123,20 +175,21 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
         onPressOut={() => {
           clearHold();
           if (holdActive.current && armed.current) {
-            // Slid up while holding — release fires the log.
             openLog();
           }
-          // Held without sliding: popup stays for a tap.
-          // Short tap: fall through to onPress (navigation).
         }}
         onPress={() => {
-          if (!holdActive.current) onPress?.();
+          if (!holdActive.current) tapTicket();
           holdActive.current = false;
         }}
-        style={styles.circle}
-        hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+        hitSlop={{ top: 10, bottom: 8, left: 14, right: 14 }}
       >
-        <Ionicons name="albums" size={24} color={tokens.colors.inverseFg} />
+        <View style={styles.pocket}>
+          <Animated.View style={[styles.ticket, nudgeStyle]}>
+            <Ionicons name="albums" size={18} color={tokens.colors.inverseFg} />
+            <View style={styles.perf} />
+          </Animated.View>
+        </View>
       </Pressable>
 
       <Modal visible={popup} transparent animationType="none" onRequestClose={() => setPopup(false)}>
@@ -144,12 +197,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
         <Animated.View
           entering={FadeInDown.duration(160)}
           exiting={FadeOut.duration(120)}
-          style={[
-            styles.logPill,
-            { bottom: 128, transform: [{ scale: slideArmed ? 1.08 : 1 }] },
-          ]}
-          // The pill floats above the tab bar; height anchor keeps it clear
-          // of the home indicator across devices.
+          style={[styles.logPill, { bottom: 128, transform: [{ scale: slideArmed ? 1.08 : 1 }] }]}
           pointerEvents="box-none"
         >
           <Pressable
