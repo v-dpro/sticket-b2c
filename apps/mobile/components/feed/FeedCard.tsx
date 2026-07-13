@@ -30,6 +30,7 @@ import { haptics, motionDurations } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 import { DegreeFacepile } from '../ui/DegreeFacepile';
 import { BareScore, ScoreStamp, StripeField, StubDetailsRow, StubPerforation } from '../ui/Stub';
+import { AttendeesSheet } from './AttendeesSheet';
 import { FeedCardPhotos } from './FeedCardPhotos';
 import { WereHereSheet } from './WereHereSheet';
 
@@ -199,6 +200,16 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
     setWereHereOpen(true);
   }, []);
 
+  // Attendees teaser sheet — hold or tap the facepile itself, nested inside
+  // the wereHereCluster Pressable above. WereHereSheet (the full, named
+  // roster) stays on the "N WERE HERE →" text target; this is the
+  // anonymized preview with taste-match stats.
+  const [attendeesOpen, setAttendeesOpen] = useState(false);
+  const openAttendees = useCallback(() => {
+    haptics.light();
+    setAttendeesOpen(true);
+  }, []);
+
   // ── Media ──
   const photos: FeedPhoto[] = item.log.photos?.length
     ? item.log.photos
@@ -329,12 +340,23 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
               accessibilityLabel={`${wereHereCount} ${wereHereCount === 1 ? 'person was' : 'people were'} here`}
             >
               {item.wasThereUsers?.length ? (
-                <DegreeFacepile
-                  people={item.wasThereUsers}
-                  size={24}
-                  max={4}
-                  surfaceColor={c.card}
-                />
+                // Own hit area, nested inside the cluster's Pressable — a tap
+                // here resolves to the pile (RN grants the innermost
+                // Pressable the touch), never bubbling to openWereHere.
+                <Pressable
+                  onPress={openAttendees}
+                  onLongPress={openAttendees}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel="Preview who was here"
+                >
+                  <DegreeFacepile
+                    people={item.wasThereUsers}
+                    size={24}
+                    max={4}
+                    surfaceColor={c.card}
+                  />
+                </Pressable>
               ) : null}
               <Text style={styles.wereHereText}>
                 {wereHereCount} {wereHereCount === 1 ? 'WAS' : 'WERE'} HERE →
@@ -350,6 +372,11 @@ export const FeedCard = memo(function FeedCard({ item, currentUserId }: FeedCard
         logId={item.log.id}
         currentUserId={currentUserId}
         totalCount={item.wasThereCount}
+      />
+      <AttendeesSheet
+        visible={attendeesOpen}
+        onClose={() => setAttendeesOpen(false)}
+        people={item.wasThereUsers ?? []}
       />
     </Animated.View>
   );

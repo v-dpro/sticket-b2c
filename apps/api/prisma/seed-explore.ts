@@ -697,6 +697,60 @@ async function seedEngagement(logRows: LogRow[]): Promise<{ likeCount: number; c
   return { likeCount, commentCount };
 }
 
+// --- Tour thread: one seeded discussion on The 1975's tour ---
+
+const THREAD_TOUR_ID = 'cat-tour-the-1975-still-at-their-very-best';
+
+// (authorId, text) in posting order; createdAt is staggered a minute apart so
+// the flat list renders in a stable order.
+const THREAD_MESSAGES: Array<{ authorId: string; text: string }> = [
+  { authorId: riley, text: 'Setlist has been basically locked all leg but they swapped in Robbers last night??' },
+  { authorId: diego, text: 'Can confirm, Robbers over Fallingforyou. The crowd lost it.' },
+  { authorId: marcus, text: 'They did the same swap in Chicago. Feels permanent now.' },
+  { authorId: hana, text: 'Photo pit tip: Matty comes to the left catwalk during Love It If We Made It.' },
+  { authorId: riley, text: 'ok updating my predictions doc lol. see everyone at the closer' },
+];
+
+async function seedTourThread(): Promise<number> {
+  const tour = await prisma.tour.findUnique({ where: { id: THREAD_TOUR_ID }, select: { id: true } });
+  if (!tour) {
+    console.log(`  tour thread: skipped (${THREAD_TOUR_ID} not found — run db:seed:catalog first)`);
+    return 0;
+  }
+
+  // Messages start a few days ago and land a minute apart; the thread's
+  // updatedAt (its "last activity" clock) is pinned to the final message.
+  const base = new Date(Date.now() - 3 * 86_400_000);
+  const messageAt = (i: number) => new Date(base.getTime() + i * 60_000);
+  const lastAt = messageAt(THREAD_MESSAGES.length - 1);
+
+  await prisma.tourThread.upsert({
+    where: { id: 'exp-thread-1' },
+    update: { title: 'Setlist watch: what are they playing this leg?', updatedAt: lastAt },
+    create: {
+      id: 'exp-thread-1',
+      tourId: THREAD_TOUR_ID,
+      authorId: riley,
+      title: 'Setlist watch: what are they playing this leg?',
+      createdAt: base,
+      updatedAt: lastAt,
+    },
+  });
+
+  for (let i = 0; i < THREAD_MESSAGES.length; i++) {
+    const m = THREAD_MESSAGES[i]!;
+    const id = `exp-thread-1-msg-${i + 1}`;
+    await prisma.threadMessage.upsert({
+      where: { id },
+      update: { text: m.text },
+      create: { id, threadId: 'exp-thread-1', authorId: m.authorId, text: m.text, createdAt: messageAt(i) },
+    });
+  }
+
+  console.log(`  tour thread: exp-thread-1 on ${THREAD_TOUR_ID} (${THREAD_MESSAGES.length} messages)`);
+  return THREAD_MESSAGES.length;
+}
+
 // --- Event interest (UserInterested) on future events ---
 
 const INTEREST_ASSIGN: string[][] = [
@@ -862,6 +916,7 @@ async function main() {
   );
 
   const engagement = await seedEngagement(logRows);
+  const threadMessageCount = await seedTourThread();
   const interestCount = await seedEventInterest(future);
   const presaleCount = await seedPresales(future);
 
@@ -874,6 +929,7 @@ async function main() {
     photos: photoCount,
     likes: engagement.likeCount,
     comments: engagement.commentCount,
+    'thread messages': threadMessageCount,
     'event interest': interestCount,
     presales: presaleCount,
   });

@@ -1,10 +1,13 @@
-// AnimatedSplash — the launch moment, kept quiet: the native splash hands
-// off to this overlay showing the same S, which gives ONE subtle pulse and
-// fades out to reveal the app. (A richer hand-made animation will replace
-// the fade later — this component is the slot for it.)
+// AnimatedSplash — a seamless takeover of the native splash. The overlay
+// renders the SAME logo at the SAME geometry (full-screen contain, same
+// background), and only once the image has actually painted do we hide
+// the native splash — no blank frame, no size jump. Then: one barely-there
+// pulse, and a fade into the app. (A richer hand-made animation will
+// replace this later — the component is the slot for it.)
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { Image } from 'expo-image';
 import Animated, {
   Easing,
@@ -16,9 +19,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-// Matches app.json splash backgroundColor — the native splash blends in.
+// Matches app.json splash backgroundColor.
 const SPLASH_BG = '#07001F';
-const LOGO = 340;
 
 type AnimatedSplashProps = {
   onDone: () => void;
@@ -27,21 +29,29 @@ type AnimatedSplashProps = {
 export function AnimatedSplash({ onDone }: AnimatedSplashProps) {
   const scale = useSharedValue(1);
   const backdrop = useSharedValue(1);
+  const [painted, setPainted] = useState(false);
+
+  // The overlay logo has PAINTED — now the native splash can go; the
+  // pixels underneath are identical, so the swap is invisible.
+  const onLogoDisplay = useCallback(() => {
+    SplashScreen.hideAsync().catch(() => {});
+    setPainted(true);
+  }, []);
 
   useEffect(() => {
-    // ONE soft pulse — barely-there breath, not a heartbeat.
+    if (!painted) return;
+    // ONE whisper of a pulse — slow, sine-eased, 2% — then the fade.
     scale.value = withSequence(
-      withDelay(140, withTiming(1.035, { duration: 320, easing: Easing.out(Easing.sin) })),
-      withTiming(1, { duration: 360, easing: Easing.inOut(Easing.sin) }),
+      withDelay(120, withTiming(1.02, { duration: 420, easing: Easing.inOut(Easing.sin) })),
+      withTiming(1, { duration: 460, easing: Easing.inOut(Easing.sin) }),
     );
-    // Then the whole overlay fades to reveal the app.
     backdrop.value = withDelay(
-      780,
+      1060,
       withTiming(0, { duration: 340, easing: Easing.out(Easing.quad) }, (finished) => {
         if (finished) runOnJS(onDone)();
       }),
     );
-  }, [scale, backdrop, onDone]);
+  }, [painted, scale, backdrop, onDone]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value }));
   const logoStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -51,12 +61,16 @@ export function AnimatedSplash({ onDone }: AnimatedSplashProps) {
       pointerEvents="none"
       style={[StyleSheet.absoluteFillObject, { backgroundColor: SPLASH_BG, zIndex: 9999 }, backdropStyle]}
     >
-      <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Animated.View style={logoStyle}>
+      <View style={StyleSheet.absoluteFillObject}>
+        {/* Full-screen contain — the exact geometry the native splash uses. */}
+        <Animated.View style={[StyleSheet.absoluteFillObject, logoStyle]}>
           <Image
             source={require('../../assets/splash-logo.png')}
-            style={{ width: LOGO, height: LOGO }}
+            style={StyleSheet.absoluteFillObject}
             contentFit="contain"
+            onDisplay={onLogoDisplay}
+            cachePolicy="memory"
+            priority="high"
           />
         </Animated.View>
       </View>

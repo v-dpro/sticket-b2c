@@ -36,6 +36,7 @@ import {
   getSpotifyTopArtists,
 } from './services/auth.js';
 import { startERPSyncJob } from './services/erpSync.js';
+import { notify, notifyMany, startNotificationJobs } from './notificationEngine.js';
 
 // Mobile app defaults to 3001 (see apps/mobile/lib/api/client.ts)
 const preferredPort = Number(process.env.PORT ?? 3001);
@@ -353,6 +354,65 @@ function toFacePerson(user: FaceUser, degree: 1 | 2): FacePerson {
     avatarUrl: user.avatarUrl ?? undefined,
     degree,
   };
+}
+
+// FacePerson with the degree optional — for authors in threads/chat, where
+// the author may be the viewer themself or outside the viewer's 2-degree
+// graph (degree is omitted rather than forced).
+const FACE_SELECT = { id: true, username: true, displayName: true, avatarUrl: true } as const;
+
+type MaybeDegreeFacePerson = Omit<FacePerson, 'degree'> & { degree?: 1 | 2 };
+
+function toMaybeDegreeFace(user: FaceUser, degreeOf: DegreeOf): MaybeDegreeFacePerson {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName ?? undefined,
+    avatarUrl: user.avatarUrl ?? undefined,
+    degree: degreeOf(user.id),
+  };
+}
+
+// ==================== MENTIONS (@username) ====================
+// Parse @username tokens out of user-authored text and resolve them to real
+// users. POST responses include the resolved `mentions` so the client can
+// render them; notification fan-out happens at the `// NOTIFY: mention`
+// markers at each call site via notifyMentions below.
+
+const MENTION_RE = /@([a-zA-Z0-9_.]{2,30})/g;
+
+async function resolveMentions(text: string, degreeOf: DegreeOf): Promise<MaybeDegreeFacePerson[]> {
+  const usernames = [...new Set(Array.from(text.matchAll(MENTION_RE), (m) => m[1]!.toLowerCase()))].slice(0, 10);
+  if (!usernames.length) return [];
+
+  const users = await prisma.user.findMany({
+    where: { username: { in: usernames, mode: 'insensitive' } },
+    select: FACE_SELECT,
+  });
+  return users.map((u) => toMaybeDegreeFace(u, degreeOf));
+}
+
+// Fire-and-forget mention notifications for the resolved mentions of one
+// piece of user-authored text. Skips the author and anyone in `exclude`
+// (users already notified about the same content, e.g. a log owner who got
+// the "commented on your log" notification).
+function notifyMentions(
+  mentioned: Array<{ id: string }>,
+  actor: { id: string; username: string },
+  context: string,
+  data: Record<string, unknown>,
+  exclude: string[] = []
+): void {
+  const skip = new Set([actor.id, ...exclude]);
+  const targets = mentioned.map((m) => m.id).filter((id) => !skip.has(id));
+  if (!targets.length) return;
+  void notifyMany(targets, {
+    type: 'mention',
+    title: 'You were mentioned',
+    body: `@${actor.username} mentioned you in ${context}`,
+    data,
+    actorId: actor.id,
+  });
 }
 
 // The standard "who can the viewer discover" audience, mirroring GET /feed's
@@ -1433,9 +1493,10 @@ app.post('/settings/export-data', async (req) => {
 
 // ==================== NOTIFICATIONS ROUTES ====================
 //
-// NOTE: We don't have a notifications table in the MVP schema yet.
-// These endpoints exist to unblock the mobile UI and return empty/stub data until
-// notifications are persisted server-side.
+// In-app notifications are Notification rows written by src/notificationEngine.ts;
+// device push tokens land in PushToken. Preferences are still a non-persisted
+// stub (all-on defaults) — the engine sends every notification type until a
+// prefs model exists.
 
 const defaultNotificationPrefs = {
   // Social
@@ -1458,24 +1519,61 @@ const defaultNotificationPrefs = {
 
 app.get('/notifications', async (req) => {
   // Allow local-only/dev sessions (no auth header) to render cleanly.
-  void getUserIdFromRequest(req);
-  return { notifications: [], nextCursor: null, unreadCount: 0 };
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return { notifications: [], nextCursor: null, unreadCount: 0 };
+
+  const q = (req.query ?? {}) as { limit?: string; before?: string };
+  const limit = Math.max(1, Math.min(50, Number(q.limit ?? 30) || 30));
+  const before = q.before ? new Date(q.before) : null;
+
+  const [rows, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where: {
+        userId,
+        ...(before && !Number.isNaN(before.getTime()) ? { createdAt: { lt: before } } : {}),
+      },
+      include: { actor: { select: FACE_SELECT } },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }),
+    prisma.notification.count({ where: { userId, read: false } }),
+  ]);
+
+  return {
+    notifications: rows.map((n) => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      body: n.body,
+      read: n.read,
+      createdAt: n.createdAt.toISOString(),
+      actor: n.actor
+        ? { id: n.actor.id, username: n.actor.username, avatarUrl: n.actor.avatarUrl ?? undefined }
+        : undefined,
+      data: n.data ?? {},
+    })),
+    nextCursor: rows.length === limit ? rows[rows.length - 1]!.createdAt.toISOString() : null,
+    unreadCount,
+  };
 });
 
 app.get('/notifications/unread-count', async (req) => {
-  void getUserIdFromRequest(req);
-  return { count: 0 };
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return { count: 0 };
+  return { count: await prisma.notification.count({ where: { userId, read: false } }) };
 });
 
 app.patch('/notifications/:id/read', async (req) => {
   // Mutations require auth.
-  void requireAccessUserId(req as any);
-  void (req.params as { id: string }).id;
+  const userId = requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  await prisma.notification.updateMany({ where: { id, userId }, data: { read: true } });
   return { success: true };
 });
 
 app.post('/notifications/read-all', async (req) => {
-  void requireAccessUserId(req as any);
+  const userId = requireAccessUserId(req as any);
+  await prisma.notification.updateMany({ where: { userId, read: false }, data: { read: true } });
   return { success: true };
 });
 
@@ -1492,13 +1590,25 @@ app.patch('/notifications/preferences', async (req) => {
 });
 
 app.post('/notifications/push-token', async (req) => {
-  void requireAccessUserId(req as any);
-  // Stub: accept token, but don't persist yet.
+  const userId = requireAccessUserId(req as any);
+  const body = (req.body ?? {}) as { token?: unknown };
+  const token = typeof body.token === 'string' ? body.token.trim() : '';
+  if (!token) throw new AppError('token is required', 400);
+
+  // A device token belongs to whoever logged in last on that device.
+  await prisma.pushToken.upsert({
+    where: { token },
+    update: { userId },
+    create: { token, userId },
+  });
   return { success: true };
 });
 
 app.delete('/notifications/push-token', async (req) => {
-  void requireAccessUserId(req as any);
+  const userId = requireAccessUserId(req as any);
+  const body = (req.body ?? {}) as { token?: unknown };
+  const token = typeof body.token === 'string' ? body.token.trim() : '';
+  if (token) await prisma.pushToken.deleteMany({ where: { token, userId } });
   return { success: true };
 });
 
@@ -1752,6 +1862,41 @@ app.get('/users/suggestions', async (req) => {
 });
 
 // GET /users/username/:username - Resolve user by username for QR / deep links
+// GET /users/taste-match?ids=a,b,c — Jaccard similarity over followed
+// artists between the viewer and each requested user (≤10), batched into two
+// UserArtistFollow queries total.
+app.get('/users/taste-match', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const q = (req.query ?? {}) as { ids?: string };
+
+  const ids = [...new Set((q.ids ?? '').split(',').map((s) => s.trim()).filter(Boolean))];
+  if (!ids.length) throw new AppError('ids is required', 400);
+  if (ids.length > 10) throw new AppError('Too many ids (max 10)', 400);
+
+  const [viewerRows, targetRows] = await Promise.all([
+    prisma.userArtistFollow.findMany({ where: { userId: viewerId }, select: { artistId: true } }),
+    prisma.userArtistFollow.findMany({ where: { userId: { in: ids } }, select: { userId: true, artistId: true } }),
+  ]);
+
+  const viewerSet = new Set(viewerRows.map((r) => r.artistId));
+  const byUser = new Map<string, Set<string>>();
+  for (const row of targetRows) {
+    const set = byUser.get(row.userId) ?? new Set<string>();
+    set.add(row.artistId);
+    byUser.set(row.userId, set);
+  }
+
+  const matches = ids.map((userId) => {
+    const theirs = byUser.get(userId) ?? new Set<string>();
+    let shared = 0;
+    for (const artistId of theirs) if (viewerSet.has(artistId)) shared++;
+    const union = viewerSet.size + theirs.size - shared;
+    return { userId, pct: Math.round((100 * shared) / Math.max(1, union)) };
+  });
+
+  return { matches };
+});
+
 app.get('/users/username/:username', async (req) => {
   const viewerId = requireAccessUserId(req as any);
   const { username } = req.params as { username: string };
@@ -6534,6 +6679,200 @@ app.get('/tours/:id/who-saw', async (req) => {
   return await buildWhoSawPayload(viewerId, { tourId: id });
 });
 
+// ==================== TOUR THREADS (Reddit-lite discussion) ====================
+// Flat discussion threads on a tour: a thread is the post, its messages are
+// one flat reply list (no nesting). TourThread.updatedAt doubles as the
+// "last activity" clock — every new message bumps it, so the tour's thread
+// list orders by it.
+
+async function getThreadOr404(threadId: string) {
+  const thread = await prisma.tourThread.findUnique({
+    where: { id: threadId },
+    include: { author: { select: FACE_SELECT } },
+  });
+  if (!thread) throw new AppError('Thread not found', 404);
+  return thread;
+}
+
+function serializeThreadMessage(
+  m: { id: string; text: string; createdAt: Date; author: FaceUser },
+  degreeOf: DegreeOf
+) {
+  return {
+    id: m.id,
+    text: m.text,
+    createdAt: m.createdAt.toISOString(),
+    author: toMaybeDegreeFace(m.author, degreeOf),
+  };
+}
+
+// GET /tours/:id/threads - the tour's threads, newest activity first.
+app.get('/tours/:id/threads', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const { id: tourId } = req.params as { id: string };
+
+  const tour = await prisma.tour.findUnique({ where: { id: tourId }, select: { id: true } });
+  if (!tour) throw new AppError('Tour not found', 404);
+
+  const [degrees, threads] = await Promise.all([
+    getViewerDegrees(viewerId),
+    prisma.tourThread.findMany({
+      where: { tourId },
+      include: {
+        author: { select: FACE_SELECT },
+        _count: { select: { messages: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 30,
+    }),
+  ]);
+
+  return {
+    threads: threads.map((t) => ({
+      id: t.id,
+      title: t.title,
+      author: toMaybeDegreeFace(t.author, degrees.degreeOf),
+      messageCount: t._count.messages,
+      lastActivityAt: t.updatedAt.toISOString(),
+      createdAt: t.createdAt.toISOString(),
+    })),
+  };
+});
+
+// POST /tours/:id/threads { title, text? } - start a thread (text becomes
+// the first message when given).
+app.post('/tours/:id/threads', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: tourId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { title?: unknown; text?: unknown };
+
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  if (!title) throw new AppError('Title is required', 400);
+  if (title.length > 120) throw new AppError('Title too long (max 120)', 400);
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (text.length > 1000) throw new AppError('Text too long (max 1000)', 400);
+
+  const tour = await prisma.tour.findUnique({ where: { id: tourId }, select: { id: true } });
+  if (!tour) throw new AppError('Tour not found', 404);
+
+  const thread = await prisma.tourThread.create({
+    data: {
+      tourId,
+      authorId: userId,
+      title,
+      ...(text ? { messages: { create: { authorId: userId, text } } } : {}),
+    },
+    include: {
+      author: { select: FACE_SELECT },
+      messages: { include: { author: { select: FACE_SELECT } }, orderBy: { createdAt: 'asc' } },
+    },
+  });
+
+  const degrees = await getViewerDegrees(userId);
+  // NOTIFY: mention
+  const mentions = await resolveMentions(`${title} ${text}`, degrees.degreeOf);
+  notifyMentions(mentions, { id: userId, username: thread.author.username }, `"${thread.title}"`, {
+    threadId: thread.id,
+    tourId,
+  });
+
+  reply.status(201);
+  return {
+    id: thread.id,
+    title: thread.title,
+    tourId: thread.tourId,
+    author: toMaybeDegreeFace(thread.author, degrees.degreeOf),
+    messages: thread.messages.map((m) => serializeThreadMessage(m, degrees.degreeOf)),
+    createdAt: thread.createdAt.toISOString(),
+    mentions,
+  };
+});
+
+// GET /threads/:id - thread detail with its flat message list (oldest first).
+app.get('/threads/:id', async (req) => {
+  const viewerId = requireAccessUserId(req as any);
+  const { id: threadId } = req.params as { id: string };
+
+  const thread = await getThreadOr404(threadId);
+  const [degrees, messages] = await Promise.all([
+    getViewerDegrees(viewerId),
+    prisma.threadMessage.findMany({
+      where: { threadId },
+      include: { author: { select: FACE_SELECT } },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    }),
+  ]);
+
+  return {
+    id: thread.id,
+    title: thread.title,
+    tourId: thread.tourId,
+    author: toMaybeDegreeFace(thread.author, degrees.degreeOf),
+    messages: messages.map((m) => serializeThreadMessage(m, degrees.degreeOf)),
+    createdAt: thread.createdAt.toISOString(),
+  };
+});
+
+// POST /threads/:id/messages { text } - flat reply on a thread.
+app.post('/threads/:id/messages', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: threadId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { text?: unknown };
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) throw new AppError('Message text is required', 400);
+  if (text.length > 1000) throw new AppError('Text too long (max 1000)', 400);
+
+  const thread = await getThreadOr404(threadId);
+
+  const [message] = await Promise.all([
+    prisma.threadMessage.create({
+      data: { threadId, authorId: userId, text },
+      include: { author: { select: FACE_SELECT } },
+    }),
+    // Bump the thread's last-activity clock (updatedAt) for list ordering.
+    prisma.tourThread.update({ where: { id: threadId }, data: { updatedAt: new Date() } }),
+  ]);
+
+  const degrees = await getViewerDegrees(userId);
+  // NOTIFY: mention
+  const mentions = await resolveMentions(text, degrees.degreeOf);
+  notifyMentions(mentions, { id: userId, username: message.author.username }, `"${thread.title}"`, {
+    threadId,
+    tourId: thread.tourId,
+  });
+
+  reply.status(201);
+  return { ...serializeThreadMessage(message, degrees.degreeOf), mentions };
+});
+
+// POST /threads/:id/report { messageId?, reason? } - report the thread (or
+// one of its messages) for moderation. Always 204; reports are write-only
+// from the client's perspective.
+app.post('/threads/:id/report', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: threadId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { messageId?: unknown; reason?: unknown };
+
+  await getThreadOr404(threadId);
+
+  const messageId = typeof body.messageId === 'string' && body.messageId.trim() ? body.messageId.trim() : null;
+  if (messageId) {
+    const message = await prisma.threadMessage.findUnique({ where: { id: messageId }, select: { threadId: true } });
+    if (!message || message.threadId !== threadId) throw new AppError('Message not found in this thread', 404);
+  }
+
+  const reason = typeof body.reason === 'string' && body.reason.trim() ? body.reason.trim().slice(0, 500) : null;
+
+  await prisma.threadReport.create({
+    data: { threadId, messageId, reporterId: userId, reason },
+  });
+
+  return reply.status(204).send();
+});
+
 function toSafeIdPart(input: string) {
   return input
     .trim()
@@ -7761,24 +8100,38 @@ app.get('/logs/:id/comments', async (req, reply) => {
       }
     }
 
+    // Top-level comments paginate; each carries its full one-level reply
+    // list (replies can't have replies — enforced on POST).
     const comments = await prisma.comment.findMany({
-      where: { logId },
-      include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+      where: { logId, parentId: null },
+      include: {
+        user: { select: FACE_SELECT },
+        replies: {
+          include: { user: { select: FACE_SELECT } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
       orderBy: { createdAt: 'asc' },
       take: limit,
       skip: offset,
     });
 
-    return comments.map((c) => ({
+    const serializeComment = (c: { id: string; text: string; createdAt: Date; parentId: string | null; user: FaceUser }) => ({
       id: c.id,
       text: c.text,
       createdAt: c.createdAt.toISOString(),
+      parentId: c.parentId,
       user: {
         id: c.user.id,
         username: c.user.username,
         displayName: c.user.displayName ?? undefined,
         avatarUrl: c.user.avatarUrl ?? undefined,
       },
+    });
+
+    return comments.map((c) => ({
+      ...serializeComment(c),
+      replies: c.replies.map(serializeComment),
     }));
   } catch (error) {
     req.log.error({ error }, 'Get log comments error');
@@ -7792,35 +8145,77 @@ app.post('/logs/:id/comments', async (req, reply) => {
   try {
     const userId = requireAccessUserId(req as any);
     const { id: logId } = req.params as { id: string };
-    const body = (req.body ?? {}) as { text?: unknown };
+    const body = (req.body ?? {}) as { text?: unknown; parentId?: unknown };
     const text = typeof body.text === 'string' ? body.text.trim() : '';
     if (!text) {
       reply.status(400);
       return { error: 'Comment text is required' };
     }
 
-    const exists = await prisma.userLog.findUnique({ where: { id: logId }, select: { id: true } });
-    if (!exists) {
+    const log = await prisma.userLog.findUnique({
+      where: { id: logId },
+      select: { id: true, userId: true, eventId: true },
+    });
+    if (!log) {
       reply.status(404);
       return { error: 'Log not found' };
     }
 
+    // One-level replies: the parent must be a top-level comment on the same
+    // log (no grandchildren).
+    const parentId = typeof body.parentId === 'string' && body.parentId.trim() ? body.parentId.trim() : null;
+    if (parentId) {
+      const parent = await prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { logId: true, parentId: true },
+      });
+      if (!parent || parent.logId !== logId) {
+        reply.status(404);
+        return { error: 'Parent comment not found' };
+      }
+      if (parent.parentId) {
+        reply.status(400);
+        return { error: 'Replies to replies are not allowed' };
+      }
+    }
+
     const comment = await prisma.comment.create({
-      data: { logId, userId, text },
-      include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+      data: { logId, userId, text, parentId },
+      include: { user: { select: FACE_SELECT } },
     });
+
+    // NOTIFY: comment on your log (skip self-comments)
+    if (log.userId !== userId) {
+      void notify(log.userId, {
+        type: 'comment',
+        title: `@${comment.user.username} commented on your log`,
+        body: text.slice(0, 140),
+        data: { logId, eventId: log.eventId },
+        actorId: userId,
+      });
+    }
+
+    const degrees = await getViewerDegrees(userId);
+    // NOTIFY: mention (the owner is excluded — they already got the comment notification)
+    const mentions = await resolveMentions(text, degrees.degreeOf);
+    notifyMentions(mentions, { id: userId, username: comment.user.username }, 'a comment', {
+      logId,
+      eventId: log.eventId,
+    }, [log.userId]);
 
     reply.status(201);
     return {
       id: comment.id,
       text: comment.text,
       createdAt: comment.createdAt.toISOString(),
+      parentId: comment.parentId,
       user: {
         id: comment.user.id,
         username: comment.user.username,
         displayName: comment.user.displayName ?? undefined,
         avatarUrl: comment.user.avatarUrl ?? undefined,
       },
+      mentions,
     };
   } catch (error) {
     req.log.error({ error }, 'Post log comment error');
@@ -8563,7 +8958,15 @@ app.post('/logs/:id/coauthors', async (req, reply) => {
   if (!userIds.length) throw new AppError('userIds is required', 400);
   if (userIds.length > 20) throw new AppError('Too many co-authors', 400);
 
-  const log = await prisma.userLog.findUnique({ where: { id: logId }, select: { id: true, userId: true } });
+  const log = await prisma.userLog.findUnique({
+    where: { id: logId },
+    select: {
+      id: true,
+      userId: true,
+      user: { select: { username: true } },
+      event: { select: { name: true } },
+    },
+  });
   if (!log) throw new AppError('Log not found', 404);
   if (log.userId !== userId) throw new AppError('Forbidden', 403);
 
@@ -8572,6 +8975,15 @@ app.post('/logs/:id/coauthors', async (req, reply) => {
   // Skip self and any id that isn't a real user; dupes are collapsed by the set
   // above and the unique(logId,userId) upsert.
   const validIds = userIds.filter((id) => existingIds.has(id) && id !== userId);
+
+  // Snapshot who already had an invite row so re-invites don't re-notify.
+  const priorRows = validIds.length
+    ? await prisma.logCoAuthor.findMany({
+        where: { logId, userId: { in: validIds } },
+        select: { userId: true },
+      })
+    : [];
+  const priorIds = new Set(priorRows.map((r) => r.userId));
 
   await Promise.all(
     validIds.map((coAuthorUserId) =>
@@ -8582,6 +8994,18 @@ app.post('/logs/:id/coauthors', async (req, reply) => {
       })
     )
   );
+
+  // NOTIFY: co-author invite -> each newly invited user
+  const newInvitees = validIds.filter((id) => !priorIds.has(id));
+  if (newInvitees.length) {
+    void notifyMany(newInvitees, {
+      type: 'coauthor_invite',
+      title: 'Co-author invite',
+      body: `@${log.user.username} added you as a co-author on ${log.event.name}`,
+      data: { logId },
+      actorId: userId,
+    });
+  }
 
   reply.status(201);
   return { invited: validIds };
@@ -8735,11 +9159,33 @@ app.post('/logs/:id/like', async (req, reply) => {
     const userId = requireAccessUserId(req as any);
     const { id: logId } = req.params as { id: string };
 
+    // Check for a live like row before the idempotent upsert: repeat POSTs
+    // while liked stay silent (unlike + re-like will notify again since the
+    // row was deleted).
+    const [log, existingLike] = await Promise.all([
+      prisma.userLog.findUnique({ where: { id: logId }, select: { userId: true, eventId: true } }),
+      prisma.logLike.findUnique({ where: { userId_logId: { userId, logId } }, select: { id: true } }),
+    ]);
+
     const like = await prisma.logLike.upsert({
       where: { userId_logId: { userId, logId } },
       create: { userId, logId },
       update: {},
     });
+
+    // NOTIFY: first like per liker on someone else's log
+    if (!existingLike && log && log.userId !== userId) {
+      const liker = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
+      if (liker) {
+        void notify(log.userId, {
+          type: 'like',
+          title: 'New like',
+          body: `@${liker.username} liked your log`,
+          data: { logId, eventId: log.eventId },
+          actorId: userId,
+        });
+      }
+    }
 
     return { like };
   } catch (error) {
@@ -9336,6 +9782,18 @@ app.post('/parties/:id/join', async (req) => {
         select: { status: true },
       });
 
+  // NOTIFY: join request -> host
+  const requester = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
+  if (requester) {
+    void notify(party.hostId, {
+      type: 'party_request',
+      title: 'New join request',
+      body: `@${requester.username} wants in: ${party.title}`,
+      data: { partyId },
+      actorId: userId,
+    });
+  }
+
   return { status: row.status };
 });
 
@@ -9365,6 +9823,17 @@ app.post('/parties/:id/respond', async (req) => {
     select: { userId: true, status: true },
   });
 
+  // NOTIFY: request approved -> requester (declines stay silent)
+  if (body.accept) {
+    void notify(targetUserId, {
+      type: 'party_approved',
+      title: "You're in",
+      body: `Your request to join ${party.title} was approved`,
+      data: { partyId },
+      actorId: hostId,
+    });
+  }
+
   return { userId: updated.userId, status: updated.status };
 });
 
@@ -9391,12 +9860,34 @@ app.post('/parties/:id/invite', async (req) => {
   const users = await prisma.user.findMany({ where: { id: { in: requestedIds } }, select: { id: true } });
   const validIds = users.map((u) => u.id);
 
+  // Snapshot pre-existing memberships so only genuinely new invites get
+  // notified (createMany + skipDuplicates doesn't report which rows landed).
+  const preexisting = validIds.length
+    ? await prisma.partyMember.findMany({
+        where: { partyId, userId: { in: validIds } },
+        select: { userId: true },
+      })
+    : [];
+  const preexistingIds = new Set(preexisting.map((m) => m.userId));
+
   const result = validIds.length
     ? await prisma.partyMember.createMany({
         data: validIds.map((uid) => ({ partyId, userId: uid, status: 'INVITED' as const })),
         skipDuplicates: true,
       })
     : { count: 0 };
+
+  // NOTIFY: party invite -> each newly invited user
+  const newlyInvited = validIds.filter((id) => !preexistingIds.has(id));
+  if (newlyInvited.length) {
+    void notifyMany(newlyInvited, {
+      type: 'party_invite',
+      title: "You're invited",
+      body: `@${party.host.username} invited you: ${party.title}`,
+      data: { partyId },
+      actorId: hostId,
+    });
+  }
 
   return { invited: result.count, notFound: requestedIds.filter((id) => !validIds.includes(id)) };
 });
@@ -9425,6 +9916,82 @@ app.post('/parties/:id/announcements', async (req, reply) => {
     text: announcement.text,
     createdAt: announcement.createdAt.toISOString(),
     author: serializePartyUser(announcement.author),
+  };
+});
+
+// ---- Party chat (two-way, members only) — distinct from the host-only
+// one-way announcements above. "Member" = host, or a PartyMember row in
+// HOST/GOING/INVITED (the host may have no member row — see /parties/:id).
+
+async function requirePartyMember(partyId: string, userId: string) {
+  const party = await getPartyOr404(partyId);
+  if (party.hostId === userId) return party;
+
+  const member = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId, userId } },
+    select: { status: true },
+  });
+  if (!member || !['HOST', 'GOING', 'INVITED'].includes(member.status)) {
+    throw new AppError('Party members only', 403);
+  }
+  return party;
+}
+
+// GET /parties/:id/messages — the party group chat, oldest first.
+app.get('/parties/:id/messages', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+
+  await requirePartyMember(partyId, userId);
+
+  const messages = await prisma.partyMessage.findMany({
+    where: { partyId },
+    include: { author: { select: PARTY_USER_SELECT } },
+    orderBy: { createdAt: 'asc' },
+    take: 200,
+  });
+
+  return {
+    messages: messages.map((m) => ({
+      id: m.id,
+      text: m.text,
+      createdAt: m.createdAt.toISOString(),
+      author: serializePartyUser(m.author),
+    })),
+  };
+});
+
+// POST /parties/:id/messages { text } — any member posts to the group chat.
+app.post('/parties/:id/messages', async (req, reply) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { text?: unknown };
+
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) throw new AppError('Message text is required', 400);
+  if (text.length > 1000) throw new AppError('Text too long (max 1000)', 400);
+
+  const party = await requirePartyMember(partyId, userId);
+
+  const message = await prisma.partyMessage.create({
+    data: { partyId, authorId: userId, text },
+    include: { author: { select: PARTY_USER_SELECT } },
+  });
+
+  const degrees = await getViewerDegrees(userId);
+  // NOTIFY: mention
+  const mentions = await resolveMentions(text, degrees.degreeOf);
+  notifyMentions(mentions, { id: userId, username: message.author.username }, `"${party.title}"`, {
+    partyId,
+  });
+
+  reply.status(201);
+  return {
+    id: message.id,
+    text: message.text,
+    createdAt: message.createdAt.toISOString(),
+    author: serializePartyUser(message.author),
+    mentions,
   };
 });
 
@@ -9669,6 +10236,7 @@ await listenWithFallback();
 
 // Background jobs (best effort)
 startERPSyncJob();
+startNotificationJobs();
 
 
 

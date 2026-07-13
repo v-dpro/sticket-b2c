@@ -65,7 +65,7 @@ export default function TabsLayout() {
         options={{
           title: 'Feed',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'file-tray-full' : 'file-tray-full-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'file-tray-full' : 'file-tray-full-outline'} size={27} color={color} />
           ),
         }}
       />
@@ -75,7 +75,7 @@ export default function TabsLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={27} color={color} />
           ),
         }}
       />
@@ -100,7 +100,7 @@ export default function TabsLayout() {
         options={{
           title: 'Plan',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={27} color={color} />
           ),
         }}
       />

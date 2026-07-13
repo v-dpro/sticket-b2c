@@ -36,6 +36,7 @@ import { haptics, motionDurations, springs } from '../../lib/motion';
 import { Avatar } from '../ui/Avatar';
 import { DegreeFacepile } from '../ui/DegreeFacepile';
 import { BareScore, ScoreStamp, StripeField } from '../ui/Stub';
+import { AttendeesSheet } from './AttendeesSheet';
 
 /** Feed item + the optional trending tag some payloads inline (C22). */
 export type WaterfallPost = FeedItem & { trendingTag?: string };
@@ -209,6 +210,13 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
     });
   }, [item, router]);
 
+  // Attendees teaser sheet — hold or tap the top-right facepile.
+  const [attendeesOpen, setAttendeesOpen] = useState(false);
+  const openAttendees = useCallback(() => {
+    haptics.light();
+    setAttendeesOpen(true);
+  }, []);
+
   // ── Tap discrimination + heart burst (FeedCardPhotos pattern) ──
   const lastTapRef = useRef(0);
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -292,15 +300,26 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
               style={styles.scrim}
               pointerEvents="none"
             />
-            {/* TOP-RIGHT: who attended (circles first), score beneath. */}
-            <View style={styles.topRightOverlay} pointerEvents="none">
+            {/* TOP-RIGHT: who attended (circles first), score beneath. The
+                facepile sits in its own Pressable, above the photoBox's
+                tap/double-tap handler — box-none lets the empty overlay
+                area (and the score, which isn't touchable) fall through. */}
+            <View style={styles.topRightOverlay} pointerEvents="box-none">
               {people.length > 0 ? (
-                <DegreeFacepile
-                  people={people}
-                  size={20}
-                  max={3}
-                  surfaceColor="rgba(11,11,16,0.8)"
-                />
+                <Pressable
+                  onPress={openAttendees}
+                  onLongPress={openAttendees}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${people.length} ${people.length === 1 ? 'person' : 'people'} you know were here — hold or tap to preview`}
+                >
+                  <DegreeFacepile
+                    people={people}
+                    size={20}
+                    max={3}
+                    surfaceColor="rgba(11,11,16,0.8)"
+                  />
+                </Pressable>
               ) : null}
               {score != null ? <BareScore score={score} size={22} /> : null}
             </View>
@@ -327,9 +346,17 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
               {item.event.artist.name}
             </Text>
             {/* TOP-RIGHT here too: circles, then the stamp. */}
-            <View style={styles.topRightOverlay} pointerEvents="none">
+            <View style={styles.topRightOverlay} pointerEvents="box-none">
               {people.length > 0 ? (
-                <DegreeFacepile people={people} size={20} max={3} surfaceColor={c.card2} />
+                <Pressable
+                  onPress={openAttendees}
+                  onLongPress={openAttendees}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${people.length} ${people.length === 1 ? 'person' : 'people'} you know were here — hold or tap to preview`}
+                >
+                  <DegreeFacepile people={people} size={20} max={3} surfaceColor={c.card2} />
+                </Pressable>
               ) : null}
               {score != null ? <ScoreStamp score={score} size={12} /> : null}
             </View>
@@ -354,6 +381,12 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
         </Text>
         <Text style={styles.authorAge}>{formatAge(item.createdAt)}</Text>
       </View>
+
+      <AttendeesSheet
+        visible={attendeesOpen}
+        onClose={() => setAttendeesOpen(false)}
+        people={people}
+      />
     </View>
   );
 });

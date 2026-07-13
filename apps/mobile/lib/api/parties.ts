@@ -135,6 +135,27 @@ export async function deleteParty(partyId: string): Promise<void> {
   await apiClient.delete(`/parties/${partyId}`);
 }
 
+// ── Party group chat (members only — both endpoints 403 for outsiders) ──
+
+export interface PartyMessage {
+  id: string;
+  text: string;
+  author: PartyUser;
+  createdAt: string; // ISO
+}
+
+// GET /parties/:id/messages — the party's group chat.
+export async function getPartyMessages(partyId: string): Promise<{ messages: PartyMessage[] }> {
+  const response = await apiClient.get(`/parties/${partyId}/messages`);
+  return response.data;
+}
+
+// POST /parties/:id/messages — send a chat message.
+export async function postPartyMessage(partyId: string, text: string): Promise<PartyMessage> {
+  const response = await apiClient.post(`/parties/${partyId}/messages`, { text });
+  return response.data;
+}
+
 // ── Plan tab: the viewer's party world ──────────────────────────────
 
 export interface PartyLite {

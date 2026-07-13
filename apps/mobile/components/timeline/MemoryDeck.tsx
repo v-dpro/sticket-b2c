@@ -62,7 +62,10 @@ type MemoryDeckProps = {
   items: DeckItem[];
   /** Where the stage opens — usually the newest PAST entry. */
   initialIndex: number;
-  renderCard: (item: DeckItem, isCentered: boolean) => React.ReactNode;
+  /** cardMaxH — the stage's height budget for the card (0 until the stage
+      has been measured). Cards should SIZE THEMSELVES TO FILL it: slack
+      here is dead screen between the card and the label slots. */
+  renderCard: (item: DeckItem, isCentered: boolean, cardMaxH: number) => React.ReactNode;
   /** Text-only face for the fixed before/after slots. */
   renderLabel: (item: DeckItem) => React.ReactNode;
   /** Month readout text per item ("JUL 2026" / "UPCOMING · AUG 2026"). */
@@ -83,9 +86,12 @@ type MemoryDeckProps = {
 
 // Horizontal inset of the card layers — wider than screen pad so the big
 // vertical card leaves air for the wheel's tilt.
-const CARD_INSET = 28;
+export const CARD_INSET = 28;
 // Height of each fixed text slot (before/after nights).
-const LABEL_SLOT = 48;
+const LABEL_SLOT = 44;
+// The bottom slot floats this far above the stage floor — the nav bar's
+// ticket stub pops out of the bar and must never touch the label.
+const BOTTOM_LIFT = 12;
 // Flicks faster than this (cards/second) free-spin the wheel with decay.
 const SPIN_VELOCITY = 1.4;
 // Near-tail threshold for pagination.
@@ -112,9 +118,13 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
   const { tokens } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const cardW = windowWidth - CARD_INSET * 2;
-  // One card-step of wheel travel — most of the card's height, so the
-  // incoming card sweeps through the stage while the outgoing one exits.
-  const stride = Math.round(cardW * 1.05);
+  // The stage self-measures so cards can fill it exactly — no dead bands
+  // between the card and the label slots.
+  const [stageH, setStageH] = useState(0);
+  const cardMaxH = Math.max(0, stageH - LABEL_SLOT * 2 - BOTTOM_LIFT - 12);
+  // One card-step of wheel travel — the full card height, so the incoming
+  // card sweeps through the stage while the outgoing one exits.
+  const stride = Math.round(cardMaxH > 200 ? Math.max(cardW * 1.05, cardMaxH * 0.98) : cardW * 1.05);
 
   const count = items.length;
   const clampIndex = useCallback(
@@ -305,7 +315,7 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
       // around the same stage center.
       position: 'absolute',
       top: LABEL_SLOT,
-      bottom: LABEL_SLOT,
+      bottom: LABEL_SLOT + BOTTOM_LIFT,
       left: CARD_INSET,
       right: CARD_INSET,
       justifyContent: 'center',
@@ -343,7 +353,11 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
       ) : null}
 
       <GestureDetector gesture={pan}>
-        <View style={styles.stage} collapsable={false}>
+        <View
+          style={styles.stage}
+          collapsable={false}
+          onLayout={(e) => setStageH(e.nativeEvent.layout.height)}
+        >
           {spine && count > 1 ? <TimelineSpine progress={progress} count={count} /> : null}
           {/* The night BEFORE — text only, pinned above the card. */}
           <View style={[styles.slot, { top: 0 }]} pointerEvents="none">
@@ -367,13 +381,13 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
                 layerStyle={styles.layer}
                 shadow={tokens.shadows.stub}
               >
-                {renderCard(deckItem, i === index)}
+                {renderCard(deckItem, i === index, cardMaxH)}
               </DeckLayer>
             ) : null,
           )}
 
           {/* The night AFTER — text only, pinned below the card. */}
-          <View style={[styles.slot, { bottom: 0 }]} pointerEvents="none">
+          <View style={[styles.slot, { bottom: BOTTOM_LIFT }]} pointerEvents="none">
             {nextItem ? (
               <Animated.View key={nextItem.key} entering={FadeIn.duration(160)}>
                 {renderLabel(nextItem)}

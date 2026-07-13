@@ -17,7 +17,7 @@
 // APIs: GET /parties/:id · POST /parties/:id/join · /respond · /invite ·
 // /announcements · DELETE /parties/:id (lib/api/parties.ts).
 
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -46,12 +46,16 @@ import { getEvent } from '../../lib/api/events';
 import {
   deleteParty,
   getParty,
+  getPartyMessages,
   inviteToParty,
   joinParty,
   postPartyAnnouncement,
+  postPartyMessage,
   respondToRequest,
   type PartyDetail,
+  type PartyMessage,
 } from '../../lib/api/parties';
+import { MessageRow } from '../../components/threads/MessageRow';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -80,6 +84,14 @@ export default function PartyScreen() {
   const [announcementText, setAnnouncementText] = useState('');
   const [postingAnnouncement, setPostingAnnouncement] = useState(false);
 
+  // ── Group chat (members only — GET/POST 403 for outsiders) ────────
+  const [chatMessages, setChatMessages] = useState<PartyMessage[]>([]);
+  const [chatStatus, setChatStatus] = useState<'loading' | 'ready' | 'forbidden' | 'error'>(
+    'loading',
+  );
+  const [chatText, setChatText] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+
   const load = useCallback(async () => {
     if (!id) return;
     try {
@@ -105,6 +117,32 @@ export default function PartyScreen() {
     void load();
   }, [load]);
 
+  // Last ~50, oldest → newest (bottom-anchored chat read). A 403 means
+  // the viewer isn't on the list — the chat body explains, composer hides.
+  const loadChat = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await getPartyMessages(id);
+      const messages = Array.isArray(res?.messages) ? res.messages : [];
+      setChatMessages(
+        [...messages]
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+          .slice(-50),
+      );
+      setChatStatus('ready');
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setChatStatus(status === 403 ? 'forbidden' : 'error');
+    }
+  }, [id]);
+
+  // Poll-refresh on focus (no websockets v1) — also covers the first load.
+  useFocusEffect(
+    useCallback(() => {
+      void loadChat();
+    }, [loadChat]),
+  );
+
   // Best-effort event name for the link line.
   useEffect(() => {
     if (eventName || !party?.eventId) return;
@@ -124,7 +162,7 @@ export default function PartyScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await load();
+      await Promise.all([load(), loadChat()]);
     } finally {
       setRefreshing(false);
     }
@@ -197,6 +235,25 @@ export default function PartyScreen() {
       haptics.error();
     } finally {
       setPostingAnnouncement(false);
+    }
+  };
+
+  const handleSendChat = async () => {
+    const text = chatText.trim();
+    if (!party || !text || sendingChat) return;
+    setSendingChat(true);
+    try {
+      const created = await postPartyMessage(party.id, text);
+      haptics.success();
+      setChatText('');
+      setChatMessages((prev) => [...prev, created].slice(-50));
+    } catch (err) {
+      haptics.error();
+      // Membership changed under us — fold the composer away.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 403) setChatStatus('forbidden');
+    } finally {
+      setSendingChat(false);
     }
   };
 
@@ -327,6 +384,8 @@ export default function PartyScreen() {
       marginTop: 1,
     },
     composerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+    // Chat composer sits BELOW its messages (announcements' sits above).
+    chatComposer: { marginBottom: 0, marginTop: 10 },
     composerInput: {
       flex: 1,
       backgroundColor: t.colors.card2,
@@ -659,6 +718,54 @@ export default function PartyScreen() {
                 )}
               </View>
             ) : null}
+
+            {/* ── Chat — the party's group thread. GET/POST are members-only
+                   (403 for outsiders): they get the one-liner, no composer.
+                   Refetches on focus (poll, no websockets v1). ── */}
+            <View style={styles.section}>
+              <SectionLabel>Chat</SectionLabel>
+              {chatStatus === 'loading' ? (
+                <ActivityIndicator size="small" color={tokens.colors.mute} />
+              ) : chatStatus === 'forbidden' ? (
+                <QuietEmpty text="Chat opens up once you're on the list." />
+              ) : chatStatus === 'error' ? (
+                <QuietEmpty text="Couldn't load the chat right now." />
+              ) : chatMessages.length === 0 ? (
+                <QuietEmpty text="No messages yet — say hi." />
+              ) : (
+                chatMessages.map((m, i) => (
+                  <MessageRow
+                    key={m.id}
+                    author={m.author}
+                    text={m.text}
+                    createdAt={m.createdAt}
+                    index={i}
+                  />
+                ))
+              )}
+              {chatStatus === 'ready' && (status === 'HOST' || status === 'GOING') ? (
+                <View style={[styles.composerRow, styles.chatComposer]}>
+                  <TextInput
+                    style={styles.composerInput}
+                    placeholder="Message the party…"
+                    placeholderTextColor={tokens.colors.muteSoft}
+                    value={chatText}
+                    onChangeText={setChatText}
+                    maxLength={500}
+                    multiline
+                  />
+                  <PillButton
+                    title="Send"
+                    variant="primary"
+                    size="sm"
+                    springFeedback
+                    haptic="medium"
+                    disabled={!chatText.trim() || sendingChat}
+                    onPress={() => void handleSendChat()}
+                  />
+                </View>
+              ) : null}
+            </View>
 
             {/* ── Members ── */}
             <View style={styles.section}>

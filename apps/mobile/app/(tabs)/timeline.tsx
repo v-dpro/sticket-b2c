@@ -6,9 +6,9 @@
 // stay with the timeline — they're timeline moments.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { getUserTimeline, type TimelineEntry, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
@@ -21,7 +21,7 @@ import { useSession } from '../../hooks/useSession';
 import { AgendaPin } from '../../components/agenda/AgendaPin';
 import { CompactLogRow } from '../../components/timeline/CompactLogRow';
 import { MemoryCard } from '../../components/timeline/MemoryCard';
-import { MemoryDeck, type DeckItem, type MemoryDeckHandle } from '../../components/timeline/MemoryDeck';
+import { CARD_INSET, MemoryDeck, type DeckItem, type MemoryDeckHandle } from '../../components/timeline/MemoryDeck';
 import { PlanCard } from '../../components/timeline/PlanCard';
 import { TimelineMapView } from '../../components/timeline/TimelineMapView';
 import { TimelineViewToggle, type TimelineViewMode } from '../../components/timeline/TimelineViewToggle';
@@ -65,6 +65,7 @@ function mergeMonths(prev: TimelineMonth[], next: TimelineMonth[]): TimelineMont
 export default function TimelineScreen() {
   const router = useRouter();
   const { tokens } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const { user } = useSession();
   const userId = user?.id ?? null;
 
@@ -245,7 +246,7 @@ export default function TimelineScreen() {
   const openLogFlow = useCallback(() => router.push('/log/search'), [router]);
 
   const renderCard = useCallback(
-    (item: DeckItem) => {
+    (item: DeckItem, _centered: boolean, cardMaxH: number) => {
       if (item.kind === 'plan') {
         // A plan with a party honors its "TAP TO JOIN" line.
         const party = item.item.party;
@@ -259,19 +260,23 @@ export default function TimelineScreen() {
         );
       }
       if (isMemoryEntry(item.entry)) {
+        // The photo IS the content: it takes every pixel the stage offers
+        // above the ~50px details strip, instead of floating in dead space.
+        const cardW = windowWidth - CARD_INSET * 2;
+        const photoAspect =
+          cardMaxH > 300 ? Math.min(0.9, Math.max(0.5, cardW / (cardMaxH - 50))) : 0.78;
         return (
           <MemoryCard
             entry={item.entry}
             onPress={() => openLog(item.entry.logId)}
-            // Full-tab stage: the photo goes properly portrait.
-            photoAspect={0.78}
+            photoAspect={photoAspect}
             fallbackUri={fallbackUriFor(item.entry)}
           />
         );
       }
       return <CompactLogRow entry={item.entry} onPress={() => openLog(item.entry.logId)} />;
     },
-    [openEvent, openLog],
+    [openEvent, openLog, router, windowWidth],
   );
 
   const renderLabel = useCallback(
@@ -344,6 +349,17 @@ export default function TimelineScreen() {
       deckRef.current?.snapTo(initialDeckIndex, true);
     });
   }, [initialDeckIndex, viewMode]);
+
+  // EVERY arrival on this tab wheels home to today — switching tabs,
+  // returning from a pushed screen, or tapping the ticket while away.
+  useFocusEffect(
+    useCallback(() => {
+      const timer = setTimeout(() => {
+        deckRef.current?.snapTo(initialDeckIndex, true);
+      }, 120);
+      return () => clearTimeout(timer);
+    }, [initialDeckIndex]),
+  );
 
   // Keep the deck index in range as pages merge/refresh.
   useEffect(() => {

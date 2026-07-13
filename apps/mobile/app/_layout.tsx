@@ -147,8 +147,9 @@ function RootShell() {
   const [splashDone, setSplashDone] = useState(false);
   useEffect(() => {
     if (!isLoading && fontsLoaded && !splashDone && !showAnimatedSplash) {
+      // The overlay hides the native splash ITSELF, only after its logo has
+      // painted — hiding here caused a blank frame during image decode.
       setShowAnimatedSplash(true);
-      SplashScreen.hideAsync().catch(() => {});
     }
   }, [isLoading, fontsLoaded, splashDone, showAnimatedSplash]);
   const onSplashDone = useCallback(() => {

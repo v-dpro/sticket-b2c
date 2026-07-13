@@ -97,8 +97,15 @@ function coAuthorLabel(entry: TimelineEntry): string {
 function stubDate(dateStr: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
+  // Current-year shows drop the year — the row is width-starved next to
+  // long venue names, and this year is implied.
+  const sameYear = d.getFullYear() === new Date().getFullYear();
   return d
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      ...(sameYear ? {} : { year: 'numeric' }),
+    })
     .replace(',', '');
 }
 
@@ -115,11 +122,11 @@ export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95, fall
     },
     // The photo area — keeps the old card proportions; the details strip
     // below grows the card, which the deck accommodates.
+    // Vertical-leaning: phone photos are portrait. aspectRatio rides
+    // INLINE on the View — useThemedStyles memoizes per palette, so a
+    // prop baked in here would freeze at its first-render value.
     photoArea: {
       width: '100%',
-      // Vertical-leaning: phone photos are portrait — the frame leans tall
-      // (the deck's stage budget caps how tall it can go).
-      aspectRatio: photoAspect,
       backgroundColor: t.colors.card2, // shows while the photo loads
     },
     photo: {
@@ -320,13 +327,13 @@ export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95, fall
   // Stub details — only segments that exist (timeline entries carry no
   // section/row today; tickets do — same row format when they land).
   // Joint post (C13): the right slot admits everyone on the byline —
-  // "ADMIT 02" instead of the № serial. The dual side-by-side scores stay
-  // degraded to the single BareScore: the timeline payload carries only the
-  // log's own score, never the co-author's (would need coAuthors[].score).
+  // "ADMIT 02"; otherwise it's the night of the week. The dual side-by-side
+  // scores stay degraded to the single BareScore: the timeline payload
+  // carries only the log's own score, never the co-author's.
   const detailsLeft = [entry.venue.name, stubDate(entry.event.date)].filter(Boolean).join(' · ');
   const detailsRight = entry.coAuthors.length
     ? `ADMIT ${String(entry.coAuthors.length + 1).padStart(2, '0')}`
-    : `№ ${entry.logId.slice(-4).toUpperCase()}`;
+    : `${new Date(entry.event.date).toLocaleDateString('en-US', { weekday: 'short' })} night`;
 
   const a11yParts = [
     `${entry.artist.name} at ${entry.venue.name}, shared memory`,
@@ -344,7 +351,7 @@ export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95, fall
       accessibilityLabel={a11yParts.join(', ')}
       style={styles.card}
     >
-      <View style={styles.photoArea} onLayout={onPhotoAreaLayout}>
+      <View style={[styles.photoArea, { aspectRatio: photoAspect }]} onLayout={onPhotoAreaLayout}>
         {/* Photo layer — slides beneath the fixed overlay chrome. */}
         {isPager && pageW > 0 ? (
           <FlatList<TimelinePhoto>

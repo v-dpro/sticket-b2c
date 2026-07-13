@@ -27,6 +27,7 @@ import {
 } from '../../components/entity/FestivalWeekend';
 import { formatScore, monoDateYear } from '../../components/entity/format';
 import { TrendsRail } from '../../components/entity/TrendsRail';
+import { ThreadsSection } from '../../components/threads/ThreadsSection';
 import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
@@ -385,6 +386,10 @@ export default function TourScreen() {
                self-fetching, renders nothing until the crowd-tags endpoint
                has data. ── */}
         {tourId ? <TrendsRail tourId={tourId} /> : null}
+
+        {/* ── THREADS — Reddit-lite tour talk; self-fetching section
+               (components/threads/ThreadsSection). ── */}
+        {tourId ? <ThreadsSection tourId={tourId} tourName={tourName || undefined} /> : null}
 
         {/* ── WHO'S SEEN THEM — C15 degree facepile, non-tappable v1 (see
                lib/api/whoSaw.ts note). ── */}
