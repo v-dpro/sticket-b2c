@@ -72,9 +72,8 @@ function GridCell({
       accessibilityLabel={cell.label}
       style={[
         styles.cell,
-        // Fixed square — one continuous Instagram grid; a partial final row
-        // sits left-aligned like a real profile grid.
-        { width: size, height: size },
+        // 4:5 PORTRAIT tiles like Instagram's grid — taller than wide.
+        { width: size, height: Math.round(size * 1.25) },
         // Dashed frame only for a plan with NO art; everything else is a
         // full-bleed photo tile (Instagram mosaic).
         cell.kind === 'plan' && !cell.thumbnailUrl ? styles.cellPlan : styles.cellFill,
