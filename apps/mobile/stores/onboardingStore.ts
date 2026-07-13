@@ -191,6 +191,14 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => {
 
     resetOnboarding: async () => {
       await AsyncStorage.removeItem(STORAGE_KEY);
+      // completeOnboarding sets this sticky SecureStore flag (app/index reads
+      // it as a fast-track); reset must clear it too or a new account on this
+      // device inherits "onboarding done" and skips the whole flow.
+      try {
+        await SecureStore.deleteItemAsync('onboarding_complete');
+      } catch {
+        // best-effort
+      }
       set({
         hasCompletedOnboarding: false,
         hasSeenWelcome: false,

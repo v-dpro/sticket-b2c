@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api/client';
 import { getMe } from '../lib/api/auth';
 import { getErrorMessage } from '../lib/api/errorUtils';
 import * as SecureStore from '../lib/storage/secureStore';
+import { useOnboardingStore } from './onboardingStore';
 
 const SESSION_KEY = 'sticket.currentUserId';
 const SESSION_CACHE_KEY = 'sticket.sessionCache';
@@ -210,6 +211,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
       const snapshot = toSnapshot(data.user);
       await persistSnapshot(snapshot);
+      // Brand-new account: clear any device-level onboarding flags left by a
+      // prior account on this device, so onboarding actually runs.
+      await useOnboardingStore.getState().resetOnboarding();
       set({ ...snapshot, error: null, isLoading: false });
     } catch (e) {
       set({ error: getErrorMessage(e), isLoading: false });
@@ -244,6 +248,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await clearStoredSession();
+      // Onboarding state is per-account; clear it so the next sign-in on this
+      // device doesn't inherit this account's completion flags.
+      await useOnboardingStore.getState().resetOnboarding();
       set({ ...signedOutState, isLoading: false });
     } catch (e) {
       set({ error: e instanceof Error ? e.message : 'Sign out failed', isLoading: false });
