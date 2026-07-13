@@ -34,7 +34,7 @@ export function TrophyStrip({ trophies }: { trophies?: CollectionTrophies }) {
       fontSize: 10.5,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
-      color: t.colors.text,
+      color: t.colors.fg,
     },
   }));
 
