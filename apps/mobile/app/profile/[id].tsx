@@ -11,13 +11,14 @@
 // distinct from a true empty (inferred from the profile's stat counts).
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 
 import { CompactProfileHeader } from '../../components/profile/CompactProfileHeader';
+import { FriendsSheet } from '../../components/profile/FriendsSheet';
+import { FollowingSheet } from '../../components/profile/FollowingSheet';
 import { ProfileMapView } from '../../components/profile/MapView';
 import { MemoryDeck, type DeckItem } from '../../components/timeline/MemoryDeck';
 import { buildDeckItems, mergeMonths, useDeckFaces } from '../../components/timeline/deckFaces';
@@ -25,8 +26,9 @@ import { ErrorState } from '../../components/ui/ErrorState';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useFollow } from '../../hooks/useFollow';
 import { useProfile } from '../../hooks/useProfile';
+import { useSession } from '../../hooks/useSession';
 import { getErrorMessage } from '../../lib/api/errorUtils';
-import { getUserArtists, getUserVenueMarkers, type UserArtistItem } from '../../lib/api/profile';
+import { getUserVenueMarkers } from '../../lib/api/profile';
 import { getUserTimeline, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -34,12 +36,11 @@ import type { VenueMarker } from '../../types/profile';
 
 const PAGE_SIZE = 30;
 
-type ProfileSegment = 'timeline' | 'artists' | 'venues';
+type ProfileSegment = 'timeline' | 'map';
 
 const SEGMENTS: { value: ProfileSegment; label: string }[] = [
   { value: 'timeline', label: 'TIMELINE' },
-  { value: 'artists', label: 'ARTISTS' },
-  { value: 'venues', label: 'VENUES' },
+  { value: 'map', label: 'MAP' },
 ];
 
 export default function UserProfileScreen() {
@@ -49,14 +50,17 @@ export default function UserProfileScreen() {
   const goBack = useSafeBack();
 
   const { profile, loading: profileLoading, refetch } = useProfile(id);
+  const { user } = useSession();
   const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useFollow();
   // ?tab= deep-link (links + screenshot pipeline), default timeline.
-  const [segment, setSegment] = useState<ProfileSegment>(
-    tab === 'artists' || tab === 'venues' ? tab : 'timeline',
-  );
+  const [segment, setSegment] = useState<ProfileSegment>(tab === 'map' ? 'map' : 'timeline');
   useEffect(() => {
-    if (tab === 'artists' || tab === 'venues' || tab === 'timeline') setSegment(tab);
+    if (tab === 'map' || tab === 'timeline') setSegment(tab);
   }, [tab]);
+
+  // Masthead stat sheets.
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   // Sync follow state when the profile loads.
   useEffect(() => {
@@ -130,26 +134,12 @@ export default function UserProfileScreen() {
   // The wheel's faces — shared with the Timeline tab (deckFaces.tsx).
   const { renderCard, renderLabel, readoutFor } = useDeckFaces();
 
-  // ── Their artists / venues (lazy per segment) ─────────────────
-  const [artists, setArtists] = useState<UserArtistItem[] | null>(null);
-  useEffect(() => {
-    if (segment !== 'artists' || !id) return;
-    let alive = true;
-    getUserArtists(id)
-      .then((data) => {
-        if (alive) setArtists(data);
-      })
-      .catch(() => {
-        if (alive) setArtists([]);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [segment, id, isFollowing]);
-
+  // ── Their venues (lazy on the MAP segment) ────────────────────
+  // Fetched to tell a private map from a truly empty one; the full-height
+  // map itself (ProfileMapView) loads its own markers.
   const [venues, setVenues] = useState<VenueMarker[] | null>(null);
   useEffect(() => {
-    if (segment !== 'venues' || !id) return;
+    if (segment !== 'map' || !id) return;
     let alive = true;
     getUserVenueMarkers(id)
       .then((data) => {
@@ -221,56 +211,6 @@ export default function UserProfileScreen() {
     },
     quietTitle: { fontSize: 16, fontWeight: '800', color: t.colors.fg, textAlign: 'center', marginTop: 8 },
     quietSub: { fontSize: 13.5, color: t.colors.mute, textAlign: 'center' },
-    listContent: { paddingBottom: 32 },
-    // Artist / venue rows — the ArtistsTab collectible row shape.
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginHorizontal: t.density.pad,
-      marginBottom: 10,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      borderRadius: t.radius.card,
-      backgroundColor: t.colors.card,
-      borderWidth: 1,
-      borderColor: t.colors.hairline,
-    },
-    rowAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.colors.card2 },
-    rowBody: { flex: 1, minWidth: 0, gap: 3 },
-    rowName: { fontSize: 16, fontWeight: '700', color: t.colors.fg },
-    rowMeta: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontVariant: ['tabular-nums'],
-      fontSize: 10.5,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: t.colors.muteSoft,
-    },
-    seenStamp: {
-      borderWidth: 1.5,
-      borderColor: t.colors.fg,
-      borderRadius: t.radius.chip,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-    },
-    seenStampText: {
-      fontFamily: t.fontFamilies.monoBold,
-      fontVariant: ['tabular-nums'],
-      fontSize: 11,
-      letterSpacing: 0.5,
-      color: t.colors.fg,
-    },
-    venueListHeader: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
-      letterSpacing: 1.2,
-      textTransform: 'uppercase',
-      color: t.colors.muteSoft,
-      paddingHorizontal: t.density.pad,
-      marginTop: 18,
-      marginBottom: 10,
-    },
   }));
 
   const handleFollowPress = useCallback(async () => {
@@ -377,52 +317,9 @@ export default function UserProfileScreen() {
     );
   };
 
-  const renderArtists = () => {
-    if (artists === null) {
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator color={tokens.colors.mute} />
-        </View>
-      );
-    }
-    if (artists.length === 0) {
-      return (stats?.artists ?? 0) > 0
-        ? renderQuiet('lock-closed-outline', 'Their collection is private', 'Only they can see their artists.')
-        : renderQuiet('musical-notes-outline', 'No artists yet', 'Artists from their shows will land here.');
-    }
-    return (
-      <ScrollView contentContainerStyle={styles.listContent}>
-        {artists.map((artist) => (
-          <SpringPressable
-            key={artist.id}
-            haptic="light"
-            onPress={() => router.push(`/artist/${artist.id}`)}
-            accessibilityRole="button"
-            accessibilityLabel={`${artist.name}, seen ${artist.seenCount} times`}
-            style={styles.row}
-          >
-            {artist.imageUrl ? (
-              <Image source={{ uri: artist.imageUrl }} style={styles.rowAvatar} contentFit="cover" transition={80} cachePolicy="memory-disk" />
-            ) : (
-              <View style={[styles.rowAvatar, { alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="musical-notes-outline" size={18} color={tokens.colors.mute} />
-              </View>
-            )}
-            <View style={styles.rowBody}>
-              <Text style={styles.rowName} numberOfLines={1}>
-                {artist.name}
-              </Text>
-            </View>
-            <View style={styles.seenStamp}>
-              <Text style={styles.seenStampText}>{`SEEN ${artist.seenCount}×`}</Text>
-            </View>
-          </SpringPressable>
-        ))}
-      </ScrollView>
-    );
-  };
-
-  const renderVenues = () => {
+  // MAP — the full-height venues map. The venues fetch above only decides
+  // between a private map and a truly empty one (privacy empty-states).
+  const renderMap = () => {
     if (venues === null) {
       return (
         <View style={styles.center}>
@@ -436,32 +333,12 @@ export default function UserProfileScreen() {
         : renderQuiet('map-outline', 'No venues yet', 'Venues from their shows will land here.');
     }
     return (
-      <ScrollView contentContainerStyle={styles.listContent}>
-        <ProfileMapView userId={id || ''} onVenuePress={(venueId) => router.push({ pathname: '/venue/[venueId]', params: { venueId } })} />
-        <Text style={styles.venueListHeader}>Venues</Text>
-        {venues.map((venue) => (
-          <SpringPressable
-            key={venue.id}
-            haptic="light"
-            onPress={() => router.push({ pathname: '/venue/[venueId]', params: { venueId: venue.id } })}
-            accessibilityRole="button"
-            accessibilityLabel={`${venue.name}, ${venue.showCount} shows`}
-            style={styles.row}
-          >
-            <View style={styles.rowBody}>
-              <Text style={styles.rowName} numberOfLines={1}>
-                {venue.name}
-              </Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {venue.city}
-              </Text>
-            </View>
-            <View style={styles.seenStamp}>
-              <Text style={styles.seenStampText}>{`${venue.showCount}×`}</Text>
-            </View>
-          </SpringPressable>
-        ))}
-      </ScrollView>
+      <View style={styles.stage}>
+        <ProfileMapView
+          userId={id || ''}
+          onVenuePress={(venueId) => router.push({ pathname: '/venue/[venueId]', params: { venueId } })}
+        />
+      </View>
     );
   };
 
@@ -474,6 +351,8 @@ export default function UserProfileScreen() {
         isFollowing={isFollowing}
         followLoading={followLoading}
         onFollowPress={handleFollowPress}
+        onFriendsPress={() => setFriendsOpen(true)}
+        onFollowingPress={() => setFollowingOpen(true)}
       />
 
       <View style={styles.segmentTrack} accessibilityRole="tablist">
@@ -497,7 +376,21 @@ export default function UserProfileScreen() {
         })}
       </View>
 
-      {segment === 'timeline' ? renderTimeline() : segment === 'artists' ? renderArtists() : renderVenues()}
+      {segment === 'timeline' ? renderTimeline() : renderMap()}
+
+      <FriendsSheet
+        visible={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
+        userId={id || ''}
+        currentUserId={user?.id}
+        totalCount={stats?.following}
+      />
+      <FollowingSheet
+        visible={followingOpen}
+        onClose={() => setFollowingOpen(false)}
+        userId={id || ''}
+        totalCount={(stats as { followingArtists?: number } | undefined)?.followingArtists}
+      />
     </SafeAreaView>
   );
 }

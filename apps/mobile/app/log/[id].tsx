@@ -8,7 +8,7 @@
 // (lib/api/feed getLogDetail, surfaced by hooks/useLogDetail).
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Alert,
   Pressable,
@@ -46,6 +46,9 @@ import { FeedCardPhotos } from '../../components/feed/FeedCardPhotos';
 import { PinnedComposer } from '../../components/feed/PinnedComposer';
 import { WhoWasHere } from '../../components/feed/WhoWasHere';
 import { ShareButton } from '../../components/share/ShareButton';
+import { ShareImageSheet, type ShareImageMode } from '../../components/share/ShareImageSheet';
+import { StoryShareCard, type StoryShareData } from '../../components/share/StoryShareCard';
+import { captureStoryCard, openInstagramStory, shareImage } from '../../lib/share/instagram';
 import { createLogLink } from '../../lib/share/deepLinks';
 import type { ShareCardData } from '../../types/share';
 
@@ -215,6 +218,77 @@ export default function LogDetailScreen() {
       },
     };
   }, [data]);
+
+  // ── Share as image (branded IG-story card) ──
+  // The narrow slice the offscreen <StoryShareCard/> needs, drawn from the
+  // same log payload the screen already holds.
+  const storyData = useMemo<StoryShareData | null>(() => {
+    if (!data) return null;
+    const rating =
+      typeof data.log.rating === 'number' && data.log.rating > 0 ? data.log.rating : undefined;
+    return {
+      artistName: data.event.artist.name,
+      venueName: data.event.venue.name,
+      venueCity: data.event.venue.city,
+      date: data.event.date,
+      score: rating,
+      photo: data.log.photos?.[0]?.photoUrl || data.event.artist.imageUrl || undefined,
+      username: data.user.username,
+    };
+  }, [data]);
+
+  const storyCardRef = useRef<ComponentRef<typeof View>>(null);
+  const [imgSheetOpen, setImgSheetOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState<ShareImageMode | null>(null);
+
+  // Gate the capture on the hero photo being decoded so the snapshot never
+  // catches a blank hero. The card is mounted from screen load, so by the time
+  // the user taps share the hero has usually loaded already.
+  const heroReadyRef = useRef(false);
+  const heroWaiters = useRef<Array<() => void>>([]);
+  const onStoryHeroReady = useCallback(() => {
+    if (heroReadyRef.current) return;
+    heroReadyRef.current = true;
+    heroWaiters.current.forEach((resolve) => resolve());
+    heroWaiters.current = [];
+  }, []);
+  const waitForStoryHero = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        if (heroReadyRef.current) return resolve();
+        heroWaiters.current.push(resolve);
+        // Safety valve: never let a stuck/slow image block the share forever.
+        setTimeout(resolve, 2500);
+      }),
+    [],
+  );
+
+  const runImageShare = useCallback(
+    async (mode: ShareImageMode) => {
+      if (shareBusy) return;
+      setShareBusy(mode);
+      try {
+        await waitForStoryHero();
+        // One extra frame so the just-loaded hero is composited before snapshot.
+        await new Promise((r) => setTimeout(r, 60));
+        const uri = await captureStoryCard(storyCardRef);
+        if (!uri) {
+          haptics.error();
+          Alert.alert('Could not create image', 'Please try again.');
+          return;
+        }
+        haptics.light();
+        if (mode === 'instagram') await openInstagramStory(uri);
+        else await shareImage(uri);
+        setImgSheetOpen(false);
+      } catch {
+        haptics.error();
+      } finally {
+        setShareBusy(null);
+      }
+    },
+    [shareBusy, waitForStoryHero],
+  );
 
   // ── Owner actions ──
   const isOwner = Boolean(user?.id && data?.user.id === user.id);
@@ -603,6 +677,19 @@ export default function LogDetailScreen() {
                 )}
               />
             ) : null}
+            {storyData ? (
+              <Pressable
+                onPress={() => {
+                  haptics.light();
+                  setImgSheetOpen(true);
+                }}
+                style={styles.topCircle}
+                accessibilityRole="button"
+                accessibilityLabel="Share as image"
+              >
+                <Ionicons name="logo-instagram" size={18} color={c.fg} />
+              </Pressable>
+            ) : null}
             {isOwner ? (
               <Pressable
                 onPress={openOwnerMenu}
@@ -615,6 +702,25 @@ export default function LogDetailScreen() {
             ) : null}
           </>
         }
+      />
+
+      {/* Offscreen branded story card — the capture target for image share.
+          Kept mounted + laid out (collapsable={false}) off-screen so the hero
+          has time to decode before the user taps share, and so view-shot has a
+          real native view to snapshot. */}
+      {storyData ? (
+        <View style={styles.offscreenCard} pointerEvents="none">
+          <View ref={storyCardRef} collapsable={false}>
+            <StoryShareCard data={storyData} onHeroReady={onStoryHeroReady} />
+          </View>
+        </View>
+      ) : null}
+
+      <ShareImageSheet
+        visible={imgSheetOpen}
+        onClose={() => setImgSheetOpen(false)}
+        busy={shareBusy}
+        onSelect={runImageShare}
       />
     </ScreenShell>
   );
@@ -694,6 +800,13 @@ const buildStyles = (tokens: ThemeTokens) =>
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+
+    /* Offscreen story-card host (view-shot capture target) */
+    offscreenCard: {
+      position: 'absolute',
+      left: -9999,
+      top: -9999,
     },
 
     /* Floating top bar */

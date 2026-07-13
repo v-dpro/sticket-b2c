@@ -82,6 +82,46 @@ export async function getUserArtists(userId: string): Promise<UserArtistItem[]> 
   return response.data;
 }
 
+// ── Masthead sheets: friends + followed artists ────────────────────
+// Both mirror the /users/:id/logs privacy gate on the server (they return
+// [] when the profile is restricted for the viewer), so the tapped masthead
+// count and the sheet list stay in lockstep.
+
+export type ProfileFriend = {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+  showCount: number;
+};
+
+// The target's degree-1 people (users they follow). Count == stats.following.
+export async function getUserFriends(
+  userId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<ProfileFriend[]> {
+  if (!userId || userId.startsWith('user_')) return [];
+  const response = await apiClient.get(`/users/${userId}/friends`, { params: options });
+  return response.data;
+}
+
+export type FollowedArtist = {
+  id: string;
+  name: string;
+  imageUrl?: string;
+};
+
+// Artists the target follows (taste). Count == stats.followingArtists. There
+// is no venue-follow model, so the FOLLOWING sheet is artists-only.
+export async function getUserFollowingArtists(
+  userId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<FollowedArtist[]> {
+  if (!userId || userId.startsWith('user_')) return [];
+  const response = await apiClient.get(`/users/${userId}/following-artists`, { params: options });
+  return response.data;
+}
+
 // ── Shared history ("YOU × THEM") ──────────────────────────────────
 
 export type SharedHistoryEntry = {

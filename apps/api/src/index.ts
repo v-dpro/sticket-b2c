@@ -10791,6 +10791,45 @@ app.patch('/users/me/privacy', async (req) => {
   return updated;
 });
 
+// ==================== SHOW-DAY REMINDERS ====================
+// The Plan tab's "REMIND ME" toggle on a ticketed show. One ShowReminder row
+// per user+event (upsert on POST, delete on DELETE); the notification engine
+// sweeps these on the morning of the show day. GET returns the reminded
+// eventIds so the YOUR SHOWS toggles hydrate on load.
+app.get('/users/me/reminders', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const rows = await prisma.showReminder.findMany({
+    where: { userId },
+    select: { eventId: true },
+  });
+  return rows.map((r) => r.eventId);
+});
+
+app.post('/users/me/reminders', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const body = (req.body ?? {}) as { eventId?: unknown };
+  const eventId = typeof body.eventId === 'string' ? body.eventId.trim() : '';
+  if (!eventId) throw new AppError('eventId is required', 400);
+
+  // Guard the FK so a bad id is a clean 404, not a Prisma constraint crash.
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+  if (!event) throw new AppError('Event not found', 404);
+
+  await prisma.showReminder.upsert({
+    where: { userId_eventId: { userId, eventId } },
+    create: { userId, eventId },
+    update: {},
+  });
+  return { eventId, reminded: true };
+});
+
+app.delete('/users/me/reminders/:eventId', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { eventId } = req.params as { eventId: string };
+  await prisma.showReminder.deleteMany({ where: { userId, eventId } });
+  return { eventId, reminded: false };
+});
+
 async function listenWithFallback() {
   const allowPortFallback = process.env.ALLOW_PORT_FALLBACK === 'true';
 

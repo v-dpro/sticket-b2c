@@ -123,12 +123,12 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
   const styles = useThemedStyles(buildStyles);
   const { width } = useWindowDimensions();
 
-  // Overview granularity: week / month / year grids, or the real MAP.
-  const [mode, setMode] = useState<MapGranularity | 'map'>(initialMode ?? 'month');
+  // Two views only: the continuous Instagram GRID, or the real MAP (globe).
+  const [mode, setMode] = useState<'grid' | 'map'>(initialMode === 'map' ? 'map' : 'grid');
 
   const rows = useMemo(
-    () => buildMapGrid(upcoming, months, mode === 'map' ? 'month' : mode),
-    [upcoming, months, mode],
+    () => buildMapGrid(upcoming, months, 'month'),
+    [upcoming, months],
   );
 
   const cellSize = useMemo(() => {
@@ -154,10 +154,8 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
     [cellSize, onPressMarker, styles.row],
   );
 
-  const MODES: { key: MapGranularity | 'map'; label: string }[] = [
-    { key: 'week', label: 'WEEK' },
-    { key: 'month', label: 'MONTH' },
-    { key: 'year', label: 'YEAR' },
+  const MODES: { key: 'grid' | 'map'; label: string }[] = [
+    { key: 'grid', label: 'GRID' },
     { key: 'map', label: 'MAP' },
   ];
 

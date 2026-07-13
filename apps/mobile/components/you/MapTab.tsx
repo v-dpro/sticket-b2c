@@ -7,10 +7,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import { getMyCollection, type MyCollection } from '../../lib/api/collection';
+import { cityTier } from '../../lib/gamification';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 import { ProfileMapView } from '../profile/MapView';
-import { SpringPressable } from '../ui/SpringPressable';
+import { CollectorScorecard } from './CollectorScorecard';
+import { TierStamp } from './TierStamp';
 
 export function MapTab() {
   const router = useRouter();
@@ -76,18 +78,28 @@ export function MapTab() {
 
   return (
     <View>
+      {/* Gamified head: rank + venue/city/artist tallies. */}
+      {collection ? (
+        <CollectorScorecard
+          venues={collection.venues.length}
+          cities={collection.cities.length}
+          artists={collection.artists.length}
+        />
+      ) : null}
+
       {/* The pins — ProfileMapView already knows the viewer's venues. */}
       <ProfileMapView userId={user.id} onVenuePress={openVenue} />
 
       {collection && collection.cities.length > 0 ? (
         <View>
-          <Text style={styles.section}>Cities</Text>
+          <Text style={styles.section}>Cities collected</Text>
           {collection.cities.map((row) => (
             <View key={row.city} style={styles.cityRow}>
               <Ionicons name="location-outline" size={16} color={tokens.colors.mute} />
               <Text style={styles.cityName} numberOfLines={1}>
                 {row.city}
               </Text>
+              <TierStamp tier={cityTier(row.count)} />
               <View style={styles.countStamp}>
                 <Text style={styles.countText}>×{row.count}</Text>
               </View>

@@ -107,29 +107,35 @@ async function sendPush(userIds: string[], payload: NotifyPayload): Promise<void
 // setInterval-based (node-cron isn't a dependency); every tick is wrapped so
 // a bad sweep can't crash the process.
 //
-// At-most-once state is IN MEMORY (PresaleAlert has no notifiedAt column and
-// adding one is out of scope): a restart inside a presale's 30-minute warning
-// window can re-send that alert, and a restart between 10:00 and 10:59 can
-// re-send the morning nudge. Both are at-most-once per boot.
+// At-most-once state is IN MEMORY (PresaleAlert / ShowReminder have no
+// notifiedAt column and adding one is out of scope): a restart inside a
+// presale's 30-minute warning window can re-send that alert, and a restart
+// between 10:00 and 10:59 can re-send the morning nudge or a show reminder.
+// All are at-most-once per boot.
 
 const PRESALE_SWEEP_MS = 5 * 60 * 1000;
 const PRESALE_LOOKAHEAD_MS = 30 * 60 * 1000;
 const NUDGE_CHECK_MS = 5 * 60 * 1000;
 const NUDGE_HOUR = 10; // ~10:00 server time
+const SHOW_REMINDER_CHECK_MS = 5 * 60 * 1000;
+const SHOW_REMINDER_HOUR = 10; // ~10:00 server time on the show day
 
 const presaleAlertsSent = new Set<string>(); // PresaleAlert ids notified this boot
 let lastNudgeDate: string | null = null; // YYYY-MM-DD of the last nudge run
+const showRemindersSent = new Set<string>(); // ShowReminder ids notified this boot
 
 export function startNotificationJobs(): void {
   setInterval(() => void runSafely('presale sweep', sweepPresaleAlerts), PRESALE_SWEEP_MS);
   setInterval(() => void runSafely('morning nudge', maybeSendMorningNudge), NUDGE_CHECK_MS);
+  setInterval(() => void runSafely('show reminder', sweepShowReminders), SHOW_REMINDER_CHECK_MS);
 
   // Initial presale sweep shortly after boot so a restart doesn't skip a window.
   setTimeout(() => void runSafely('presale sweep (initial)', sweepPresaleAlerts), 10_000);
 
   console.log(
     `[Notify] Jobs registered: presale sweep every ${PRESALE_SWEEP_MS / 60_000}m ` +
-      `(${PRESALE_LOOKAHEAD_MS / 60_000}m lookahead), morning nudge at ~${NUDGE_HOUR}:00 server time`
+      `(${PRESALE_LOOKAHEAD_MS / 60_000}m lookahead), morning nudge at ~${NUDGE_HOUR}:00 server time, ` +
+      `show reminders at ~${SHOW_REMINDER_HOUR}:00 server time`
   );
 }
 
@@ -216,4 +222,41 @@ async function maybeSendMorningNudge(): Promise<void> {
   }
 
   if (firstLogByUser.size) console.log(`[Notify] Morning nudge sent to ${firstLogByUser.size} user(s)`);
+}
+
+/**
+ * On the morning (~10:00 server time) of a show day: nudge every user with a
+ * ShowReminder for an event dated today. At-most-once per reminder per boot via
+ * showRemindersSent (ShowReminder has no notifiedAt column — see the caveat).
+ */
+async function sweepShowReminders(): Promise<void> {
+  const now = new Date();
+  if (now.getHours() !== SHOW_REMINDER_HOUR) return;
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+  const reminders = await prisma.showReminder.findMany({
+    where: { event: { date: { gte: startOfToday, lt: startOfTomorrow } } },
+    include: {
+      event: { select: { name: true, artist: { select: { name: true } }, venue: { select: { name: true } } } },
+    },
+  });
+
+  let sent = 0;
+  for (const reminder of reminders) {
+    if (showRemindersSent.has(reminder.id)) continue;
+    showRemindersSent.add(reminder.id); // mark before awaiting so overlapping ticks can't double-send
+
+    const { event } = reminder;
+    await notify(reminder.userId, {
+      type: 'show_reminder',
+      title: 'Tonight',
+      body: `${event.artist.name} at ${event.venue.name}`,
+      data: { eventId: reminder.eventId },
+    });
+    sent += 1;
+  }
+
+  if (sent) console.log(`[Notify] Show reminders sent to ${sent} user(s)`);
 }

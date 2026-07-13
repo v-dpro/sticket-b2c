@@ -26,7 +26,8 @@
         "NSCameraUsageDescription": "Sticket needs camera access to scan ticket barcodes",
         "NSPhotoLibraryUsageDescription": "Sticket needs photo access to upload concert photos",
         "NSContactsUsageDescription": "Sticket can help you find friends from your contacts",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["instagram", "instagram-stories"]
       }
     },
     "android": {

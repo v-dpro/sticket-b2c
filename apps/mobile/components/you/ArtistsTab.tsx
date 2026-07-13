@@ -13,6 +13,8 @@ import Animated from 'react-native-reanimated';
 import { useMyArtists } from '../../hooks/useMyArtists';
 import { getMyCollection, type CollectionTrophies, type MyCollection } from '../../lib/api/collection';
 import { durations, tearIn } from '../../lib/motion';
+import { artistTier } from '../../lib/gamification';
+import { TierStamp } from './TierStamp';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { DegreeFacepile } from '../ui/DegreeFacepile';
 import { PillButton } from '../ui/PillButton';
@@ -325,6 +327,7 @@ export function ArtistsTab() {
                       </View>
                     ) : null}
                   </View>
+                  <TierStamp tier={artistTier(seen)} />
                   {seen > 0 ? (
                     <View style={styles.countStamp}>
                       <Text style={styles.countText}>×{seen}</Text>
