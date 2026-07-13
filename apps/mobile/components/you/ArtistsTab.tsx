@@ -1,7 +1,9 @@
 // You · ARTISTS — the artists you track, as collectibles: seen-counts,
-// next dates, presale flags. Rows tap through to the artist page.
+// next dates, presale flags. Rows tap through to the artist page. Below
+// the artist sections, a TROPHIES section folds in the collection extras
+// (firsts, streak, years, most-seen leaderboard) — COLLECTION subtab absorbed.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -9,6 +11,7 @@ import { useRouter } from 'expo-router';
 import Animated from 'react-native-reanimated';
 
 import { useMyArtists } from '../../hooks/useMyArtists';
+import { getMyCollection, type CollectionTrophies, type MyCollection } from '../../lib/api/collection';
 import { durations, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { DegreeFacepile } from '../ui/DegreeFacepile';
@@ -48,10 +51,31 @@ function nextShowLabel(row: ArtistRow): string | null {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
+function monYear(iso: string): string | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+}
+
 export function ArtistsTab() {
   const router = useRouter();
   const { tokens } = useTheme();
   const { data, loading } = useMyArtists();
+
+  // TROPHIES — a separate, non-blocking fetch; the section renders
+  // nothing until `trophies` lands on the payload (backend in parallel).
+  const [trophies, setTrophies] = useState<CollectionTrophies | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    getMyCollection()
+      .then((c: MyCollection) => {
+        if (alive) setTrophies(c.trophies);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const styles = useThemedStyles((t) => ({
     center: { paddingVertical: 60, alignItems: 'center' },
@@ -119,6 +143,82 @@ export function ArtistsTab() {
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 40, gap: 12 },
     emptyTitle: { fontSize: 16, fontWeight: '800', color: t.colors.fg, textAlign: 'center' },
     emptySub: { fontSize: 13.5, color: t.colors.mute, textAlign: 'center' },
+
+    // ── TROPHIES (COLLECTION absorbed) ──────────────────────────────
+    streakStamp: {
+      alignSelf: 'flex-start',
+      marginHorizontal: t.density.pad,
+      marginBottom: 10,
+      borderWidth: 1.5,
+      borderColor: t.colors.fg,
+      borderRadius: t.radius.chip,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    streakText: {
+      fontFamily: t.fontFamilies.monoBold,
+      fontSize: 11,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.fg,
+    },
+    firstsCard: {
+      marginHorizontal: t.density.pad,
+      marginBottom: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: t.radius.card,
+      backgroundColor: t.colors.card2,
+      gap: 3,
+    },
+    firstsText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 11,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
+    firstsSub: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    yearsStrip: {
+      marginHorizontal: t.density.pad,
+      marginBottom: 14,
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
+    leaderRight: { alignItems: 'flex-end', gap: 5 },
+    youStamp: {
+      borderWidth: 1.5,
+      borderColor: t.colors.fg,
+      borderRadius: t.radius.chip,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    youStampText: {
+      fontFamily: t.fontFamilies.monoBold,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      color: t.colors.fg,
+    },
+    friendLeadRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    friendLeadText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
   }));
 
   if (loading) {
@@ -135,7 +235,16 @@ export function ArtistsTab() {
     { label: 'Casual', rows: (data?.casual ?? []) as ArtistRow[] },
   ].filter((s) => s.rows.length > 0);
 
-  if (sections.length === 0) {
+  const hasTrophyContent =
+    !!trophies &&
+    (trophies.streak.months > 0 ||
+      !!trophies.firsts.firstShow ||
+      trophies.firsts.venuesCount > 0 ||
+      trophies.firsts.citiesCount > 0 ||
+      trophies.years.length > 0 ||
+      trophies.mostSeenLeaderboard.length > 0);
+
+  if (sections.length === 0 && !hasTrophyContent) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>No artists tracked yet</Text>
@@ -227,6 +336,93 @@ export function ArtistsTab() {
           })}
         </View>
       ))}
+
+      {/* TROPHIES — COLLECTION's extras (firsts, streak, years, leaderboard).
+          Venues/cities counts live in MAP; no list is duplicated here. */}
+      {hasTrophyContent && trophies ? (
+        <View>
+          <Text style={styles.section}>Trophies</Text>
+
+          {trophies.streak.months > 0 ? (
+            <View style={styles.streakStamp}>
+              <Text style={styles.streakText}>{trophies.streak.months}-MONTH STREAK</Text>
+            </View>
+          ) : null}
+
+          {trophies.firsts.firstShow || trophies.firsts.venuesCount > 0 || trophies.firsts.citiesCount > 0 ? (
+            <View style={styles.firstsCard}>
+              {trophies.firsts.firstShow ? (
+                <Text style={styles.firstsText} numberOfLines={1}>
+                  {['FIRST SHOW', trophies.firsts.firstShow.artistName, monYear(trophies.firsts.firstShow.date)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              ) : null}
+              {trophies.firsts.venuesCount > 0 || trophies.firsts.citiesCount > 0 ? (
+                <Text style={styles.firstsSub} numberOfLines={1}>
+                  {trophies.firsts.venuesCount} VENUES · {trophies.firsts.citiesCount} CITIES
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {trophies.years.length > 0 ? (
+            <Text style={styles.yearsStrip} numberOfLines={1}>
+              {trophies.years.map((y) => `${y.year} · ${y.shows}`).join('   ')}
+            </Text>
+          ) : null}
+
+          {trophies.mostSeenLeaderboard.map((row, idx) => {
+            const friendCount = row.friendsTracking?.length ?? 0;
+            return (
+              <Animated.View key={row.artist.id} entering={tearIn(Math.min(idx, 8) * durations.stagger)}>
+                <SpringPressable
+                  haptic="light"
+                  onPress={() => router.push(`/artist/${row.artist.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${row.artist.name}, you have seen ${row.you} times`}
+                  style={styles.row}
+                >
+                  {row.artist.imageUrl ? (
+                    <Image source={{ uri: row.artist.imageUrl }} style={styles.avatar} contentFit="cover" transition={80} cachePolicy="memory-disk" />
+                  ) : (
+                    <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                      <Ionicons name="musical-notes-outline" size={18} color={tokens.colors.mute} />
+                    </View>
+                  )}
+                  <View style={styles.body}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {row.artist.name}
+                    </Text>
+                    {friendCount > 0 ? (
+                      <View style={styles.socialRow}>
+                        <DegreeFacepile people={row.friendsTracking!} size={16} max={3} surfaceColor={tokens.colors.card} />
+                        <Text style={styles.meta} numberOfLines={1}>
+                          {friendCount} FRIEND{friendCount === 1 ? '' : 'S'} TRACK
+                          {typeof row.topFriendCount === 'number' ? ` · TOP ×${row.topFriendCount}` : ''}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <View style={styles.leaderRight}>
+                    <View style={styles.youStamp}>
+                      <Text style={styles.youStampText}>YOU ×{row.you}</Text>
+                    </View>
+                    {row.topFriend ? (
+                      <View style={styles.friendLeadRow}>
+                        <DegreeFacepile people={[row.topFriend.person]} size={18} max={1} surfaceColor={tokens.colors.card} />
+                        <Text style={styles.friendLeadText} numberOfLines={1}>
+                          @{row.topFriend.person.username} ×{row.topFriend.count}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </SpringPressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -1,8 +1,8 @@
 // app/(tabs)/you.tsx — THE TRACKING HUB. The timeline moved to its own tab;
 // You is where you track and follow: compact profile header, then subtabs —
-// ARTISTS (followed artists as collectibles with seen-counts), PRESALES
-// (alerts + the ticketed/interested agenda), COLLECTION (artists × counts,
-// venues visited, cities reached).
+// ARTISTS (followed artists as collectibles with seen-counts, plus a
+// TROPHIES section for firsts/streaks/leaderboards) and MAP (venues visited,
+// cities reached).
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -18,17 +18,16 @@ import type { ProfileStats } from '../../types/profile';
 
 import { TimelineHeader } from '../../components/timeline/TimelineHeader';
 import { ArtistsTab } from '../../components/you/ArtistsTab';
-import { CollectionTab } from '../../components/you/CollectionTab';
 import { MapTab } from '../../components/you/MapTab';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
-// Presales moved to the PLAN tab; the artist collectibles absorb the
-// collection counts, and the venues/cities become the MAP.
-type YouTab = 'artists' | 'collection' | 'map';
+// Presales moved to the PLAN tab; COLLECTION folded into ARTISTS (the
+// artist rows already carry seen-counts; TROPHIES absorbs the rest), and
+// the venues/cities become the MAP.
+type YouTab = 'artists' | 'map';
 
 const TABS: { key: YouTab; label: string }[] = [
   { key: 'artists', label: 'ARTISTS' },
-  { key: 'collection', label: 'COLLECTION' },
   { key: 'map', label: 'MAP' },
 ];
 
@@ -96,8 +95,6 @@ export default function YouScreen() {
     switch (tab) {
       case 'artists':
         return <ArtistsTab />;
-      case 'collection':
-        return <CollectionTab />;
       case 'map':
         return <MapTab />;
     }

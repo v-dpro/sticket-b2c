@@ -61,6 +61,9 @@ type MemoryCardProps = {
   rankLabel?: string | null;
   /** Photo frame width/height ratio — lower = taller (default 0.95). */
   photoAspect?: number;
+  /** Stand-in image (tour/event/artist art) when the log has no photos —
+      the timeline always shows a picture. */
+  fallbackUri?: string;
 };
 
 // The timeline API is growing photos[] (≤5 per entry, thumbnailUrl +
@@ -99,7 +102,7 @@ function stubDate(dateStr: string): string {
     .replace(',', '');
 }
 
-export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95 }: MemoryCardProps) {
+export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95, fallbackUri }: MemoryCardProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
     card: {
@@ -311,6 +314,7 @@ export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95 }: Me
   );
 
   const photo = photos[0];
+  const heroUri = photo?.photoUrl || photo?.thumbnailUrl || fallbackUri;
   const coAuthors = coAuthorLabel(entry);
 
   // Stub details — only segments that exist (timeline entries carry no
@@ -361,14 +365,14 @@ export function MemoryCard({ entry, onPress, rankLabel, photoAspect = 0.95 }: Me
             windowSize={3}
             style={styles.photo}
           />
-        ) : photo ? (
+        ) : heroUri ? (
           <Image
-            source={{ uri: photo.photoUrl || photo.thumbnailUrl }}
+            source={{ uri: heroUri }}
             style={styles.photo}
             contentFit="cover"
             transition={80}
             cachePolicy="memory-disk"
-            recyclingKey={photo.id}
+            recyclingKey={photo?.id ?? entry.logId}
           />
         ) : null}
 

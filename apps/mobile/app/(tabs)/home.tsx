@@ -1,39 +1,42 @@
-// Home — the friends feed.
+// Home — the friends feed as a RedNote-style WATERFALL (C22).
 //
-// Fresh shell for the redesign: near-black stage, 800-weight wordmark,
-// monochrome chrome. Data wiring reuses the existing feed hooks and the
-// FeedCard family; a full FeedCard v2 lands next wave.
+// Header (wordmark + scope toggle + notifications) and the feed data flow
+// are unchanged; the body is the 2-column Waterfall masonry: crowd post
+// tiles from useFeed, with compact discovery tiles (explore payload,
+// best-effort) woven in every 5-6 posts. Waterfall's column accounting
+// keeps entity tiles alternating and never adjacent.
 
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useRef } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  Text,
-  View,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated from 'react-native-reanimated';
 
 import { AgendaPin } from '../../components/agenda/AgendaPin';
 import { EmptyFeed } from '../../components/feed/EmptyFeed';
-import { FeedCard, invalidateFeedLikeCache } from '../../components/feed/FeedCard';
+import { invalidateFeedLikeCache } from '../../components/feed/FeedCard';
 import { FeedScopeToggle } from '../../components/feed/FeedScopeToggle';
-import { FeedSkeleton } from '../../components/feed/FeedSkeleton';
 import { FindPeopleCard } from '../../components/feed/FindPeopleCard';
+import { Waterfall, WaterfallSkeleton, type WaterfallSlot } from '../../components/feed/Waterfall';
+import {
+  WaterfallEntityTile,
+  entityKey,
+  estimateEntityTileHeight,
+  type WaterfallEntity,
+} from '../../components/feed/WaterfallEntityTile';
+import {
+  WaterfallPostTile,
+  estimatePostTileHeight,
+  invalidateWaterfallLikeCache,
+  type WaterfallPost,
+} from '../../components/feed/WaterfallPostTile';
 import { invalidateWhoWasHereCache } from '../../components/feed/WhoWasHere';
 import { NotificationBellButton } from '../../components/notifications/NotificationBellButton';
 import { PillButton } from '../../components/ui/PillButton';
 import { useFeed } from '../../hooks/useFeed';
 import { useSession } from '../../hooks/useSession';
-import { durations, tearIn } from '../../lib/motion';
+import { getExplore, type ExploreData } from '../../lib/api/explore';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
-import type { FeedItem } from '../../types/feed';
-
-// Entrance stagger caps after ~10 cards — rows mounted later (scroll-in)
-// tear in without delay (same pattern as the timeline).
-const STAGGER_CUTOFF = 10;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -66,8 +69,6 @@ export default function HomeScreen() {
       letterSpacing: 0.2,
       color: t.colors.mute,
     },
-    cardWrapper: { paddingBottom: 22 },
-    listContent: { paddingTop: 8, paddingBottom: 110 },
     footer: { paddingVertical: 20 },
     center: {
       flex: 1,
@@ -107,6 +108,20 @@ export default function HomeScreen() {
     loadMore,
   } = useFeed();
 
+  // Discovery tiles — best-effort: a failed /explore just means a
+  // posts-only waterfall.
+  const [explore, setExplore] = useState<ExploreData | null>(null);
+  const fetchExplore = useCallback(() => {
+    getExplore()
+      .then(setExplore)
+      .catch(() => {
+        // best-effort — skip entity tiles
+      });
+  }, []);
+  useEffect(() => {
+    fetchExplore();
+  }, [fetchExplore]);
+
   // Refresh when the tab regains focus (e.g. right after sign-in).
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
@@ -119,20 +134,51 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // First-paint stagger: the Scorecard Stub tear-in, 40ms/card.
-  const renderItem = useCallback(
-    ({ item, index }: { item: FeedItem; index: number }) => (
-      <Animated.View
-        entering={tearIn(index < STAGGER_CUTOFF ? index * durations.stagger : 0)}
-        style={styles.cardWrapper}
-      >
-        <FeedCard item={item} currentUserId={user?.id} />
-      </Animated.View>
-    ),
-    [styles.cardWrapper, user?.id]
-  );
+  // ── The weave ──
+  // Round-robin the explore sections into one entity pool, then insert one
+  // entity tile per 5-6 posts (alternating cadence). Waterfall's column
+  // accounting handles alternation + never-adjacent placement.
+  const slots = useMemo<WaterfallSlot[]>(() => {
+    const entities: WaterfallEntity[] = [];
+    if (explore) {
+      const sources: WaterfallEntity[][] = [
+        explore.trendingEvents.map((data) => ({ kind: 'event' as const, data })),
+        explore.risingArtists.map((data) => ({ kind: 'artist' as const, data })),
+        explore.venues.map((data) => ({ kind: 'venue' as const, data })),
+        explore.spotlightTours.map((data) => ({ kind: 'tour' as const, data })),
+      ];
+      for (let i = 0; sources.some((s) => i < s.length); i++) {
+        for (const s of sources) if (i < s.length) entities.push(s[i]);
+      }
+    }
 
-  const keyExtractor = useCallback((item: FeedItem) => item.id, []);
+    const out: WaterfallSlot[] = [];
+    let entityIdx = 0;
+    let sincePost = 0; // posts since the last entity tile
+    let cadence = 5; // ONE entity per 5-6 crowd tiles
+    for (const raw of items) {
+      const item = raw as WaterfallPost;
+      out.push({
+        key: item.id,
+        kind: 'post',
+        estimateHeight: (w) => estimatePostTileHeight(item, w),
+        render: () => <WaterfallPostTile item={item} currentUserId={user?.id} />,
+      });
+      sincePost += 1;
+      if (sincePost >= cadence && entityIdx < entities.length) {
+        const entity = entities[entityIdx++];
+        out.push({
+          key: entityKey(entity),
+          kind: 'entity',
+          estimateHeight: estimateEntityTileHeight,
+          render: () => <WaterfallEntityTile entity={entity} />,
+        });
+        sincePost = 0;
+        cadence = cadence === 5 ? 6 : 5;
+      }
+    }
+    return out;
+  }, [explore, items, user?.id]);
 
   const needsSignIn = Boolean(
     (!user && requiresAuth) || error?.includes('online account') || error?.includes('session expired')
@@ -140,7 +186,7 @@ export default function HomeScreen() {
 
   let body: React.ReactNode;
   if (loading && items.length === 0) {
-    body = <FeedSkeleton />;
+    body = <WaterfallSkeleton />;
   } else if (items.length === 0 && (error || (requiresAuth && !user))) {
     body = (
       <View style={styles.center}>
@@ -183,20 +229,24 @@ export default function HomeScreen() {
     body = <EmptyFeed hasNoFriends={Boolean(hasNoFriends)} />;
   } else {
     body = (
-      <Animated.FlatList
-        data={items}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        removeClippedSubviews
-        initialNumToRender={4}
-        maxToRenderPerBatch={4}
-        windowSize={7}
+      <Waterfall
+        slots={slots}
+        header={hasNoFriends ? <FindPeopleCard /> : null}
+        footer={
+          loadingMore ? (
+            <View style={styles.footer}>
+              <ActivityIndicator size="small" color={tokens.colors.mute} />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
+              invalidateWaterfallLikeCache();
               invalidateFeedLikeCache();
               invalidateWhoWasHereCache();
+              fetchExplore();
               void refresh();
             }}
             tintColor={tokens.colors.mute}
@@ -207,17 +257,6 @@ export default function HomeScreen() {
         onEndReached={() => {
           if (hasMore) loadMore();
         }}
-        onEndReachedThreshold={0.5}
-        ListHeaderComponent={hasNoFriends ? <FindPeopleCard /> : null}
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={styles.footer}>
-              <ActivityIndicator size="small" color={tokens.colors.mute} />
-            </View>
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
       />
     );
   }

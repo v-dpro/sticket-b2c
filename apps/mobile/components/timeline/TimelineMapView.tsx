@@ -14,19 +14,22 @@
 // Tapping a cell hands its row key back to the parent (flies to that card
 // in the scroll deck — the parent owns the mode switch).
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import Animated from 'react-native-reanimated';
 
 import type { TimelineMonth, TimelineUpcomingItem } from '../../lib/api/timeline';
-import { durations, tearIn } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { BareScore } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
 import { formatScore } from './format';
-import { buildMapGrid, type MapCell, type MapRow } from './mapModel';
+import { buildMapGrid, type MapCell, type MapGranularity, type MapRow } from './mapModel';
+import { useRouter } from 'expo-router';
+import { useSession } from '../../hooks/useSession';
+import { ProfileMapView } from '../profile/MapView';
 
 const COLUMNS = 3;
 const GRID_GAP = 3;
@@ -113,7 +116,17 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }:
   const styles = useThemedStyles(buildStyles);
   const { width } = useWindowDimensions();
 
-  const rows = useMemo(() => buildMapGrid(upcoming, months), [upcoming, months]);
+  // Overview granularity: week / month / year grids, or the real MAP.
+  const [mode, setMode] = useState<MapGranularity | 'map'>('month');
+  const router = useRouter();
+  const { user } = useSession();
+  const userId = user?.id ?? null;
+  const openVenue = useCallback((venueId: string) => router.push(`/venue/${venueId}`), [router]);
+
+  const rows = useMemo(
+    () => buildMapGrid(upcoming, months, mode === 'map' ? 'month' : mode),
+    [upcoming, months, mode],
+  );
 
   const cellSize = useMemo(() => {
     const usable = width - tokens.density.pad * 2 - GRID_GAP * (COLUMNS - 1);
@@ -134,6 +147,50 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }:
     [cellSize, onPressMarker, styles.row],
   );
 
+  const MODES: { key: MapGranularity | 'map'; label: string }[] = [
+    { key: 'week', label: 'WEEK' },
+    { key: 'month', label: 'MONTH' },
+    { key: 'year', label: 'YEAR' },
+    { key: 'map', label: 'MAP' },
+  ];
+
+  const modeChips = (
+    <View style={styles.modeRow}>
+      {MODES.map((m) => {
+        const active = m.key === mode;
+        return (
+          <SpringPressable
+            key={m.key}
+            haptic="none"
+            onPress={() => {
+              if (m.key !== mode) {
+                haptics.light();
+                setMode(m.key);
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={m.label}
+            style={[styles.modeChip, active ? styles.modeChipActive : null]}
+          >
+            <Text style={[styles.modeText, active ? styles.modeTextActive : null]}>{m.label}</Text>
+          </SpringPressable>
+        );
+      })}
+    </View>
+  );
+
+  if (mode === 'map') {
+    // The real map — venues pinned where they are (the collection as
+    // geography); cells and headers give way to the globe.
+    return (
+      <View style={styles.list}>
+        {modeChips}
+        {userId ? <ProfileMapView userId={userId} onVenuePress={openVenue} /> : null}
+      </View>
+    );
+  }
+
   return (
     <FlatList
       data={rows}
@@ -144,6 +201,7 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }:
       showsVerticalScrollIndicator={false}
       removeClippedSubviews
       initialNumToRender={18}
+      ListHeaderComponent={modeChips}
       ListFooterComponent={
         loadingAll ? (
           <View style={styles.loadingFooter}>
@@ -242,6 +300,30 @@ const buildStyles = (tokens: ThemeTokens) =>
       textTransform: 'uppercase',
       color: tokens.colors.fg,
     },
+    modeRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingBottom: 12,
+    },
+    modeChip: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: tokens.radius.full,
+      borderWidth: 1,
+      borderColor: tokens.colors.hairline,
+      backgroundColor: tokens.colors.card,
+    },
+    modeChipActive: {
+      backgroundColor: tokens.colors.inverseBg,
+      borderColor: tokens.colors.inverseBg,
+    },
+    modeText: {
+      fontFamily: tokens.fontFamilies.monoSemi,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      color: tokens.colors.mute,
+    },
+    modeTextActive: { color: tokens.colors.inverseFg },
     loadingFooter: {
       alignItems: 'center',
       justifyContent: 'center',

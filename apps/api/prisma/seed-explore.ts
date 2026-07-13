@@ -232,6 +232,47 @@ function pickCaption(seed: string): string {
   return LOG_CAPTIONS[stableHash(seed) % LOG_CAPTIONS.length]!;
 }
 
+// --- C23 TRENDS: hashtag captions with real clustering -----------------------
+// Hub event 0's four attendees all tag #frontrail and hub event 1's first
+// three tag #proposal, so those two events cross the demo TREND_THRESHOLD (3)
+// and promote to their HIGHLIGHTS rails. Everything else is a scattered
+// one-off tag that deliberately stays below the threshold. Captions sit in
+// the upsert's update clause too, so re-running refreshes them in place.
+
+const FRONTRAIL_CAPTIONS = [
+  'four hours in line and worth every single minute. #frontrail is the only way to see this show.',
+  'she pointed at our row during the bridge, I am never recovering. #frontrail',
+  'the setlist hits different from up close. #frontrail crew knows.',
+  'rail or nothing tonight, no regrets about the early alarm. #frontrail #noregrets',
+];
+
+const PROPOSAL_CAPTIONS = [
+  'someone got engaged during the acoustic set and the whole floor lost it. #proposal',
+  'witnessed a #proposal two rows over during the encore. crying in section A.',
+  'the #proposal on the big screen tonight had the entire venue screaming.',
+];
+
+// One use each — scattered organic tags that never cross the threshold.
+const SCATTER_TAGS = ['#encore', '#confetti', '#barricade', '#setlist', '#merchhaul', '#roadtrip', '#openingnight', '#pit'];
+
+/** Keys `${userId}:${eventId}` of hub logs whose captions carry the clustered tags. */
+function buildCaptionOverrides(hubEvents: CatEvent[]): Map<string, string> {
+  const overrides = new Map<string, string>();
+  const frontrailEvent = hubEvents[0];
+  if (frontrailEvent) {
+    HUB_ATTENDEES[0]!.forEach((userId, i) => {
+      overrides.set(`${userId}:${frontrailEvent.id}`, FRONTRAIL_CAPTIONS[i % FRONTRAIL_CAPTIONS.length]!);
+    });
+  }
+  const proposalEvent = hubEvents[1];
+  if (proposalEvent) {
+    HUB_ATTENDEES[1]!.slice(0, PROPOSAL_CAPTIONS.length).forEach((userId, i) => {
+      overrides.set(`${userId}:${proposalEvent.id}`, PROPOSAL_CAPTIONS[i]!);
+    });
+  }
+  return overrides;
+}
+
 const COMMENT_POOL = [
   'wait I need to catch this tour next time',
   'the way you described this has me reconsidering my plans',
@@ -445,7 +486,9 @@ function buildLogPlans(past: CatEvent[]): { plans: LogPlan[]; hubEvents: CatEven
 
 type LogRow = { id: string; userId: string; event: CatEvent; score: number; scoreRank: number; note: string; photos: string[]; createdAt: Date };
 
-function buildLogRows(plans: LogPlan[]): LogRow[] {
+function buildLogRows(plans: LogPlan[], hubEvents: CatEvent[]): LogRow[] {
+  const captionOverrides = buildCaptionOverrides(hubEvents);
+
   const byUser = new Map<string, LogPlan[]>();
   for (const p of plans) {
     const arr = byUser.get(p.userId) ?? [];
@@ -471,12 +514,23 @@ function buildLogRows(plans: LogPlan[]): LogRow[] {
         event: p.event,
         score: s.score,
         scoreRank: s.scoreRank,
-        note: pickCaption(`cap:${userId}:${p.event.id}`),
+        note: captionOverrides.get(`${userId}:${p.event.id}`) ?? pickCaption(`cap:${userId}:${p.event.id}`),
         photos: Array.from({ length: photoCount }, (_, i) => placeholderImage(`exp-photo-${id}-${i + 1}`, 1200, 900)),
         createdAt,
       });
     }
   }
+
+  // Scattered one-off tags on a stable subset of the non-clustered logs so
+  // hashtags feel organic, not just present on the two trending events.
+  const scatterRows = rows
+    .filter((r) => !captionOverrides.has(`${r.userId}:${r.event.id}`))
+    .sort((a, b) => stableHash(`scatter:${a.id}`) - stableHash(`scatter:${b.id}`))
+    .slice(0, SCATTER_TAGS.length);
+  scatterRows.forEach((row, i) => {
+    row.note = `${row.note} ${SCATTER_TAGS[i]}`;
+  });
+
   return rows;
 }
 
@@ -751,11 +805,16 @@ async function main() {
   console.log(`  catalog events available: ${past.length} past, ${future.length} future`);
 
   const { plans, hubEvents } = buildLogPlans(past);
-  const logRows = buildLogRows(plans);
+  const logRows = buildLogRows(plans, hubEvents);
   const { logCount, photoCount } = await seedLogs(logRows);
 
   const hubAttendeeCounts = HUB_ATTENDEES.map((a) => a.length);
   console.log(`  hub events (4+ mixed-degree attendees): ${hubEvents.map((e, i) => `${e.name} (${hubAttendeeCounts[i]})`).join(' | ')}`);
+  console.log(
+    `  trends: #frontrail x${HUB_ATTENDEES[0]!.length} on ${hubEvents[0]?.id ?? '(none)'}, ` +
+      `#proposal x${PROPOSAL_CAPTIONS.length} on ${hubEvents[1]?.id ?? '(none)'}, ` +
+      `${SCATTER_TAGS.length} scattered one-off tags`
+  );
 
   const engagement = await seedEngagement(logRows);
   const interestCount = await seedEventInterest(future);

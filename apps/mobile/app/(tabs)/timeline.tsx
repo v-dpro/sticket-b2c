@@ -27,14 +27,24 @@ import { TimelineViewToggle, type TimelineViewMode } from '../../components/time
 import { countdownLabel, formatShortDate, monthLabel } from '../../components/timeline/format';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
-import { WrappedChip } from '../../components/wrapped/WrappedChip';
+import { SpringPressable } from '../../components/ui/SpringPressable';
 
 const PAGE_SIZE = 30;
 const MAP_BACKFILL_MAX_PAGES = 10;
 
-/** Shared + photographed ⇒ full memory card; otherwise the quiet row. */
+/** The timeline always shows photos: memory photos when they exist,
+    otherwise the tour/event/artist image stands in. Only an entry with
+    no image at all falls back to the quiet row. */
 function isMemoryEntry(entry: TimelineEntry): boolean {
-  return entry.sharedAt !== null && entry.photos.length > 0;
+  return (
+    entry.photos.length > 0 ||
+    Boolean(entry.fallbackImageUrl) ||
+    Boolean(entry.artist.imageUrl)
+  );
+}
+
+function fallbackUriFor(entry: TimelineEntry): string | undefined {
+  return entry.fallbackImageUrl ?? entry.artist.imageUrl ?? undefined;
 }
 
 function mergeMonths(prev: TimelineMonth[], next: TimelineMonth[]): TimelineMonth[] {
@@ -254,6 +264,7 @@ export default function TimelineScreen() {
             onPress={() => openLog(item.entry.logId)}
             // Full-tab stage: the photo goes properly portrait.
             photoAspect={0.78}
+            fallbackUri={fallbackUriFor(item.entry)}
           />
         );
       }
@@ -339,8 +350,14 @@ export default function TimelineScreen() {
 
   const header = (
     <View style={styles.header}>
-      <View style={styles.monthBlock}>
-        {/* Key on the text: month flips re-enter with a small fade. */}
+      {/* The month IS the Wrapped door — tap it to open your year. */}
+      <SpringPressable
+        haptic="light"
+        onPress={() => router.push('/wrapped')}
+        accessibilityRole="button"
+        accessibilityLabel={`${headline}. Open Wrapped.`}
+        style={styles.monthBlock}
+      >
         <Animated.View key={headline} entering={FadeIn.duration(140)}>
           <Text style={styles.title} numberOfLines={1}>
             {headline}
@@ -349,10 +366,9 @@ export default function TimelineScreen() {
         {viewMode === 'scroll' && deckItems.length > 0 ? (
           <Text style={styles.counter}>{`${deckIndex + 1}/${deckItems.length}`}</Text>
         ) : null}
-      </View>
+      </SpringPressable>
       <View style={styles.headerControls}>
         <TimelineViewToggle mode={viewMode} onChange={setViewMode} />
-        <PillButton title="+ Log" variant="primary" onPress={openLogFlow} springFeedback haptic="light" />
       </View>
     </View>
   );
@@ -399,9 +415,6 @@ export default function TimelineScreen() {
     <SafeAreaView edges={['top']} style={styles.screen}>
       {header}
       <AgendaPin />
-      {currentYearShows >= 3 ? (
-        <WrappedChip year={currentYear} onPress={() => router.push('/wrapped')} />
-      ) : null}
       {viewMode === 'map' ? (
         <Animated.View key="map" entering={FadeIn.duration(durations.fadeThrough)} style={styles.viewFill}>
           <TimelineMapView

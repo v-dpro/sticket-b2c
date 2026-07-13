@@ -73,7 +73,41 @@ function chunkRows(groupKey: string, cells: MapCell[]): MapRow[] {
  * newest-first, [month header + rows]. Cell `index` is a global counter
  * across the whole grid — the view stripes tearIn() over the first ~12.
  */
-export function buildMapGrid(upcoming: TimelineUpcomingItem[], months: TimelineMonth[]): MapRow[] {
+export type MapGranularity = 'week' | 'month' | 'year';
+
+/** ISO-week key + label — "2026-W28" / "WK 28 · JUL 6–12". */
+function weekKeyLabel(iso: string): { key: string; label: string } {
+  const d = new Date(iso);
+  const day = (d.getDay() + 6) % 7; // Monday = 0
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  // ISO week number.
+  const jan4 = new Date(monday.getFullYear(), 0, 4);
+  const week = Math.round(((monday.getTime() - jan4.getTime()) / 86400000 + ((jan4.getDay() + 6) % 7)) / 7) + 1;
+  const fmt = (x: Date) =>
+    x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  return {
+    key: `${monday.getFullYear()}-W${String(week).padStart(2, '0')}`,
+    label: `WK ${week} · ${fmt(monday)}–${fmt(sunday)}`,
+  };
+}
+
+function groupKeyLabel(entryDate: string, monthKey: string, granularity: MapGranularity): { key: string; label: string } {
+  if (granularity === 'week') return weekKeyLabel(entryDate);
+  if (granularity === 'year') {
+    const year = monthKey.slice(0, 4);
+    return { key: year, label: year };
+  }
+  return { key: monthKey, label: monthLabel(monthKey) };
+}
+
+export function buildMapGrid(
+  upcoming: TimelineUpcomingItem[],
+  months: TimelineMonth[],
+  granularity: MapGranularity = 'month',
+): MapRow[] {
   const rows: MapRow[] = [];
   let index = 0;
 
@@ -89,35 +123,49 @@ export function buildMapGrid(upcoming: TimelineUpcomingItem[], months: TimelineM
     rows.push(...chunkRows('upcoming', planCells));
   }
 
+  // Re-bucket the month payload into the requested granularity, preserving
+  // the newest-first entry order the API already guarantees.
+  const groups: { key: string; label: string; cells: MapCell[] }[] = [];
+  const byKey = new Map<string, { key: string; label: string; cells: MapCell[] }>();
+
   for (const month of months) {
-    const cells: MapCell[] = [];
     for (const entry of month.entries) {
-      const label = `${entry.artist.name} at ${entry.venue.name}, ${formatShortDate(entry.event.date)}`;
+      const { key, label } = groupKeyLabel(entry.event.date, month.key, granularity);
+      let group = byKey.get(key);
+      if (!group) {
+        group = { key, label, cells: [] };
+        byKey.set(key, group);
+        groups.push(group);
+      }
+      const cellLabel = `${entry.artist.name} at ${entry.venue.name}, ${formatShortDate(entry.event.date)}`;
       const shared = entry.sharedAt !== null && entry.photos.length > 0;
       if (shared) {
         const photo = entry.photos[0]!;
-        cells.push({
+        group.cells.push({
           kind: 'photo',
           key: entryRowKey(entry),
           index: index++,
           thumbnailUrl: photo.thumbnailUrl || photo.photoUrl,
           score: entry.score,
-          label,
+          label: cellLabel,
         });
       } else {
-        cells.push({
+        group.cells.push({
           kind: 'entry',
           key: entryRowKey(entry),
           index: index++,
           initial: (entry.artist.name.trim()[0] ?? '?').toUpperCase(),
           score: entry.score,
-          label,
+          label: cellLabel,
         });
       }
     }
-    if (cells.length === 0) continue;
-    rows.push({ type: 'header', key: `header-${month.key}`, label: monthLabel(month.key) });
-    rows.push(...chunkRows(month.key, cells));
+  }
+
+  for (const group of groups) {
+    if (group.cells.length === 0) continue;
+    rows.push({ type: 'header', key: `header-${group.key}`, label: group.label });
+    rows.push(...chunkRows(group.key, group.cells));
   }
 
   return rows;

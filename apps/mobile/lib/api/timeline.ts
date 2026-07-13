@@ -78,6 +78,9 @@ export type TimelineEntry = {
   artist: TimelineArtist;
   venue: TimelineVenue;
   photos: TimelinePhoto[]; // ≤ 1 today
+  /** Server-resolved stand-in when no memory photo exists:
+      event.imageUrl ?? tour.imageUrl ?? artist.imageUrl. */
+  fallbackImageUrl?: string | null;
   coAuthors: TimelineCoAuthor[];
   // Set only when this entry is a co-authored log owned by someone else —
   // identifies the original author for the joint "maya × jordan" byline.

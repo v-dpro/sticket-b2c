@@ -1,13 +1,10 @@
-// AnimatedSplash — the launch moment. The S is two tickets: the native
-// splash hands off to this overlay showing the same logo, which then
-// HEARTBEATS (two beats) and TEARS APART — each ticket flies out along
-// its own diagonal, enlarging until it sweeps past the screen edge, and
-// the app is revealed underneath. Reduced motion: a plain fade.
-//
-// Rendered above the app in the root layout until `done` fires.
+// AnimatedSplash — the launch moment, kept quiet: the native splash hands
+// off to this overlay showing the same S, which gives ONE subtle pulse and
+// fades out to reveal the app. (A richer hand-made animation will replace
+// the fade later — this component is the slot for it.)
 
-import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, Dimensions, StyleSheet, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
   Easing,
@@ -28,76 +25,26 @@ type AnimatedSplashProps = {
 };
 
 export function AnimatedSplash({ onDone }: AnimatedSplashProps) {
-  const { width, height } = Dimensions.get('window');
-  const flyX = width * 1.2;
-  const flyY = height * 0.9;
-
   const scale = useSharedValue(1);
-  const split = useSharedValue(0); // 0 = whole S · 1 = tickets gone
   const backdrop = useSharedValue(1);
-  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((v) => {
-        if (alive) setReduced(v);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (reduced) {
-      backdrop.value = withDelay(
-        250,
-        withTiming(0, { duration: 320 }, (finished) => {
-          if (finished) runOnJS(onDone)();
-        }),
-      );
-      return;
-    }
-    // HEARTBEAT — two beats, the second harder (lub-DUB).
+    // ONE soft pulse — barely-there breath, not a heartbeat.
     scale.value = withSequence(
-      withDelay(120, withTiming(1.06, { duration: 140, easing: Easing.out(Easing.quad) })),
-      withTiming(1, { duration: 160, easing: Easing.in(Easing.quad) }),
-      withTiming(1.12, { duration: 150, easing: Easing.out(Easing.quad) }),
-      withTiming(1, { duration: 170, easing: Easing.in(Easing.quad) }),
+      withDelay(140, withTiming(1.035, { duration: 320, easing: Easing.out(Easing.sin) })),
+      withTiming(1, { duration: 360, easing: Easing.inOut(Easing.sin) }),
     );
-    // THE TEAR — after the beats, the tickets take off.
-    split.value = withDelay(
-      760,
-      withTiming(1, { duration: 620, easing: Easing.in(Easing.cubic) }),
-    );
+    // Then the whole overlay fades to reveal the app.
     backdrop.value = withDelay(
-      1080,
-      withTiming(0, { duration: 300 }, (finished) => {
+      780,
+      withTiming(0, { duration: 340, easing: Easing.out(Easing.quad) }, (finished) => {
         if (finished) runOnJS(onDone)();
       }),
     );
-  }, [reduced, scale, split, backdrop, onDone]);
+  }, [scale, backdrop, onDone]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value }));
-
-  // Top ticket exits up-right along the S diagonal; bottom mirrors it.
-  const topStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scale.value * (1 + split.value * 5) },
-      { translateX: split.value * (flyX / (1 + split.value * 5)) },
-      { translateY: -split.value * (flyY / (1 + split.value * 5)) },
-      { rotate: `${split.value * 8}deg` },
-    ],
-  }));
-  const bottomStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scale.value * (1 + split.value * 5) },
-      { translateX: -split.value * (flyX / (1 + split.value * 5)) },
-      { translateY: split.value * (flyY / (1 + split.value * 5)) },
-      { rotate: `${split.value * 8}deg` },
-    ],
-  }));
+  const logoStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Animated.View
@@ -105,30 +52,13 @@ export function AnimatedSplash({ onDone }: AnimatedSplashProps) {
       style={[StyleSheet.absoluteFillObject, { backgroundColor: SPLASH_BG, zIndex: 9999 }, backdropStyle]}
     >
       <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-        {reduced ? (
+        <Animated.View style={logoStyle}>
           <Image
             source={require('../../assets/splash-logo.png')}
             style={{ width: LOGO, height: LOGO }}
             contentFit="contain"
           />
-        ) : (
-          <View style={{ width: LOGO, height: LOGO }}>
-            <Animated.View style={[StyleSheet.absoluteFillObject, bottomStyle]}>
-              <Image
-                source={require('../../assets/splash-ticket-bottom.png')}
-                style={{ width: LOGO, height: LOGO }}
-                contentFit="contain"
-              />
-            </Animated.View>
-            <Animated.View style={[StyleSheet.absoluteFillObject, topStyle]}>
-              <Image
-                source={require('../../assets/splash-ticket-top.png')}
-                style={{ width: LOGO, height: LOGO }}
-                contentFit="contain"
-              />
-            </Animated.View>
-          </View>
-        )}
+        </Animated.View>
       </View>
     </Animated.View>
   );

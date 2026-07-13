@@ -397,12 +397,16 @@ function serializeFeedLog(
   wasThereSet: Set<string>,
   likedSet: Set<string>,
   degreeOf: DegreeOf,
-  coAuthorScores: Map<string, number | null>
+  coAuthorScores: Map<string, number | null>,
+  trendingTags: Map<string, string>
 ) {
   return {
     id: log.id,
     type: 'log' as const,
     createdAt: log.createdAt.toISOString(),
+    // C23 TRENDS: the log's first caption hashtag that is currently trending
+    // on its event (>= TREND_THRESHOLD public shared logs carry it there).
+    trendingTag: trendingTags.get(log.id),
     user: {
       id: log.user.id,
       username: log.user.username,
@@ -478,6 +482,115 @@ function serializeFeedLog(
       avatarUrl: l.user.avatarUrl ?? undefined,
     })),
   };
+}
+
+// ==================== TRENDS (C23 fan hashtags) ====================
+//
+// Trends are earned, not editorial: anyone can drop a #tag in their log
+// caption (UserLog.note — hashtags are parsed from text, no schema column),
+// and a tag that crosses TREND_THRESHOLD public shared posts on one
+// event/tour promotes to that page's HIGHLIGHTS rail. The count is the flex.
+//
+// Board target is ~50 posts at production scale; 3 keeps local/demo data
+// demonstrable. Override with TREND_THRESHOLD.
+const TREND_THRESHOLD = Number(process.env.TREND_THRESHOLD ?? 3);
+const TRENDS_PER_PAGE = 5;
+const TREND_PHOTOS_PER_TAG = 6;
+
+const HASHTAG_RE = /#[a-z0-9_]+/gi;
+
+// Lowercased, '#'-stripped, deduped per log; preserves first-occurrence order.
+function extractHashtags(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const seen = new Set<string>();
+  for (const match of text.match(HASHTAG_RE) ?? []) seen.add(match.slice(1).toLowerCase());
+  return [...seen];
+}
+
+// The standard trend audience: PUBLIC shared logs from gallery-discoverable
+// users, mirroring GET /events/:id/feed and GET /tours/:id/photos.
+function trendAudienceWhere(scope: Prisma.UserLogWhereInput): Prisma.UserLogWhereInput {
+  return {
+    ...scope,
+    visibility: 'PUBLIC',
+    sharedAt: { not: null },
+    note: { contains: '#' },
+    user: { showInGalleries: true },
+  };
+}
+
+type TrendEntry = { tag: string; count: number; photos: { url: string; logId: string }[] };
+
+// One findMany pulls every tagged log in scope, then everything aggregates
+// in-process — no per-tag queries.
+async function computeTrends(scope: Prisma.UserLogWhereInput): Promise<TrendEntry[]> {
+  const logs = await prisma.userLog.findMany({
+    where: trendAudienceWhere(scope),
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      note: true,
+      photos: {
+        where: { visibility: 'PUBLIC', isFlagged: false },
+        orderBy: { createdAt: 'desc' },
+        take: TREND_PHOTOS_PER_TAG,
+        select: { photoUrl: true },
+      },
+    },
+  });
+
+  const byTag = new Map<string, TrendEntry>();
+  // Logs arrive newest-first, so each tag's photo strip fills latest-first.
+  for (const log of logs) {
+    for (const tag of extractHashtags(log.note)) {
+      const entry = byTag.get(tag) ?? { tag, count: 0, photos: [] };
+      entry.count++;
+      for (const p of log.photos) {
+        if (entry.photos.length >= TREND_PHOTOS_PER_TAG) break;
+        entry.photos.push({ url: p.photoUrl, logId: log.id });
+      }
+      byTag.set(tag, entry);
+    }
+  }
+
+  return [...byTag.values()]
+    .filter((e) => e.count >= TREND_THRESHOLD)
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+    .slice(0, TRENDS_PER_PAGE);
+}
+
+// Batched trendingTag lookup for a page of feed rows: one grouped pass over
+// the page's eventIds counts every (event, tag) pair among public shared
+// logs, then each row gets its first caption hashtag that meets
+// TREND_THRESHOLD on its own event. One query for the whole batch.
+async function getTrendingTags(
+  logs: Array<{ id: string; eventId: string; note: string | null }>
+): Promise<Map<string, string>> {
+  const tagged = logs
+    .map((l) => ({ id: l.id, eventId: l.eventId, tags: extractHashtags(l.note) }))
+    .filter((l) => l.tags.length > 0);
+  if (!tagged.length) return new Map();
+
+  const eventIds = [...new Set(tagged.map((l) => l.eventId))];
+  const rows = await prisma.userLog.findMany({
+    where: trendAudienceWhere({ eventId: { in: eventIds } }),
+    select: { eventId: true, note: true },
+  });
+
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    for (const tag of extractHashtags(row.note)) {
+      const key = `${row.eventId}:${tag}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+
+  const out = new Map<string, string>();
+  for (const l of tagged) {
+    const hit = l.tags.find((tag) => (counts.get(`${l.eventId}:${tag}`) ?? 0) >= TREND_THRESHOLD);
+    if (hit) out.set(l.id, hit);
+  }
+  return out;
 }
 
 // ==================== SCORING (compare-to-rank) HELPERS ====================
@@ -2488,20 +2601,100 @@ app.get('/users/me/collection', async (req) => {
     friendIds.length && artistIds.length
       ? prisma.userLog.findMany({
           where: { userId: { in: friendIds }, event: { artistId: { in: artistIds } } },
-          select: { userId: true, event: { select: { artistId: true } } },
+          select: {
+            userId: true,
+            user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+            event: { select: { artistId: true } },
+          },
         })
       : [],
   ]);
 
   const friendsTrackingByArtist = groupFacepiles(friendFollows, (r) => r.artistId, (r) => r.user, degrees.degreeOf, 4);
   const friendSeenByArtist = new Map<string, Map<string, number>>();
+  const friendFaceById = new Map<string, FaceUser>();
   for (const row of friendLogRows) {
     const counts = friendSeenByArtist.get(row.event.artistId) ?? new Map<string, number>();
     counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1);
     friendSeenByArtist.set(row.event.artistId, counts);
+    if (!friendFaceById.has(row.userId)) friendFaceById.set(row.userId, row.user);
   }
 
+  // ---- Trophies: all derived from the logs already in memory ----
+
+  // First show = earliest event date across the user's logs.
+  let firstLog: (typeof logs)[number] | null = null;
+  for (const l of logs) {
+    if (!firstLog || l.event.date < firstLog.event.date) firstLog = l;
+  }
+
+  // Streak: consecutive calendar months with >=1 logged show, counting
+  // backwards from the current month (or, if the current month is empty,
+  // from the latest logged month). Months are compared as year*12+month.
+  const monthIdxSet = new Set<number>();
+  for (const l of logs) monthIdxSet.add(l.event.date.getFullYear() * 12 + l.event.date.getMonth());
+  let streakMonths = 0;
+  if (monthIdxSet.size) {
+    const now = new Date();
+    const nowIdx = now.getFullYear() * 12 + now.getMonth();
+    let idx = monthIdxSet.has(nowIdx) ? nowIdx : Math.max(...monthIdxSet);
+    while (monthIdxSet.has(idx)) {
+      streakMonths += 1;
+      idx -= 1;
+    }
+  }
+
+  const yearCounts = new Map<number, number>();
+  for (const l of logs) {
+    const y = l.event.date.getFullYear();
+    yearCounts.set(y, (yearCounts.get(y) ?? 0) + 1);
+  }
+
+  // Viewer's top artists with the best degree-1 friend count beside each.
+  const mostSeenLeaderboard = [...artistMap.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((a) => {
+      const friendCounts = friendSeenByArtist.get(a.artist.id);
+      let topFriend: { person: FacePerson; count: number } | null = null;
+      if (friendCounts) {
+        let bestId: string | null = null;
+        let best = 0;
+        for (const [uid, count] of friendCounts) {
+          if (count > best) {
+            best = count;
+            bestId = uid;
+          }
+        }
+        const face = bestId ? friendFaceById.get(bestId) : undefined;
+        if (face) topFriend = { person: toFacePerson(face, 1), count: best };
+      }
+      return { artist: a.artist, you: a.count, topFriend };
+    });
+
+  const trophies = {
+    firsts: {
+      firstShow: firstLog
+        ? {
+            artistName: firstLog.event.artist.name,
+            venueName: firstLog.event.venue.name,
+            date: firstLog.event.date.toISOString(),
+          }
+        : null,
+      // No festival concept in the schema yet — reserved for later.
+      firstFestival: null,
+      venuesCount: venueMap.size,
+      citiesCount: cityMap.size,
+    },
+    streak: { months: streakMonths },
+    years: [...yearCounts.entries()]
+      .map(([year, shows]) => ({ year, shows }))
+      .sort((a, b) => b.year - a.year),
+    mostSeenLeaderboard,
+  };
+
   return {
+    trophies,
     artists: [...artistMap.values()]
       .sort((a, b) => b.count - a.count)
       .map((a) => {
@@ -2656,6 +2849,8 @@ app.get('/users/:id/timeline', async (req) => {
         include: {
           artist: { select: { id: true, name: true, imageUrl: true } },
           venue: { select: { id: true, name: true, city: true } },
+          // Tours usually carry the ad photo — used in the fallback image chain.
+          tour: { select: { imageUrl: true } },
         },
       },
       photos: {
@@ -2695,6 +2890,9 @@ app.get('/users/:id/timeline', async (req) => {
       sharedAt: string | null;
       visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
       note?: string;
+      // Best available cover art when the entry has no photos of its own:
+      // event image, else the tour's ad photo, else the artist image.
+      fallbackImageUrl: string | null;
       event: { id: string; name: string; date: string };
       artist: { id: string; name: string; imageUrl?: string };
       venue: { id: string; name: string; city: string };
@@ -2723,6 +2921,7 @@ app.get('/users/:id/timeline', async (req) => {
       sharedAt: log.sharedAt ? log.sharedAt.toISOString() : null,
       visibility: log.visibility,
       note: canSeeFull ? (log.note ?? undefined) : undefined,
+      fallbackImageUrl: log.event.imageUrl ?? log.event.tour?.imageUrl ?? log.event.artist.imageUrl ?? null,
       event: {
         id: log.event.id,
         name: log.event.name,
@@ -2774,13 +2973,24 @@ app.get('/users/:id/timeline', async (req) => {
       include: {
         artist: { select: { id: true, name: true, imageUrl: true } },
         venue: { select: { id: true, name: true, city: true } },
+        tour: { select: { imageUrl: true } },
       },
     } as const;
 
-    const toEventSummary = (e: { id: string; name: string; date: Date; artist: any; venue: any }) => ({
+    const toEventSummary = (e: {
+      id: string;
+      name: string;
+      date: Date;
+      imageUrl: string | null;
+      tour: { imageUrl: string | null } | null;
+      artist: any;
+      venue: any;
+    }) => ({
       id: e.id,
       name: e.name,
       date: e.date.toISOString(),
+      // Fallback-resolved cover art: event image, else tour ad photo, else artist image.
+      imageUrl: e.imageUrl ?? e.tour?.imageUrl ?? e.artist.imageUrl ?? undefined,
       artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
       venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
     });
@@ -6238,6 +6448,15 @@ app.get('/tours/:id/photos', async (req) => {
   return { items, nextCursor };
 });
 
+// GET /tours/:id/trends - earned hashtag HIGHLIGHTS across all of the tour's
+// events: caption tags carried by >= TREND_THRESHOLD public shared logs on
+// any show of the tour, count DESC. `tag` is lowercase without the leading '#'.
+app.get('/tours/:id/trends', async (req) => {
+  requireAccessUserId(req as any);
+  const { id } = req.params as { id: string };
+  return { trends: await computeTrends({ event: { tourId: id } }) };
+});
+
 // GET /tours/:id/who-saw - discoverable people who logged a show on this tour.
 app.get('/tours/:id/who-saw', async (req) => {
   const viewerId = requireAccessUserId(req as any);
@@ -6789,8 +7008,10 @@ app.get('/feed', async (req) => {
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
-  const coAuthorScores = await getCoAuthorScores(slice);
-  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores));
+  const [coAuthorScores, trendingTags] = await Promise.all([getCoAuthorScores(slice), getTrendingTags(slice)]);
+  const items = slice.map((log) =>
+    serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores, trendingTags)
+  );
 
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 
@@ -6830,7 +7051,7 @@ app.get('/events/:id/feed', async (req) => {
   const slice = logs.slice(0, limit);
 
   const logIds = slice.map((l) => l.id);
-  const [wasThereRows, likedRows, degrees, coAuthorScores] = await Promise.all([
+  const [wasThereRows, likedRows, degrees, coAuthorScores, trendingTags] = await Promise.all([
     logIds.length
       ? prisma.wasThere.findMany({ where: { userId: viewerId, logId: { in: logIds } }, select: { logId: true } })
       : Promise.resolve([] as { logId: string }[]),
@@ -6839,14 +7060,26 @@ app.get('/events/:id/feed', async (req) => {
       : Promise.resolve([] as { logId: string }[]),
     getViewerDegrees(viewerId),
     getCoAuthorScores(slice),
+    getTrendingTags(slice),
   ]);
   const wasThereSet = new Set(wasThereRows.map((w) => w.logId));
   const likedSet = new Set(likedRows.map((l) => l.logId));
 
-  const items = slice.map((log) => serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores));
+  const items = slice.map((log) =>
+    serializeFeedLog(log, wasThereSet, likedSet, degrees.degreeOf, coAuthorScores, trendingTags)
+  );
   const nextCursor = hasMore && slice.length ? slice[slice.length - 1]!.createdAt.toISOString() : null;
 
   return { items, nextCursor };
+});
+
+// GET /events/:id/trends - earned hashtag HIGHLIGHTS for this event: caption
+// tags carried by >= TREND_THRESHOLD public shared logs here, count DESC.
+// `tag` is lowercase without the leading '#'.
+app.get('/events/:id/trends', async (req) => {
+  requireAccessUserId(req as any);
+  const { id: eventId } = req.params as { id: string };
+  return { trends: await computeTrends({ eventId }) };
 });
 
 // GET /events/:id/seat-sections - photos + ratings grouped by seat section
@@ -7711,8 +7944,9 @@ app.get('/presales', async (req, reply) => {
 
     if (!userId) return base;
 
-    // Fetch user's followed artists and alerts
-    const [follows, alerts] = await Promise.all([
+    // Fetch user's followed artists, alerts, and viewer degrees (for the
+    // degree-1 friends-tracking overlay below)
+    const [follows, alerts, degrees] = await Promise.all([
       prisma.userArtistFollow.findMany({
         where: { userId },
         select: { artist: { select: { name: true } } },
@@ -7723,15 +7957,37 @@ app.get('/presales', async (req, reply) => {
             select: { presaleId: true },
           }).catch(() => [])
         : Promise.resolve([]),
+      getViewerDegrees(userId),
     ]);
 
     const followedNames = new Set(follows.map((f) => f.artist.name));
     const alertedIds = new Set(alerts.map((a) => a.presaleId));
 
+    // Degree-1 friends with a PresaleAlert row on the same presale — one
+    // batched query. (userId, presaleId) is unique, so row count = distinct
+    // friends; the facepile caps at 4 while the count stays exact.
+    const friendIds = [...degrees.firstDegree];
+    const friendAlertRows = friendIds.length
+      ? await prisma.presaleAlert.findMany({
+          where: { userId: { in: friendIds }, presaleId: { in: presales.map((p) => p.id) } },
+          select: {
+            presaleId: true,
+            user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+          },
+        }).catch(() => [])
+      : [];
+    const friendsTrackingByPresale = groupFacepiles(friendAlertRows, (r) => r.presaleId, (r) => r.user, degrees.degreeOf, 4);
+    const friendsTrackingCounts = new Map<string, number>();
+    for (const row of friendAlertRows) {
+      friendsTrackingCounts.set(row.presaleId, (friendsTrackingCounts.get(row.presaleId) ?? 0) + 1);
+    }
+
     const enriched = base.map((p) => ({
       ...p,
       hasAlert: alertedIds.has(p.id),
       isFollowed: followedNames.has(p.artistName),
+      friendsTracking: friendsTrackingByPresale.get(p.id) ?? [],
+      friendsTrackingCount: friendsTrackingCounts.get(p.id) ?? 0,
     }));
 
     enriched.sort((a, b) => {

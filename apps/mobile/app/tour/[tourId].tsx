@@ -26,6 +26,7 @@ import {
   type FestivalLogRef,
 } from '../../components/entity/FestivalWeekend';
 import { formatScore, monoDateYear } from '../../components/entity/format';
+import { TrendsRail } from '../../components/entity/TrendsRail';
 import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
@@ -379,6 +380,11 @@ export default function TourScreen() {
             </Animated.View>
           </>
         )}
+
+        {/* ── Trending (C23) — sits directly under the tour stats chips;
+               self-fetching, renders nothing until the crowd-tags endpoint
+               has data. ── */}
+        {tourId ? <TrendsRail tourId={tourId} /> : null}
 
         {/* ── WHO'S SEEN THEM — C15 degree facepile, non-tappable v1 (see
                lib/api/whoSaw.ts note). ── */}

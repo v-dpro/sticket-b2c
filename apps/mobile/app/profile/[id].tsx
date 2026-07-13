@@ -16,6 +16,7 @@ import { SharedHistoryCard } from '../../components/profile/SharedHistoryCard';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { useProfile } from '../../hooks/useProfile';
 import { useUserLogs } from '../../hooks/useUserLogs';
+import { getUserTimeline, type TimelineUpcomingItem } from '../../lib/api/timeline';
 import { useFollow } from '../../hooks/useFollow';
 import { getSharedHistory, type SharedHistory } from '../../lib/api/profile';
 import type { LogEntry } from '../../types/profile';
@@ -32,6 +33,22 @@ export default function UserProfileScreen() {
 
   const { profile, loading: profileLoading } = useProfile(id);
   const { logs, years, loading: logsLoading, hasMore, loadMore, refresh } = useUserLogs(id || '', selectedYear || undefined);
+
+  // Their PLANS — the timeline endpoint sends upcoming items (with party
+  // info the viewer may see) for other users too; best-effort fetch.
+  const [theirUpcoming, setTheirUpcoming] = useState<TimelineUpcomingItem[]>([]);
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    getUserTimeline(id, { limit: 1 })
+      .then((t) => {
+        if (alive) setTheirUpcoming(t.upcoming ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
   const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useFollow();
   const goBack = useSafeBack();
@@ -212,6 +229,7 @@ export default function UserProfileScreen() {
           loading={logsLoading}
           hasMore={hasMore}
           sharedEventIds={sharedEventIds}
+          upcoming={theirUpcoming}
         />
       ) : viewMode === 'grid' ? (
         <ProfileGridView

@@ -29,16 +29,19 @@ import {
   ShimmerBlock,
 } from '../../components/entity/EntityStates';
 import { formatScore } from '../../components/entity/format';
+import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
 import { SeatViewsGrid } from '../../components/entity/SeatViewsGrid';
 import { TipsList } from '../../components/entity/TipsList';
 import { QASection } from '../../components/venue-qa/QASection';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { SeatBowl } from '../../components/venue/SeatBowl';
 
 import { useSeatViews } from '../../hooks/useSeatViews';
 import { useVenue } from '../../hooks/useVenue';
 import { useVenueQuestions } from '../../hooks/useVenueQuestions';
 import { useVenueTips } from '../../hooks/useVenueTips';
+import type { EventSeatSection } from '../../lib/api/events';
 import { haptics } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
@@ -81,6 +84,31 @@ export default function VenueScreen() {
   const [tab, setTab] = useState<VenueTab>('info');
   const [tipsAutoFocus, setTipsAutoFocus] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [openSeatSection, setOpenSeatSection] = useState<EventSeatSection | null>(null);
+
+  // The bowl wants the same shape the event page's seat-sections endpoint
+  // returns; the venue's seat views are a flat, un-grouped list, so group
+  // them by section here. No per-view rating at this level, so avgRating
+  // stays null (SeatSectionSheet already treats that as "no rating yet").
+  const seatSectionsForBowl = useMemo<EventSeatSection[]>(() => {
+    const bySection = new Map<string, EventSeatSection>();
+    for (const view of seatViewsState.seatViews) {
+      const existing = bySection.get(view.section);
+      const photo = { id: view.id, photoUrl: view.photoUrl, thumbnailUrl: view.thumbnailUrl };
+      if (existing) {
+        existing.photoCount += 1;
+        existing.photos.push(photo);
+      } else {
+        bySection.set(view.section, {
+          section: view.section,
+          photoCount: 1,
+          avgRating: null,
+          photos: [photo],
+        });
+      }
+    }
+    return Array.from(bySection.values());
+  }, [seatViewsState.seatViews]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -179,6 +207,7 @@ export default function VenueScreen() {
       marginBottom: 10,
     },
     seatGridSkeleton: { flexDirection: 'row', gap: 10 },
+    seatBowlWrap: { marginBottom: t.spacing.lg },
   }));
 
   if (loading && !venue) {
@@ -390,7 +419,14 @@ export default function VenueScreen() {
                   </View>
                 </View>
               ) : (
-                <SeatViewsGrid seatViews={seatViewsState.seatViews} />
+                <>
+                  {seatSectionsForBowl.length > 0 ? (
+                    <View style={styles.seatBowlWrap}>
+                      <SeatBowl sections={seatSectionsForBowl} onPressSection={setOpenSeatSection} />
+                    </View>
+                  ) : null}
+                  <SeatViewsGrid seatViews={seatViewsState.seatViews} />
+                </>
               )
             ) : null}
 
@@ -427,6 +463,8 @@ export default function VenueScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <SeatSectionSheet section={openSeatSection} onClose={() => setOpenSeatSection(null)} />
     </View>
   );
 }

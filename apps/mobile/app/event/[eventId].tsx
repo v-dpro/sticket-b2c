@@ -35,14 +35,15 @@ import { formatScore, isPast, monoDateYear, sameDay } from '../../components/ent
 import { PhotoGrid } from '../../components/entity/PhotoGrid';
 import { PresaleCard } from '../../components/entity/PresaleCard';
 import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
-import { SeatSectionTiles } from '../../components/entity/SeatSectionTiles';
 import { SetlistShield } from '../../components/entity/SetlistShield';
+import { TrendsRail } from '../../components/entity/TrendsRail';
 import { PartyRow } from '../../components/party/PartyRow';
 import { FeedCard } from '../../components/feed/FeedCard';
 import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { ScoreStamp, StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
+import { SeatBowl } from '../../components/venue/SeatBowl';
 
 import { useEvent } from '../../hooks/useEvent';
 import { useEventComments } from '../../hooks/useEventComments';
@@ -667,6 +668,10 @@ export default function EventScreen() {
               )}
             </View>
 
+            {/* ── Trending (C23) — self-fetching, renders nothing until the
+                   crowd-tags endpoint has data. ── */}
+            <TrendsRail eventId={id} />
+
             {/* ── Seat views ── */}
             <View style={styles.section}>
               <SectionLabel>Seat views</SectionLabel>
@@ -680,7 +685,7 @@ export default function EventScreen() {
                   </View>
                 </View>
               ) : seatSections.length > 0 ? (
-                <SeatSectionTiles sections={seatSections} onPressSection={setOpenSection} />
+                <SeatBowl sections={seatSections} onPressSection={setOpenSection} />
               ) : (
                 <QuietEmpty text="No seat views yet — add one when you log this show." />
               )}

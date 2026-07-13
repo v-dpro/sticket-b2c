@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CenterTabButton } from '../../components/nav/CenterTabButton';
 import { useSession } from '../../hooks/useSession';
 import { haptics } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
@@ -35,11 +36,14 @@ export default function TabsLayout() {
       screenListeners={{ tabPress: () => haptics.light() }}
       screenOptions={{
         headerShown: false,
+        // Icon-only bar — labels off, five buttons aligned on one row.
+        tabBarShowLabel: false,
         // Tab → tab: instant, like every native iOS tab bar. No crossfade.
         animation: 'none',
         sceneStyle: { backgroundColor: c.bg },
         tabBarStyle: {
           backgroundColor: c.bg,
+          overflow: 'visible',
           borderTopColor: c.hairline,
           borderTopWidth: StyleSheet.hairlineWidth,
           height: 54 + insets.bottom,
@@ -80,30 +84,13 @@ export default function TabsLayout() {
         name="timeline"
         options={{
           title: 'Timeline',
-          tabBarLabel: () => null,
-          // THE CENTER BUTTON — the timeline is the app's heart, so its tab
-          // is the raised ink circle (Instagram-post-button energy).
-          tabBarIcon: ({ focused }) => (
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                marginTop: -18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: c.inverseBg,
-                borderWidth: focused ? 0 : StyleSheet.hairlineWidth,
-                borderColor: c.hairline,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.3,
-                shadowRadius: 10,
-                elevation: 8,
-              }}
-            >
-              <Ionicons name="albums" size={24} color={c.inverseFg} />
-            </View>
+          // THE CENTER BUTTON — tap opens the Timeline; HOLD pops the
+          // "+ Log" pill (tap it or slide up to log).
+          tabBarButton: (props) => (
+            <CenterTabButton
+              onPress={props.onPress as (e?: unknown) => void}
+              accessibilityState={props.accessibilityState as { selected?: boolean }}
+            />
           ),
         }}
       />

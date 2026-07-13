@@ -1,14 +1,17 @@
 import React from 'react';
 import { RefreshControl, SectionList, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 
 import type { LogEntry } from '../../types/profile';
+import type { TimelineUpcomingItem } from '../../lib/api/timeline';
 import { YearFilter } from './YearFilter';
 import { YearHeaderCard, type YearHeaderCardData } from './YearHeaderCard';
 import { FeaturedLogCard } from './FeaturedLogCard';
 import { CompactLogCard } from './CompactLogCard';
 import { MilestoneCard, type Milestone } from './MilestoneCard';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { SpringPressable } from '../ui/SpringPressable';
 
 interface TimelineViewProps {
   headerComponent?: React.ReactNode;
@@ -26,6 +29,29 @@ interface TimelineViewProps {
    * viewing someone else's timeline). Matching entries get a "BOTH" chip.
    */
   sharedEventIds?: ReadonlySet<string>;
+  /**
+   * Upcoming plans for the profile being viewed. Optional and unwired at
+   * the current call site (app/profile/[id].tsx only fetches past `logs`
+   * via GET /users/:userId/logs — there's no upcoming-items endpoint for
+   * other users yet) — the party chip below renders the moment a caller
+   * supplies this.
+   */
+  upcoming?: TimelineUpcomingItem[];
+}
+
+/** Mirrors components/timeline/PlanCard.tsx's partyLine wording exactly. */
+function partyLine(party: NonNullable<TimelineUpcomingItem['party']>): string {
+  const state =
+    party.myStatus === 'HOST'
+      ? 'YOU HOST'
+      : party.myStatus === 'GOING'
+        ? "YOU'RE GOING"
+        : party.myStatus === 'REQUESTED'
+          ? 'REQUESTED'
+          : party.myStatus === 'INVITED'
+            ? 'INVITED'
+            : 'TAP TO JOIN';
+  return `${party.title.toUpperCase()} · ${party.goingCount} GOING · ${state}`;
 }
 
 type TimelineItem =
@@ -130,7 +156,9 @@ export function TimelineView({
   loading,
   hasMore,
   sharedEventIds,
+  upcoming,
 }: TimelineViewProps) {
+  const router = useRouter();
   const { tokens } = useTheme();
   const styles = useThemedStyles((t) => ({
     list: {
@@ -145,6 +173,30 @@ export function TimelineView({
       marginBottom: 12,
       flexDirection: 'row',
       gap: 10,
+    },
+    upcomingSection: { marginHorizontal: 16, marginBottom: 12, gap: 8 },
+    upcomingLabel: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 11,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    upcomingRow: {
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      borderRadius: t.radius.card,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    upcomingText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: t.colors.fg,
     },
     emptyContainer: {
       flex: 1,
@@ -177,9 +229,35 @@ export function TimelineView({
 
   const sections = React.useMemo(() => buildSections(logs), [logs]);
 
+  // Upcoming plans that carry a party — everything else on `upcoming` (bare
+  // tickets/interested/tracking rows) has no chip to render here.
+  const upcomingParties = React.useMemo(
+    () => (upcoming ?? []).filter((item) => !!item.party),
+    [upcoming]
+  );
+
   const renderHeader = () => (
     <View>
       {headerComponent}
+      {upcomingParties.length > 0 ? (
+        <View style={styles.upcomingSection}>
+          <Text style={styles.upcomingLabel}>Upcoming</Text>
+          {upcomingParties.map((item) => (
+            <SpringPressable
+              key={item.id}
+              haptic="light"
+              onPress={() => router.push(`/party/${item.party!.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={partyLine(item.party!)}
+              style={styles.upcomingRow}
+            >
+              <Text style={styles.upcomingText} numberOfLines={1}>
+                {partyLine(item.party!)}
+              </Text>
+            </SpringPressable>
+          ))}
+        </View>
+      ) : null}
       <YearFilter years={years} selectedYear={selectedYear} onSelect={onYearSelect} />
     </View>
   );
