@@ -86,7 +86,7 @@ export function AttendeesSheet({ visible, onClose, people, variant }: AttendeesS
   );
 
   const renderRow = useCallback(
-    ({ item }: { item: FacePerson }) => {
+    ({ item }: { item: AttendeePerson }) => {
       const isFriend = item.degree === 1;
       const pct = taste.get(item.id);
       return (
@@ -108,6 +108,15 @@ export function AttendeesSheet({ visible, onClose, people, variant }: AttendeesS
               {item.displayName || item.username}
             </Text>
             <Text style={styles.degreeWord}>{isFriend ? 'FRIEND' : 'FRIENDS+'}</Text>
+            {variant === 'tour' && item.attendedEvents?.length ? (
+              <View style={styles.showList}>
+                {item.attendedEvents.map((ev) => (
+                  <Text key={ev.eventId} style={styles.showLine} numberOfLines={1}>
+                    {ev.venueName.toUpperCase()} · {monoDate(ev.date)}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
           </View>
           {loading ? (
             <View style={styles.statBlock}>
@@ -123,7 +132,7 @@ export function AttendeesSheet({ visible, onClose, people, variant }: AttendeesS
         </SpringPressable>
       );
     },
-    [loading, taste, openProfile, styles],
+    [loading, taste, openProfile, styles, variant],
   );
 
   return (
@@ -194,6 +203,17 @@ const buildStyles = (tokens: ThemeTokens) =>
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       color: tokens.colors.mute,
+    },
+    showList: {
+      marginTop: 3,
+      gap: 2,
+    },
+    showLine: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10,
+      letterSpacing: 0.5,
+      color: tokens.colors.muteSoft,
     },
     statBlock: {
       alignItems: 'flex-end',

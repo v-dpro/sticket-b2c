@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { AttendeesSheet } from '../../components/feed/AttendeesSheet';
 import { EntityNav } from '../../components/entity/EntityChrome';
 import { MonoChip, QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
 import { EntityError, RowSkeletons, ShimmerBlock } from '../../components/entity/EntityStates';
@@ -76,6 +77,7 @@ export default function TourScreen() {
 
   const [whoSaw, setWhoSaw] = useState<WhoSawResponse | null>(null);
   const [whoSawStatus, setWhoSawStatus] = useState<AsyncStatus>('loading');
+  const [attendeesOpen, setAttendeesOpen] = useState(false);
 
   const loadTour = useCallback(async () => {
     if (!tourId) {
@@ -391,8 +393,8 @@ export default function TourScreen() {
                (components/threads/ThreadsSection). ── */}
         {tourId ? <ThreadsSection tourId={tourId} tourName={tourName || undefined} /> : null}
 
-        {/* ── WHO'S SEEN THEM — C15 degree facepile, non-tappable v1 (see
-               lib/api/whoSaw.ts note). ── */}
+        {/* ── WHO'S SEEN THEM — C15 degree facepile; tap opens the tour
+               attendees sheet (per-person shows attended). ── */}
         {whoSawStatus === 'loading' ? (
           <View style={styles.section}>
             <SectionLabel>Who&apos;s seen them</SectionLabel>
@@ -404,9 +406,17 @@ export default function TourScreen() {
         ) : whoSaw && whoSaw.people.length > 0 ? (
           <View style={styles.section}>
             <SectionLabel>Who&apos;s seen them</SectionLabel>
-            <Animated.View entering={FadeInDown.duration(240)} style={styles.whoRow}>
-              <DegreeFacepile people={whoSaw.people} totalCount={whoSaw.totalCount} size={32} surfaceColor={tokens.colors.bg} />
-              <Text style={styles.whoCaption}>{whoSawCaption}</Text>
+            <Animated.View entering={FadeInDown.duration(240)}>
+              <SpringPressable
+                haptic="light"
+                onPress={() => setAttendeesOpen(true)}
+                style={styles.whoRow}
+                accessibilityRole="button"
+                accessibilityLabel="See who's seen this tour"
+              >
+                <DegreeFacepile people={whoSaw.people} totalCount={whoSaw.totalCount} size={32} surfaceColor={tokens.colors.bg} />
+                <Text style={styles.whoCaption}>{whoSawCaption}</Text>
+              </SpringPressable>
             </Animated.View>
           </View>
         ) : null}
@@ -548,6 +558,15 @@ export default function TourScreen() {
         }
         contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
         showsVerticalScrollIndicator={false}
+      />
+
+      {/* Tour attendees — same sheet the feed uses, tour variant adds the
+          per-person "VENUE · JUN 27" show lines. */}
+      <AttendeesSheet
+        visible={attendeesOpen}
+        onClose={() => setAttendeesOpen(false)}
+        people={whoSaw?.people ?? []}
+        variant="tour"
       />
     </View>
   );
