@@ -219,21 +219,23 @@ export function ProfileHeader({
         </View>
       ) : null}
 
-      {/* Stats Row */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{profile.stats.shows}</Text>
-          <Text style={styles.statLabel}>Shows</Text>
+      {/* Stats Row — absent on restricted (private) profile payloads. */}
+      {profile.stats ? (
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profile.stats.shows}</Text>
+            <Text style={styles.statLabel}>Shows</Text>
+          </View>
+          <Pressable style={styles.statItem} onPress={onFollowersPress}>
+            <Text style={styles.statValue}>{profile.stats.followers}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </Pressable>
+          <Pressable style={styles.statItem} onPress={onFollowingPress}>
+            <Text style={styles.statValue}>{profile.stats.following}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </Pressable>
         </View>
-        <Pressable style={styles.statItem} onPress={onFollowersPress}>
-          <Text style={styles.statValue}>{profile.stats.followers}</Text>
-          <Text style={styles.statLabel}>Followers</Text>
-        </Pressable>
-        <Pressable style={styles.statItem} onPress={onFollowingPress}>
-          <Text style={styles.statValue}>{profile.stats.following}</Text>
-          <Text style={styles.statLabel}>Following</Text>
-        </Pressable>
-      </View>
+      ) : null}
 
       {/* Action Button */}
       {profile.isOwnProfile ? (

@@ -6,12 +6,12 @@
 // stay with the timeline — they're timeline moments.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { getUserTimeline, type TimelineEntry, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
+import { getUserTimeline, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { onSnapToToday } from '../../lib/navigation/timelineBus';
 import { durations } from '../../lib/motion';
@@ -19,54 +19,21 @@ import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
 
 import { AgendaPin } from '../../components/agenda/AgendaPin';
-import { CompactLogRow } from '../../components/timeline/CompactLogRow';
-import { MemoryCard } from '../../components/timeline/MemoryCard';
-import { CARD_INSET, MemoryDeck, type DeckItem, type MemoryDeckHandle } from '../../components/timeline/MemoryDeck';
-import { PlanCard } from '../../components/timeline/PlanCard';
+import { MemoryDeck, type DeckItem, type MemoryDeckHandle } from '../../components/timeline/MemoryDeck';
+import { buildDeckItems, mergeMonths, useDeckFaces } from '../../components/timeline/deckFaces';
 import { TimelineMapView } from '../../components/timeline/TimelineMapView';
 import { TimelineViewToggle, type TimelineViewMode } from '../../components/timeline/TimelineViewToggle';
-import { countdownLabel, formatShortDate, monthLabel } from '../../components/timeline/format';
+import { monthLabel } from '../../components/timeline/format';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
-import { StubPerforation } from '../../components/ui/Stub';
 
 const PAGE_SIZE = 30;
 const MAP_BACKFILL_MAX_PAGES = 10;
 
-/** The timeline always shows photos: memory photos when they exist,
-    otherwise the tour/event/artist image stands in. Only an entry with
-    no image at all falls back to the quiet row. */
-function isMemoryEntry(entry: TimelineEntry): boolean {
-  return (
-    entry.photos.length > 0 ||
-    Boolean(entry.fallbackImageUrl) ||
-    Boolean(entry.artist.imageUrl)
-  );
-}
-
-function fallbackUriFor(entry: TimelineEntry): string | undefined {
-  return entry.fallbackImageUrl ?? entry.artist.imageUrl ?? undefined;
-}
-
-function mergeMonths(prev: TimelineMonth[], next: TimelineMonth[]): TimelineMonth[] {
-  if (prev.length === 0) return next;
-  const merged = prev.map((m) => ({ ...m, entries: [...m.entries] }));
-  for (const month of next) {
-    const last = merged[merged.length - 1];
-    if (last && last.key === month.key) {
-      last.entries.push(...month.entries);
-    } else {
-      merged.push({ ...month, entries: [...month.entries] });
-    }
-  }
-  return merged;
-}
-
 export default function TimelineScreen() {
   const router = useRouter();
   const { tokens } = useTheme();
-  const { width: windowWidth } = useWindowDimensions();
   const { user } = useSession();
   const userId = user?.id ?? null;
 
@@ -122,35 +89,6 @@ export default function TimelineScreen() {
     },
     viewFill: { flex: 1 },
     refreshHint: { position: 'absolute', top: 2, alignSelf: 'center', zIndex: 200 },
-    // Torn ticket ends — the strip is card-built (fill + hairline) with
-    // its outer corners rounded and the torn edge square against the card.
-    stubEnd: {
-      flex: 1,
-      backgroundColor: t.colors.card,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: t.colors.hairline,
-      overflow: 'hidden', // clips the notch punches into side bites
-    },
-    stubEndTop: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-    stubEndBottom: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-    stubEndBody: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 3,
-      paddingHorizontal: 16,
-    },
-    deckLabelName: { fontSize: 15, fontWeight: '700', color: t.colors.fg, textAlign: 'center' },
-    deckLabelMeta: {
-      fontFamily: t.fontFamilies.mono,
-      fontVariant: ['tabular-nums'],
-      fontSize: 10.5,
-      fontWeight: '600',
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      color: t.colors.muteSoft,
-      textAlign: 'center',
-    },
     empty: {
       flex: 1,
       alignItems: 'center',
@@ -229,117 +167,17 @@ export default function TimelineScreen() {
 
   // ── The deck ──────────────────────────────────────────────────
 
-  const deckItems = useMemo<DeckItem[]>(() => {
-    const out: DeckItem[] = [];
-    for (let i = upcoming.length - 1; i >= 0; i--) {
-      const item = upcoming[i]!;
-      out.push({
-        kind: 'plan',
-        key: `plan-${item.type}-${item.id}`,
-        item,
-        monthKey: item.event.date.slice(0, 7),
-      });
-    }
-    for (const month of months) {
-      for (const entry of month.entries) {
-        out.push({ kind: 'entry', key: `log-${entry.logId}`, entry, monthKey: month.key });
-      }
-    }
-    return out;
-  }, [upcoming, months]);
+  const deckItems = useMemo<DeckItem[]>(() => buildDeckItems(upcoming, months), [upcoming, months]);
 
   const initialDeckIndex = useMemo(() => {
     const firstEntry = deckItems.findIndex((d) => d.kind === 'entry');
     return firstEntry >= 0 ? firstEntry : Math.max(deckItems.length - 1, 0);
   }, [deckItems]);
 
-  const readoutFor = useCallback((item: DeckItem) => {
-    const label = monthLabel(item.monthKey);
-    return item.kind === 'plan' ? `UPCOMING · ${label}` : label;
-  }, []);
+  // The wheel's faces — shared with the profile timeline (deckFaces.tsx).
+  const { renderCard, renderLabel, readoutFor } = useDeckFaces();
 
-  const openLog = useCallback(
-    (logId: string) => router.push({ pathname: '/log/[id]', params: { id: logId } }),
-    [router],
-  );
-  const openEvent = useCallback(
-    (eventId: string) => router.push({ pathname: '/event/[eventId]', params: { eventId } }),
-    [router],
-  );
   const openLogFlow = useCallback(() => router.push('/log/search'), [router]);
-
-  const renderCard = useCallback(
-    (item: DeckItem, _centered: boolean, cardMaxH: number) => {
-      const cardW = windowWidth - CARD_INSET * 2;
-      if (item.kind === 'plan') {
-        // A plan with a party honors its "TAP TO JOIN" line. On the wheel
-        // it's photo-backed (tour art) like every other night — no details
-        // strip, so the photo gets the whole height budget.
-        const party = item.item.party;
-        return (
-          <PlanCard
-            item={item.item}
-            photoAspect={
-              cardMaxH > 300 ? Math.min(0.9, Math.max(0.5, cardW / cardMaxH)) : 0.78
-            }
-            onPress={() =>
-              party ? router.push(`/party/${party.id}`) : openEvent(item.item.event.id)
-            }
-          />
-        );
-      }
-      if (isMemoryEntry(item.entry)) {
-        // The photo IS the content: it takes every pixel the stage offers
-        // above the ~50px details strip, instead of floating in dead space.
-        const photoAspect =
-          cardMaxH > 300 ? Math.min(0.9, Math.max(0.5, cardW / (cardMaxH - 50))) : 0.78;
-        return (
-          <MemoryCard
-            entry={item.entry}
-            onPress={() => openLog(item.entry.logId)}
-            photoAspect={photoAspect}
-            fallbackUri={fallbackUriFor(item.entry)}
-          />
-        );
-      }
-      return <CompactLogRow entry={item.entry} onPress={() => openLog(item.entry.logId)} />;
-    },
-    [openEvent, openLog, router, windowWidth],
-  );
-
-  // The before/after slots are TORN TICKET ENDS: card-colored strips the
-  // width of the card, perforation facing center — the deck reads as one
-  // continuous roll of tickets with the current night torn out large.
-  const renderLabel = useCallback(
-    (item: DeckItem, edge: 'top' | 'bottom') => {
-      const name = item.kind === 'plan' ? item.item.event.name : item.entry.artist.name;
-      const meta =
-        item.kind === 'plan'
-          ? [item.item.event.venue?.name, countdownLabel(item.item.event.date)]
-              .filter(Boolean)
-              .join(' · ')
-          : [item.entry.venue.name, formatShortDate(item.entry.event.date)]
-              .filter(Boolean)
-              .join(' · ');
-      return (
-        <View
-          style={[styles.stubEnd, edge === 'top' ? styles.stubEndTop : styles.stubEndBottom]}
-        >
-          {edge === 'bottom' ? <StubPerforation notchColor={tokens.colors.bg} /> : null}
-          <View style={styles.stubEndBody}>
-            <Text style={styles.deckLabelName} numberOfLines={1}>
-              {name}
-            </Text>
-            <Text style={styles.deckLabelMeta} numberOfLines={1}>
-              {meta}
-            </Text>
-          </View>
-          {edge === 'top' ? <StubPerforation notchColor={tokens.colors.bg} /> : null}
-        </View>
-      );
-    },
-    [styles, tokens],
-  );
 
   // ── Map ⇄ Deck fly-to ─────────────────────────────────────────
 

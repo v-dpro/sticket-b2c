@@ -6,11 +6,14 @@ export interface UserProfile {
   avatarUrl?: string;
   city?: string;
   privacySetting: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-  createdAt: string;
+  createdAt?: string;
   isFollowing?: boolean;
   isOwnProfile?: boolean;
-  stats: ProfileStats;
-  badges: UserBadge[];
+  /** Set by the server on private/friends-only profiles the viewer can't see:
+      the payload is a minimal card (avatar/name only — no stats, badges, bio). */
+  restricted?: boolean;
+  stats?: ProfileStats;
+  badges?: UserBadge[];
 }
 
 export interface ProfileStats {

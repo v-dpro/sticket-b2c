@@ -3065,6 +3065,49 @@ app.get('/users/:id/logs', async (req) => {
   }));
 });
 
+// GET /users/:id/artists — distinct artists from the target's logged shows
+// with seen counts, seenCount desc (profile ARTISTS tab). Gated by
+// showCollection exactly like /users/:id/logs, and per-log visibility
+// still applies so hidden logs never leak an artist.
+app.get('/users/:id/artists', async (req) => {
+  const viewerId = getUserIdFromRequest(req);
+  const { id: targetUserId } = req.params as { id: string };
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { privacySetting: true, showCollection: true },
+  });
+  if (!target) throw new AppError('User not found', 404);
+
+  // Privacy: showCollection hides the collection from everyone but the owner.
+  if (!(viewerId && viewerId === targetUserId) && !target.showCollection) return [];
+
+  const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
+  const visibilityWhere = buildLogVisibilityWhere(viewerId, targetUserId, target.privacySetting, viewerFollowsTarget);
+
+  const logs = await prisma.userLog.findMany({
+    where: { userId: targetUserId, ...visibilityWhere },
+    select: { event: { select: { artist: { select: { id: true, name: true, imageUrl: true } } } } },
+  });
+
+  const byArtist = new Map<string, { id: string; name: string; imageUrl?: string; seenCount: number }>();
+  for (const log of logs) {
+    const artist = log.event.artist;
+    const row = byArtist.get(artist.id) ?? {
+      id: artist.id,
+      name: artist.name,
+      imageUrl: artist.imageUrl ?? undefined,
+      seenCount: 0,
+    };
+    row.seenCount += 1;
+    byArtist.set(artist.id, row);
+  }
+
+  return [...byArtist.values()].sort(
+    (a, b) => b.seenCount - a.seenCount || a.name.localeCompare(b.name)
+  );
+});
+
 // GET /users/:id/timeline - aggregated timeline: upcoming (tickets +
 // interested/tracked events, owner-only since that's private intent data)
 // plus month-bucketed past/logged shows, cursor-paginated on event date.

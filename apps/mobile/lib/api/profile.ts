@@ -64,6 +64,24 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
   return response.data;
 }
 
+// ── Artist collection (profile ARTISTS tab) ────────────────────────
+
+export type UserArtistItem = {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  seenCount: number;
+};
+
+// Distinct artists from a user's logged shows, seen-count desc. The API
+// returns [] when the owner's showCollection privacy flag is off.
+export async function getUserArtists(userId: string): Promise<UserArtistItem[]> {
+  // Local-only users don't exist in the API DB.
+  if (!userId || userId.startsWith('user_')) return [];
+  const response = await apiClient.get(`/users/${userId}/artists`);
+  return response.data;
+}
+
 // ── Shared history ("YOU × THEM") ──────────────────────────────────
 
 export type SharedHistoryEntry = {
