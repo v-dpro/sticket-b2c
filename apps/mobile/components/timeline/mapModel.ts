@@ -45,6 +45,7 @@ export type MapCell =
       countdown: string; // "21D" / "TODAY"
       label: string;
       monthTag?: string;
+      thumbnailUrl?: string; // event/tour art so the plan cell is a photo too
     };
 
 export type MapRow =
@@ -109,6 +110,26 @@ function groupKeyLabel(entryDate: string, monthKey: string, granularity: MapGran
   return { key: monthKey, label: monthLabel(monthKey) };
 }
 
+// Cover pool — verified concert/crowd photos (same source as the seed). A
+// grid tile with no memory photo and no tour/artist art still gets a stable
+// cover so the grid always reads as a full Instagram photo mosaic. Keyed by
+// a hash of the cell so each show keeps the same cover across renders.
+const COVER_POOL = [
+  'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1471478331149-c72f17e33c73?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1484755560615-a4c64e778a6c?w=400&q=60&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400&q=60&auto=format&fit=crop',
+];
+function coverFor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return COVER_POOL[h % COVER_POOL.length]!;
+}
+
 export function buildMapGrid(
   upcoming: TimelineUpcomingItem[],
   months: TimelineMonth[],
@@ -129,6 +150,7 @@ export function buildMapGrid(
       countdown: countdownCellLabel(item.date),
       label: `Planned: ${item.event.artist.name} at ${item.event.venue.name}, ${formatShortDate(item.date)}`,
       monthTag: i === 0 ? 'UPCOMING' : undefined,
+      thumbnailUrl: item.event.imageUrl || coverFor(planRowKey(item)),
     });
   });
 
@@ -147,27 +169,25 @@ export function buildMapGrid(
         groups.push(group);
       }
       const cellLabel = `${entry.artist.name} at ${entry.venue.name}, ${formatShortDate(entry.event.date)}`;
-      const shared = entry.sharedAt !== null && entry.photos.length > 0;
-      if (shared) {
-        const photo = entry.photos[0]!;
-        group.cells.push({
-          kind: 'photo',
-          key: entryRowKey(entry),
-          index: index++,
-          thumbnailUrl: photo.thumbnailUrl || photo.photoUrl,
-          score: entry.score,
-          label: cellLabel,
-        });
-      } else {
-        group.cells.push({
-          kind: 'entry',
-          key: entryRowKey(entry),
-          index: index++,
-          initial: (entry.artist.name.trim()[0] ?? '?').toUpperCase(),
-          score: entry.score,
-          label: cellLabel,
-        });
-      }
+      // Every cell is a PHOTO — memory shot if shared, else the tour/artist
+      // fallback image — so the grid reads as a solid Instagram mosaic. Only
+      // an entry with no image at all falls back to the initial tile.
+      const memoryPhoto =
+        entry.sharedAt !== null && entry.photos.length > 0 ? entry.photos[0]! : null;
+      const thumb =
+        memoryPhoto?.thumbnailUrl ||
+        memoryPhoto?.photoUrl ||
+        entry.fallbackImageUrl ||
+        entry.artist.imageUrl ||
+        coverFor(entryRowKey(entry));
+      group.cells.push({
+        kind: 'photo',
+        key: entryRowKey(entry),
+        index: index++,
+        thumbnailUrl: thumb,
+        score: entry.score,
+        label: cellLabel,
+      });
     }
   }
 

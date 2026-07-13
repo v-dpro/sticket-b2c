@@ -1,4 +1,4 @@
-// TimelineViewToggle — "Scroll" / "Map" segmented chips for the You screen.
+// TimelineViewToggle — "Timeline" / "Grid" segmented chips.
 // Same monochrome pattern as FeedScopeToggle: active chip inverts
 // (inverseBg / inverseFg), idle chip is a muted label on a card2 track.
 // SpringPressable press feedback + light haptic on select.
@@ -17,8 +17,8 @@ type TimelineViewToggleProps = {
 };
 
 const OPTIONS: { value: TimelineViewMode; label: string; a11y: string }[] = [
-  { value: 'scroll', label: 'Scroll', a11y: 'Scroll view — full timeline cards' },
-  { value: 'map', label: 'Map', a11y: 'Map view — whole timeline on one page' },
+  { value: 'scroll', label: 'Timeline', a11y: 'Timeline — the memory wheel' },
+  { value: 'map', label: 'Grid', a11y: 'Grid — the whole timeline as a photo grid' },
 ];
 
 export function TimelineViewToggle({ mode, onChange }: TimelineViewToggleProps) {

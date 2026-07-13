@@ -14,20 +14,19 @@
 // Tapping a cell hands its row key back to the parent (flies to that card
 // in the scroll deck — the parent owns the mode switch).
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import Animated from 'react-native-reanimated';
 
 import type { TimelineMonth, TimelineUpcomingItem } from '../../lib/api/timeline';
-import { durations, haptics, tearIn } from '../../lib/motion';
+import { durations, tearIn } from '../../lib/motion';
 import type { ThemeTokens } from '../../lib/theme';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { BareScore } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
 import { formatScore } from './format';
 import { buildMapGrid, type MapCell, type MapGranularity, type MapRow } from './mapModel';
-import { GlobeView, buildGlobePoints } from './GlobeView';
 
 const COLUMNS = 3;
 const GRID_GAP = 2;
@@ -76,7 +75,9 @@ function GridCell({
         // Fixed square — one continuous Instagram grid; a partial final row
         // sits left-aligned like a real profile grid.
         { width: size, height: size },
-        cell.kind === 'plan' ? styles.cellPlan : styles.cellFill,
+        // Dashed frame only for a plan with NO art; everything else is a
+        // full-bleed photo tile (Instagram mosaic).
+        cell.kind === 'plan' && !cell.thumbnailUrl ? styles.cellPlan : styles.cellFill,
       ]}
     >
       {cell.kind === 'photo' ? (
@@ -103,7 +104,23 @@ function GridCell({
           ) : null}
         </>
       ) : (
-        <Text style={styles.countdown}>{cell.countdown}</Text>
+        // Plan: event art behind a small countdown badge (or a bare
+        // countdown when there's no art).
+        <>
+          {cell.thumbnailUrl ? (
+            <Image
+              source={{ uri: cell.thumbnailUrl }}
+              style={styles.photo}
+              contentFit="cover"
+              transition={80}
+              cachePolicy="memory-disk"
+              recyclingKey={cell.key}
+            />
+          ) : null}
+          <View style={cell.thumbnailUrl ? styles.countdownBadge : undefined}>
+            <Text style={styles.countdown}>{cell.countdown}</Text>
+          </View>
+        </>
       )}
       {/* Tiny month/year tag — only on the first cell of a group. */}
       {cell.monthTag ? (
@@ -123,9 +140,7 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
   const styles = useThemedStyles(buildStyles);
   const { width } = useWindowDimensions();
 
-  // Two views only: the continuous Instagram GRID, or the real MAP (globe).
-  const [mode, setMode] = useState<'grid' | 'map'>(initialMode === 'map' ? 'map' : 'grid');
-
+  void initialMode;
   const rows = useMemo(
     () => buildMapGrid(upcoming, months, 'month'),
     [upcoming, months],
@@ -135,10 +150,6 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
     const usable = width - GRID_GAP * (COLUMNS - 1);
     return Math.floor(usable / COLUMNS);
   }, [width, tokens.density.pad]);
-
-  // Globe dots come from the SAME data the grids chunk — one glowing point
-  // per city, keyed to that city's most recent deck row.
-  const globePoints = useMemo(() => buildGlobePoints(upcoming, months), [upcoming, months]);
 
   const renderRow = useCallback(
     ({ item }: { item: MapRow }) => {
@@ -154,65 +165,26 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
     [cellSize, onPressMarker, styles.row],
   );
 
-  const MODES: { key: 'grid' | 'map'; label: string }[] = [
-    { key: 'grid', label: 'GRID' },
-    { key: 'map', label: 'MAP' },
-  ];
-
-  const modeChips = (
-    <View style={styles.modeRow}>
-      {MODES.map((m) => {
-        const active = m.key === mode;
-        return (
-          <SpringPressable
-            key={m.key}
-            haptic="none"
-            onPress={() => {
-              if (m.key !== mode) {
-                haptics.light();
-                setMode(m.key);
-              }
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={m.label}
-            style={[styles.modeChip, active ? styles.modeChipActive : null]}
-          >
-            <Text style={[styles.modeText, active ? styles.modeTextActive : null]}>{m.label}</Text>
-          </SpringPressable>
-        );
-      })}
-    </View>
-  );
-
-  // The pill row is a fixed sibling above whichever body renders (grid list
-  // or globe) so it sits in exactly the same place across all four modes.
+  // Just the Instagram GRID now — the globe/map mode was removed.
   return (
     <View style={styles.list}>
-      <View style={styles.modeBar}>{modeChips}</View>
-      {mode === 'map' ? (
-        // The real map — the collection as geography; cells and headers give
-        // way to the globe.
-        <GlobeView points={globePoints} onPressCity={onPressMarker} style={styles.globe} />
-      ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={(row) => row.key}
-          renderItem={renderRow}
-          style={styles.list}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews
-          initialNumToRender={18}
-          ListFooterComponent={
-            loadingAll ? (
-              <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color={tokens.colors.mute} />
-              </View>
-            ) : null
-          }
-        />
-      )}
+      <FlatList
+        data={rows}
+        keyExtractor={(row) => row.key}
+        renderItem={renderRow}
+        style={styles.list}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        initialNumToRender={18}
+        ListFooterComponent={
+          loadingAll ? (
+            <View style={styles.loadingFooter}>
+              <ActivityIndicator size="small" color={tokens.colors.mute} />
+            </View>
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -224,6 +196,7 @@ const buildStyles = (tokens: ThemeTokens) =>
     },
     // Full-bleed like the Instagram grid — cells run edge to edge.
     content: {
+      paddingTop: 6,
       paddingBottom: 48,
     },
     // Fixed above both bodies — the pills must not shift between modes.
@@ -319,6 +292,15 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontWeight: '600',
       color: tokens.colors.muteSoft,
       marginTop: 4,
+    },
+    countdownBadge: {
+      position: 'absolute',
+      right: 5,
+      bottom: 5,
+      backgroundColor: 'rgba(11,11,16,0.72)',
+      borderRadius: 5,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
     },
     countdown: {
       fontFamily: tokens.fontFamilies.mono,
