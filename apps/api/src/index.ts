@@ -3978,6 +3978,97 @@ async function upsertTmPresales(opts: {
   }
 }
 
+// ── Real-catalog ingestion (Phase 1) ────────────────────────────────
+// Pre-populates the DB with real Ticketmaster events for a set of markets
+// on a schedule, so browsing shows real upcoming shows (not just the
+// synthetic seed) and a user's followed artists have real presales to
+// surface. Rate-limit friendly (TM allows ~5k calls/day; ~20 markets ×
+// 4/day = 80 calls). Disable with TM_INGEST_ENABLED=false.
+const TM_INGEST_CITIES = (
+  process.env.TM_INGEST_CITIES ||
+  'New York,Los Angeles,Chicago,San Francisco,Nashville,Austin,Atlanta,Seattle,Boston,Denver,Las Vegas,Miami,Washington,Philadelphia,Dallas,Houston,Portland,Minneapolis,Detroit,Phoenix'
+)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+async function ingestTmMarket(city: string): Promise<number> {
+  const tmEvents = await tmSearchEvents({ city, size: 50 });
+  let n = 0;
+  for (const te of tmEvents) {
+    try {
+      const artist =
+        (await prisma.artist.findFirst({ where: { name: te.artist.name } })) ??
+        (await prisma.artist.create({
+          data: { name: te.artist.name, imageUrl: te.artist.imageUrl, genres: te.artist.genres },
+        }));
+      if (te.artist.imageUrl && !artist.imageUrl) {
+        await prisma.artist.update({ where: { id: artist.id }, data: { imageUrl: te.artist.imageUrl } });
+      }
+      const venue =
+        (await prisma.venue.findFirst({ where: { name: te.venue.name, city: te.venue.city } })) ??
+        (await prisma.venue.create({
+          data: {
+            name: te.venue.name,
+            city: te.venue.city,
+            state: te.venue.region || null,
+            country: te.venue.country,
+            lat: Number.isFinite(Number(te.venue.latitude)) ? Number(te.venue.latitude) : null,
+            lng: Number.isFinite(Number(te.venue.longitude)) ? Number(te.venue.longitude) : null,
+          },
+        }));
+      const date = new Date(te.datetime);
+      const ev = await prisma.event.upsert({
+        where: { artistId_venueId_date: { artistId: artist.id, venueId: venue.id, date } },
+        update: { name: te.name, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl, ticketUrl: te.url ?? null },
+        create: {
+          name: te.name, date, artistId: artist.id, venueId: venue.id,
+          source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl, ticketUrl: te.url ?? null,
+        },
+      });
+      await upsertTmPresales({
+        eventId: ev.id,
+        artistName: te.artist.name,
+        venueName: te.venue.name,
+        venueCity: te.venue.city,
+        venueState: te.venue.region || null,
+        eventDate: date,
+        eventUrl: te.url ?? null,
+        sales: te.sales,
+      });
+      n++;
+    } catch (err) {
+      console.warn('[tmIngest] upsert failed', te?.name, err);
+    }
+  }
+  return n;
+}
+
+async function ingestTmMarkets(): Promise<void> {
+  const start = Date.now();
+  let total = 0;
+  for (const city of TM_INGEST_CITIES) {
+    try {
+      total += await ingestTmMarket(city);
+    } catch (err) {
+      console.warn('[tmIngest] market failed', city, err);
+    }
+    await new Promise((r) => setTimeout(r, 1500)); // space out TM calls
+  }
+  console.log(
+    `[tmIngest] ingested ${total} events across ${TM_INGEST_CITIES.length} markets in ${Math.round((Date.now() - start) / 1000)}s`,
+  );
+}
+
+function startTmIngestJob(): void {
+  if (process.env.TM_INGEST_ENABLED === 'false') {
+    console.log('[tmIngest] disabled (TM_INGEST_ENABLED=false)');
+    return;
+  }
+  setTimeout(() => { void ingestTmMarkets(); }, 25_000); // after boot settles
+  setInterval(() => { void ingestTmMarkets(); }, 6 * 60 * 60 * 1000); // every 6h
+}
+
 async function buildDiscoverData(userId: string | null, city: string) {
   const now = new Date();
 
@@ -11078,6 +11169,7 @@ await listenWithFallback();
 // Background jobs (best effort)
 startERPSyncJob();
 startNotificationJobs();
+startTmIngestJob();
 
 
 
