@@ -53,6 +53,16 @@ model User {
   tasteRadius     DiscoveryRadius @default(FOF)
   showInGalleries Boolean         @default(true)
 
+  // Privacy controls (defaults preserve pre-privacy behavior: everything open)
+  profileVisibility    PrivacySetting  @default(PUBLIC)
+  defaultLogVisibility PrivacySetting  @default(PUBLIC) // PUBLIC | FRIENDS only (API-validated)
+  showTimeline         Boolean         @default(true)
+  showCollection       Boolean         @default(true)
+  showMapCities        Boolean         @default(true)
+  allowPartyInvites    AudienceSetting @default(EVERYONE)
+  allowMentions        AudienceSetting @default(EVERYONE)
+  appearInTasteMatch   Boolean         @default(true)
+
   // Redesign additions
   xpTotal    Int       @default(0)
   birthday   DateTime?
@@ -111,6 +121,12 @@ enum PrivacySetting {
   PUBLIC
   FRIENDS
   PRIVATE
+}
+
+enum AudienceSetting {
+  EVERYONE
+  FRIENDS
+  NOBODY
 }
 
 model Follow {
@@ -733,8 +749,19 @@ enum PartyVisibility {
   INVITE
 }
 
+// Lifecycle: cancel is soft (CANCELLED) so members still see the party
+// struck through instead of it vanishing. DELETE remains a hard purge.
+enum PartyStatus {
+  ACTIVE
+  CANCELLED
+}
+
+// Doubles as the member's role: HOST is the creator's member row, COHOST is
+// a promoted GOING member with host powers (approve/deny, invite, edit —
+// not cancel).
 enum PartyMemberStatus {
   HOST
+  COHOST
   INVITED
   REQUESTED
   GOING
@@ -748,6 +775,7 @@ model Party {
   location    String?
   startsAt    DateTime?
   visibility  PartyVisibility @default(PUBLIC)
+  status      PartyStatus     @default(ACTIVE)
   createdAt   DateTime        @default(now())
 
   eventId String

@@ -1,7 +1,7 @@
 // CenterTabButton — a CONCERT TICKET sticking out of the tab bar, bigger
 // than its neighbors, idly bobbing. TAP: it nudges up and the wheel spins
-// home to today. PULL IT UP: a small "+" extends out of the ticket — keep
-// pulling (or release past the threshold) and the log flow opens.
+// home to today. PULL IT UP: a "+" extends out of the ticket — drag your
+// finger ONTO the + (it buzzes when you land) and release to log.
 
 import React, { useCallback, useRef } from 'react';
 import { Pressable, View } from 'react-native';
@@ -21,14 +21,26 @@ import { emitSnapToToday } from '../../lib/navigation/timelineBus';
 import { haptics, springs } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
-// The pull distance that commits to logging.
-const PULL_TRIGGER = 44;
+// The + LANDING ZONE: logging arms only while the finger is actually ON
+// the revealed + button (this pull-distance band), buzzes on arrival,
+// and fires on release. Overshooting past the band disarms — a wild
+// flick can't trigger the log.
+const ARM_MIN = 56;
+const ARM_MAX = 118;
+// The + fades fully in well before the finger arrives.
+const PLUS_IN = 40;
 // Ticket geometry — deliberately bigger than the 26px neighbor icons.
-// WIDE stub, SHORT tip: it reads as a ticket slotted into the bar, with
-// a tiny up-arrow telling you it pulls.
-const TICKET_W = 72;
-const TICKET_H = 84;
-const PEEK = 42;
+// WIDE stub with a SHORT tip riding proud of the bar's top edge (LIFT),
+// and a tiny up-arrow telling you it pulls.
+const TICKET_W = 76;
+const TICKET_H = 88;
+const PEEK = 40;
+// How far the whole pocket rides above the bar at rest — the ticket
+// visibly pops OUT of the nav bar box.
+const LIFT = 12;
+// The pull only ever draws the ticket out THIS much — it's a tease, not
+// an extraction; the finger travels on, up to the + itself.
+const PULL_REVEAL = 26;
 
 type CenterTabButtonProps = {
   onPress?: (e?: unknown) => void;
@@ -40,7 +52,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
   const { tokens } = useTheme();
   void accessibilityState;
 
-  // pull: 0 at rest → PULL_TRIGGER when armed. Ticket follows the finger.
+  // pull: finger's upward travel in px; the ticket teases out, the + lands.
   const pull = useSharedValue(0);
   // Idle bob — the ticket breathes up and down so the pull is discoverable.
   const bob = useSharedValue(0);
@@ -61,15 +73,23 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
   // rides the pocket's rising rim — it emerges from the bar instead of
   // sliding past a fixed clip window.
   const pocketStyle = useAnimatedStyle(() => ({
-    height: PEEK + pull.value + (pull.value > 2 ? 0 : bob.value * 6),
+    height:
+      PEEK + Math.min(pull.value, PULL_REVEAL) + (pull.value > 2 ? 0 : bob.value * 7),
+    // Proud of the bar at rest — transform moves the clip window with it.
+    transform: [{ translateY: -LIFT }],
   }));
 
   // The + grows out of the ticket as the pull deepens.
   const plusStyle = useAnimatedStyle(() => {
-    const p = Math.min(pull.value / PULL_TRIGGER, 1);
+    const p = Math.min(pull.value / PLUS_IN, 1);
+    const onIt = pull.value >= ARM_MIN && pull.value <= ARM_MAX;
     return {
       opacity: p,
-      transform: [{ translateY: -pull.value - 6 }, { scale: 0.5 + p * 0.5 }],
+      transform: [
+        { translateY: -LIFT - Math.min(pull.value, PULL_REVEAL) - 10 },
+        // Swells while the finger is on it — the release target is live.
+        { scale: (0.5 + p * 0.5) * (onIt ? 1.18 : 1) },
+      ],
     };
   });
 
@@ -81,7 +101,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
       overflow: 'visible',
     },
     pocket: {
-      width: TICKET_W + 14,
+      width: TICKET_W,
       // Clip the ticket's lower half — only the stub peeks above the bar.
       // Height is animated (PEEK + pull + bob) via pocketStyle.
       overflow: 'hidden',
@@ -104,10 +124,9 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
       shadowRadius: 7,
       elevation: 8,
     },
-    pullHint: { opacity: 0.55 },
     perf: {
       position: 'absolute',
-      top: 30,
+      top: 19,
       left: 6,
       right: 6,
       borderBottomWidth: 1,
@@ -115,10 +134,9 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
       borderColor: t.colors.inverseFg,
       opacity: 0.35,
     },
-    // Side notches on the perforation — it reads TICKET at a glance.
     notchL: {
       position: 'absolute',
-      top: 25,
+      top: 14,
       left: -5,
       width: 10,
       height: 10,
@@ -127,7 +145,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
     },
     notchR: {
       position: 'absolute',
-      top: 25,
+      top: 14,
       right: -5,
       width: 10,
       height: 10,
@@ -136,11 +154,11 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
     },
     plus: {
       position: 'absolute',
-      top: -34,
+      top: -40,
       alignSelf: 'center',
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: t.colors.inverseBg,
@@ -173,7 +191,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
     <View style={styles.wrap}>
       {/* The + that extends from the ticket while pulling. */}
       <Animated.View style={[styles.plus, plusStyle]} pointerEvents="none">
-        <Ionicons name="add" size={20} color={tokens.colors.inverseFg} />
+        <Ionicons name="add" size={24} color={tokens.colors.inverseFg} />
       </Animated.View>
 
       <Pressable
@@ -186,12 +204,13 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
         onTouchMove={(e) => {
           const dy = startY.current - e.nativeEvent.pageY;
           if (dy > 6) dragging.current = true;
-          const clamped = Math.max(0, Math.min(dy, PULL_TRIGGER + 18));
+          const clamped = Math.max(0, Math.min(dy, ARM_MAX + 30));
           pull.value = clamped;
-          const nowArmed = clamped >= PULL_TRIGGER;
+          // Armed ONLY while the finger sits on the + — buzz on arrival.
+          const nowArmed = clamped >= ARM_MIN && clamped <= ARM_MAX;
           if (nowArmed !== armedRef.current) {
             armedRef.current = nowArmed;
-            if (nowArmed) haptics.light();
+            if (nowArmed) haptics.medium();
           }
         }}
         onPressOut={() => {
@@ -209,12 +228,6 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
       >
         <Animated.View style={[styles.pocket, pocketStyle]}>
           <View style={styles.ticket}>
-            <Ionicons
-              name="chevron-up"
-              size={13}
-              color={tokens.colors.inverseFg}
-              style={styles.pullHint}
-            />
             <View style={styles.perf} />
             <View style={styles.notchL} />
             <View style={styles.notchR} />

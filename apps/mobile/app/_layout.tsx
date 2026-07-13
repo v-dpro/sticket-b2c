@@ -141,21 +141,12 @@ function RootShell() {
   }, [profile?.username, user]);
 
   // Launch choreography: the native splash (static S) hands off to the
-  // AnimatedSplash overlay showing the same logo — it heartbeats, then the
-  // two tickets tear apart to reveal the app.
-  const [showAnimatedSplash, setShowAnimatedSplash] = useState(false);
+  // AnimatedSplash overlay showing the same logo. The overlay mounts from
+  // the FIRST render (waiting on fonts/session here is what made the logo
+  // sit frozen before its pulse); it hides the native splash itself once
+  // its logo has painted, breathes until `ready`, then fades.
   const [splashDone, setSplashDone] = useState(false);
-  useEffect(() => {
-    if (!isLoading && fontsLoaded && !splashDone && !showAnimatedSplash) {
-      // The overlay hides the native splash ITSELF, only after its logo has
-      // painted — hiding here caused a blank frame during image decode.
-      setShowAnimatedSplash(true);
-    }
-  }, [isLoading, fontsLoaded, splashDone, showAnimatedSplash]);
-  const onSplashDone = useCallback(() => {
-    setShowAnimatedSplash(false);
-    setSplashDone(true);
-  }, []);
+  const onSplashDone = useCallback(() => setSplashDone(true), []);
 
   return (
     // GestureHandlerRootView at the very root — GestureDetector surfaces
@@ -187,7 +178,9 @@ function RootShell() {
           />
         </Stack>
       </ErrorBoundary>
-      {showAnimatedSplash ? <AnimatedSplash onDone={onSplashDone} /> : null}
+      {!splashDone ? (
+        <AnimatedSplash ready={!isLoading && fontsLoaded} onDone={onSplashDone} />
+      ) : null}
     </GestureHandlerRootView>
   );
 }

@@ -201,15 +201,34 @@ async function buildUserProfilePayload(viewerId: string | null, targetUserId: st
       avatarUrl: true,
       city: true,
       privacySetting: true,
+      profileVisibility: true,
       createdAt: true,
     },
   });
   if (!user) throw new AppError('User not found', 404);
 
-  const [stats, badges, isFollowing] = await Promise.all([
+  const isSelf = Boolean(viewerId && viewerId === targetUserId);
+  const isFollowing = await getFollowStatus(viewerId, targetUserId);
+
+  // Privacy: PRIVATE profiles — and FRIENDS profiles when the viewer isn't
+  // degree-1 (doesn't follow the target) — return a minimal card: enough to
+  // render an avatar + follow button, nothing else. Self always gets full.
+  if (!isSelf && (user.profileVisibility === 'PRIVATE' || (user.profileVisibility === 'FRIENDS' && !isFollowing))) {
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName ?? undefined,
+      avatarUrl: user.avatarUrl ?? undefined,
+      privacySetting: user.privacySetting,
+      profileVisibility: user.profileVisibility,
+      isFollowing: isFollowing || undefined,
+      restricted: true,
+    };
+  }
+
+  const [stats, badges] = await Promise.all([
     computeProfileStats(targetUserId),
     getBadgesForUser(targetUserId),
-    getFollowStatus(viewerId, targetUserId),
   ]);
 
   return {
@@ -220,6 +239,7 @@ async function buildUserProfilePayload(viewerId: string | null, targetUserId: st
     avatarUrl: user.avatarUrl ?? undefined,
     city: user.city ?? undefined,
     privacySetting: user.privacySetting,
+    profileVisibility: user.profileVisibility,
     createdAt: user.createdAt.toISOString(),
     stats,
     badges,
@@ -406,13 +426,35 @@ function notifyMentions(
   const skip = new Set([actor.id, ...exclude]);
   const targets = mentioned.map((m) => m.id).filter((id) => !skip.has(id));
   if (!targets.length) return;
-  void notifyMany(targets, {
-    type: 'mention',
-    title: 'You were mentioned',
-    body: `@${actor.username} mentioned you in ${context}`,
-    data,
-    actorId: actor.id,
-  });
+  // Privacy: honor each target's allowMentions before fanning out. The
+  // mention itself stays in the text — only the notification is suppressed.
+  // "FRIENDS" = the actor follows the target (same degree-1 rule as
+  // buildLogVisibilityWhere / profile gating).
+  void (async () => {
+    const users = await prisma.user.findMany({
+      where: { id: { in: targets } },
+      select: { id: true, allowMentions: true },
+    });
+    const friendGated = users.filter((u) => u.allowMentions === 'FRIENDS').map((u) => u.id);
+    const follows = friendGated.length
+      ? await prisma.follow.findMany({
+          where: { followerId: actor.id, followingId: { in: friendGated } },
+          select: { followingId: true },
+        })
+      : [];
+    const actorFollows = new Set(follows.map((f) => f.followingId));
+    const allowed = users
+      .filter((u) => u.allowMentions === 'EVERYONE' || (u.allowMentions === 'FRIENDS' && actorFollows.has(u.id)))
+      .map((u) => u.id);
+    if (!allowed.length) return;
+    await notifyMany(allowed, {
+      type: 'mention',
+      title: 'You were mentioned',
+      body: `@${actor.username} mentioned you in ${context}`,
+      data,
+      actorId: actor.id,
+    });
+  })().catch(() => {});
 }
 
 // The standard "who can the viewer discover" audience, mirroring GET /feed's
@@ -1873,9 +1915,17 @@ app.get('/users/taste-match', async (req) => {
   if (!ids.length) throw new AppError('ids is required', 400);
   if (ids.length > 10) throw new AppError('Too many ids (max 10)', 400);
 
+  // Privacy: users who opted out of taste match are silently dropped from
+  // `matches` (the viewer always keeps their own side of the comparison).
+  const optedIn = await prisma.user.findMany({
+    where: { id: { in: ids }, appearInTasteMatch: true },
+    select: { id: true },
+  });
+  const allowedIds = optedIn.map((u) => u.id);
+
   const [viewerRows, targetRows] = await Promise.all([
     prisma.userArtistFollow.findMany({ where: { userId: viewerId }, select: { artistId: true } }),
-    prisma.userArtistFollow.findMany({ where: { userId: { in: ids } }, select: { userId: true, artistId: true } }),
+    prisma.userArtistFollow.findMany({ where: { userId: { in: allowedIds } }, select: { userId: true, artistId: true } }),
   ]);
 
   const viewerSet = new Set(viewerRows.map((r) => r.artistId));
@@ -1886,7 +1936,7 @@ app.get('/users/taste-match', async (req) => {
     byUser.set(row.userId, set);
   }
 
-  const matches = ids.map((userId) => {
+  const matches = allowedIds.map((userId) => {
     const theirs = byUser.get(userId) ?? new Set<string>();
     let shared = 0;
     for (const artistId of theirs) if (viewerSet.has(artistId)) shared++;
@@ -2939,9 +2989,12 @@ app.get('/users/:id/logs', async (req) => {
 
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
-    select: { privacySetting: true },
+    select: { privacySetting: true, showCollection: true },
   });
   if (!target) throw new AppError('User not found', 404);
+
+  // Privacy: showCollection hides the logged-shows list from everyone but the owner.
+  if (!(viewerId && viewerId === targetUserId) && !target.showCollection) return [];
 
   const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
   const visibilityWhere = buildLogVisibilityWhere(viewerId, targetUserId, target.privacySetting, viewerFollowsTarget);
@@ -3024,11 +3077,14 @@ app.get('/users/:id/timeline', async (req) => {
 
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
-    select: { id: true, privacySetting: true },
+    select: { id: true, privacySetting: true, showTimeline: true },
   });
   if (!target) throw new AppError('User not found', 404);
 
   const isOwner = Boolean(viewerId && viewerId === targetUserId);
+
+  // Privacy: showTimeline hides the timeline from everyone but the owner.
+  if (!isOwner && !target.showTimeline) return { upcoming: [], months: [], nextCursor: null };
   // Mirrors /feed + buildLogVisibilityWhere: "friends" = viewer follows the
   // owner (one-directional), not mutual follows.
   const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
@@ -3213,6 +3269,8 @@ app.get('/users/:id/timeline', async (req) => {
     const hostedParties = await prisma.party.findMany({
       where: {
         hostId: targetUserId,
+        // Cancelled parties don't power plan chips.
+        status: 'ACTIVE',
         event: { date: { gte: startOfToday } },
         ...(isOwner
           ? {}
@@ -3241,8 +3299,14 @@ app.get('/users/:id/timeline', async (req) => {
 
     const toPartyChip = (p: (typeof hostedParties)[number]) => {
       const raw = isOwner ? 'HOST' : (viewerStatusByParty.get(p.id) ?? null);
-      // DECLINED intentionally maps to null (re-requestable via /join).
-      const myStatus = raw === 'HOST' || raw === 'GOING' || raw === 'REQUESTED' || raw === 'INVITED' ? raw : null;
+      // DECLINED intentionally maps to null (re-requestable via /join);
+      // COHOST reads as HOST on the chip (both mean "you're running it").
+      const myStatus =
+        raw === 'HOST' || raw === 'COHOST'
+          ? ('HOST' as const)
+          : raw === 'GOING' || raw === 'REQUESTED' || raw === 'INVITED'
+            ? raw
+            : null;
       return {
         id: p.id,
         title: p.title,
@@ -3351,9 +3415,12 @@ app.get('/users/:id/venues', async (req) => {
 
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
-    select: { privacySetting: true },
+    select: { privacySetting: true, showMapCities: true },
   });
   if (!target) throw new AppError('User not found', 404);
+
+  // Privacy: showMapCities hides the venue/city map from everyone but the owner.
+  if (!(viewerId && viewerId === targetUserId) && !target.showMapCities) return [];
 
   const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
   const visibilityWhere = buildLogVisibilityWhere(viewerId, targetUserId, target.privacySetting, viewerFollowsTarget);
@@ -4055,7 +4122,7 @@ app.get('/explore', async (req) => {
     }),
     // PUBLIC parties on future events, soonest first (Plan tab's open-party rail).
     prisma.party.findMany({
-      where: { visibility: 'PUBLIC', event: { date: { gte: now } } },
+      where: { visibility: 'PUBLIC', status: 'ACTIVE', event: { date: { gte: now } } },
       include: {
         host: faceUserSelect,
         event: { select: { id: true, name: true, date: true, venue: { select: { name: true, city: true } } } },
@@ -6542,10 +6609,18 @@ app.get('/artists/:id/tours', async (req, reply) => {
 // settings note near PATCH /users/me/discovery), so discovery here is
 // degree <= 2 only, with per-log visibility respected via degreeAudienceWhere.
 
-async function buildWhoSawPayload(viewerId: string, eventWhere: Prisma.EventWhereInput) {
+type WhoSawAttendedEvent = { eventId: string; name: string; venueName: string; city: string; date: string };
+
+type WhoSawPerson = FacePerson & { attendedEvents?: WhoSawAttendedEvent[] };
+
+async function buildWhoSawPayload(
+  viewerId: string,
+  eventWhere: Prisma.EventWhereInput,
+  opts: { includeEvents?: boolean } = {}
+) {
   const degrees = await getViewerDegrees(viewerId);
   const audience = degreeAudienceWhere(degrees);
-  if (!audience.length) return { people: [] as FacePerson[], totalCount: 0 };
+  if (!audience.length) return { people: [] as WhoSawPerson[], totalCount: 0 };
 
   const rows = await prisma.userLog.findMany({
     where: { event: eventWhere, OR: audience },
@@ -6554,10 +6629,37 @@ async function buildWhoSawPayload(viewerId: string, eventWhere: Prisma.EventWher
   });
 
   // Everyone here matched the degree-scoped audience, so degreeOf is defined.
-  const people = rows
+  const people: WhoSawPerson[] = rows
     .map((r) => toFacePerson(r.user, degrees.degreeOf(r.user.id)!))
     .sort((a, b) => a.degree - b.degree)
     .slice(0, 12);
+
+  // Tour context: attach which matching shows each surfaced person attended,
+  // under the same viewer-relative audience filter as membership — logs the
+  // viewer can't see don't surface here either.
+  if (opts.includeEvents && people.length) {
+    const logRows = await prisma.userLog.findMany({
+      where: { userId: { in: people.map((p) => p.id) }, event: eventWhere, OR: audience },
+      select: {
+        userId: true,
+        event: { select: { id: true, name: true, date: true, venue: { select: { name: true, city: true } } } },
+      },
+      orderBy: { event: { date: 'asc' } },
+    });
+    const eventsByUser = new Map<string, WhoSawAttendedEvent[]>();
+    for (const r of logRows) {
+      const list = eventsByUser.get(r.userId) ?? [];
+      list.push({
+        eventId: r.event.id,
+        name: r.event.name,
+        venueName: r.event.venue.name,
+        city: r.event.venue.city,
+        date: r.event.date.toISOString(),
+      });
+      eventsByUser.set(r.userId, list);
+    }
+    for (const p of people) p.attendedEvents = eventsByUser.get(p.id) ?? [];
+  }
 
   return { people, totalCount: rows.length };
 }
@@ -6672,11 +6774,12 @@ app.get('/tours/:id/trends', async (req) => {
   return { trends: await computeTrends({ event: { tourId: id } }) };
 });
 
-// GET /tours/:id/who-saw - discoverable people who logged a show on this tour.
+// GET /tours/:id/who-saw - discoverable people who logged a show on this tour,
+// each with the tour shows they attended (visibility-filtered like membership).
 app.get('/tours/:id/who-saw', async (req) => {
   const viewerId = requireAccessUserId(req as any);
   const { id } = req.params as { id: string };
-  return await buildWhoSawPayload(viewerId, { tourId: id });
+  return await buildWhoSawPayload(viewerId, { tourId: id }, { includeEvents: true });
 });
 
 // ==================== TOUR THREADS (Reddit-lite discussion) ====================
@@ -7638,7 +7741,7 @@ app.post('/logs', async (req, reply) => {
     // Server-authoritative XP inputs, derived from the user's real history
     // *before* this log exists — so "new venue / new artist / first log of
     // the month" bonuses reflect prior state only.
-    const [venueLogCount, artistLogCount, monthLogCount, scoredLogCount] = await Promise.all([
+    const [venueLogCount, artistLogCount, monthLogCount, scoredLogCount, me] = await Promise.all([
       prisma.userLog.count({ where: { userId, event: { venueId: event.venueId } } }),
       prisma.userLog.count({ where: { userId, event: { artistId: event.artistId } } }),
       prisma.userLog.count({ where: { userId, event: { date: { gte: monthStart, lt: monthEnd } } } }),
@@ -7647,6 +7750,9 @@ app.post('/logs', async (req, reply) => {
       // (GET next-opponent -> POST compare -> POST score) or go straight to
       // the first-ever "vibe" score via POST /logs/:id/score.
       prisma.userLog.count({ where: { userId, score: { not: null } } }),
+      // Privacy: when the client omits visibility, fall back to the user's
+      // defaultLogVisibility preference rather than a hardcoded PUBLIC.
+      prisma.user.findUnique({ where: { id: userId }, select: { defaultLogVisibility: true } }),
     ]);
 
     const xpInputs = {
@@ -7673,7 +7779,7 @@ app.post('/logs', async (req, reply) => {
           section: typeof body.section === 'string' ? body.section : null,
           row: typeof body.row === 'string' ? body.row : null,
           seat: typeof body.seat === 'string' ? body.seat : null,
-          visibility: body.visibility ?? 'PUBLIC',
+          visibility: body.visibility ?? me?.defaultLogVisibility ?? 'PUBLIC',
         },
       });
 
@@ -9415,8 +9521,11 @@ app.post('/events/:id/hang/messages', async (req, reply) => {
 
 // ==================== PARTY ROUTES (event meetups) ====================
 // A Party is a host-run pre/post-show meetup attached to an Event. Membership
-// states: HOST (creator), INVITED (host invited, hasn't answered), REQUESTED
-// (user asked to join a PUBLIC party), GOING (approved / accepted), DECLINED.
+// states: HOST (creator), COHOST (promoted GOING member with host powers —
+// approve/deny, invite, edit, announce; not cancel/promote), INVITED (host
+// invited, hasn't answered), REQUESTED (user asked to join a PUBLIC party),
+// GOING (approved / accepted), DECLINED. Cancel is soft (Party.status
+// CANCELLED) so members still see the party struck through.
 
 const PARTY_USER_SELECT = { id: true, username: true, displayName: true, avatarUrl: true } as const;
 
@@ -9436,6 +9545,7 @@ type PartyCore = {
   location: string | null;
   startsAt: Date | null;
   visibility: 'PUBLIC' | 'INVITE';
+  status: 'ACTIVE' | 'CANCELLED';
   createdAt: Date;
   eventId: string;
   hostId: string;
@@ -9445,7 +9555,9 @@ type PartyCore = {
 function serializeParty(
   party: PartyCore,
   counts: { going: number; requested: number; invited: number },
-  yourStatus: string | null
+  yourStatus: string | null,
+  // COHOST members' users — hosts[] is [original host, ...cohosts].
+  cohosts: { id: string; username: string; displayName: string | null; avatarUrl: string | null }[] = []
 ) {
   return {
     id: party.id,
@@ -9455,11 +9567,15 @@ function serializeParty(
     location: party.location ?? undefined,
     startsAt: party.startsAt ? party.startsAt.toISOString() : undefined,
     visibility: party.visibility,
+    status: party.status,
     createdAt: party.createdAt.toISOString(),
     host: serializePartyUser(party.host),
+    hosts: [party.host, ...cohosts].map(serializePartyUser),
     // counts.going includes the host.
     counts,
     yourStatus,
+    // Alias of yourStatus under the role reading (HOST/COHOST/GOING/...).
+    myRole: yourStatus,
   };
 }
 
@@ -9493,10 +9609,25 @@ async function getPartyCounts(partyIds: string[]) {
   });
   for (const r of rows) {
     const c = map.get(r.partyId)!;
-    if (r.status === 'HOST' || r.status === 'GOING') c.going += r._count._all;
+    if (r.status === 'HOST' || r.status === 'COHOST' || r.status === 'GOING') c.going += r._count._all;
     else if (r.status === 'REQUESTED') c.requested += r._count._all;
     else if (r.status === 'INVITED') c.invited += r._count._all;
   }
+  return map;
+}
+
+/** COHOST members per party, promotion order — for hosts[] serialization. */
+async function getPartyCohosts(partyIds: string[]) {
+  const map = new Map<string, { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]>();
+  for (const id of partyIds) map.set(id, []);
+  if (!partyIds.length) return map;
+
+  const rows = await prisma.partyMember.findMany({
+    where: { partyId: { in: partyIds }, status: 'COHOST' },
+    include: { user: { select: PARTY_USER_SELECT } },
+    orderBy: { respondedAt: 'asc' },
+  });
+  for (const r of rows) map.get(r.partyId)!.push(r.user);
   return map;
 }
 
@@ -9507,6 +9638,30 @@ async function getPartyOr404(partyId: string) {
   });
   if (!party) throw new AppError('Party not found', 404);
   return party;
+}
+
+// Host powers (approve/deny, invite, edit, announcements): the original
+// host (Party.hostId) or a COHOST member. Cancel stays hostId-only.
+async function requirePartyManager(partyId: string, userId: string) {
+  const party = await getPartyOr404(partyId);
+  if (party.hostId === userId) return { party, role: 'HOST' as const };
+
+  const member = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId, userId } },
+    select: { status: true },
+  });
+  if (member?.status !== 'COHOST') throw new AppError('Only the hosts can do that', 403);
+  return { party, role: 'COHOST' as const };
+}
+
+// Recipients for party lifecycle notifications (edit / cancel / co-host
+// changes): hosts + going + invited members, minus the acting user.
+async function getPartyNotifyAudience(party: { id: string; hostId: string }, actorId: string) {
+  const members = await prisma.partyMember.findMany({
+    where: { partyId: party.id, status: { in: ['HOST', 'COHOST', 'GOING', 'INVITED'] } },
+    select: { userId: true },
+  });
+  return [...new Set([party.hostId, ...members.map((m) => m.userId)])].filter((id) => id !== actorId);
 }
 
 // POST /events/:id/parties — create a party for an event; the creator becomes
@@ -9576,6 +9731,9 @@ app.get('/events/:id/parties', async (req) => {
   const parties = await prisma.party.findMany({
     where: {
       eventId,
+      // Cancelled parties drop off the event page; members still see them
+      // (struck through) in their own party lists.
+      status: 'ACTIVE',
       OR: [{ visibility: 'PUBLIC' }, { members: { some: { userId } } }],
     },
     include: { host: { select: PARTY_USER_SELECT } },
@@ -9585,8 +9743,9 @@ app.get('/events/:id/parties', async (req) => {
   });
 
   const partyIds = parties.map((p) => p.id);
-  const [countsByParty, myMemberships] = await Promise.all([
+  const [countsByParty, cohostsByParty, myMemberships] = await Promise.all([
     getPartyCounts(partyIds),
+    getPartyCohosts(partyIds),
     partyIds.length
       ? prisma.partyMember.findMany({
           where: { userId, partyId: { in: partyIds } },
@@ -9597,7 +9756,9 @@ app.get('/events/:id/parties', async (req) => {
   const myStatusByParty = new Map(myMemberships.map((m) => [m.partyId, m.status]));
 
   return {
-    parties: parties.map((p) => serializeParty(p, countsByParty.get(p.id)!, myStatusByParty.get(p.id) ?? null)),
+    parties: parties.map((p) =>
+      serializeParty(p, countsByParty.get(p.id)!, myStatusByParty.get(p.id) ?? null, cohostsByParty.get(p.id)!)
+    ),
   };
 });
 
@@ -9607,7 +9768,7 @@ app.get('/events/:id/parties', async (req) => {
 app.get('/users/me/parties', async (req) => {
   const userId = requireAccessUserId(req as any);
 
-  const [degrees, hostedParties, memberships, requestRows] = await Promise.all([
+  const [degrees, hostedParties, cohostRows, memberships, requestRows] = await Promise.all([
     getViewerDegrees(userId),
     // Hosting keys off Party.hostId (the authoritative host signal — the same
     // one every host-permission check uses), not a HOST member row.
@@ -9615,12 +9776,23 @@ app.get('/users/me/parties', async (req) => {
       where: { hostId: userId },
       include: PARTY_LITE_INCLUDE,
     }),
+    // Co-hosted parties land in the hosting bucket too (myStatus COHOST).
+    prisma.partyMember.findMany({
+      where: { userId, status: 'COHOST' },
+      include: { party: { include: PARTY_LITE_INCLUDE } },
+    }),
     prisma.partyMember.findMany({
       where: { userId, status: { in: ['GOING', 'INVITED'] }, party: { hostId: { not: userId } } },
       include: { party: { include: PARTY_LITE_INCLUDE } },
     }),
+    // Pending requests on every party the viewer can manage (host or co-host).
     prisma.partyMember.findMany({
-      where: { status: 'REQUESTED', party: { hostId: userId } },
+      where: {
+        status: 'REQUESTED',
+        party: {
+          OR: [{ hostId: userId }, { members: { some: { userId, status: 'COHOST' } } }],
+        },
+      },
       include: { user: { select: PARTY_USER_SELECT }, party: { include: PARTY_LITE_INCLUDE } },
       orderBy: { createdAt: 'asc' },
     }),
@@ -9629,6 +9801,7 @@ app.get('/users/me/parties', async (req) => {
   const partyIds = [
     ...new Set([
       ...hostedParties.map((p) => p.id),
+      ...cohostRows.map((m) => m.partyId),
       ...memberships.map((m) => m.partyId),
       ...requestRows.map((r) => r.partyId),
     ]),
@@ -9641,6 +9814,7 @@ app.get('/users/me/parties', async (req) => {
     startsAt: party.startsAt ? party.startsAt.toISOString() : undefined,
     location: party.location ?? undefined,
     visibility: party.visibility,
+    status: party.status,
     event: {
       id: party.event.id,
       name: party.event.name,
@@ -9668,7 +9842,10 @@ app.get('/users/me/parties', async (req) => {
       .sort(byEventDate);
 
   return {
-    hosting: hostedParties.map((p) => toPartyLite(p, 'HOST')).sort(byEventDate),
+    hosting: [
+      ...hostedParties.map((p) => toPartyLite(p, 'HOST')),
+      ...cohostRows.map((m) => toPartyLite(m.party, 'COHOST')),
+    ].sort(byEventDate),
     going: bucket('GOING'),
     invited: bucket('INVITED'),
     requests: requestRows.map((r) => ({
@@ -9703,17 +9880,17 @@ app.get('/parties/:id', async (req) => {
     throw new AppError('This party is invite-only', 403);
   }
 
-  const isHost = party.hostId === userId;
+  const canManage = party.hostId === userId || membership?.status === 'COHOST';
 
   const [countsByParty, memberRows, announcements] = await Promise.all([
     getPartyCounts([partyId]),
     prisma.partyMember.findMany({
-      // Non-hosts see the attendee list (host + going); the host also sees
-      // pending requests and outstanding invites so they can manage them.
-      where: isHost ? { partyId } : { partyId, status: { in: ['HOST', 'GOING'] } },
+      // Everyone sees the attendee list (hosts + going); hosts/co-hosts also
+      // see pending requests and outstanding invites so they can manage them.
+      where: canManage ? { partyId } : { partyId, status: { in: ['HOST', 'COHOST', 'GOING'] } },
       include: { user: { select: PARTY_USER_SELECT } },
       orderBy: { createdAt: 'asc' },
-      take: 50,
+      take: 100,
     }),
     prisma.partyAnnouncement.findMany({
       where: { partyId },
@@ -9723,8 +9900,13 @@ app.get('/parties/:id', async (req) => {
     }),
   ]);
 
+  const cohosts = memberRows.filter((m) => m.status === 'COHOST').map((m) => m.user);
+  // The creator may predate their HOST member row (older parties) — the
+  // authoritative hostId still reads as HOST.
+  const myStatus = membership?.status ?? (party.hostId === userId ? 'HOST' : null);
+
   return {
-    ...serializeParty(party, countsByParty.get(partyId)!, membership?.status ?? null),
+    ...serializeParty(party, countsByParty.get(partyId)!, myStatus, cohosts),
     members: memberRows.map((m) => ({
       user: serializePartyUser(m.user),
       status: m.status,
@@ -9747,6 +9929,7 @@ app.post('/parties/:id/join', async (req) => {
   const { id: partyId } = req.params as { id: string };
 
   const party = await getPartyOr404(partyId);
+  if (party.status === 'CANCELLED') throw new AppError('This party was cancelled', 409);
 
   const existing = await prisma.partyMember.findUnique({
     where: { partyId_userId: { partyId, userId } },
@@ -9754,7 +9937,12 @@ app.post('/parties/:id/join', async (req) => {
   });
 
   // Already in (or running) the party — idempotent no-op.
-  if (existing?.status === 'HOST' || existing?.status === 'GOING' || existing?.status === 'REQUESTED') {
+  if (
+    existing?.status === 'HOST' ||
+    existing?.status === 'COHOST' ||
+    existing?.status === 'GOING' ||
+    existing?.status === 'REQUESTED'
+  ) {
     return { status: existing.status };
   }
 
@@ -9782,10 +9970,13 @@ app.post('/parties/:id/join', async (req) => {
         select: { status: true },
       });
 
-  // NOTIFY: join request -> host
-  const requester = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
+  // NOTIFY: join request -> host + co-hosts (any of them can approve)
+  const [requester, cohostRows] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { username: true } }),
+    prisma.partyMember.findMany({ where: { partyId, status: 'COHOST' }, select: { userId: true } }),
+  ]);
   if (requester) {
-    void notify(party.hostId, {
+    void notifyMany([party.hostId, ...cohostRows.map((m) => m.userId)], {
       type: 'party_request',
       title: 'New join request',
       body: `@${requester.username} wants in: ${party.title}`,
@@ -9797,8 +9988,8 @@ app.post('/parties/:id/join', async (req) => {
   return { status: row.status };
 });
 
-// POST /parties/:id/respond { userId, accept } — host approves or declines a
-// pending join request.
+// POST /parties/:id/respond { userId, accept } — a host or co-host approves
+// or declines a pending join request.
 app.post('/parties/:id/respond', async (req) => {
   const hostId = requireAccessUserId(req as any);
   const { id: partyId } = req.params as { id: string };
@@ -9808,8 +9999,7 @@ app.post('/parties/:id/respond', async (req) => {
   if (!targetUserId) throw new AppError('userId is required', 400);
   if (typeof body.accept !== 'boolean') throw new AppError('accept must be a boolean', 400);
 
-  const party = await getPartyOr404(partyId);
-  if (party.hostId !== hostId) throw new AppError('Only the host can respond to join requests', 403);
+  const { party } = await requirePartyManager(partyId, hostId);
 
   const member = await prisma.partyMember.findUnique({
     where: { partyId_userId: { partyId, userId: targetUserId } },
@@ -9837,8 +10027,8 @@ app.post('/parties/:id/respond', async (req) => {
   return { userId: updated.userId, status: updated.status };
 });
 
-// POST /parties/:id/invite { userIds } — host invites users. Users who
-// already have a membership row (any status) are left untouched.
+// POST /parties/:id/invite { userIds } — a host or co-host invites users.
+// Users who already have a membership row (any status) are left untouched.
 app.post('/parties/:id/invite', async (req) => {
   const hostId = requireAccessUserId(req as any);
   const { id: partyId } = req.params as { id: string };
@@ -9849,16 +10039,36 @@ app.post('/parties/:id/invite', async (req) => {
   }
   if (body.userIds.length > 50) throw new AppError('Too many invites at once (max 50)', 400);
 
-  const party = await getPartyOr404(partyId);
-  if (party.hostId !== hostId) throw new AppError('Only the host can invite users', 403);
+  const { party } = await requirePartyManager(partyId, hostId);
+  if (party.status === 'CANCELLED') throw new AppError('This party was cancelled', 409);
 
   const requestedIds = Array.from(
     new Set(body.userIds.filter((u): u is string => typeof u === 'string' && u.trim().length > 0).map((u) => u.trim()))
   ).filter((id) => id !== hostId);
   if (requestedIds.length === 0) throw new AppError('No valid userIds to invite', 400);
 
-  const users = await prisma.user.findMany({ where: { id: { in: requestedIds } }, select: { id: true } });
-  const validIds = users.map((u) => u.id);
+  const users = await prisma.user.findMany({
+    where: { id: { in: requestedIds } },
+    select: { id: true, allowPartyInvites: true },
+  });
+
+  // Privacy: honor each invitee's allowPartyInvites. "FRIENDS" = the inviter
+  // follows the invitee (same degree-1 rule as buildLogVisibilityWhere).
+  const friendGated = users.filter((u) => u.allowPartyInvites === 'FRIENDS').map((u) => u.id);
+  const inviterFollows = friendGated.length
+    ? await prisma.follow.findMany({
+        where: { followerId: hostId, followingId: { in: friendGated } },
+        select: { followingId: true },
+      })
+    : [];
+  const followedSet = new Set(inviterFollows.map((f) => f.followingId));
+  const blocked = users
+    .filter((u) => u.allowPartyInvites === 'NOBODY' || (u.allowPartyInvites === 'FRIENDS' && !followedSet.has(u.id)))
+    .map((u) => u.id);
+  const blockedSet = new Set(blocked);
+
+  const foundIds = new Set(users.map((u) => u.id));
+  const validIds = users.map((u) => u.id).filter((id) => !blockedSet.has(id));
 
   // Snapshot pre-existing memberships so only genuinely new invites get
   // notified (createMany + skipDuplicates doesn't report which rows landed).
@@ -9877,22 +10087,185 @@ app.post('/parties/:id/invite', async (req) => {
       })
     : { count: 0 };
 
-  // NOTIFY: party invite -> each newly invited user
+  // NOTIFY: party invite -> each newly invited user (named after the actual
+  // inviter, who may be a co-host rather than the original host)
   const newlyInvited = validIds.filter((id) => !preexistingIds.has(id));
   if (newlyInvited.length) {
+    const inviter = await prisma.user.findUnique({ where: { id: hostId }, select: { username: true } });
     void notifyMany(newlyInvited, {
       type: 'party_invite',
       title: "You're invited",
-      body: `@${party.host.username} invited you: ${party.title}`,
+      body: `@${inviter?.username ?? party.host.username} invited you: ${party.title}`,
       data: { partyId },
       actorId: hostId,
     });
   }
 
-  return { invited: result.count, notFound: requestedIds.filter((id) => !validIds.includes(id)) };
+  return { invited: result.count, notFound: requestedIds.filter((id) => !foundIds.has(id)), blocked };
 });
 
-// POST /parties/:id/announcements { text } — host posts an announcement.
+// PATCH /parties/:id — a host or co-host edits the party's fields. Members
+// (hosts + going + invited) get a party_update notification.
+app.patch('/parties/:id', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+  const body = (req.body ?? {}) as {
+    title?: unknown;
+    description?: unknown;
+    location?: unknown;
+    startsAt?: unknown;
+    visibility?: unknown;
+  };
+
+  const { party } = await requirePartyManager(partyId, userId);
+  if (party.status === 'CANCELLED') throw new AppError('This party was cancelled', 409);
+
+  const data: Prisma.PartyUpdateInput = {};
+  if (body.title !== undefined) {
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    if (!title) throw new AppError('Title is required', 400);
+    if (title.length > 80) throw new AppError('Title too long (max 80)', 400);
+    data.title = title;
+  }
+  // description/location: string sets, empty string or null clears.
+  if (body.description !== undefined) {
+    if (body.description !== null && typeof body.description !== 'string') {
+      throw new AppError('description must be a string', 400);
+    }
+    data.description = typeof body.description === 'string' && body.description.trim() ? body.description.trim() : null;
+  }
+  if (body.location !== undefined) {
+    if (body.location !== null && typeof body.location !== 'string') {
+      throw new AppError('location must be a string', 400);
+    }
+    data.location = typeof body.location === 'string' && body.location.trim() ? body.location.trim() : null;
+  }
+  if (body.startsAt !== undefined) {
+    if (body.startsAt === null) {
+      data.startsAt = null;
+    } else {
+      const d = new Date(String(body.startsAt));
+      if (Number.isNaN(d.getTime())) throw new AppError('startsAt must be a valid ISO date', 400);
+      data.startsAt = d;
+    }
+  }
+  if (body.visibility !== undefined) {
+    const v = typeof body.visibility === 'string' ? body.visibility.trim().toUpperCase() : '';
+    if (v !== 'PUBLIC' && v !== 'INVITE') throw new AppError('visibility must be PUBLIC or INVITE', 400);
+    data.visibility = v;
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw new AppError('Provide at least one of title, description, location, startsAt, visibility', 400);
+  }
+
+  const updated = await prisma.party.update({
+    where: { id: partyId },
+    data,
+    include: { host: { select: PARTY_USER_SELECT } },
+  });
+
+  const [countsByParty, cohostsByParty, membership] = await Promise.all([
+    getPartyCounts([partyId]),
+    getPartyCohosts([partyId]),
+    prisma.partyMember.findUnique({
+      where: { partyId_userId: { partyId, userId } },
+      select: { status: true },
+    }),
+  ]);
+
+  // NOTIFY: party details changed -> members (minus the editor)
+  const audience = await getPartyNotifyAudience(party, userId);
+  if (audience.length) {
+    void notifyMany(audience, {
+      type: 'party_update',
+      title: 'Party updated',
+      body: `${updated.title} — details changed, check the plan`,
+      data: { partyId },
+      actorId: userId,
+    });
+  }
+
+  return serializeParty(
+    updated,
+    countsByParty.get(partyId)!,
+    membership?.status ?? (party.hostId === userId ? 'HOST' : null),
+    cohostsByParty.get(partyId)!
+  );
+});
+
+// POST /parties/:id/cancel — the original host (only — co-hosts can't) soft-
+// cancels the party. It stays readable for members with status CANCELLED so
+// clients can strike it through; join/invite/edit lock down.
+app.post('/parties/:id/cancel', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+
+  const party = await getPartyOr404(partyId);
+  if (party.hostId !== userId) throw new AppError('Only the host can cancel the party', 403);
+  if (party.status === 'CANCELLED') return { id: partyId, status: 'CANCELLED' as const };
+
+  await prisma.party.update({ where: { id: partyId }, data: { status: 'CANCELLED' } });
+
+  // NOTIFY: party cancelled -> members (minus the host)
+  const audience = await getPartyNotifyAudience(party, userId);
+  if (audience.length) {
+    void notifyMany(audience, {
+      type: 'party_cancelled',
+      title: 'Party cancelled',
+      body: `${party.title} was called off`,
+      data: { partyId },
+      actorId: userId,
+    });
+  }
+
+  return { id: partyId, status: 'CANCELLED' as const };
+});
+
+// POST /parties/:id/cohosts { userId } — the original host promotes a GOING
+// member to COHOST (joint hosting). Co-hosts can approve/deny requests,
+// invite, edit, and announce — only the original host can cancel or promote.
+app.post('/parties/:id/cohosts', async (req) => {
+  const hostId = requireAccessUserId(req as any);
+  const { id: partyId } = req.params as { id: string };
+  const body = (req.body ?? {}) as { userId?: unknown };
+
+  const targetUserId = typeof body.userId === 'string' ? body.userId.trim() : '';
+  if (!targetUserId) throw new AppError('userId is required', 400);
+
+  const party = await getPartyOr404(partyId);
+  if (party.hostId !== hostId) throw new AppError('Only the host can add co-hosts', 403);
+  if (party.status === 'CANCELLED') throw new AppError('This party was cancelled', 409);
+
+  const member = await prisma.partyMember.findUnique({
+    where: { partyId_userId: { partyId, userId: targetUserId } },
+    select: { id: true, status: true },
+  });
+  if (member?.status === 'COHOST') return { userId: targetUserId, status: 'COHOST' as const };
+  if (!member || member.status !== 'GOING') {
+    throw new AppError('Co-hosts are promoted from members who are going', 400);
+  }
+
+  const updated = await prisma.partyMember.update({
+    where: { id: member.id },
+    data: { status: 'COHOST', respondedAt: new Date() },
+    select: { userId: true, status: true },
+  });
+
+  // NOTIFY: promoted -> the new co-host
+  void notify(targetUserId, {
+    type: 'party_cohost',
+    title: "You're co-hosting",
+    body: `@${party.host.username} made you a co-host of ${party.title}`,
+    data: { partyId },
+    actorId: hostId,
+  });
+
+  return { userId: updated.userId, status: updated.status };
+});
+
+// POST /parties/:id/announcements { text } — a host or co-host posts an
+// announcement.
 app.post('/parties/:id/announcements', async (req, reply) => {
   const userId = requireAccessUserId(req as any);
   const { id: partyId } = req.params as { id: string };
@@ -9902,8 +10275,7 @@ app.post('/parties/:id/announcements', async (req, reply) => {
   if (!text) throw new AppError('Text is required', 400);
   if (text.length > 500) throw new AppError('Text too long (max 500)', 400);
 
-  const party = await getPartyOr404(partyId);
-  if (party.hostId !== userId) throw new AppError('Only the host can post announcements', 403);
+  await requirePartyManager(partyId, userId);
 
   const announcement = await prisma.partyAnnouncement.create({
     data: { partyId, authorId: userId, text },
@@ -9931,7 +10303,7 @@ async function requirePartyMember(partyId: string, userId: string) {
     where: { partyId_userId: { partyId, userId } },
     select: { status: true },
   });
-  if (!member || !['HOST', 'GOING', 'INVITED'].includes(member.status)) {
+  if (!member || !['HOST', 'COHOST', 'GOING', 'INVITED'].includes(member.status)) {
     throw new AppError('Party members only', 403);
   }
   return party;
@@ -10202,6 +10574,89 @@ app.patch('/users/me/discovery', async (req) => {
     select: { sameShowRadius: true, tasteRadius: true, showInGalleries: true },
   });
 
+  return updated;
+});
+
+// ==================== PRIVACY CONTROLS ====================
+// Per-user privacy settings (User.profileVisibility & co). Enforcement lives
+// at the read/write paths: buildUserProfilePayload (profileVisibility),
+// /users/:id/timeline (showTimeline), /users/:id/logs (showCollection),
+// /users/:id/venues (showMapCities), /parties/:id/invite (allowPartyInvites),
+// notifyMentions (allowMentions), /users/taste-match (appearInTasteMatch),
+// and POST /logs (defaultLogVisibility fallback).
+
+const PRIVACY_SELECT = {
+  profileVisibility: true,
+  defaultLogVisibility: true,
+  showTimeline: true,
+  showCollection: true,
+  showMapCities: true,
+  allowPartyInvites: true,
+  allowMentions: true,
+  appearInTasteMatch: true,
+} as const;
+
+const AUDIENCE_SETTINGS = new Set(['EVERYONE', 'FRIENDS', 'NOBODY']);
+
+function parseAudienceSetting(value: unknown, field: string): 'EVERYONE' | 'FRIENDS' | 'NOBODY' {
+  const v = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  if (!AUDIENCE_SETTINGS.has(v)) throw new AppError(`${field} must be one of EVERYONE, FRIENDS, NOBODY`, 400);
+  return v as 'EVERYONE' | 'FRIENDS' | 'NOBODY';
+}
+
+function parsePrivacyBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') throw new AppError(`${field} must be a boolean`, 400);
+  return value;
+}
+
+// GET /users/me/privacy — the viewer's privacy settings.
+app.get('/users/me/privacy', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: PRIVACY_SELECT });
+  if (!user) throw new AppError('User not found', 404);
+  return user;
+});
+
+// PATCH /users/me/privacy — partial update; unknown fields are ignored,
+// provided fields are validated strictly.
+app.patch('/users/me/privacy', async (req) => {
+  const userId = requireAccessUserId(req as any);
+  const body = (req.body ?? {}) as Record<string, unknown>;
+
+  const data: Prisma.UserUpdateInput = {};
+
+  if (body.profileVisibility !== undefined) {
+    const v = typeof body.profileVisibility === 'string' ? body.profileVisibility.trim().toUpperCase() : '';
+    if (v !== 'PUBLIC' && v !== 'FRIENDS' && v !== 'PRIVATE') {
+      throw new AppError('profileVisibility must be one of PUBLIC, FRIENDS, PRIVATE', 400);
+    }
+    data.profileVisibility = v;
+    // Keep the legacy settings alias in sync — privacySetting still drives
+    // the log-listing gate (buildLogVisibilityWhere) and GET/PATCH /settings.
+    data.privacySetting = v;
+  }
+
+  if (body.defaultLogVisibility !== undefined) {
+    const v = typeof body.defaultLogVisibility === 'string' ? body.defaultLogVisibility.trim().toUpperCase() : '';
+    if (v !== 'PUBLIC' && v !== 'FRIENDS') throw new AppError('defaultLogVisibility must be PUBLIC or FRIENDS', 400);
+    data.defaultLogVisibility = v;
+  }
+
+  if (body.showTimeline !== undefined) data.showTimeline = parsePrivacyBoolean(body.showTimeline, 'showTimeline');
+  if (body.showCollection !== undefined) data.showCollection = parsePrivacyBoolean(body.showCollection, 'showCollection');
+  if (body.showMapCities !== undefined) data.showMapCities = parsePrivacyBoolean(body.showMapCities, 'showMapCities');
+  if (body.appearInTasteMatch !== undefined) {
+    data.appearInTasteMatch = parsePrivacyBoolean(body.appearInTasteMatch, 'appearInTasteMatch');
+  }
+
+  if (body.allowPartyInvites !== undefined) {
+    data.allowPartyInvites = parseAudienceSetting(body.allowPartyInvites, 'allowPartyInvites');
+  }
+  if (body.allowMentions !== undefined) data.allowMentions = parseAudienceSetting(body.allowMentions, 'allowMentions');
+
+  if (Object.keys(data).length === 0) throw new AppError('Provide at least one privacy field', 400);
+
+  const updated = await prisma.user.update({ where: { id: userId }, data, select: PRIVACY_SELECT });
   return updated;
 });
 

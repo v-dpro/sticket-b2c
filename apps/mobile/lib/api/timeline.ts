@@ -28,6 +28,8 @@ export type TimelineEventRef = {
 };
 
 export type TimelineEventSummary = TimelineEventRef & {
+  /** Fallback-resolved cover art: event image ?? tour ad ?? artist image. */
+  imageUrl?: string;
   artist: TimelineArtist;
   venue: TimelineVenue;
 };

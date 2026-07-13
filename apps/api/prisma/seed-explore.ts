@@ -783,6 +783,73 @@ async function seedEventInterest(future: CatEvent[]): Promise<number> {
   return count;
 }
 
+// --- Parties (the Plan tab's Partiful lane) — one co-hosted party so the
+// joint-hosting path (hosts[] facepile, COHOST powers, guest-list groups)
+// has data: riley hosts, jasmine co-hosts, marcus going, priya invited,
+// zoe requested. Public, on the soonest future catalog event. ---
+
+async function seedParties(future: CatEvent[]): Promise<number> {
+  const event = future[0];
+  if (!event) {
+    console.log('  parties: skipped (no future catalog events)');
+    return 0;
+  }
+
+  const partyId = 'exp-party-cohosted';
+  // Deterministic: 3 hours before the show.
+  const startsAt = new Date(event.date.getTime() - 3 * 60 * 60 * 1000);
+
+  await prisma.party.upsert({
+    where: { id: partyId },
+    update: {
+      eventId: event.id,
+      hostId: riley,
+      title: 'Pre-show patio hang',
+      description: 'Meet early — drinks and setlist predictions before doors.',
+      location: `Patio bar near ${event.venueName}`,
+      startsAt,
+      visibility: 'PUBLIC',
+      status: 'ACTIVE',
+    },
+    create: {
+      id: partyId,
+      eventId: event.id,
+      hostId: riley,
+      title: 'Pre-show patio hang',
+      description: 'Meet early — drinks and setlist predictions before doors.',
+      location: `Patio bar near ${event.venueName}`,
+      startsAt,
+      visibility: 'PUBLIC',
+    },
+  });
+
+  const members = [
+    { userId: riley, status: 'HOST' },
+    { userId: jasmine, status: 'COHOST' }, // the second host
+    { userId: marcus, status: 'GOING' },
+    { userId: priya, status: 'INVITED' },
+    { userId: zoe, status: 'REQUESTED' },
+  ] as const;
+
+  for (const m of members) {
+    const responded = m.status === 'HOST' || m.status === 'COHOST' || m.status === 'GOING';
+    await prisma.partyMember.upsert({
+      where: { partyId_userId: { partyId, userId: m.userId } },
+      update: { status: m.status },
+      create: {
+        id: `exp-partymember-${m.userId.replace('exp-user-', '')}`,
+        partyId,
+        userId: m.userId,
+        status: m.status,
+        respondedAt: responded ? new Date() : null,
+      },
+    });
+  }
+
+  console.log(`  parties: 1 co-hosted (${partyId} on ${event.id}; hosts: riley + jasmine)`);
+  return 1;
+}
+
 // --- Presales (4-6, within the next 14 days, on artists Alex follows) ---
 
 const PRESALE_TYPES = ['Verified Fan', 'Artist Presale', 'Fan Club', 'American Express', 'Spotify', 'Citi Card'];
@@ -918,6 +985,7 @@ async function main() {
   const engagement = await seedEngagement(logRows);
   const threadMessageCount = await seedTourThread();
   const interestCount = await seedEventInterest(future);
+  const partyCount = await seedParties(future);
   const presaleCount = await seedPresales(future);
 
   console.log('\n=== EXPLORE SEED SUMMARY ===');
@@ -931,6 +999,7 @@ async function main() {
     comments: engagement.commentCount,
     'thread messages': threadMessageCount,
     'event interest': interestCount,
+    parties: partyCount,
     presales: presaleCount,
   });
 

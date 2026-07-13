@@ -2,7 +2,7 @@
 // up from the bottom (likers, were-here, share, seat section, co-authors,
 // party invites) renders inside this. Dismissal is physical, never a
 // button: tap the backdrop, swipe the sheet down past 120px / fling it
-// (velocity > 800), or Android back. Entrance is springs.sheet from below;
+// (velocity > 800), or Android back. Entrance is a plain eased slide-up;
 // exit is a 180ms slide-out, after which the parent's onClose runs.
 //
 // The swipe-down pan lives on a ~56px grab region over the grabber/header
@@ -13,6 +13,7 @@ import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } fro
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -89,7 +90,8 @@ export function BottomSheet({
       }
       closing.value = false;
       translateY.value = winH;
-      translateY.value = withSpring(0, springs.sheet);
+      // Plain slide-up (no spring overshoot): the sheet pops up and stops.
+      translateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
       backdrop.value = withTiming(1, { duration: 200 });
     } else if (mounted && !closing.value) {
       closing.value = true;

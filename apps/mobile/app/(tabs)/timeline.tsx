@@ -6,9 +6,9 @@
 // stay with the timeline — they're timeline moments.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { getUserTimeline, type TimelineEntry, type TimelineMonth, type TimelineUpcomingItem } from '../../lib/api/timeline';
@@ -29,6 +29,7 @@ import { countdownLabel, formatShortDate, monthLabel } from '../../components/ti
 import { ErrorState } from '../../components/ui/ErrorState';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { StubPerforation } from '../../components/ui/Stub';
 
 const PAGE_SIZE = 30;
 const MAP_BACKFILL_MAX_PAGES = 10;
@@ -78,7 +79,12 @@ export default function TimelineScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const loadingMoreRef = useRef(false);
 
-  const [viewMode, setViewMode] = useState<TimelineViewMode>('scroll');
+  // Deep-linkable view state (sticket://timeline?view=map&mode=map) — used
+  // by share links and the screenshot pipeline.
+  const params = useLocalSearchParams<{ view?: string; mode?: string }>();
+  const [viewMode, setViewMode] = useState<TimelineViewMode>(
+    params.view === 'map' ? 'map' : 'scroll',
+  );
   const [deckIndex, setDeckIndex] = useState(0);
   const deckRef = useRef<MemoryDeckHandle>(null);
   const pendingScrollKey = useRef<string | null>(null);
@@ -116,8 +122,25 @@ export default function TimelineScreen() {
     },
     viewFill: { flex: 1 },
     refreshHint: { position: 'absolute', top: 2, alignSelf: 'center', zIndex: 200 },
-    deckLabel: { alignItems: 'center', gap: 5, paddingHorizontal: 24 },
-    deckLabelName: { fontSize: 17, fontWeight: '700', color: t.colors.fg, textAlign: 'center' },
+    // Torn ticket ends — the strip is card-built (fill + hairline) with
+    // its outer corners rounded and the torn edge square against the card.
+    stubEnd: {
+      flex: 1,
+      backgroundColor: t.colors.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.hairline,
+      overflow: 'hidden', // clips the notch punches into side bites
+    },
+    stubEndTop: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+    stubEndBottom: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+    stubEndBody: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+      paddingHorizontal: 16,
+    },
+    deckLabelName: { fontSize: 15, fontWeight: '700', color: t.colors.fg, textAlign: 'center' },
     deckLabelMeta: {
       fontFamily: t.fontFamilies.mono,
       fontVariant: ['tabular-nums'],
@@ -247,12 +270,18 @@ export default function TimelineScreen() {
 
   const renderCard = useCallback(
     (item: DeckItem, _centered: boolean, cardMaxH: number) => {
+      const cardW = windowWidth - CARD_INSET * 2;
       if (item.kind === 'plan') {
-        // A plan with a party honors its "TAP TO JOIN" line.
+        // A plan with a party honors its "TAP TO JOIN" line. On the wheel
+        // it's photo-backed (tour art) like every other night — no details
+        // strip, so the photo gets the whole height budget.
         const party = item.item.party;
         return (
           <PlanCard
             item={item.item}
+            photoAspect={
+              cardMaxH > 300 ? Math.min(0.9, Math.max(0.5, cardW / cardMaxH)) : 0.78
+            }
             onPress={() =>
               party ? router.push(`/party/${party.id}`) : openEvent(item.item.event.id)
             }
@@ -262,7 +291,6 @@ export default function TimelineScreen() {
       if (isMemoryEntry(item.entry)) {
         // The photo IS the content: it takes every pixel the stage offers
         // above the ~50px details strip, instead of floating in dead space.
-        const cardW = windowWidth - CARD_INSET * 2;
         const photoAspect =
           cardMaxH > 300 ? Math.min(0.9, Math.max(0.5, cardW / (cardMaxH - 50))) : 0.78;
         return (
@@ -279,34 +307,38 @@ export default function TimelineScreen() {
     [openEvent, openLog, router, windowWidth],
   );
 
+  // The before/after slots are TORN TICKET ENDS: card-colored strips the
+  // width of the card, perforation facing center — the deck reads as one
+  // continuous roll of tickets with the current night torn out large.
   const renderLabel = useCallback(
-    (item: DeckItem) => {
-      if (item.kind === 'plan') {
-        const ev = item.item.event;
-        return (
-          <View style={styles.deckLabel}>
+    (item: DeckItem, edge: 'top' | 'bottom') => {
+      const name = item.kind === 'plan' ? item.item.event.name : item.entry.artist.name;
+      const meta =
+        item.kind === 'plan'
+          ? [item.item.event.venue?.name, countdownLabel(item.item.event.date)]
+              .filter(Boolean)
+              .join(' · ')
+          : [item.entry.venue.name, formatShortDate(item.entry.event.date)]
+              .filter(Boolean)
+              .join(' · ');
+      return (
+        <View
+          style={[styles.stubEnd, edge === 'top' ? styles.stubEndTop : styles.stubEndBottom]}
+        >
+          {edge === 'bottom' ? <StubPerforation notchColor={tokens.colors.bg} /> : null}
+          <View style={styles.stubEndBody}>
             <Text style={styles.deckLabelName} numberOfLines={1}>
-              {ev.name}
+              {name}
             </Text>
             <Text style={styles.deckLabelMeta} numberOfLines={1}>
-              {[ev.venue?.name, countdownLabel(ev.date)].filter(Boolean).join(' · ')}
+              {meta}
             </Text>
           </View>
-        );
-      }
-      const entry = item.entry;
-      return (
-        <View style={styles.deckLabel}>
-          <Text style={styles.deckLabelName} numberOfLines={1}>
-            {entry.artist.name}
-          </Text>
-          <Text style={styles.deckLabelMeta} numberOfLines={1}>
-            {[entry.venue.name, formatShortDate(entry.event.date)].filter(Boolean).join(' · ')}
-          </Text>
+          {edge === 'top' ? <StubPerforation notchColor={tokens.colors.bg} /> : null}
         </View>
       );
     },
-    [styles],
+    [styles, tokens],
   );
 
   // ── Map ⇄ Deck fly-to ─────────────────────────────────────────
@@ -448,6 +480,7 @@ export default function TimelineScreen() {
             months={months}
             loadingAll={mapLoadingAll}
             onPressMarker={flyToRow}
+            initialMode={params.mode === 'map' ? 'map' : undefined}
           />
         </Animated.View>
       ) : (

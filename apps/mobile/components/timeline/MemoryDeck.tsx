@@ -66,8 +66,9 @@ type MemoryDeckProps = {
       has been measured). Cards should SIZE THEMSELVES TO FILL it: slack
       here is dead screen between the card and the label slots. */
   renderCard: (item: DeckItem, isCentered: boolean, cardMaxH: number) => React.ReactNode;
-  /** Text-only face for the fixed before/after slots. */
-  renderLabel: (item: DeckItem) => React.ReactNode;
+  /** The torn ticket-end face for the fixed before/after slots. `edge` is
+      where the slot sits, so the perforation can face the center card. */
+  renderLabel: (item: DeckItem, edge: 'top' | 'bottom') => React.ReactNode;
   /** Month readout text per item ("JUL 2026" / "UPCOMING · AUG 2026"). */
   readoutFor: (item: DeckItem) => string;
   /** Rendered at the right of the readout row (Scroll ⇄ Map toggle). */
@@ -87,8 +88,8 @@ type MemoryDeckProps = {
 // Horizontal inset of the card layers — wider than screen pad so the big
 // vertical card leaves air for the wheel's tilt.
 export const CARD_INSET = 28;
-// Height of each fixed text slot (before/after nights).
-const LABEL_SLOT = 44;
+// Height of each fixed ticket-end slot (before/after nights).
+const LABEL_SLOT = 54;
 // The bottom slot floats this far above the stage floor — the nav bar's
 // ticket stub pops out of the bar and must never touch the label.
 const BOTTOM_LIFT = 12;
@@ -320,11 +321,12 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
       right: CARD_INSET,
       justifyContent: 'center',
     },
-    // Fixed text slots — the night before (top) and after (bottom).
+    // Fixed ticket-end slots — the night before (top) and after (bottom),
+    // aligned to the card column so the deck reads as one ticket roll.
     slot: {
       position: 'absolute',
-      left: 0,
-      right: 0,
+      left: CARD_INSET,
+      right: CARD_INSET,
       height: LABEL_SLOT,
       justifyContent: 'center',
       zIndex: 300,
@@ -362,8 +364,8 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
           {/* The night BEFORE — text only, pinned above the card. */}
           <View style={[styles.slot, { top: 0 }]} pointerEvents="none">
             {prevItem ? (
-              <Animated.View key={prevItem.key} entering={FadeIn.duration(160)}>
-                {renderLabel(prevItem)}
+              <Animated.View key={prevItem.key} entering={FadeIn.duration(160)} style={{ flex: 1 }}>
+                {renderLabel(prevItem, 'top')}
               </Animated.View>
             ) : null}
           </View>
@@ -389,8 +391,8 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
           {/* The night AFTER — text only, pinned below the card. */}
           <View style={[styles.slot, { bottom: BOTTOM_LIFT }]} pointerEvents="none">
             {nextItem ? (
-              <Animated.View key={nextItem.key} entering={FadeIn.duration(160)}>
-                {renderLabel(nextItem)}
+              <Animated.View key={nextItem.key} entering={FadeIn.duration(160)} style={{ flex: 1 }}>
+                {renderLabel(nextItem, 'bottom')}
               </Animated.View>
             ) : null}
           </View>

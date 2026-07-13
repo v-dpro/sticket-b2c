@@ -1,13 +1,14 @@
-// Plan · PARTIES — the Partiful lane: parties you're hosting (with join
-// requests to approve inline), going to, and invited to. Party rows are
-// STUBS (C3 — an invite is a ticket). Hosting starts from any event page;
-// the empty state points there.
+// Plan · PARTIES — the Partiful lane: parties you're hosting or co-hosting
+// (with join requests to approve inline), going to, and invited to. Party
+// rows are STUBS (C3 — an invite is a ticket); cancelled ones strike
+// through. Hosting starts here ("Host a party" → pick an upcoming show)
+// or from any event page.
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Animated from 'react-native-reanimated';
 
 import {
@@ -19,6 +20,7 @@ import {
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
+import { EventPickerSheet } from '../party/EventPickerSheet';
 import { ErrorState } from '../ui/ErrorState';
 import { PillButton } from '../ui/PillButton';
 import { SpringPressable } from '../ui/SpringPressable';
@@ -42,6 +44,7 @@ export function PartiesTab() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -53,9 +56,12 @@ export function PartiesTab() {
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Refresh on focus so a party created via the picker shows on return.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const styles = useThemedStyles((t) => ({
     center: { paddingVertical: 60, alignItems: 'center' },
@@ -80,7 +86,33 @@ export function PartiesTab() {
       overflow: 'hidden',
     },
     stubBody: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, gap: 3 },
+    // Cancelled parties stay listed, struck through (dimmed stub border).
+    stubCancelled: { borderColor: t.colors.line },
     title: { fontSize: 17, fontWeight: '800', letterSpacing: -0.2, color: t.colors.fg },
+    titleCancelled: { textDecorationLine: 'line-through', color: t.colors.mute },
+    // "Host a party" entry — dashed (the party doesn't exist yet).
+    hostRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginHorizontal: t.density.pad,
+      marginTop: 14,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.dash,
+      borderRadius: t.radius.card,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    hostRowText: { fontSize: 14, fontWeight: '600', color: t.colors.text },
+    hostRowCue: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
     when: {
       fontFamily: t.fontFamilies.monoSemi,
       fontVariant: ['tabular-nums'],
@@ -185,36 +217,26 @@ export function PartiesTab() {
       data.invited.length === 0 &&
       data.requests.length === 0);
 
-  if (empty) {
-    return (
-      <View style={styles.empty}>
-        <Ionicons name="sparkles-outline" size={36} color={tokens.colors.muteSoft} />
-        <Text style={styles.emptyTitle}>No parties yet</Text>
-        <Text style={styles.emptySub}>
-          Host a pregame or an afterparty from any show page — friends can request to join, or find it on Explore if it&apos;s public.
-        </Text>
-        <PillButton title="Find a show" springFeedback haptic="light" onPress={() => router.push('/(tabs)/explore')} />
-      </View>
-    );
-  }
-
   let i = 0;
   const renderParty = (party: PartyLite, statusChip?: string) => {
     const idx = i++;
+    const cancelled = party.status === 'CANCELLED';
     return (
       <Animated.View key={party.id} entering={tearIn(Math.min(idx, 8) * durations.stagger)}>
         <SpringPressable
           haptic="light"
           onPress={() => router.push(`/party/${party.id}`)}
           accessibilityRole="button"
-          accessibilityLabel={`${party.title}, ${partyWhen(party)}`}
-          style={styles.stub}
+          accessibilityLabel={
+            cancelled ? `${party.title}, cancelled` : `${party.title}, ${partyWhen(party)}`
+          }
+          style={[styles.stub, cancelled && styles.stubCancelled]}
         >
           <View style={styles.stubBody}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={[styles.title, cancelled && styles.titleCancelled]} numberOfLines={1}>
               {party.title}
             </Text>
-            <Text style={styles.when}>{partyWhen(party)}</Text>
+            <Text style={styles.when}>{cancelled ? 'CANCELLED' : partyWhen(party)}</Text>
             <Text style={styles.eventLine} numberOfLines={1}>
               {party.event.artist?.name ?? party.event.name}
               {party.event.venue?.name ? ` · ${party.event.venue.name}` : ''}
@@ -238,7 +260,36 @@ export function PartiesTab() {
 
   return (
     <View>
-      {data.requests.length > 0 ? (
+      {empty ? (
+        <View style={styles.empty}>
+          <Ionicons name="sparkles-outline" size={36} color={tokens.colors.muteSoft} />
+          <Text style={styles.emptyTitle}>No parties yet</Text>
+          <Text style={styles.emptySub}>
+            Host a pregame or an afterparty for one of your shows — friends can request to join, or find it on Explore if it&apos;s public.
+          </Text>
+          <PillButton
+            title="Host a party"
+            variant="primary"
+            springFeedback
+            haptic="medium"
+            onPress={() => setPickerOpen(true)}
+          />
+          <PillButton title="Find a show" variant="ghost" springFeedback haptic="light" onPress={() => router.push('/(tabs)/explore')} />
+        </View>
+      ) : (
+        <SpringPressable
+          haptic="light"
+          onPress={() => setPickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Host a party"
+          style={styles.hostRow}
+        >
+          <Text style={styles.hostRowText}>Host a party</Text>
+          <Text style={styles.hostRowCue}>Pick a show →</Text>
+        </SpringPressable>
+      )}
+
+      {data && data.requests.length > 0 ? (
         <View>
           <Text style={styles.section}>Requests to join</Text>
           {data.requests.map((req) => {
@@ -289,24 +340,36 @@ export function PartiesTab() {
         </View>
       ) : null}
 
-      {data.hosting.length > 0 ? (
+      {data && data.hosting.length > 0 ? (
         <View>
           <Text style={styles.section}>Hosting</Text>
-          {data.hosting.map((p) => renderParty(p, 'HOST'))}
+          {data.hosting.map((p) => renderParty(p, p.myStatus === 'COHOST' ? 'CO-HOST' : 'HOST'))}
         </View>
       ) : null}
-      {data.invited.length > 0 ? (
+      {data && data.invited.length > 0 ? (
         <View>
           <Text style={styles.section}>Invited</Text>
           {data.invited.map((p) => renderParty(p, 'INVITED'))}
         </View>
       ) : null}
-      {data.going.length > 0 ? (
+      {data && data.going.length > 0 ? (
         <View>
           <Text style={styles.section}>Going</Text>
           {data.going.map((p) => renderParty(p))}
         </View>
       ) : null}
+
+      <EventPickerSheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(event) => {
+          setPickerOpen(false);
+          router.push({
+            pathname: '/party/create',
+            params: { eventId: event.id, eventName: event.name, eventDate: event.date },
+          });
+        }}
+      />
     </View>
   );
 }

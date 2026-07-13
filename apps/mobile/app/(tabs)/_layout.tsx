@@ -49,6 +49,9 @@ export default function TabsLayout() {
           height: 54 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 6,
+          // Thumb reach: squeeze the row inward so the outer tabs don't
+          // live in the corners.
+          paddingHorizontal: 26,
           elevation: 0,
           shadowOpacity: 0,
         },

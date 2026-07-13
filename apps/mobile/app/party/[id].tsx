@@ -1,9 +1,9 @@
 // Party page — a host-run pre/post-show meetup attached to an event.
-// Eyebrow PARTY → event link → title → host row → when/where mono block →
-// status CTA (state matrix below) → host tools (requests / invite /
-// announcement composer) → announcements → members facepile.
+// Eyebrow PARTY → event link → title → hosts row (facepile when co-hosted)
+// → when/where mono block → status CTA (state matrix below) → host tools
+// (requests / invite / edit / share) → announcements → chat → guest list.
 //
-// Status matrix (yourStatus):
+// Status matrix (myRole):
 //   null + PUBLIC  → primary "Request to join"        (POST /join → REQUESTED)
 //   REQUESTED      → disabled "Requested" + mute line
 //   INVITED        → primary "Accept invite"          (POST /join → GOING)
@@ -11,11 +11,15 @@
 //                    leave-party endpoint yet, so "Can't make it" is
 //                    intentionally omitted.
 //   DECLINED       → PUBLIC: request again · INVITE: quiet mute line
-//   HOST           → "You're hosting" chip + requests list + invite sheet +
-//                    announcement composer + cancel party.
+//   COHOST         → "You're co-hosting" chip + every host tool except cancel
+//   HOST           → "You're hosting" chip + host tools + cancel party.
+//
+// Cancelled parties (status CANCELLED) stay readable to members: struck-
+// through title + CANCELLED eyebrow, all actions folded away.
 //
 // APIs: GET /parties/:id · POST /parties/:id/join · /respond · /invite ·
-// /announcements · DELETE /parties/:id (lib/api/parties.ts).
+// /cohosts · /cancel · PATCH /parties/:id · /announcements
+// (lib/api/parties.ts).
 
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -26,6 +30,7 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
+  Share,
   Text,
   TextInput,
   View,
@@ -37,6 +42,7 @@ import { Facepile, QuietEmpty, SectionLabel } from '../../components/entity/Enti
 import { EntityNav } from '../../components/entity/EntityChrome';
 import { EntityError, EntityPageSkeleton } from '../../components/entity/EntityStates';
 import { monoDateTime } from '../../components/entity/format';
+import { GuestListSheet } from '../../components/party/GuestListSheet';
 import { InviteFriendsSheet } from '../../components/party/InviteFriendsSheet';
 import { Avatar } from '../../components/ui/Avatar';
 import { PillButton } from '../../components/ui/PillButton';
@@ -44,13 +50,14 @@ import { SpringPressable } from '../../components/ui/SpringPressable';
 
 import { getEvent } from '../../lib/api/events';
 import {
-  deleteParty,
+  cancelParty,
   getParty,
   getPartyMessages,
   inviteToParty,
   joinParty,
   postPartyAnnouncement,
   postPartyMessage,
+  promoteCohost,
   respondToRequest,
   type PartyDetail,
   type PartyMessage,
@@ -58,6 +65,7 @@ import {
 import { MessageRow } from '../../components/threads/MessageRow';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
+import { createPartyLink } from '../../lib/share/deepLinks';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { StubPerforation } from '../../components/ui/Stub';
 
@@ -81,6 +89,7 @@ export default function PartyScreen() {
   const [joinBusy, setJoinBusy] = useState(false);
   const [respondBusyId, setRespondBusyId] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [guestsOpen, setGuestsOpen] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [postingAnnouncement, setPostingAnnouncement] = useState(false);
 
@@ -136,11 +145,13 @@ export default function PartyScreen() {
     }
   }, [id]);
 
-  // Poll-refresh on focus (no websockets v1) — also covers the first load.
+  // Poll-refresh on focus (no websockets v1) — also covers the first load,
+  // and picks up edits saved in the /party/edit modal on the way back.
   useFocusEffect(
     useCallback(() => {
+      void load();
       void loadChat();
-    }, [loadChat]),
+    }, [load, loadChat]),
   );
 
   // Best-effort event name for the link line.
@@ -220,6 +231,35 @@ export default function PartyScreen() {
     void load();
   };
 
+  // Original host only — promote a GOING member to co-host.
+  const handlePromote = async (userId: string) => {
+    if (!party || respondBusyId) return;
+    setRespondBusyId(userId);
+    try {
+      await promoteCohost(party.id, userId);
+      haptics.success();
+      await load();
+    } catch {
+      haptics.error();
+    } finally {
+      setRespondBusyId(null);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!party) return;
+    const url = createPartyLink(party.id);
+    try {
+      await Share.share({
+        title: party.title,
+        message: `${party.title}${eventName ? ` — ${eventName}` : ''} — ${url}`,
+        url,
+      });
+    } catch {
+      // sheet dismissed
+    }
+  };
+
   const handlePostAnnouncement = async () => {
     const text = announcementText.trim();
     if (!party || !text || postingAnnouncement) return;
@@ -257,18 +297,21 @@ export default function PartyScreen() {
     }
   };
 
+  // Soft cancel — the party stays readable (struck through) for members;
+  // everyone going/invited gets a party_cancelled notification.
   const handleCancelParty = () => {
     if (!party) return;
-    Alert.alert('Cancel this party?', 'Everyone loses access — this can’t be undone.', [
+    Alert.alert('Cancel this party?', 'Everyone on the list is told it’s off — this can’t be undone.', [
       { text: 'Keep it', style: 'cancel' },
       {
         text: 'Cancel party',
         style: 'destructive',
         onPress: () => {
-          void deleteParty(party.id)
+          void cancelParty(party.id)
             .then(() => {
               haptics.medium();
-              goBack();
+              setParty((prev) => (prev ? { ...prev, status: 'CANCELLED' } : prev));
+              void load();
             })
             .catch(() => haptics.error());
         },
@@ -307,6 +350,8 @@ export default function PartyScreen() {
       marginTop: 6,
       lineHeight: 25,
     },
+    // Cancelled = struck through, dimmed — the party stays readable.
+    titleCancelled: { textDecorationLine: 'line-through', color: t.colors.mute },
     eventLink: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 11,
@@ -335,6 +380,8 @@ export default function PartyScreen() {
     },
     description: { fontSize: 14.5, fontWeight: '400', color: t.colors.textSoft, lineHeight: 21, marginTop: 14 },
     ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20, flexWrap: 'wrap' },
+    // Edit / Share host tools sit beside the status chip.
+    manageRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' },
     statusChip: {
       borderRadius: t.radius.full,
       backgroundColor: t.colors.inverseBg,
@@ -449,18 +496,34 @@ export default function PartyScreen() {
     );
   }
 
-  const status = party.yourStatus;
-  const isHost = status === 'HOST';
-  const hostName = party.host.displayName ?? party.host.username;
-  const pendingRequests = isHost ? party.members.filter((m) => m.status === 'REQUESTED') : [];
-  const goingMembers = party.members.filter((m) => m.status === 'HOST' || m.status === 'GOING');
+  const status = party.myRole ?? party.yourStatus;
+  const isOriginalHost = status === 'HOST';
+  // Host powers (requests / invite / edit / announce) — cancel stays with
+  // the original host.
+  const canManage = status === 'HOST' || status === 'COHOST';
+  const cancelled = party.status === 'CANCELLED';
+  const hosts = party.hosts && party.hosts.length > 0 ? party.hosts : [party.host];
+  const hostName = hosts.map((h) => h.displayName ?? h.username).join(' + ');
+  const pendingRequests = canManage ? party.members.filter((m) => m.status === 'REQUESTED') : [];
+  const goingMembers = party.members.filter(
+    (m) => m.status === 'HOST' || m.status === 'COHOST' || m.status === 'GOING',
+  );
 
   // ── Status CTA (see matrix in the header comment) ─────────────────
   let cta: React.ReactNode = null;
-  if (isHost) {
+  if (cancelled) {
+    // No actions on a cancelled party — the header state says it all.
+    cta = null;
+  } else if (isOriginalHost) {
     cta = (
       <View style={styles.statusChip}>
         <Text style={styles.statusChipText}>You're hosting</Text>
+      </View>
+    );
+  } else if (status === 'COHOST') {
+    cta = (
+      <View style={styles.statusChip}>
+        <Text style={styles.statusChipText}>You're co-hosting</Text>
       </View>
     );
   } else if (status === 'GOING') {
@@ -507,15 +570,17 @@ export default function PartyScreen() {
     );
   }
 
-  const ctaNote = isHost
-    ? null
-    : status === 'REQUESTED'
-      ? 'Waiting on the host — you’ll be in once they approve.'
-      : status === 'INVITED'
-        ? `${hostName} invited you.`
-        : status === 'DECLINED' && party.visibility === 'INVITE'
-          ? 'You’re not on the list for this one.'
-          : null;
+  const ctaNote = cancelled
+    ? 'The hosts called this one off.'
+    : canManage
+      ? null
+      : status === 'REQUESTED'
+        ? 'Waiting on the host — you’ll be in once they approve.'
+        : status === 'INVITED'
+          ? `${hostName} invited you.`
+          : status === 'DECLINED' && party.visibility === 'INVITE'
+            ? 'You’re not on the list for this one.'
+            : null;
 
   return (
     <View style={styles.screen}>
@@ -547,8 +612,10 @@ export default function PartyScreen() {
             {/* ── Header — the party card is a STUB (an invite is a ticket) ── */}
             <View style={styles.stubCard}>
               <View style={styles.stubBody}>
-                <Text style={styles.eyebrow}>Party</Text>
-                <Text style={styles.title}>{party.title}</Text>
+                <Text style={styles.eyebrow}>{cancelled ? 'Party · Cancelled' : 'Party'}</Text>
+                <Text style={[styles.title, cancelled && styles.titleCancelled]}>
+                  {party.title}
+                </Text>
                 <SpringPressable
                   haptic="light"
                   onPress={() =>
@@ -586,16 +653,27 @@ export default function PartyScreen() {
 
               <StubPerforation notchColor={tokens.colors.bg} />
 
-              {/* ── Host row ── */}
+              {/* ── Hosts row — facepile when co-hosted ("Hosted by A + B") ── */}
               <View style={styles.stubFooter}>
                 <View style={styles.hostRow}>
-                  <Avatar uri={party.host.avatarUrl} name={hostName} size={32} />
+                  {hosts.length > 1 ? (
+                    <Facepile
+                      people={hosts.map((h) => ({
+                        id: h.id,
+                        username: h.username,
+                        avatarUrl: h.avatarUrl,
+                      }))}
+                      size={32}
+                    />
+                  ) : (
+                    <Avatar uri={party.host.avatarUrl} name={hostName} size={32} />
+                  )}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.hostName} numberOfLines={1}>
                       Hosted by {hostName}
                     </Text>
                     <Text style={styles.hostUsername} numberOfLines={1}>
-                      @{party.host.username}
+                      {hosts.map((h) => `@${h.username}`).join(' + ')}
                     </Text>
                   </View>
                 </View>
@@ -610,8 +688,34 @@ export default function PartyScreen() {
             {cta ? <View style={styles.ctaRow}>{cta}</View> : null}
             {ctaNote ? <Text style={styles.muteLine}>{ctaNote}</Text> : null}
 
-            {/* ── Host: invite friends (dashed = not-yet-there people) ── */}
-            {isHost ? (
+            {/* ── Everyone: share the party. Hosts: edit. ── */}
+            {!cancelled ? (
+              <View style={styles.manageRow}>
+                {canManage ? (
+                  <PillButton
+                    title="Edit"
+                    variant="secondary"
+                    size="sm"
+                    springFeedback
+                    haptic="light"
+                    onPress={() =>
+                      router.push({ pathname: '/party/edit', params: { id: party.id } })
+                    }
+                  />
+                ) : null}
+                <PillButton
+                  title="Share"
+                  variant="secondary"
+                  size="sm"
+                  springFeedback
+                  haptic="light"
+                  onPress={() => void handleShare()}
+                />
+              </View>
+            ) : null}
+
+            {/* ── Hosts: invite friends (dashed = not-yet-there people) ── */}
+            {canManage && !cancelled ? (
               <SpringPressable
                 haptic="light"
                 onPress={() => setInviteOpen(true)}
@@ -624,8 +728,8 @@ export default function PartyScreen() {
               </SpringPressable>
             ) : null}
 
-            {/* ── Host: pending requests ── */}
-            {isHost && pendingRequests.length > 0 ? (
+            {/* ── Hosts: pending requests ── */}
+            {canManage && !cancelled && pendingRequests.length > 0 ? (
               <View style={styles.section}>
                 <SectionLabel>{`Requests · ${pendingRequests.length}`}</SectionLabel>
                 {pendingRequests.map((m, i) => (
@@ -674,11 +778,11 @@ export default function PartyScreen() {
               </View>
             ) : null}
 
-            {/* ── Announcements (host composes; everyone reads) ── */}
-            {isHost || party.announcements.length > 0 ? (
+            {/* ── Announcements (hosts compose; everyone reads) ── */}
+            {(canManage && !cancelled) || party.announcements.length > 0 ? (
               <View style={styles.section}>
                 <SectionLabel>Announcements</SectionLabel>
-                {isHost ? (
+                {canManage && !cancelled ? (
                   <View style={styles.composerRow}>
                     <TextInput
                       style={styles.composerInput}
@@ -743,7 +847,9 @@ export default function PartyScreen() {
                   />
                 ))
               )}
-              {chatStatus === 'ready' && (status === 'HOST' || status === 'GOING') ? (
+              {chatStatus === 'ready' &&
+              !cancelled &&
+              (status === 'HOST' || status === 'COHOST' || status === 'GOING') ? (
                 <View style={[styles.composerRow, styles.chatComposer]}>
                   <TextInput
                     style={styles.composerInput}
@@ -767,33 +873,41 @@ export default function PartyScreen() {
               ) : null}
             </View>
 
-            {/* ── Members ── */}
+            {/* ── Guest list (tap → full grouped list in a sheet) ── */}
             <View style={styles.section}>
-              <SectionLabel>Who's going</SectionLabel>
-              <Animated.View entering={FadeInDown.duration(240)} style={styles.membersRow}>
-                {goingMembers.length > 0 ? (
-                  <Facepile
-                    people={goingMembers.map((m) => ({
-                      id: m.user.id,
-                      username: m.user.username,
-                      avatarUrl: m.user.avatarUrl,
-                    }))}
-                  />
-                ) : null}
-                <Text style={styles.membersCount}>
-                  {party.counts.going} going
-                  {party.counts.requested > 0 && isHost
-                    ? ` · ${party.counts.requested} requested`
-                    : ''}
-                  {party.counts.invited > 0 && isHost
-                    ? ` · ${party.counts.invited} invited`
-                    : ''}
-                </Text>
-              </Animated.View>
+              <SectionLabel>Guest list</SectionLabel>
+              <SpringPressable
+                haptic="light"
+                onPress={() => setGuestsOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Open the guest list"
+              >
+                <Animated.View entering={FadeInDown.duration(240)} style={styles.membersRow}>
+                  {goingMembers.length > 0 ? (
+                    <Facepile
+                      people={goingMembers.map((m) => ({
+                        id: m.user.id,
+                        username: m.user.username,
+                        avatarUrl: m.user.avatarUrl,
+                      }))}
+                    />
+                  ) : null}
+                  <Text style={styles.membersCount}>
+                    {party.counts.going} going
+                    {party.counts.requested > 0 && canManage
+                      ? ` · ${party.counts.requested} requested`
+                      : ''}
+                    {party.counts.invited > 0 && canManage
+                      ? ` · ${party.counts.invited} invited`
+                      : ''}
+                    {'  →'}
+                  </Text>
+                </Animated.View>
+              </SpringPressable>
             </View>
 
-            {/* ── Host: cancel ── */}
-            {isHost ? (
+            {/* ── Original host only: cancel (soft — members keep the page) ── */}
+            {isOriginalHost && !cancelled ? (
               <View style={styles.cancelRow}>
                 <PillButton
                   title="Cancel this party"
@@ -814,6 +928,17 @@ export default function PartyScreen() {
         onClose={() => setInviteOpen(false)}
         onInvite={handleInvite}
         excludeIds={party.members.map((m) => m.user.id)}
+      />
+
+      <GuestListSheet
+        visible={guestsOpen}
+        onClose={() => setGuestsOpen(false)}
+        party={party}
+        canManage={canManage && !cancelled}
+        isOriginalHost={isOriginalHost && !cancelled}
+        onRespond={(userId, accept) => void handleRespond(userId, accept)}
+        onPromote={(userId) => void handlePromote(userId)}
+        busyUserId={respondBusyId}
       />
     </View>
   );

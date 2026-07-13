@@ -1,9 +1,12 @@
 // lib/api/parties.ts — typed client for the party (event meetup) endpoints.
 //
 // A Party is a host-run pre/post-show meetup attached to an Event.
-// Membership states: HOST (creator), INVITED (host invited, hasn't answered),
-// REQUESTED (asked to join a PUBLIC party), GOING (approved / accepted),
-// DECLINED (host declined a request).
+// Membership states: HOST (creator), COHOST (promoted GOING member with host
+// powers — approve/deny, invite, edit, announce; not cancel/promote),
+// INVITED (host invited, hasn't answered), REQUESTED (asked to join a PUBLIC
+// party), GOING (approved / accepted), DECLINED (host declined a request).
+// Cancelling is soft: the party stays readable with status CANCELLED so
+// members see it struck through.
 //
 // NOTE: there is no leave-party endpoint yet — once GOING, a member stays on
 // the list. The party page intentionally omits a "Can't make it" action.
@@ -12,7 +15,9 @@ import { apiClient } from './client';
 
 export type PartyVisibility = 'PUBLIC' | 'INVITE';
 
-export type PartyMemberStatus = 'HOST' | 'INVITED' | 'REQUESTED' | 'GOING' | 'DECLINED';
+export type PartyStatus = 'ACTIVE' | 'CANCELLED';
+
+export type PartyMemberStatus = 'HOST' | 'COHOST' | 'INVITED' | 'REQUESTED' | 'GOING' | 'DECLINED';
 
 export interface PartyUser {
   id: string;
@@ -36,10 +41,15 @@ export interface Party {
   location?: string;
   startsAt?: string; // ISO
   visibility: PartyVisibility;
+  status: PartyStatus;
   createdAt: string;
   host: PartyUser;
+  /** All hosts, original host first, then co-hosts. */
+  hosts: PartyUser[];
   counts: PartyCounts;
   yourStatus: PartyMemberStatus | null;
+  /** Alias of yourStatus under the role reading (HOST/COHOST/GOING/...). */
+  myRole: PartyMemberStatus | null;
 }
 
 export interface PartyMember {
@@ -110,13 +120,47 @@ export async function respondToRequest(
   return response.data;
 }
 
-// POST /parties/:id/invite — host invites users (existing membership rows,
-// any status, are left untouched).
+// POST /parties/:id/invite — a host or co-host invites users (existing
+// membership rows, any status, are left untouched).
 export async function inviteToParty(
   partyId: string,
   userIds: string[],
 ): Promise<{ invited: number; notFound: string[] }> {
   const response = await apiClient.post(`/parties/${partyId}/invite`, { userIds });
+  return response.data;
+}
+
+/** PATCH /parties/:id body — omitted fields are untouched; null clears the
+ * optional ones. */
+export interface UpdatePartyInput {
+  title?: string;
+  description?: string | null;
+  location?: string | null;
+  startsAt?: string | null; // ISO
+  visibility?: PartyVisibility;
+}
+
+// PATCH /parties/:id — a host or co-host edits the party. Members are
+// notified (party_update) server-side.
+export async function updateParty(partyId: string, input: UpdatePartyInput): Promise<Party> {
+  const response = await apiClient.patch(`/parties/${partyId}`, input);
+  return response.data;
+}
+
+// POST /parties/:id/cancel — the original host soft-cancels (status
+// CANCELLED, members notified). The party stays readable, struck through.
+export async function cancelParty(partyId: string): Promise<{ id: string; status: PartyStatus }> {
+  const response = await apiClient.post(`/parties/${partyId}/cancel`);
+  return response.data;
+}
+
+// POST /parties/:id/cohosts — the original host promotes a GOING member to
+// co-host (they're notified with party_cohost).
+export async function promoteCohost(
+  partyId: string,
+  userId: string,
+): Promise<{ userId: string; status: PartyMemberStatus }> {
+  const response = await apiClient.post(`/parties/${partyId}/cohosts`, { userId });
   return response.data;
 }
 
@@ -164,6 +208,7 @@ export interface PartyLite {
   startsAt: string | null;
   location?: string | null;
   visibility: PartyVisibility;
+  status: PartyStatus;
   event: {
     id: string;
     name: string;

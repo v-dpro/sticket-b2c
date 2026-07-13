@@ -1,7 +1,6 @@
 // AttendeesSheet — the Facepile Taste Popup. Hold or tap the "were there"
-// facepile on a post to preview who's in it, without unmasking anyone:
-// each row is an avatar + the degree word only (FRIEND / FRIENDS+), never
-// a name or handle. Once GET /users/taste-match resolves, a big mono
+// facepile on a post to see who's in it: avatar, NAME, and the degree
+// word (FRIEND / FRIENDS+). Once GET /users/taste-match resolves, a big mono
 // percentage + "TASTE MATCH" caption lands on the row (shimmer dashes
 // while it's in flight; omitted entirely if the pair has no score).
 // Tapping a row is still the fast path to stalking someone — it closes
@@ -17,25 +16,35 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { getTasteMatch } from '../../lib/api/tasteMatch';
+import type { WhoSawAttendedEvent } from '../../lib/api/whoSaw';
 import type { ThemeTokens } from '../../lib/theme';
 import { useThemedStyles } from '../../lib/theme-context';
+import { monoDate } from '../entity/format';
 import { Avatar } from '../ui/Avatar';
 import { BottomSheet } from '../ui/BottomSheet';
 import { Skeleton } from '../ui/Skeleton';
 import { SpringPressable } from '../ui/SpringPressable';
 import type { FacePerson } from '../ui/DegreeFacepile';
 
+/** Feed tiles pass plain FacePersons; the tour page's carry attendedEvents. */
+type AttendeePerson = FacePerson & { attendedEvents?: WhoSawAttendedEvent[] };
+
 interface AttendeesSheetProps {
   visible: boolean;
   onClose: () => void;
   /** The tile's were-there people — same array DegreeFacepile renders. */
-  people: FacePerson[];
+  people: AttendeePerson[];
+  /**
+   * 'tour' lists each person's attended shows ("VENUE · JUN 27") under
+   * their name — tour page only. Default rendering is unchanged.
+   */
+  variant?: 'tour';
 }
 
 const AVATAR_SIZE = 44;
 const RING_WIDTH = 2;
 
-export function AttendeesSheet({ visible, onClose, people }: AttendeesSheetProps) {
+export function AttendeesSheet({ visible, onClose, people, variant }: AttendeesSheetProps) {
   const router = useRouter();
   const styles = useThemedStyles(buildStyles);
 
@@ -95,6 +104,9 @@ export function AttendeesSheet({ visible, onClose, people }: AttendeesSheetProps
             style={isFriend ? styles.friendRing : undefined}
           />
           <View style={styles.rowBody}>
+            <Text style={styles.personName} numberOfLines={1}>
+              {item.displayName || item.username}
+            </Text>
             <Text style={styles.degreeWord}>{isFriend ? 'FRIEND' : 'FRIENDS+'}</Text>
           </View>
           {loading ? (
@@ -168,6 +180,12 @@ const buildStyles = (tokens: ThemeTokens) =>
     rowBody: {
       flex: 1,
       justifyContent: 'center',
+      gap: 2,
+    },
+    personName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: tokens.colors.fg,
     },
     degreeWord: {
       fontFamily: tokens.fontFamilies.mono,

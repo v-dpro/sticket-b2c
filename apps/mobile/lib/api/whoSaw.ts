@@ -8,8 +8,20 @@
 import { apiClient } from './client';
 import type { FacePerson } from '../../components/ui/DegreeFacepile';
 
+/** One show of the tour a who-saw person attended (tour endpoint only). */
+export interface WhoSawAttendedEvent {
+  eventId: string;
+  name: string;
+  venueName: string;
+  city: string;
+  date: string;
+}
+
+/** attendedEvents is present on the tour endpoint, absent on the artist one. */
+export type WhoSawPerson = FacePerson & { attendedEvents?: WhoSawAttendedEvent[] };
+
 export interface WhoSawResponse {
-  people: FacePerson[];
+  people: WhoSawPerson[];
   totalCount: number;
 }
 

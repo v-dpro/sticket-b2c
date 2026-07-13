@@ -31,6 +31,10 @@ export function createVenueLink(venueId: string): string {
   return `${WEB_URL}/venue/${venueId}`;
 }
 
+export function createPartyLink(partyId: string): string {
+  return `${WEB_URL}/party/${partyId}`;
+}
+
 export function createUserLink(userIdOrUsername: string): string {
   // Matches the web “@username” convention.
   return `${WEB_URL}/@${userIdOrUsername}`;
@@ -109,6 +113,9 @@ function navigateToDeepLink(link: DeepLink, navigate: (path: string) => void) {
       break;
     case 'venue':
       navigate(`/venue/${link.id}`);
+      break;
+    case 'party':
+      navigate(`/party/${link.id}`);
       break;
     case 'user':
       // In the app, profiles are `/profile/[id]`.

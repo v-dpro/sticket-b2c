@@ -51,7 +51,7 @@ export interface ShareOptions {
 }
 
 export interface DeepLink {
-  type: 'log' | 'event' | 'artist' | 'venue' | 'user';
+  type: 'log' | 'event' | 'artist' | 'venue' | 'user' | 'party';
   id: string;
   url: string;
 }

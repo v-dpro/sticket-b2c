@@ -27,9 +27,7 @@ import { BareScore } from '../ui/Stub';
 import { SpringPressable } from '../ui/SpringPressable';
 import { formatScore } from './format';
 import { buildMapGrid, type MapCell, type MapGranularity, type MapRow } from './mapModel';
-import { useRouter } from 'expo-router';
-import { useSession } from '../../hooks/useSession';
-import { ProfileMapView } from '../profile/MapView';
+import { GlobeView, buildGlobePoints } from './GlobeView';
 
 const COLUMNS = 3;
 const GRID_GAP = 3;
@@ -37,6 +35,8 @@ const GRID_GAP = 3;
 const STAGGER_CUTOFF = 12;
 
 type TimelineMapViewProps = {
+  /** Open on a specific sub-mode (deep links / screenshot pipeline). */
+  initialMode?: MapGranularity | 'map';
   upcoming: TimelineUpcomingItem[];
   months: TimelineMonth[];
   /** True while the parent is backfilling older pages so the map is complete. */
@@ -111,17 +111,13 @@ function GridCell({
   return <Animated.View entering={tearIn(cell.index * durations.stagger)}>{body}</Animated.View>;
 }
 
-export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }: TimelineMapViewProps) {
+export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, initialMode }: TimelineMapViewProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles(buildStyles);
   const { width } = useWindowDimensions();
 
   // Overview granularity: week / month / year grids, or the real MAP.
-  const [mode, setMode] = useState<MapGranularity | 'map'>('month');
-  const router = useRouter();
-  const { user } = useSession();
-  const userId = user?.id ?? null;
-  const openVenue = useCallback((venueId: string) => router.push(`/venue/${venueId}`), [router]);
+  const [mode, setMode] = useState<MapGranularity | 'map'>(initialMode ?? 'month');
 
   const rows = useMemo(
     () => buildMapGrid(upcoming, months, mode === 'map' ? 'month' : mode),
@@ -132,6 +128,10 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }:
     const usable = width - tokens.density.pad * 2 - GRID_GAP * (COLUMNS - 1);
     return Math.floor(usable / COLUMNS);
   }, [width, tokens.density.pad]);
+
+  // Globe dots come from the SAME data the grids chunk — one glowing point
+  // per city, keyed to that city's most recent deck row.
+  const globePoints = useMemo(() => buildGlobePoints(upcoming, months), [upcoming, months]);
 
   const renderRow = useCallback(
     ({ item }: { item: MapRow }) => {
@@ -180,36 +180,35 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker }:
     </View>
   );
 
-  if (mode === 'map') {
-    // The real map — venues pinned where they are (the collection as
-    // geography); cells and headers give way to the globe.
-    return (
-      <View style={styles.list}>
-        {modeChips}
-        {userId ? <ProfileMapView userId={userId} onVenuePress={openVenue} /> : null}
-      </View>
-    );
-  }
-
+  // The pill row is a fixed sibling above whichever body renders (grid list
+  // or globe) so it sits in exactly the same place across all four modes.
   return (
-    <FlatList
-      data={rows}
-      keyExtractor={(row) => row.key}
-      renderItem={renderRow}
-      style={styles.list}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      removeClippedSubviews
-      initialNumToRender={18}
-      ListHeaderComponent={modeChips}
-      ListFooterComponent={
-        loadingAll ? (
-          <View style={styles.loadingFooter}>
-            <ActivityIndicator size="small" color={tokens.colors.mute} />
-          </View>
-        ) : null
-      }
-    />
+    <View style={styles.list}>
+      <View style={styles.modeBar}>{modeChips}</View>
+      {mode === 'map' ? (
+        // The real map — the collection as geography; cells and headers give
+        // way to the globe.
+        <GlobeView points={globePoints} onPressCity={onPressMarker} style={styles.globe} />
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={(row) => row.key}
+          renderItem={renderRow}
+          style={styles.list}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews
+          initialNumToRender={18}
+          ListFooterComponent={
+            loadingAll ? (
+              <View style={styles.loadingFooter}>
+                <ActivityIndicator size="small" color={tokens.colors.mute} />
+              </View>
+            ) : null
+          }
+        />
+      )}
+    </View>
   );
 }
 
@@ -220,8 +219,17 @@ const buildStyles = (tokens: ThemeTokens) =>
     },
     content: {
       paddingHorizontal: tokens.density.pad,
-      paddingTop: 16,
       paddingBottom: 48,
+    },
+    // Fixed above both bodies — the pills must not shift between modes.
+    modeBar: {
+      paddingHorizontal: tokens.density.pad,
+      paddingTop: 16,
+    },
+    globe: {
+      flex: 1,
+      marginHorizontal: tokens.density.pad,
+      marginBottom: 16,
     },
     header: {
       flexDirection: 'row',
