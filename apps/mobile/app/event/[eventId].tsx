@@ -41,6 +41,8 @@ import { TrendsRail } from '../../components/entity/TrendsRail';
 import { PartyRow } from '../../components/party/PartyRow';
 import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
+import { FindTicketsSheet } from '../../components/event/FindTicketsSheet';
+import { buildTicketLink } from '../../lib/tickets/affiliate';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 import { ScoreStamp, StubDetailsRow, StubPerforation } from '../../components/ui/Stub';
 import { SeatBowl } from '../../components/venue/SeatBowl';
@@ -91,6 +93,7 @@ export default function EventScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [interestedBusy, setInterestedBusy] = useState(false);
+  const [ticketsSheet, setTicketsSheet] = useState(false);
   const [setlistEntries, setSetlistEntries] = useState<SetlistEntry[]>([]);
   const [presales, setPresales] = useState<EventPresale[]>([]);
 
@@ -812,9 +815,9 @@ export default function EventScreen() {
               </View>
             ) : null}
 
-            {/* ── Find tickets (future shows only) — primary fg-filled CTA ── */}
-            {/* Interim plain search link-outs until affiliate links land — */}
-            {/* swap these URLs for the affiliate builders when available.  */}
+            {/* ── Find tickets (future shows only) — affiliate-wrapped when
+                an ID is configured (lib/tickets/affiliate.ts), plain link
+                otherwise. Primary CTA + resale + a full "More options" sheet. */}
             {!past ? (
               <View style={styles.section}>
                 <SectionLabel>Find tickets</SectionLabel>
@@ -829,27 +832,20 @@ export default function EventScreen() {
                     }
                     onPress={() =>
                       void Linking.openURL(
-                        `https://www.ticketmaster.com/search?q=${encodeURIComponent(
-                          event.artist.name,
-                        )}`,
-                      )
+                        buildTicketLink('ticketmaster', {
+                          query: `${event.artist.name} ${event.venue.city}`,
+                          directUrl: event.ticketUrl,
+                        }),
+                      ).catch(() => {})
                     }
                   />
                   <PillButton
-                    title="StubHub"
+                    title="More options"
                     variant="secondary"
                     springFeedback
                     haptic="light"
-                    icon={
-                      <Ionicons name="open-outline" size={13} color={tokens.colors.mute} />
-                    }
-                    onPress={() =>
-                      void Linking.openURL(
-                        `https://www.stubhub.com/secure/search?q=${encodeURIComponent(
-                          `${event.artist.name} ${event.venue.city}`,
-                        )}`,
-                      )
-                    }
+                    icon={<Ionicons name="pricetags-outline" size={13} color={tokens.colors.mute} />}
+                    onPress={() => setTicketsSheet(true)}
                   />
                 </View>
               </View>
@@ -934,6 +930,13 @@ export default function EventScreen() {
       </KeyboardAvoidingView>
 
       <SeatSectionSheet section={openSection} onClose={() => setOpenSection(null)} />
+
+      <FindTicketsSheet
+        visible={ticketsSheet}
+        onClose={() => setTicketsSheet(false)}
+        query={`${event.artist.name} ${event.venue.city}`}
+        directUrl={event.ticketUrl}
+      />
     </View>
   );
 }
