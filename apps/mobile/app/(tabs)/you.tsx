@@ -11,7 +11,6 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { getUserStats } from '../../lib/api/profile';
-import { getMyCollection, type CollectionTrophies } from '../../lib/api/collection';
 import { durations, haptics } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
@@ -20,7 +19,6 @@ import type { ProfileStats } from '../../types/profile';
 import { TimelineHeader } from '../../components/timeline/TimelineHeader';
 import { ArtistsTab } from '../../components/you/ArtistsTab';
 import { MapTab } from '../../components/you/MapTab';
-import { TrophyStrip } from '../../components/you/TrophyStrip';
 import { SpringPressable } from '../../components/ui/SpringPressable';
 
 // Presales moved to the PLAN tab; COLLECTION folded into ARTISTS (the
@@ -41,9 +39,6 @@ export default function YouScreen() {
 
   const [tab, setTab] = useState<YouTab>('artists');
   const [stats, setStats] = useState<ProfileStats | null>(null);
-  // Trophy strip lives under the header (both subtabs) — §4 You / C20.
-  const [trophies, setTrophies] = useState<CollectionTrophies | undefined>(undefined);
-
   useEffect(() => {
     if (!userId) return;
     let alive = true;
@@ -56,18 +51,6 @@ export default function YouScreen() {
       alive = false;
     };
   }, [userId]);
-
-  useEffect(() => {
-    let alive = true;
-    getMyCollection()
-      .then((c) => {
-        if (alive) setTrophies(c.trophies);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
@@ -135,7 +118,6 @@ export default function YouScreen() {
       />
 
       {/* Trophy strip — bordered mono chips (streak / first / venues / cities). */}
-      <TrophyStrip trophies={trophies} />
 
       {/* Subtabs — mono pills, active = ink inversion. */}
       <View style={styles.tabBar}>

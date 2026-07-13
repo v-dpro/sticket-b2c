@@ -20,10 +20,11 @@ import { CompactProfileHeader } from '../../components/profile/CompactProfileHea
 import { FriendsSheet } from '../../components/profile/FriendsSheet';
 import { FollowingSheet } from '../../components/profile/FollowingSheet';
 import { ProfileMapView } from '../../components/profile/MapView';
-import { MemoryDeck, type DeckItem } from '../../components/timeline/MemoryDeck';
+import { MemoryDeck, type DeckItem, type MemoryDeckHandle } from '../../components/timeline/MemoryDeck';
 import { buildDeckItems, mergeMonths, useDeckFaces } from '../../components/timeline/deckFaces';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { SpringPressable } from '../../components/ui/SpringPressable';
+import { haptics } from '../../lib/motion';
 import { useFollow } from '../../hooks/useFollow';
 import { useProfile } from '../../hooks/useProfile';
 import { useSession } from '../../hooks/useSession';
@@ -54,6 +55,7 @@ export default function UserProfileScreen() {
   const { isFollowing, setIsFollowing, toggleFollow, loading: followLoading } = useFollow();
   // ?tab= deep-link (links + screenshot pipeline), default timeline.
   const [segment, setSegment] = useState<ProfileSegment>(tab === 'map' ? 'map' : 'timeline');
+  const deckRef = useRef<MemoryDeckHandle>(null);
   useEffect(() => {
     if (tab === 'map' || tab === 'timeline') setSegment(tab);
   }, [tab]);
@@ -198,6 +200,25 @@ export default function UserProfileScreen() {
     },
     segmentLabelActive: { fontFamily: t.fontFamilies.monoBold, color: t.colors.inverseFg },
     stage: { flex: 1 },
+    todayTicket: {
+      position: 'absolute',
+      bottom: 14,
+      alignSelf: 'center',
+      width: 66,
+      height: 40,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      borderBottomLeftRadius: 6,
+      borderBottomRightRadius: 6,
+      backgroundColor: t.colors.inverseBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.35,
+      shadowRadius: 7,
+      elevation: 8,
+    },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     refreshHint: { position: 'absolute', top: 2, alignSelf: 'center', zIndex: 200 },
     // Quiet states — private and empty share the shape, not the copy.
@@ -305,6 +326,7 @@ export default function UserProfileScreen() {
           </View>
         ) : null}
         <MemoryDeck
+          ref={deckRef}
           items={deckItems}
           initialIndex={initialDeckIndex}
           renderCard={renderCard}
@@ -313,6 +335,20 @@ export default function UserProfileScreen() {
           onNearEnd={() => void loadMore()}
           onOverscrollRefresh={() => void onDeckRefresh()}
         />
+        {/* A tappable ticket at the bottom — jumps their wheel to today
+            (the main tab's center ticket isn't here on a pushed profile). */}
+        <SpringPressable
+          haptic="light"
+          onPress={() => {
+            haptics.light();
+            deckRef.current?.snapTo(initialDeckIndex, true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Jump to today"
+          style={styles.todayTicket}
+        >
+          <Ionicons name="ticket" size={22} color={tokens.colors.inverseFg} />
+        </SpringPressable>
       </View>
     );
   };

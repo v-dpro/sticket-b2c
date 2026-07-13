@@ -56,10 +56,12 @@ function GroupHeader({ label }: { label: string }) {
 function GridCell({
   cell,
   size,
+  cellH,
   onPress,
 }: {
   cell: MapCell;
   size: number;
+  cellH: number;
   onPress: () => void;
 }) {
   const styles = useThemedStyles(buildStyles);
@@ -72,8 +74,8 @@ function GridCell({
       accessibilityLabel={cell.label}
       style={[
         styles.cell,
-        // 4:5 PORTRAIT tiles like Instagram's grid — taller than wide.
-        { width: size, height: Math.round(size * 1.25) },
+        // Sized so 3 rows (9 tiles) fill the page, Instagram-style.
+        { width: size, height: cellH },
         // Dashed frame only for a plan with NO art; everything else is a
         // full-bleed photo tile (Instagram mosaic).
         cell.kind === 'plan' && !cell.thumbnailUrl ? styles.cellPlan : styles.cellFill,
@@ -137,7 +139,7 @@ function GridCell({
 export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, initialMode }: TimelineMapViewProps) {
   const { tokens } = useTheme();
   const styles = useThemedStyles(buildStyles);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   void initialMode;
   const rows = useMemo(
@@ -145,10 +147,15 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
     [upcoming, months],
   );
 
-  const cellSize = useMemo(() => {
+  const cellW = useMemo(() => {
     const usable = width - GRID_GAP * (COLUMNS - 1);
     return Math.floor(usable / COLUMNS);
-  }, [width, tokens.density.pad]);
+  }, [width]);
+  // Height so exactly 3 rows (9 tiles) fill the viewport under the header/
+  // toggle and above the tab bar (≈300pt of chrome).
+  const cellH = useMemo(() => {
+    return Math.max(cellW, Math.floor((height - 300) / 3) - GRID_GAP);
+  }, [height, cellW]);
 
   const renderRow = useCallback(
     ({ item }: { item: MapRow }) => {
@@ -156,12 +163,12 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
       return (
         <View style={styles.row}>
           {item.cells.map((cell) => (
-            <GridCell key={cell.key} cell={cell} size={cellSize} onPress={() => onPressMarker(cell.key)} />
+            <GridCell key={cell.key} cell={cell} size={cellW} cellH={cellH} onPress={() => onPressMarker(cell.key)} />
           ))}
         </View>
       );
     },
-    [cellSize, onPressMarker, styles.row],
+    [cellW, cellH, onPressMarker, styles.row],
   );
 
   // Just the Instagram GRID now — the globe/map mode was removed.

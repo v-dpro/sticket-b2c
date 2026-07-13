@@ -456,7 +456,9 @@ function TimelineSpine({
       Gesture.Pan()
         // Beats the stage pan (±10) when the touch starts on the rail.
         .activeOffsetY([-2, 2])
-        .hitSlop({ left: 12, right: 16 })
+        // Big reach: a ~56px grab strip down the left edge — the 3px rail
+        // was far too thin to hit and drag.
+        .hitSlop({ left: 12, right: 44 })
         .onStart(() => {
           cancelAnimation(progress);
           runOnJS(beginScrub)();
