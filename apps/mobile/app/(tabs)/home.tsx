@@ -130,11 +130,15 @@ export default function HomeScreen() {
     });
   }, [navigation]);
 
+  // Each refresh re-seeds the discovery weave — posts stay chronological,
+  // but the woven entity tiles reshuffle so a reload FEELS fresh (RedNote).
+  const [weaveNonce, setWeaveNonce] = useState(0);
   const fullRefresh = useCallback(() => {
     invalidateWaterfallLikeCache();
     invalidateFeedLikeCache();
     invalidateWhoWasHereCache();
     fetchExploreRef.current();
+    setWeaveNonce((n) => n + 1);
     void refresh();
   }, [refresh]);
   retapRef.current = () => {
@@ -183,6 +187,18 @@ export default function HomeScreen() {
       for (let i = 0; sources.some((s) => i < s.length); i++) {
         for (const s of sources) if (i < s.length) entities.push(s[i]);
       }
+      // Seeded shuffle per refresh — same session, new mix.
+      let seed = weaveNonce * 2654435761 + 1;
+      const rand = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+      if (weaveNonce > 0) {
+        for (let i = entities.length - 1; i > 0; i--) {
+          const j = Math.floor(rand() * (i + 1));
+          [entities[i], entities[j]] = [entities[j]!, entities[i]!];
+        }
+      }
     }
 
     const out: WaterfallSlot[] = [];
@@ -211,7 +227,7 @@ export default function HomeScreen() {
       }
     }
     return out;
-  }, [explore, items, user?.id]);
+  }, [explore, items, user?.id, weaveNonce]);
 
   const needsSignIn = Boolean(
     (!user && requiresAuth) || error?.includes('online account') || error?.includes('session expired')

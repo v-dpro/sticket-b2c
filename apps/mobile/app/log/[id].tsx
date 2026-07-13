@@ -12,7 +12,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -310,9 +309,8 @@ export default function LogDetailScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.mute} colors={[c.accent]} />
-        }
+        // NO RefreshControl here: this screen is a bottom sheet — a pull
+        // must hand the drag to the native modal dismiss, not a reload.
       >
         {/* ── 1. Hero ── */}
         {photos.length > 0 ? (

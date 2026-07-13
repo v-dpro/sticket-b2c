@@ -30,7 +30,7 @@ import { buildMapGrid, type MapCell, type MapGranularity, type MapRow } from './
 import { GlobeView, buildGlobePoints } from './GlobeView';
 
 const COLUMNS = 3;
-const GRID_GAP = 3;
+const GRID_GAP = 1.5;
 // Cells past this global index mount without the tear-in stagger.
 const STAGGER_CUTOFF = 12;
 
@@ -50,7 +50,6 @@ function GroupHeader({ label }: { label: string }) {
   return (
     <View style={styles.header}>
       <Text style={styles.headerLabel}>{label}</Text>
-      <View style={styles.headerRule} />
     </View>
   );
 }
@@ -125,7 +124,7 @@ export function TimelineMapView({ upcoming, months, loadingAll, onPressMarker, i
   );
 
   const cellSize = useMemo(() => {
-    const usable = width - tokens.density.pad * 2 - GRID_GAP * (COLUMNS - 1);
+    const usable = width - GRID_GAP * (COLUMNS - 1);
     return Math.floor(usable / COLUMNS);
   }, [width, tokens.density.pad]);
 
@@ -217,8 +216,8 @@ const buildStyles = (tokens: ThemeTokens) =>
     list: {
       flex: 1,
     },
+    // Full-bleed like the Instagram grid — cells run edge to edge.
     content: {
-      paddingHorizontal: tokens.density.pad,
       paddingBottom: 48,
     },
     // Fixed above both bodies — the pills must not shift between modes.
@@ -231,12 +230,16 @@ const buildStyles = (tokens: ThemeTokens) =>
       marginHorizontal: tokens.density.pad,
       marginBottom: 16,
     },
+    // HARD month boundary: a 2px ink rule across the full width, month
+    // label beneath it. Empty months never reach the model, so every
+    // border marks real shows.
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginTop: 18,
-      marginBottom: 10,
+      marginTop: 20,
+      marginBottom: 8,
+      borderTopWidth: 2,
+      borderTopColor: tokens.colors.fg,
+      paddingTop: 8,
+      paddingHorizontal: tokens.density.pad,
     },
     headerLabel: {
       fontFamily: tokens.fontFamilies.mono,
@@ -244,12 +247,7 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontWeight: '700',
       letterSpacing: 1.2,
       textTransform: 'uppercase',
-      color: tokens.colors.muteSoft,
-    },
-    headerRule: {
-      flex: 1,
-      height: 1,
-      backgroundColor: tokens.colors.hairline,
+      color: tokens.colors.fg,
     },
     row: {
       flexDirection: 'row',
@@ -257,7 +255,6 @@ const buildStyles = (tokens: ThemeTokens) =>
       marginBottom: GRID_GAP,
     },
     cell: {
-      borderRadius: 4,
       overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
