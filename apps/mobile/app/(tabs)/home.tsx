@@ -6,9 +6,10 @@
 // best-effort) woven in every 5-6 posts. Waterfall's column accounting
 // keeps entity tiles alternating and never adjacent.
 
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -111,6 +112,37 @@ export default function HomeScreen() {
   // Discovery tiles — best-effort: a failed /explore just means a
   // posts-only waterfall.
   const [explore, setExplore] = useState<ExploreData | null>(null);
+  // IG/RedNote re-tap: tapping the Feed tab while already on it scrolls
+  // to the top and pulls fresh posts.
+  // Minimal structural type — RN 0.81's PublicScrollViewInstance isn't
+  // exported through the package surface; scrollTo is all we use.
+  const feedScrollRef = useRef<{ scrollTo(o: { y: number; animated?: boolean }): void } | null>(
+    null,
+  );
+  const navigation = useNavigation();
+  const isFocused = useIsFocused();
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
+  const retapRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    return navigation.addListener('tabPress' as never, () => {
+      if (isFocusedRef.current) retapRef.current();
+    });
+  }, [navigation]);
+
+  const fullRefresh = useCallback(() => {
+    invalidateWaterfallLikeCache();
+    invalidateFeedLikeCache();
+    invalidateWhoWasHereCache();
+    fetchExploreRef.current();
+    void refresh();
+  }, [refresh]);
+  retapRef.current = () => {
+    feedScrollRef.current?.scrollTo({ y: 0, animated: true });
+    fullRefresh();
+  };
+
+  const fetchExploreRef = useRef<() => void>(() => {});
   const fetchExplore = useCallback(() => {
     getExplore()
       .then(setExplore)
@@ -118,6 +150,7 @@ export default function HomeScreen() {
         // best-effort — skip entity tiles
       });
   }, []);
+  fetchExploreRef.current = fetchExplore;
   useEffect(() => {
     fetchExplore();
   }, [fetchExplore]);
@@ -231,6 +264,7 @@ export default function HomeScreen() {
     body = (
       <Waterfall
         slots={slots}
+        scrollRef={feedScrollRef as React.ComponentProps<typeof ScrollView>['ref']}
         header={hasNoFriends ? <FindPeopleCard /> : null}
         footer={
           loadingMore ? (
@@ -242,13 +276,7 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => {
-              invalidateWaterfallLikeCache();
-              invalidateFeedLikeCache();
-              invalidateWhoWasHereCache();
-              fetchExplore();
-              void refresh();
-            }}
+            onRefresh={fullRefresh}
             tintColor={tokens.colors.mute}
             colors={[tokens.colors.fg]}
             progressBackgroundColor={tokens.colors.card2}

@@ -1,11 +1,10 @@
 // CenterTabButton — a CONCERT TICKET sticking out of the tab bar, bigger
 // than its neighbors, idly bobbing. TAP: it nudges up and the wheel spins
-// home to today. PULL IT UP: a "+" extends out of the ticket — drag your
-// finger ONTO the + (it buzzes when you land) and release to log.
+// home to today. PULL IT UP past the threshold (it buzzes) and release —
+// the log flow pops. Any release drops the ticket straight back down.
 
 import React, { useCallback, useRef } from 'react';
 import { Pressable, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import Animated, {
   Easing,
@@ -21,14 +20,8 @@ import { emitSnapToToday } from '../../lib/navigation/timelineBus';
 import { haptics, springs } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
-// The + LANDING ZONE: logging arms only while the finger is actually ON
-// the revealed + button (this pull-distance band), buzzes on arrival,
-// and fires on release. Overshooting past the band disarms — a wild
-// flick can't trigger the log.
-const ARM_MIN = 56;
-const ARM_MAX = 118;
-// The + fades fully in well before the finger arrives.
-const PLUS_IN = 40;
+// Pulling past this fires the log on release (buzz on crossing).
+const PULL_TRIGGER = 52;
 // Ticket geometry — deliberately bigger than the 26px neighbor icons.
 // WIDE stub with a SHORT tip riding proud of the bar's top edge (LIFT),
 // and a tiny up-arrow telling you it pulls.
@@ -80,19 +73,6 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
   }));
 
   // The + grows out of the ticket as the pull deepens.
-  const plusStyle = useAnimatedStyle(() => {
-    const p = Math.min(pull.value / PLUS_IN, 1);
-    const onIt = pull.value >= ARM_MIN && pull.value <= ARM_MAX;
-    return {
-      opacity: p,
-      transform: [
-        { translateY: -LIFT - Math.min(pull.value, PULL_REVEAL) - 10 },
-        // Swells while the finger is on it — the release target is live.
-        { scale: (0.5 + p * 0.5) * (onIt ? 1.18 : 1) },
-      ],
-    };
-  });
-
   const styles = useThemedStyles((t) => ({
     wrap: {
       flex: 1,
@@ -152,29 +132,12 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
       borderRadius: 5,
       backgroundColor: t.colors.bg,
     },
-    plus: {
-      position: 'absolute',
-      top: -40,
-      alignSelf: 'center',
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: t.colors.inverseBg,
-      borderWidth: 2,
-      borderColor: t.colors.bg,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
-      elevation: 10,
-    },
   }));
 
   const openLog = useCallback(() => {
     haptics.medium();
-    pull.value = withSpring(0, springs.press);
+    // Straight back down — the ticket never lingers up.
+    pull.value = withTiming(0, { duration: 130, easing: Easing.out(Easing.quad) });
     armedRef.current = false;
     router.push('/log/search');
   }, [pull, router]);
@@ -189,11 +152,6 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
 
   return (
     <View style={styles.wrap}>
-      {/* The + that extends from the ticket while pulling. */}
-      <Animated.View style={[styles.plus, plusStyle]} pointerEvents="none">
-        <Ionicons name="add" size={24} color={tokens.colors.inverseFg} />
-      </Animated.View>
-
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Timeline — jump to today. Pull up to log a show."
@@ -204,10 +162,8 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
         onTouchMove={(e) => {
           const dy = startY.current - e.nativeEvent.pageY;
           if (dy > 6) dragging.current = true;
-          const clamped = Math.max(0, Math.min(dy, ARM_MAX + 30));
-          pull.value = clamped;
-          // Armed ONLY while the finger sits on the + — buzz on arrival.
-          const nowArmed = clamped >= ARM_MIN && clamped <= ARM_MAX;
+          pull.value = Math.max(0, Math.min(dy, PULL_TRIGGER + 26));
+          const nowArmed = dy >= PULL_TRIGGER;
           if (nowArmed !== armedRef.current) {
             armedRef.current = nowArmed;
             if (nowArmed) haptics.medium();
@@ -217,7 +173,7 @@ export function CenterTabButton({ onPress, accessibilityState }: CenterTabButton
           if (armedRef.current) {
             openLog();
           } else if (dragging.current) {
-            pull.value = withSpring(0, springs.press);
+            pull.value = withTiming(0, { duration: 130, easing: Easing.out(Easing.quad) });
           }
           dragging.current = false;
         }}

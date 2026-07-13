@@ -270,12 +270,7 @@ export default function LogDetailScreen() {
     return (
       <ScreenShell styles={styles}>
         <Stack.Screen options={{ headerShown: false }} />
-        <FloatingTopBar
-          styles={styles}
-          topInset={topInset}
-          c={c}
-          onBack={() => router.back()}
-        />
+        <FloatingTopBar styles={styles} topInset={topInset} c={c} />
         <View style={styles.centerFill}>
           <ErrorState
             title="Couldn't load this memory"
@@ -592,7 +587,6 @@ export default function LogDetailScreen() {
         styles={styles}
         topInset={topInset}
         c={c}
-        onBack={() => router.back()}
         right={
           <>
             {shareData ? (
@@ -650,21 +644,22 @@ function FloatingTopBar({
   styles,
   topInset,
   c,
-  onBack,
   right,
 }: {
   styles: ReturnType<typeof buildStyles>;
   topInset: number;
   c: ThemeTokens['colors'];
-  onBack: () => void;
   right?: React.ReactNode;
 }) {
+  // No back button — this is a bottom sheet: the grab handle says "slide
+  // me down" and the native modal gesture does the closing.
+  void c;
   return (
     <View style={[styles.topBar, { top: topInset + 6 }]} pointerEvents="box-none">
-      <Pressable onPress={onBack} style={styles.topCircle} accessibilityRole="button" accessibilityLabel="Go back">
-        <Ionicons name="chevron-back" size={22} color={c.fg} />
-      </Pressable>
-      <View style={styles.topRight}>{right}</View>
+      <View style={styles.grabHandle} pointerEvents="none" />
+      {/* Right-pinned now that the back button is gone (row would
+          otherwise space-between the lone child to the left). */}
+      <View style={[styles.topRight, { marginLeft: 'auto' }]}>{right}</View>
     </View>
   );
 }
@@ -712,6 +707,16 @@ const buildStyles = (tokens: ThemeTokens) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       zIndex: 20,
+    },
+    grabHandle: {
+      position: 'absolute',
+      left: '50%',
+      marginLeft: -18,
+      top: 2,
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: 'rgba(255,255,255,0.55)',
     },
     topRight: {
       flexDirection: 'row',

@@ -94,7 +94,9 @@ const LABEL_SLOT = 54;
 // ticket stub pops out of the bar and must never touch the label.
 const BOTTOM_LIFT = 12;
 // Flicks faster than this (cards/second) free-spin the wheel with decay.
-const SPIN_VELOCITY = 1.4;
+// Low on purpose: a moderate swipe should GLIDE over several cards, not
+// notch to the neighbor — only a slow deliberate drag single-steps.
+const SPIN_VELOCITY = 0.8;
 // Near-tail threshold for pagination.
 const NEAR_END = 6;
 // Spring for the settle — snappy, no bounce past the neighbor.
@@ -252,7 +254,7 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
             // SENSITIVE COMMIT: any deliberate gesture moves at least one
             // card; only a truly tiny nudge snaps back.
             const start = Math.round(dragStart.value);
-            const carried = progress.value - dragStart.value + velocity * 0.35;
+            const carried = progress.value - dragStart.value + velocity * 0.6;
             let target: number;
             if (Math.abs(carried) < 0.12) {
               target = start;

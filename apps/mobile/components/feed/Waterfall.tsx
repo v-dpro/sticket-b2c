@@ -60,9 +60,11 @@ type WaterfallProps = {
   refreshControl?: React.ReactElement;
   /** Fired when the scroll nears the end (once per content-height growth). */
   onEndReached?: () => void;
+  /** Imperative scroll access (tab re-tap → scroll to top). */
+  scrollRef?: React.ComponentProps<typeof ScrollView>['ref'];
 };
 
-export function Waterfall({ slots, header, footer, refreshControl, onEndReached }: WaterfallProps) {
+export function Waterfall({ slots, header, footer, refreshControl, onEndReached, scrollRef }: WaterfallProps) {
   const { width: windowWidth } = useWindowDimensions();
   const styles = useThemedStyles(buildStyles);
   const columnWidth = (windowWidth - EDGE * 2 - GUTTER) / 2;
@@ -123,6 +125,7 @@ export function Waterfall({ slots, header, footer, refreshControl, onEndReached 
 
   return (
     <ScrollView
+      ref={scrollRef}
       onScroll={handleScroll}
       scrollEventThrottle={32}
       refreshControl={refreshControl}
