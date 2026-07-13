@@ -160,6 +160,37 @@ export async function getArtistPresales(artistId: string): Promise<EventPresale[
   return Array.isArray(response.data) ? response.data : [];
 }
 
+// Shape of POST /onboarding/presale-preview rows. Narrower than EventPresale:
+// the server returns only what the onboarding preview needs (no eventDate /
+// venueState / presaleEnd / onsaleStart / ticketUrl / notes).
+export interface OnboardingPresalePreviewItem {
+  id: string;
+  artistName: string;
+  tourName?: string;
+  venueName: string;
+  venueCity: string;
+  presaleType: string;
+  presaleStart: string;
+  code?: string;
+  signupUrl?: string;
+  signupDeadline?: string;
+}
+
+// POST /onboarding/presale-preview — upcoming presales that match the artists
+// the user picked during onboarding (matched by name, server-side). Used only
+// by the onboarding presale-preview screen to show a real match instead of a
+// mock. Empty { presales: [], hasPresales: false } when nothing matches.
+export async function getOnboardingPresalePreview(
+  artistNames: string[],
+): Promise<{ presales: OnboardingPresalePreviewItem[]; hasPresales: boolean }> {
+  const response = await apiClient.post('/onboarding/presale-preview', { artistNames });
+  const data = response.data ?? {};
+  return {
+    presales: Array.isArray(data.presales) ? data.presales : [],
+    hasPresales: Boolean(data.hasPresales),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Entity deep-dive (additive)
 // ---------------------------------------------------------------------------

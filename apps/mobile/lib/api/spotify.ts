@@ -1,7 +1,16 @@
-import axios from 'axios';
-import * as SecureStore from '../storage/secureStore';
+// Spotify top-artists for the app's own screens (onboarding artist-pick,
+// log-flow "From your Spotify" suggestions).
+//
+// This USED to read a `spotify_access_token` from SecureStore and call the
+// Spotify Web API directly — but that key is never written anywhere (only
+// deleted on logout), so it always returned null → []. The real, working
+// path is server-backed: the API holds the user's Spotify token and refreshes
+// it, exposing GET /users/me/spotify/top-artists. We now go through that
+// (see getSpotifyTopArtists in ../spotify) so connected users actually get
+// their artists; not-connected users get a 400 which we swallow to [], and
+// the callers fall back to /artists/search.
 
-const SPOTIFY_API = 'https://api.spotify.com/v1';
+import { getSpotifyTopArtists } from '../spotify';
 
 export interface SpotifyArtist {
   id: string;
@@ -11,29 +20,18 @@ export interface SpotifyArtist {
   popularity: number;
 }
 
-export async function getSpotifyAccessToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync('spotify_access_token');
-}
-
 export async function getUserTopArtists(
   limit: number = 50,
   timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'
 ): Promise<SpotifyArtist[]> {
-  const token = await getSpotifyAccessToken();
-  if (!token) return [];
-
   try {
-    const response = await axios.get(`${SPOTIFY_API}/me/top/artists`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params: { limit, time_range: timeRange },
-    });
-    return response.data.items;
-  } catch (error) {
-    console.error('Failed to fetch Spotify top artists:', error);
+    // Server proxies Spotify's /me/top/artists, returning the raw items
+    // (id/name/images/genres/popularity) — the exact SpotifyArtist shape.
+    const data = await getSpotifyTopArtists({ limit, time_range: timeRange });
+    return Array.isArray(data) ? (data as SpotifyArtist[]) : [];
+  } catch {
+    // 400 when Spotify isn't connected, or a network error — either way the
+    // callers fall back to the /artists/search path.
     return [];
   }
 }
-
-
-
-

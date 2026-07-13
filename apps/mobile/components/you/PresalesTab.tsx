@@ -1,12 +1,12 @@
 // You · PRESALES — the tracking agenda (was the Upcoming tab): presales
-// this week with live countdowns + tap-to-copy codes, your ticketed shows,
+// this week with live countdowns + a "Get tickets" CTA, your ticketed shows,
 // and the ones you're circling. Rows tap through to events/presales.
+// Compliance: presale codes are never surfaced (no code / copy-code UI).
 
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Linking, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import * as Clipboard from 'expo-clipboard';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated from 'react-native-reanimated';
 
@@ -16,6 +16,7 @@ import { SpringPressable } from '../ui/SpringPressable';
 import { StubPerforation } from '../ui/Stub';
 import { useConcertLife } from '../../hooks/useConcertLife';
 import { usePresales, type PresaleItem } from '../../hooks/usePresales';
+import { buildTicketLink } from '../../lib/tickets/affiliate';
 import { durations, haptics, tearIn } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
@@ -184,22 +185,6 @@ export function PresalesTab() {
       color: t.colors.mute,
     },
     presaleRight: { alignItems: 'flex-end', gap: 8 },
-    codeChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      borderRadius: t.radius.sm,
-      borderWidth: 1,
-      borderColor: t.colors.line,
-    },
-    codeChipText: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 10,
-      letterSpacing: 0.5,
-      color: t.colors.text,
-    },
     // ── Imminent presale (THIS WEEK) — fg border, grows inline actions ──
     imminentCard: {
       marginHorizontal: t.density.pad,
@@ -215,23 +200,6 @@ export function PresalesTab() {
     },
     imminentTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     imminentActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    codeChipLg: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingVertical: 7,
-      paddingHorizontal: 11,
-      borderRadius: t.radius.sm,
-      borderWidth: 1,
-      borderColor: t.colors.fg,
-    },
-    codeChipTextLg: {
-      fontFamily: t.fontFamilies.monoBold,
-      fontVariant: ['tabular-nums'],
-      fontSize: 12,
-      letterSpacing: 0.5,
-      color: t.colors.fg,
-    },
     // ── Ticketed stub (a held ticket is a stub — C3; notched, "41 D") ──
     stub: {
       marginHorizontal: t.density.pad,
@@ -285,34 +253,23 @@ export function PresalesTab() {
   const { data, loading, error } = useConcertLife();
   const { presales } = usePresales();
 
-  const [copiedPresaleId, setCopiedPresaleId] = useState<string | null>(null);
-  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
-    },
-    []
-  );
-  const copyPresaleCode = useCallback(async (presale: PresaleItem) => {
-    if (!presale.code) return;
-    try {
-      await Clipboard.setStringAsync(presale.code);
-      haptics.success();
-      setCopiedPresaleId(presale.id);
-      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
-      copyResetTimer.current = setTimeout(() => setCopiedPresaleId(null), 1600);
-    } catch {
-      // clipboard unavailable
-    }
-  }, []);
+  // Compliance: we do NOT surface or copy presale codes anywhere. Presale rows
+  // show only the NAME + WINDOW + a "Get tickets" CTA (routed through
+  // buildTicketLink). No code / copy-code UI.
 
   // Tickets primary → out to the seller when we have a link, else the
-  // presale sheet (which carries the same buy CTA, A16).
+  // presale sheet (which carries the same buy CTA, A16). The seller URL routes
+  // through buildTicketLink so it's affiliate-wrapped when an ID is configured
+  // (plain directUrl until then).
   const openTickets = useCallback(
     (presale: PresaleItem) => {
       haptics.light();
       if (presale.ticketUrl) {
-        void Linking.openURL(presale.ticketUrl).catch(() => router.push(`/presales/${presale.id}`));
+        const url = buildTicketLink('ticketmaster', {
+          query: `${presale.artistName} ${presale.venueCity}`,
+          directUrl: presale.ticketUrl,
+        });
+        void Linking.openURL(url).catch(() => router.push(`/presales/${presale.id}`));
       } else {
         router.push(`/presales/${presale.id}`);
       }
@@ -453,7 +410,6 @@ export function PresalesTab() {
   const renderPresaleRow = (presale: PresaleItem, index: number) => {
     const countdown = presaleCountdown(presale);
     const isLive = countdown === 'LIVE';
-    const copied = copiedPresaleId === presale.id;
     // Imminent = live or inside 48h — this one grows inline actions (§4).
     const start = new Date(presale.presaleStart).getTime();
     const imminent = isLive || (!Number.isNaN(start) && start - Date.now() < 48 * 3600000);
@@ -493,27 +449,9 @@ export function PresalesTab() {
               {countdownChip}
             </SpringPressable>
             <View style={styles.imminentActions}>
-              {presale.code ? (
-                <SpringPressable
-                  haptic="none"
-                  onPress={() => void copyPresaleCode(presale)}
-                  accessibilityRole="button"
-                  accessibilityLabel={copied ? 'Presale code copied' : `Copy presale code ${presale.code}`}
-                  style={styles.codeChipLg}
-                >
-                  <Ionicons
-                    name={copied ? 'checkmark' : 'copy-outline'}
-                    size={13}
-                    color={copied ? tokens.colors.success : tokens.colors.fg}
-                  />
-                  <Text style={styles.codeChipTextLg} numberOfLines={1}>
-                    {copied ? 'COPIED' : presale.code}
-                  </Text>
-                </SpringPressable>
-              ) : null}
               <View style={{ flex: 1 }} />
               <PillButton
-                title="Tickets"
+                title="Get tickets"
                 variant="primary"
                 size="sm"
                 springFeedback
@@ -550,24 +488,6 @@ export function PresalesTab() {
           </View>
           <View style={styles.presaleRight}>
             {countdownChip}
-            {presale.code ? (
-              <SpringPressable
-                haptic="none"
-                onPress={() => void copyPresaleCode(presale)}
-                accessibilityRole="button"
-                accessibilityLabel={copied ? 'Presale code copied' : `Copy presale code ${presale.code}`}
-                style={styles.codeChip}
-              >
-                <Ionicons
-                  name={copied ? 'checkmark' : 'copy-outline'}
-                  size={11}
-                  color={copied ? tokens.colors.success : tokens.colors.mute}
-                />
-                <Text style={styles.codeChipText} numberOfLines={1}>
-                  {copied ? 'COPIED' : presale.code}
-                </Text>
-              </SpringPressable>
-            ) : null}
           </View>
         </SpringPressable>
       </Animated.View>

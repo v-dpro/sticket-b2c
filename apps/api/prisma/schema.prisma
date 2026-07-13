@@ -28,6 +28,14 @@ model User {
   spotifyRefresh     String?
   spotifyTokenExpiry DateTime?
 
+  // Spotify taste enrichment (derived from top artists/tracks at connect time).
+  // spotifyToken/spotifyRefresh are encrypted at rest when TOKEN_ENC_KEY is set
+  // (see src/lib/crypto.ts); legacy plaintext rows are read transparently.
+  spotifyGenres     String[] // genre affinity, most-frequent first
+  spotifyTopArtists String[] // top artist names (medium_term)
+  spotifyTopTracks  Json? // [{ name, artist, id }] compact top tracks
+  spotifyEnrichedAt DateTime?
+
   // Legacy / optional
   appleMusicId String?
 
@@ -205,6 +213,7 @@ model Event {
   imageUrl   String?
   source     String?
   externalId String?
+  ticketUrl  String? // primary "buy tickets" deep-link (TM event url / Bandsintown offer url)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -227,6 +236,7 @@ model Event {
   parties        Party[]
   setlistEntries SetlistEntry[]
   showReminders  ShowReminder[]
+  presales       Presale[]
 
   @@unique([artistId, venueId, date])
   @@index([tourId])
@@ -346,8 +356,14 @@ model Presale {
   ticketUrl      String?
 
   // Metadata
-  source String // "ERP", "Manual", "Community"
+  source String // "ticketmaster", "ERP", "Manual", "Community" (ERP = SOS, ERP-internal only, never served to consumers)
   notes  String?
+
+  // Best-effort link to the Event this presale is for, so the app can deep-link
+  // a presale to its real event page. Set directly for TM-sourced presales
+  // (they arrive attached to a TM event); resolved by (artist+date+city) otherwise.
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -358,6 +374,7 @@ model Presale {
   @@index([artistName])
   @@index([presaleStart])
   @@index([eventDate])
+  @@index([eventId])
 }
 
 model PresaleAlert {
@@ -466,6 +483,7 @@ model UserArtistFollow {
   id        String   @id @default(cuid())
   notify    Boolean  @default(true)
   tier      String   @default("following") // "top-tier", "following", "casual"
+  source    String   @default("manual") // "manual" | "spotify" (auto-followed from Spotify top artists)
   createdAt DateTime @default(now())
 
   userId   String

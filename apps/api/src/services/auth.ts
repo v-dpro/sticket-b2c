@@ -7,6 +7,7 @@ import { randomBytes } from 'node:crypto';
 
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../lib/errors.js';
+import { encryptToken, decryptToken } from '../lib/crypto.js';
 
 // ==================== JWT HELPERS ====================
 
@@ -295,23 +296,82 @@ export async function getSpotifyTopArtists(
   }
 }
 
-export async function handleSpotifyConnect(userId: string, code: string): Promise<{ success: boolean; topArtists: any[] }> {
+export async function getSpotifyTopTracks(
+  accessToken: string,
+  limit = 50,
+  timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'
+): Promise<any[]> {
+  try {
+    const response = await axios.get(`${SPOTIFY_API_URL}/me/top/tracks`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { limit, time_range: timeRange },
+    });
+    return response.data.items ?? [];
+  } catch (error) {
+    console.error('Failed to get Spotify top tracks:', error);
+    return [];
+  }
+}
+
+// Compact, storable taste profile derived from a user's Spotify top artists +
+// tracks. Genre affinity = artist genres aggregated by frequency (most-listened
+// genres first). Kept small so it fits comfortably on the User row.
+export function deriveSpotifyEnrichment(
+  topArtists: any[],
+  topTracks: any[]
+): { genres: string[]; artistNames: string[]; tracks: Array<{ name: string; artist: string | null; id: string | null }> } {
+  const genreCounts = new Map<string, number>();
+  for (const a of topArtists) {
+    for (const g of (a?.genres ?? []) as string[]) {
+      if (!g) continue;
+      genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
+    }
+  }
+  const genres = [...genreCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([g]) => g)
+    .slice(0, 30);
+
+  const artistNames = topArtists.map((a) => a?.name).filter(Boolean).slice(0, 50) as string[];
+
+  const tracks = topTracks.slice(0, 50).map((t) => ({
+    name: String(t?.name ?? ''),
+    artist: t?.artists?.[0]?.name ?? null,
+    id: t?.id ?? null,
+  }));
+
+  return { genres, artistNames, tracks };
+}
+
+export async function handleSpotifyConnect(
+  userId: string,
+  code: string
+): Promise<{ success: boolean; topArtists: any[]; topGenres: string[] }> {
   const tokens = await exchangeSpotifyCode(code);
   const profile = await getSpotifyProfile(tokens.accessToken);
+
+  // Fetch analytics up front so tokens + derived taste profile persist in one write.
+  const [topArtists, topTracks] = await Promise.all([
+    getSpotifyTopArtists(tokens.accessToken),
+    getSpotifyTopTracks(tokens.accessToken),
+  ]);
+  const { genres, artistNames, tracks } = deriveSpotifyEnrichment(topArtists, topTracks);
 
   await prisma.user.update({
     where: { id: userId },
     data: {
       spotifyId: profile.id,
       spotifyUsername: profile.display_name,
-      spotifyToken: tokens.accessToken,
-      spotifyRefresh: tokens.refreshToken,
+      spotifyToken: encryptToken(tokens.accessToken),
+      spotifyRefresh: encryptToken(tokens.refreshToken),
       spotifyTokenExpiry: new Date(Date.now() + tokens.expiresIn * 1000),
+      spotifyGenres: genres,
+      spotifyTopArtists: artistNames,
+      spotifyTopTracks: tracks,
+      spotifyEnrichedAt: new Date(),
       ...(profile.images?.[0]?.url ? { avatarUrl: profile.images[0].url } : {}),
     },
   });
-
-  const topArtists = await getSpotifyTopArtists(tokens.accessToken);
 
   for (const spotifyArtist of topArtists) {
     const artist = await prisma.artist.upsert({
@@ -332,13 +392,42 @@ export async function handleSpotifyConnect(userId: string, code: string): Promis
     if (topArtists.indexOf(spotifyArtist) < 20) {
       await prisma.userArtistFollow.upsert({
         where: { userId_artistId: { userId, artistId: artist.id } },
+        // Don't clobber an existing manual follow's source; only tag on create.
         update: {},
-        create: { userId, artistId: artist.id, notify: true },
+        create: { userId, artistId: artist.id, notify: true, source: 'spotify' },
       });
     }
   }
 
-  return { success: true, topArtists };
+  return { success: true, topArtists, topGenres: genres };
+}
+
+// Re-fetch Spotify analytics for an already-connected user and persist the
+// derived taste profile. Used to backfill users who connected before enrichment
+// existed. Returns null when the user has no usable Spotify token.
+export async function syncSpotifyEnrichment(
+  userId: string
+): Promise<{ topArtists: string[]; topGenres: string[]; topTracks: Array<{ name: string; artist: string | null; id: string | null }> } | null> {
+  const { spotifyToken } = await getUserWithFreshSpotifyToken(userId);
+  if (!spotifyToken) return null;
+
+  const [topArtists, topTracks] = await Promise.all([
+    getSpotifyTopArtists(spotifyToken),
+    getSpotifyTopTracks(spotifyToken),
+  ]);
+  const { genres, artistNames, tracks } = deriveSpotifyEnrichment(topArtists, topTracks);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      spotifyGenres: genres,
+      spotifyTopArtists: artistNames,
+      spotifyTopTracks: tracks,
+      spotifyEnrichedAt: new Date(),
+    },
+  });
+
+  return { topArtists: artistNames, topGenres: genres, topTracks: tracks };
 }
 
 // ==================== HELPERS ====================
@@ -386,18 +475,24 @@ export async function getUserWithFreshSpotifyToken(userId: string): Promise<{ us
     return { user, spotifyToken: null };
   }
 
+  // Tokens are encrypted at rest (legacy plaintext rows decrypt to themselves).
+  const refreshToken = decryptToken(user.spotifyRefresh);
+  if (!refreshToken) {
+    return { user, spotifyToken: null };
+  }
+
   const isExpired =
     user.spotifyTokenExpiry &&
     new Date(user.spotifyTokenExpiry).getTime() < Date.now() + 5 * 60 * 1000;
 
   if (isExpired) {
     try {
-      const newTokens = await refreshSpotifyToken(user.spotifyRefresh);
+      const newTokens = await refreshSpotifyToken(refreshToken);
 
       await prisma.user.update({
         where: { id: userId },
         data: {
-          spotifyToken: newTokens.accessToken,
+          spotifyToken: encryptToken(newTokens.accessToken),
           spotifyTokenExpiry: new Date(Date.now() + newTokens.expiresIn * 1000),
         },
       });
@@ -417,7 +512,7 @@ export async function getUserWithFreshSpotifyToken(userId: string): Promise<{ us
     }
   }
 
-  return { user, spotifyToken: user.spotifyToken };
+  return { user, spotifyToken: decryptToken(user.spotifyToken) };
 }
 
 

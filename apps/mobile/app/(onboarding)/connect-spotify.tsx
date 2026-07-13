@@ -5,7 +5,6 @@
 // the step, then: connected → radar (the aha); skipped → the minimal
 // artist-pick fallback so the radar still has taste to work with.
 
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
@@ -17,6 +16,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ProgressDots } from '../../components/onboarding/ProgressDots';
 import { PillButton } from '../../components/ui/PillButton';
 import { apiClient } from '../../lib/api/client';
+import { SPOTIFY_REDIRECT_URI } from '../../lib/spotify';
 import { durations } from '../../lib/motion';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
@@ -83,8 +83,9 @@ export default function ConnectSpotifyOnboarding() {
       const url = data?.url as string | undefined;
       if (!url) throw new Error('Missing Spotify URL');
 
-      const redirectUrl = Linking.createURL('spotify-callback');
-      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+      // Must be the app scheme that matches the server's registered redirect
+      // URI, or the callback never routes back (see SPOTIFY_REDIRECT_URI).
+      const result = await WebBrowser.openAuthSessionAsync(url, SPOTIFY_REDIRECT_URI);
 
       if (result.type !== 'success' || !result.url) {
         // cancelled / dismissed

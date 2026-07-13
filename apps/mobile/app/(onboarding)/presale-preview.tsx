@@ -1,10 +1,17 @@
-// ONBOARDING · PRESALE PREVIEW — sells the presale-intel feature with a
-// realistic mock match, reusing components/entity/PresaleCard (import-only)
-// for the presale window/code. Continue best-effort persists follows and
-// marks the step, then → log-first-show.
+// ONBOARDING · PRESALE PREVIEW — sells the presale-intel feature with a REAL
+// presale match for the artists the user just picked. Fetches
+// POST /onboarding/presale-preview (via getOnboardingPresalePreview) and
+// renders the first match through components/entity/PresaleCard (window/code),
+// with graceful loading / empty / error states so the step never hard-blocks.
+// Continue best-effort persists follows and marks the step → log-first-show.
+//
+// NOTE: this screen is registered in the onboarding Stack but is NOT part of
+// the shipped 3-step required lane (welcome → connect-spotify → radar → home;
+// see app/index.tsx). It belongs to the older/optional résumé flow and is only
+// reached if something pushes to it — wired here for correctness regardless.
 
-import React, { useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -15,47 +22,89 @@ import { ProgressDots } from '../../components/onboarding/ProgressDots';
 import { PillButton } from '../../components/ui/PillButton';
 import { PresaleCard } from '../../components/entity/PresaleCard';
 import { apiClient } from '../../lib/api/client';
-import type { EventPresale } from '../../lib/api/events';
+import {
+  getOnboardingPresalePreview,
+  type EventPresale,
+  type OnboardingPresalePreviewItem,
+} from '../../lib/api/events';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 
-const DAY = 86_400_000;
+type FetchStatus = 'loading' | 'ready' | 'error';
+
+// The preview endpoint returns a narrower row than the entity PresaleCard
+// expects — fill the fields it doesn't send so the card renders (it only reads
+// presaleType / presaleStart / presaleEnd / code / notes).
+function toEventPresale(p: OnboardingPresalePreviewItem): EventPresale {
+  return {
+    id: p.id,
+    artistName: p.artistName,
+    tourName: p.tourName ?? null,
+    venueName: p.venueName,
+    venueCity: p.venueCity,
+    venueState: null,
+    eventDate: p.presaleStart,
+    presaleType: p.presaleType,
+    presaleStart: p.presaleStart,
+    presaleEnd: null,
+    onsaleStart: null,
+    // Compliance: we never redistribute presale codes. Force null so the card
+    // shows only the presale NAME (presaleType) + WINDOW, never a code chip —
+    // regardless of what the endpoint returns.
+    code: null,
+    signupUrl: p.signupUrl ?? null,
+    ticketUrl: null,
+    notes: null,
+  };
+}
 
 export default function PresalePreviewScreen() {
   const router = useRouter();
   const { tokens } = useTheme();
   const selectedArtists = useOnboardingStore((s) => s.selectedArtists);
-  const city = useOnboardingStore((s) => s.city);
   const markPresalePreviewShown = useOnboardingStore((s) => s.markPresalePreviewShown);
 
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<FetchStatus>('loading');
+  const [presales, setPresales] = useState<EventPresale[]>([]);
 
-  const headliner = selectedArtists[0];
-  const artistName = headliner?.name ?? 'Your favorite artist';
-  const artistImage = headliner?.imageUrl;
+  useEffect(() => {
+    let alive = true;
+    const names = selectedArtists.map((a) => a.name).filter(Boolean);
+    if (names.length === 0) {
+      setStatus('ready');
+      setPresales([]);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await getOnboardingPresalePreview(names);
+        if (!alive) return;
+        setPresales(res.presales.map(toEventPresale));
+        setStatus('ready');
+      } catch (e) {
+        if (!alive) return;
+        // eslint-disable-next-line no-console
+        console.error('Failed to load onboarding presale preview:', e);
+        setStatus('error');
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [selectedArtists]);
 
-  const mockPresales: EventPresale[] = useMemo(() => {
-    const now = Date.now();
-    return [
-      {
-        id: 'preview-presale',
-        artistName,
-        tourName: 'World Tour 2026',
-        venueName: 'Madison Square Garden',
-        venueCity: city ?? 'New York',
-        venueState: null,
-        eventDate: new Date(now + 62 * DAY).toISOString(),
-        presaleType: 'Artist',
-        presaleStart: new Date(now + 2 * DAY).toISOString(),
-        presaleEnd: new Date(now + 3 * DAY).toISOString(),
-        onsaleStart: new Date(now + 4 * DAY).toISOString(),
-        code: 'ENCORE26',
-        signupUrl: null,
-        ticketUrl: null,
-        notes: 'Your code unlocks the fan presale 24h before general sale.',
-      },
-    ];
-  }, [artistName, city]);
+  const headliner = presales[0];
+  const headlinerName = headliner?.artistName ?? selectedArtists[0]?.name ?? 'Your favorite artist';
+  const headlinerImage = useMemo(() => {
+    if (headliner) {
+      const match = selectedArtists.find(
+        (a) => a.name.toLowerCase() === headliner.artistName.toLowerCase(),
+      );
+      if (match?.imageUrl) return match.imageUrl;
+    }
+    return selectedArtists[0]?.imageUrl;
+  }, [headliner, selectedArtists]);
 
   const styles = useThemedStyles((t) => ({
     safe: { flex: 1, backgroundColor: t.colors.bg },
@@ -88,13 +137,33 @@ export default function PresalePreviewScreen() {
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     meta: { fontSize: 13, fontWeight: '500', color: t.colors.textSoft },
     note: { fontSize: 13, fontWeight: '400', color: t.colors.mute, lineHeight: 19, textAlign: 'center', marginTop: 4 },
+    // Loading / empty / error — a calm card that still sells the feature.
+    stateCard: {
+      backgroundColor: t.colors.card,
+      borderRadius: t.radius.lg,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+      padding: t.density.cardPad,
+      alignItems: 'center',
+      gap: 12,
+    },
+    stateIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: t.radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.colors.card2,
+    },
+    stateText: {
+      fontSize: 14,
+      fontWeight: '400',
+      color: t.colors.mute,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
     footer: { paddingHorizontal: t.density.pad, paddingTop: 12, paddingBottom: 12 },
   }));
-
-  const eventDateLabel = useMemo(() => {
-    const d = new Date(mockPresales[0].eventDate);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  }, [mockPresales]);
 
   const persistFollowsIfNeeded = async () => {
     if (selectedArtists.length === 0) return;
@@ -125,6 +194,8 @@ export default function PresalePreviewScreen() {
     }
   };
 
+  const hasMatch = status === 'ready' && presales.length > 0;
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -140,38 +211,64 @@ export default function PresalePreviewScreen() {
           that looks like.
         </Animated.Text>
 
-        <Animated.View entering={FadeInDown.delay(120).duration(300)} style={styles.matchCard}>
-          <Text style={styles.eyebrow}>Presale match</Text>
-          <View style={styles.matchRow}>
-            {artistImage ? (
-              <Image source={{ uri: artistImage }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <Text style={styles.avatarInitial}>{artistName.trim()[0]?.toUpperCase() ?? '?'}</Text>
+        {status === 'loading' ? (
+          <Animated.View entering={FadeInDown.delay(120).duration(300)} style={styles.stateCard}>
+            <ActivityIndicator color={tokens.colors.mute} />
+            <Text style={styles.stateText}>Scanning presales for your artists…</Text>
+          </Animated.View>
+        ) : hasMatch ? (
+          <>
+            <Animated.View entering={FadeInDown.delay(120).duration(300)} style={styles.matchCard}>
+              <Text style={styles.eyebrow}>Presale match</Text>
+              <View style={styles.matchRow}>
+                {headlinerImage ? (
+                  <Image source={{ uri: headlinerImage }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarFallback]}>
+                    <Text style={styles.avatarInitial}>
+                      {headlinerName.trim()[0]?.toUpperCase() ?? '?'}
+                    </Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.artist} numberOfLines={1}>
+                    {headlinerName}
+                  </Text>
+                  {headliner?.tourName ? (
+                    <Text style={styles.tour}>{headliner.tourName}</Text>
+                  ) : null}
+                </View>
               </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.artist} numberOfLines={1}>
-                {artistName}
-              </Text>
-              <Text style={styles.tour}>{mockPresales[0].tourName}</Text>
+              <View style={styles.metaRow}>
+                <Ionicons name="location-outline" size={14} color={tokens.colors.mute} />
+                <Text style={styles.meta} numberOfLines={1}>
+                  {headliner.venueName}
+                  {headliner.venueCity ? `, ${headliner.venueCity}` : ''}
+                </Text>
+              </View>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(180).duration(300)}>
+              <PresaleCard presales={presales.slice(0, 3)} />
+            </Animated.View>
+
+            <Animated.Text entering={FadeInDown.delay(240).duration(300)} style={styles.note}>
+              You’ll get a heads-up the moment this goes live.
+            </Animated.Text>
+          </>
+        ) : (
+          // No matches yet, or the fetch failed — still reassure & let them on.
+          <Animated.View entering={FadeInDown.delay(120).duration(300)} style={styles.stateCard}>
+            <View style={styles.stateIcon}>
+              <Ionicons name="radio-outline" size={22} color={tokens.colors.fg} />
             </View>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={14} color={tokens.colors.mute} />
-            <Text style={styles.meta} numberOfLines={1}>
-              {mockPresales[0].venueName}, {mockPresales[0].venueCity} · {eventDateLabel}
+            <Text style={styles.stateText}>
+              {status === 'error'
+                ? 'We couldn’t load presales right now — but your radar is armed. The moment one opens for your artists, it lands here and on your lock screen.'
+                : 'No live presales for your artists yet. Your radar is armed — the moment one opens, it lands here and on your lock screen.'}
             </Text>
-          </View>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(180).duration(300)}>
-          <PresaleCard presales={mockPresales} />
-        </Animated.View>
-
-        <Animated.Text entering={FadeInDown.delay(240).duration(300)} style={styles.note}>
-          You’ll get a heads-up the moment this goes live.
-        </Animated.Text>
+          </Animated.View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>

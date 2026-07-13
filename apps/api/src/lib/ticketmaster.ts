@@ -8,6 +8,10 @@ export interface TMEvent {
   dates: {
     start: { localDate: string; localTime?: string; dateTime?: string };
   };
+  sales?: {
+    public?: { startDateTime?: string; endDateTime?: string };
+    presales?: Array<{ name?: string; startDateTime?: string; endDateTime?: string; url?: string }>;
+  };
   images: Array<{ url: string; width: number; height: number; ratio?: string }>;
   _embedded?: {
     venues?: Array<{
@@ -49,6 +53,17 @@ export function tmEventToStandard(e: TMEvent) {
     datetime: dateStr,
     url: e.url,
     imageUrl: getBestImage(e.images),
+    // Presale/on-sale windows straight from the TM event (compliant source;
+    // TM does not expose presale codes, so we never fabricate one downstream).
+    sales: {
+      publicOnsale: e.sales?.public?.startDateTime ?? null,
+      presales: (e.sales?.presales ?? []).map((p) => ({
+        name: p.name?.trim() || 'Presale',
+        start: p.startDateTime ?? null,
+        end: p.endDateTime ?? null,
+        url: p.url ?? null,
+      })),
+    },
     artist: {
       name: attraction?.name ?? e.name,
       externalId: attraction?.id ?? null,

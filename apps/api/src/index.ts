@@ -34,9 +34,17 @@ import {
   handleSpotifyConnect,
   getUserWithFreshSpotifyToken,
   getSpotifyTopArtists,
+  syncSpotifyEnrichment,
 } from './services/auth.js';
 import { startERPSyncJob } from './services/erpSync.js';
 import { notify, notifyMany, startNotificationJobs } from './notificationEngine.js';
+
+// Consumer-visible presale sources. ERP/SOS rows (source:'ERP', synced from
+// showsonsale.com) are ERP-internal only and MUST NOT be surfaced to consumers
+// for ToS compliance — every consumer presale query filters to this allowlist.
+// Ticketmaster Discovery presales (source:'ticketmaster') are compliant and
+// carry no fabricated codes (TM does not expose presale codes).
+const PRESALE_SOURCES = ['ticketmaster', 'Manual', 'Community'];
 
 // Mobile app defaults to 3001 (see apps/mobile/lib/api/client.ts)
 const preferredPort = Number(process.env.PORT ?? 3001);
@@ -1248,6 +1256,52 @@ app.get('/auth/spotify/top-artists', async (req) => {
   return artists;
 });
 
+// GET /users/me/spotify/insights — the viewer's derived Spotify taste profile
+// (top artists, genre affinity, top tracks) for You/onboarding surfaces. Reads
+// the stored enrichment; lazily backfills via a live fetch for users who
+// connected before enrichment existed.
+app.get('/users/me/spotify/insights', async (req) => {
+  const userId = requireAccessUserId(req as any);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      spotifyId: true,
+      spotifyUsername: true,
+      spotifyGenres: true,
+      spotifyTopArtists: true,
+      spotifyTopTracks: true,
+      spotifyEnrichedAt: true,
+    },
+  });
+  if (!user?.spotifyId) throw new AppError('Spotify not connected', 400);
+
+  let topArtists = user.spotifyTopArtists ?? [];
+  let topGenres = user.spotifyGenres ?? [];
+  let topTracks = (user.spotifyTopTracks as Array<{ name: string; artist: string | null; id: string | null }> | null) ?? [];
+  let enrichedAt = user.spotifyEnrichedAt;
+
+  // Backfill legacy connections (connected before enrichment shipped).
+  if (!enrichedAt) {
+    const fresh = await syncSpotifyEnrichment(userId).catch(() => null);
+    if (fresh) {
+      topArtists = fresh.topArtists;
+      topGenres = fresh.topGenres;
+      topTracks = fresh.topTracks;
+      enrichedAt = new Date();
+    }
+  }
+
+  return {
+    connected: true,
+    spotifyUsername: user.spotifyUsername ?? null,
+    topArtists,
+    topGenres,
+    topTracks,
+    enrichedAt: enrichedAt ? enrichedAt.toISOString() : null,
+  };
+});
+
 app.post('/auth/forgot-password', async (req) => {
   const body = (req.body ?? {}) as { email?: string };
   const email = body.email?.trim().toLowerCase();
@@ -1920,16 +1974,22 @@ app.get('/users/taste-match', async (req) => {
 
   // Privacy: users who opted out of taste match are silently dropped from
   // `matches` (the viewer always keeps their own side of the comparison).
-  const optedIn = await prisma.user.findMany({
-    where: { id: { in: ids }, appearInTasteMatch: true },
-    select: { id: true },
-  });
-  const allowedIds = optedIn.map((u) => u.id);
-
-  const [viewerRows, targetRows] = await Promise.all([
+  // Spotify taste fields are pulled alongside so the score can blend Spotify
+  // top-artist / genre overlap when BOTH sides have connected Spotify.
+  const [optedIn, viewer, viewerRows, targetRows] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: ids }, appearInTasteMatch: true },
+      select: { id: true, spotifyTopArtists: true, spotifyGenres: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: viewerId },
+      select: { spotifyTopArtists: true, spotifyGenres: true },
+    }),
     prisma.userArtistFollow.findMany({ where: { userId: viewerId }, select: { artistId: true } }),
-    prisma.userArtistFollow.findMany({ where: { userId: { in: allowedIds } }, select: { userId: true, artistId: true } }),
+    prisma.userArtistFollow.findMany({ where: { userId: { in: ids } }, select: { userId: true, artistId: true } }),
   ]);
+  const allowedIds = optedIn.map((u) => u.id);
+  const targetById = new Map(optedIn.map((u) => [u.id, u]));
 
   const viewerSet = new Set(viewerRows.map((r) => r.artistId));
   const byUser = new Map<string, Set<string>>();
@@ -1939,12 +1999,39 @@ app.get('/users/taste-match', async (req) => {
     byUser.set(row.userId, set);
   }
 
+  // Jaccard similarity (%) between two string sets.
+  const jaccardPct = (a: Set<string>, b: Set<string>): number => {
+    let shared = 0;
+    for (const x of b) if (a.has(x)) shared++;
+    const union = a.size + b.size - shared;
+    return union === 0 ? 0 : Math.round((100 * shared) / union);
+  };
+  const lowerSet = (xs: string[] | null | undefined) =>
+    new Set((xs ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean));
+
+  const viewerSpotifyArtists = lowerSet(viewer?.spotifyTopArtists);
+  const viewerSpotifyGenres = lowerSet(viewer?.spotifyGenres);
+  const viewerHasSpotify = viewerSpotifyArtists.size > 0 || viewerSpotifyGenres.size > 0;
+
   const matches = allowedIds.map((userId) => {
     const theirs = byUser.get(userId) ?? new Set<string>();
-    let shared = 0;
-    for (const artistId of theirs) if (viewerSet.has(artistId)) shared++;
-    const union = viewerSet.size + theirs.size - shared;
-    return { userId, pct: Math.round((100 * shared) / Math.max(1, union)) };
+    const followsPct = jaccardPct(viewerSet, theirs);
+
+    // Blend in Spotify overlap only when BOTH sides have Spotify enrichment;
+    // otherwise fall back to the follow-graph score (unchanged behavior).
+    const target = targetById.get(userId);
+    const theirSpotifyArtists = lowerSet(target?.spotifyTopArtists);
+    const theirSpotifyGenres = lowerSet(target?.spotifyGenres);
+    const theyHaveSpotify = theirSpotifyArtists.size > 0 || theirSpotifyGenres.size > 0;
+
+    let pct = followsPct;
+    if (viewerHasSpotify && theyHaveSpotify) {
+      const artistPct = jaccardPct(viewerSpotifyArtists, theirSpotifyArtists);
+      const genrePct = jaccardPct(viewerSpotifyGenres, theirSpotifyGenres);
+      pct = Math.round(0.5 * followsPct + 0.3 * artistPct + 0.2 * genrePct);
+    }
+
+    return { userId, pct };
   });
 
   return { matches };
@@ -2363,7 +2450,7 @@ app.get('/users/me/artists', async (req) => {
       : [],
     presaleArtistFilters.length
       ? prisma.presale.findMany({
-          where: { presaleStart: { gte: now }, OR: presaleArtistFilters },
+          where: { presaleStart: { gte: now }, source: { in: PRESALE_SOURCES }, OR: presaleArtistFilters },
           orderBy: { presaleStart: 'asc' },
           take: 200, // capped for UI
         })
@@ -2521,6 +2608,7 @@ app.get('/users/me/artists', async (req) => {
       },
       upcomingPresales: artistPresales.slice(0, 3).map((p) => ({
         id: p.id,
+        eventId: p.eventId ?? undefined,
         presaleType: p.presaleType,
         presaleStart: p.presaleStart.toISOString(),
         venueName: p.venueName,
@@ -2781,6 +2869,7 @@ app.get('/users/me/concert-life', async (req) => {
         where: {
           artistName: { in: artistNames, mode: 'insensitive' },
           presaleStart: { gte: now },
+          source: { in: PRESALE_SOURCES },
         },
         include: {
           alerts: { where: { userId } },
@@ -2867,6 +2956,7 @@ app.get('/users/me/concert-life', async (req) => {
     presaleAlerts: presaleAlerts.map((p) => ({
       type: 'presale' as const,
       id: p.id,
+      eventId: p.eventId ?? null,
       date: p.presaleStart.toISOString(),
       artistName: p.artistName,
       tourName: p.tourName ?? null,
@@ -3541,12 +3631,15 @@ app.get('/users/:id/venues', async (req) => {
 
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
-    select: { privacySetting: true, showMapCities: true },
+    select: { privacySetting: true, showMapCities: true, showTimeline: true },
   });
   if (!target) throw new AppError('User not found', 404);
 
-  // Privacy: showMapCities hides the venue/city map from everyone but the owner.
-  if (!(viewerId && viewerId === targetUserId) && !target.showMapCities) return [];
+  // Privacy: the map is derived from the same shows as the timeline — so it's
+  // visible whenever EITHER the map dial or the timeline is public. (A public
+  // timeline with a "private" map read as inconsistent.)
+  const isOwner = !!viewerId && viewerId === targetUserId;
+  if (!isOwner && !target.showMapCities && !target.showTimeline) return [];
 
   const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
   const visibilityWhere = buildLogVisibilityWhere(viewerId, targetUserId, target.privacySetting, viewerFollowsTarget);
@@ -3605,6 +3698,7 @@ function eventToPayload(event: {
   name: string;
   date: Date;
   imageUrl: string | null;
+  ticketUrl?: string | null;
   artist: { id: string; name: string; spotifyId: string | null; imageUrl: string | null; genres: string[] };
   venue: { id: string; name: string; city: string; state: string | null; country: string; lat: number | null; lng: number | null };
 }) {
@@ -3613,6 +3707,7 @@ function eventToPayload(event: {
     name: event.name,
     date: event.date.toISOString(),
     imageUrl: event.imageUrl ?? undefined,
+    ticketUrl: event.ticketUrl ?? undefined,
     artist: {
       id: event.artist.id,
       name: event.artist.name,
@@ -3632,7 +3727,9 @@ function eventToPayload(event: {
   };
 }
 
-type ApiEventPayload = ReturnType<typeof eventToPayload> & {
+type ApiEventPayload = Omit<ReturnType<typeof eventToPayload>, 'ticketUrl'> & {
+  // Mock/discovery payloads may omit ticketUrl; real events carry it.
+  ticketUrl?: string;
   isInterested?: boolean;
   friendsGoing?: FriendPreview[];
   friendsGoingCount?: number;
@@ -3807,6 +3904,80 @@ function mockEventById(city: string, id: string): ApiEventPayload | null {
   return [...mock.comingUp, ...mock.friendsGoing, ...mock.popular].find((e) => e.id === id) ?? null;
 }
 
+// Persist the presale/on-sale windows a Ticketmaster event carries as compliant
+// source:'ticketmaster' Presale rows, linked directly to the event. TM does not
+// expose presale codes, so `code` is always null (never fabricated). Best-effort:
+// a failed presale write never breaks the discover/browse path it runs inside.
+async function upsertTmPresales(opts: {
+  eventId: string;
+  artistName: string;
+  venueName: string;
+  venueCity: string;
+  venueState: string | null;
+  eventDate: Date;
+  eventUrl: string | null;
+  sales?: {
+    publicOnsale: string | null;
+    presales: Array<{ name: string; start: string | null; end: string | null; url: string | null }>;
+  };
+}): Promise<void> {
+  const windows = opts.sales?.presales ?? [];
+  if (windows.length === 0) return;
+
+  const onsaleRaw = opts.sales?.publicOnsale ? new Date(opts.sales.publicOnsale) : null;
+  const onsaleStart = onsaleRaw && !Number.isNaN(onsaleRaw.getTime()) ? onsaleRaw : null;
+
+  for (const w of windows) {
+    const start = w.start ? new Date(w.start) : null;
+    if (!start || Number.isNaN(start.getTime())) continue; // presaleStart is required
+    const endRaw = w.end ? new Date(w.end) : null;
+    const presaleEnd = endRaw && !Number.isNaN(endRaw.getTime()) ? endRaw : null;
+    const presaleType = (w.name || 'Presale').slice(0, 180);
+    const ticketUrl = w.url || opts.eventUrl || null;
+
+    try {
+      await prisma.presale.upsert({
+        where: {
+          artistName_venueName_eventDate_presaleType: {
+            artistName: opts.artistName,
+            venueName: opts.venueName,
+            eventDate: opts.eventDate,
+            presaleType,
+          },
+        },
+        create: {
+          artistName: opts.artistName,
+          tourName: null,
+          venueName: opts.venueName,
+          venueCity: opts.venueCity,
+          venueState: opts.venueState,
+          eventDate: opts.eventDate,
+          presaleType,
+          presaleStart: start,
+          presaleEnd,
+          onsaleStart,
+          code: null, // TM never provides presale codes
+          signupUrl: null,
+          signupDeadline: null,
+          ticketUrl,
+          source: 'ticketmaster',
+          eventId: opts.eventId,
+        },
+        update: {
+          presaleStart: start,
+          presaleEnd,
+          onsaleStart,
+          ticketUrl,
+          source: 'ticketmaster',
+          eventId: opts.eventId,
+        },
+      });
+    } catch (err) {
+      console.warn('[upsertTmPresales] failed for', opts.artistName, presaleType, err);
+    }
+  }
+}
+
 async function buildDiscoverData(userId: string | null, city: string) {
   const now = new Date();
 
@@ -3882,7 +4053,7 @@ async function buildDiscoverData(userId: string | null, city: string) {
 
         const date = new Date(te.datetime);
 
-        return await prisma.event.upsert({
+        const ev = await prisma.event.upsert({
           where: {
             artistId_venueId_date: {
               artistId: artist.id,
@@ -3895,6 +4066,7 @@ async function buildDiscoverData(userId: string | null, city: string) {
             source: 'ticketmaster',
             externalId: te.externalId,
             imageUrl: te.imageUrl,
+            ticketUrl: te.url ?? null,
           },
           create: {
             name: te.name,
@@ -3904,9 +4076,23 @@ async function buildDiscoverData(userId: string | null, city: string) {
             source: 'ticketmaster',
             externalId: te.externalId,
             imageUrl: te.imageUrl,
+            ticketUrl: te.url ?? null,
           },
           include: { artist: true, venue: true },
         });
+
+        await upsertTmPresales({
+          eventId: ev.id,
+          artistName: te.artist.name,
+          venueName: te.venue.name,
+          venueCity: te.venue.city,
+          venueState: te.venue.region || null,
+          eventDate: date,
+          eventUrl: te.url ?? null,
+          sales: te.sales,
+        });
+
+        return ev;
       })
     );
   } else {
@@ -3953,6 +4139,7 @@ async function buildDiscoverData(userId: string | null, city: string) {
               name: be.title || `${artist.name} at ${venue.name}`,
               source: 'bandsintown',
               externalId: be.id,
+              ticketUrl: be.url ?? null,
             },
             create: {
               name: be.title || `${artist.name} at ${venue.name}`,
@@ -3961,6 +4148,7 @@ async function buildDiscoverData(userId: string | null, city: string) {
               venueId: venue.id,
               source: 'bandsintown',
               externalId: be.id,
+              ticketUrl: be.url ?? null,
             },
             include: { artist: true, venue: true },
           });
@@ -4202,7 +4390,7 @@ app.get('/explore', async (req) => {
   const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows] = await Promise.all([
     // Presales starting in the next 14 days, soonest first.
     prisma.presale.findMany({
-      where: { presaleStart: { gte: now, lte: new Date(now.getTime() + 14 * DAY_MS) } },
+      where: { presaleStart: { gte: now, lte: new Date(now.getTime() + 14 * DAY_MS) }, source: { in: PRESALE_SOURCES } },
       orderBy: { presaleStart: 'asc' },
       take: 6,
     }),
@@ -4405,10 +4593,12 @@ app.get('/explore', async (req) => {
   return {
     presales: presaleRows.map((p) => ({
       id: p.id,
+      eventId: p.eventId ?? null,
       artistId: artistIdByName.get(p.artistName.toLowerCase()) ?? null,
       artistName: p.artistName,
       presaleType: p.presaleType,
       presaleStart: p.presaleStart.toISOString(),
+      ticketUrl: p.ticketUrl ?? undefined,
       code: p.code ?? undefined,
     })),
     trendingEvents: trending.map(({ event: e }) => ({
@@ -5035,10 +5225,20 @@ app.get('/events/browse', async (req, reply) => {
           }));
 
         const date = new Date(te.datetime);
-        await prisma.event.upsert({
+        const ev = await prisma.event.upsert({
           where: { artistId_venueId_date: { artistId: artist.id, venueId: venue.id, date } },
-          update: { name: te.name, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl },
-          create: { name: te.name, date, artistId: artist.id, venueId: venue.id, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl },
+          update: { name: te.name, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl, ticketUrl: te.url ?? null },
+          create: { name: te.name, date, artistId: artist.id, venueId: venue.id, source: 'ticketmaster', externalId: te.externalId, imageUrl: te.imageUrl, ticketUrl: te.url ?? null },
+        });
+        await upsertTmPresales({
+          eventId: ev.id,
+          artistName: te.artist.name,
+          venueName: te.venue.name,
+          venueCity: te.venue.city,
+          venueState: te.venue.region || null,
+          eventDate: date,
+          eventUrl: te.url ?? null,
+          sales: te.sales,
         });
       }
 
@@ -5230,7 +5430,7 @@ app.get('/events/:id', async (req, reply) => {
 
     return {
       ...eventToPayload(event),
-      ticketUrl: undefined,
+      ticketUrl: event.ticketUrl ?? undefined,
       // Stats
       logCount: event._count.logs,
       avgRating: ratingAgg._avg.rating ?? undefined,
@@ -5258,7 +5458,7 @@ app.get('/events/:id', async (req, reply) => {
       return {
         ...mock,
         // EventDetails fields (for the Event Page)
-        ticketUrl: undefined,
+        ticketUrl: (mock as { ticketUrl?: string }).ticketUrl ?? undefined,
         logCount: 0,
         avgRating: undefined,
         interestedCount: mock.totalInterested ?? 0,
@@ -6674,7 +6874,7 @@ app.get('/artists/:id/events', async (req, reply) => {
         city: e.venue.city,
         state: e.venue.state ?? undefined,
       },
-      ticketUrl: undefined,
+      ticketUrl: e.ticketUrl ?? undefined,
       isInterested: interestedIds.has(e.id),
       userLogged: loggedIds.has(e.id),
       logCount: e._count.logs,
@@ -7191,6 +7391,7 @@ app.get('/artists/:id/events/bandsintown', async (req, reply) => {
             externalId,
             artistId: artist.id,
             venueId,
+            ticketUrl: e.url ? String(e.url) : null,
           },
           update: {
             name: e.title ? String(e.title) : artist.name,
@@ -7198,6 +7399,7 @@ app.get('/artists/:id/events/bandsintown', async (req, reply) => {
             source: 'BANDSINTOWN',
             externalId,
             venueId,
+            ticketUrl: e.url ? String(e.url) : null,
           },
         });
 
@@ -7336,6 +7538,7 @@ app.get('/events/search/bandsintown', async (req, reply) => {
             externalId,
             artistId: dbArtist.id,
             venueId,
+            ticketUrl: e.url ? String(e.url) : null,
           },
           update: {
             name: e.title ? String(e.title) : artistName,
@@ -7344,6 +7547,7 @@ app.get('/events/search/bandsintown', async (req, reply) => {
             externalId,
             venueId,
             artistId: dbArtist.id,
+            ticketUrl: e.url ? String(e.url) : null,
           },
         });
 
@@ -8558,6 +8762,7 @@ app.post('/onboarding/presale-preview', async (req) => {
   const presales = await prisma.presale.findMany({
     where: {
       presaleStart: { gte: now },
+      source: { in: PRESALE_SOURCES },
       OR: filters,
     },
     orderBy: { presaleStart: 'asc' },
@@ -8567,6 +8772,7 @@ app.post('/onboarding/presale-preview', async (req) => {
   return {
     presales: presales.map((p) => ({
       id: p.id,
+      eventId: p.eventId ?? undefined,
       artistName: p.artistName,
       tourName: p.tourName ?? undefined,
       venueName: p.venueName,
@@ -8574,6 +8780,7 @@ app.post('/onboarding/presale-preview', async (req) => {
       presaleType: p.presaleType,
       presaleStart: p.presaleStart.toISOString(),
       code: p.code ?? undefined,
+      ticketUrl: p.ticketUrl ?? undefined,
       signupUrl: p.signupUrl ?? undefined,
       signupDeadline: p.signupDeadline?.toISOString() ?? undefined,
     })),
@@ -8590,6 +8797,7 @@ app.get('/presales', async (req, reply) => {
 
     const where: any = {
       presaleStart: { gte: new Date() },
+      source: { in: PRESALE_SOURCES },
     };
 
     if (q.artistId) {
@@ -8629,6 +8837,7 @@ app.get('/presales', async (req, reply) => {
 
     const base = presales.map((p) => ({
       id: p.id,
+      eventId: p.eventId ?? null,
       artistName: p.artistName,
       tourName: p.tourName ?? null,
       venueName: p.venueName,
@@ -8744,6 +8953,7 @@ app.get('/presales/my-artists', async (req) => {
   const presales = await prisma.presale.findMany({
     where: {
       presaleStart: { gte: new Date() },
+      source: { in: PRESALE_SOURCES },
       OR: artistNames.map((name) => ({
         artistName: { contains: name, mode: 'insensitive' as const },
       })),
@@ -8760,6 +8970,7 @@ app.get('/presales/my-artists', async (req) => {
 
   return presales.map((p) => ({
     id: p.id,
+    eventId: p.eventId ?? null,
     artistName: p.artistName,
     tourName: p.tourName ?? null,
     venueName: p.venueName,
@@ -8786,7 +8997,7 @@ app.get('/presales/my-alerts', async (req) => {
   const userId = requireAccessUserId(req as any);
 
   const alerts = await prisma.presaleAlert.findMany({
-    where: { userId },
+    where: { userId, presale: { source: { in: PRESALE_SOURCES } } },
     include: { presale: true },
     orderBy: { presale: { presaleStart: 'asc' } },
     take: 200,
@@ -8794,6 +9005,7 @@ app.get('/presales/my-alerts', async (req) => {
 
   return alerts.map((a) => ({
     id: a.presale.id,
+    eventId: a.presale.eventId ?? null,
     artistName: a.presale.artistName,
     tourName: a.presale.tourName ?? null,
     venueName: a.presale.venueName,
@@ -8826,6 +9038,7 @@ app.get('/presales/search', async (req) => {
   const presales = await prisma.presale.findMany({
     where: {
       presaleStart: { gte: new Date() },
+      source: { in: PRESALE_SOURCES },
       OR: [
         { artistName: { contains: q, mode: 'insensitive' } },
         { tourName: { contains: q, mode: 'insensitive' } },
@@ -8857,6 +9070,7 @@ app.get('/presales/search', async (req) => {
 
   return presales.map((p) => ({
     id: p.id,
+    eventId: p.eventId ?? null,
     artistName: p.artistName,
     tourName: p.tourName ?? null,
     venueName: p.venueName,
@@ -8884,7 +9098,8 @@ app.get('/presales/:id', async (req) => {
   const { id } = req.params as { id: string };
 
   const presale = await prisma.presale.findUnique({ where: { id } });
-  if (!presale) {
+  // ERP/SOS presales are ERP-internal only and never exposed to consumers.
+  if (!presale || !PRESALE_SOURCES.includes(presale.source)) {
     return { error: 'Presale not found' };
   }
 
@@ -8904,6 +9119,7 @@ app.get('/presales/:id', async (req) => {
 
   return {
     id: presale.id,
+    eventId: presale.eventId ?? null,
     artistName: presale.artistName,
     tourName: presale.tourName ?? null,
     venueName: presale.venueName,

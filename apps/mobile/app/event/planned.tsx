@@ -23,6 +23,7 @@ import { useSession } from '../../hooks/useSession';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { haptics } from '../../lib/motion';
 import { apiClient } from '../../lib/api/client';
+import { buildTicketLink } from '../../lib/tickets/affiliate';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 
 // ---------------------------------------------------------------------------
@@ -359,23 +360,6 @@ export default function PlannedShowCard() {
         color: t.colors.text,
         lineHeight: 20,
       },
-      presaleCodeBox: {
-        marginTop: 10,
-        alignSelf: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: t.colors.line,
-        borderRadius: t.radius.chip,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-      },
-      presaleCode: {
-        fontFamily: t.fontFamilies.monoBold,
-        fontSize: 12,
-        color: t.colors.fg,
-        letterSpacing: 3,
-        marginTop: 6,
-      },
 
       // Friends
       friendRow: {
@@ -638,18 +622,14 @@ export default function PlannedShowCard() {
         )}
 
         {/* ── Presale Info ───────────────────────────────────── */}
+        {/* Compliance: presale codes are never surfaced. Show only the presale
+            info (name/window); the "Get tickets" CTA below routes to the seller. */}
         {show.presale && !presaleCountdown && (
           <View style={styles.section}>
             <MonoLabel size={10}>PRESALE</MonoLabel>
             <View style={styles.presaleInfoBox}>
               <Text style={styles.presaleInfoText}>{show.presale.info}</Text>
             </View>
-            {show.presale.code ? (
-              <View style={styles.presaleCodeBox}>
-                <MonoLabel size={9.5} color={tokens.colors.muteSoft}>CODE</MonoLabel>
-                <Text style={styles.presaleCode}>{show.presale.code}</Text>
-              </View>
-            ) : null}
           </View>
         )}
 
@@ -719,6 +699,8 @@ export default function PlannedShowCard() {
         )}
 
         {/* ── Ticket link (bottom CTA) ───────────────────────── */}
+        {/* Route through buildTicketLink so the seller URL is affiliate-wrapped
+            when an ID is configured (falls back to the plain directUrl today). */}
         {show.ticketUrl && !show.ticket && (
           <View style={[styles.section, { alignItems: 'center', paddingBottom: 8 }]}>
             <PillButton
@@ -726,7 +708,12 @@ export default function PlannedShowCard() {
               variant="primary"
               size="lg"
               onPress={() => {
-                Linking.openURL(show.ticketUrl!).catch(() => {});
+                Linking.openURL(
+                  buildTicketLink('ticketmaster', {
+                    query: `${show.artist.name} ${show.venue.city}`,
+                    directUrl: show.ticketUrl,
+                  }),
+                ).catch(() => {});
               }}
             />
           </View>
