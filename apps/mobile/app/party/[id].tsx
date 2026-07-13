@@ -324,15 +324,18 @@ export default function PartyScreen() {
     content: { paddingHorizontal: t.density.pad },
     // The party header is a STUB — an invite is a ticket (C3). Notches
     // punch through to the page bg on the perforation line.
+    // Invite stub — fg border + notches (C3/§4 Party: an invite is a ticket).
     stubCard: {
       marginTop: 14,
       backgroundColor: t.colors.card,
       borderRadius: t.radius.stub,
-      borderWidth: 1,
-      borderColor: t.colors.line,
+      borderWidth: 1.5,
+      borderColor: t.colors.fg,
       overflow: 'hidden',
       ...t.shadows.card,
     },
+    // Cancelled parties drop back to a dim hairline — no longer a live invite.
+    stubCardCancelled: { borderWidth: 1, borderColor: t.colors.line },
     stubBody: { paddingHorizontal: t.density.cardPad, paddingTop: t.density.cardPad, paddingBottom: 14 },
     stubFooter: { paddingHorizontal: t.density.cardPad, paddingVertical: 12 },
     eyebrow: {
@@ -343,12 +346,12 @@ export default function PartyScreen() {
       color: t.colors.muteSoft,
     },
     title: {
-      fontSize: 20,
+      fontSize: 21,
       fontWeight: '800',
       letterSpacing: -0.4,
       color: t.colors.fg,
       marginTop: 6,
-      lineHeight: 25,
+      lineHeight: 26,
     },
     // Cancelled = struck through, dimmed — the party stays readable.
     titleCancelled: { textDecorationLine: 'line-through', color: t.colors.mute },
@@ -442,9 +445,15 @@ export default function PartyScreen() {
       fontSize: 14,
       color: t.colors.fg,
     },
+    // Announcement CARDS (§4 Party) — bordered card tone, not bare rows.
     announcement: {
-      paddingVertical: 10,
-      gap: 5,
+      padding: 14,
+      gap: 6,
+      marginBottom: 10,
+      borderRadius: t.radius.card,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
     },
     announcementMeta: {
       fontFamily: t.fontFamilies.mono,
@@ -610,9 +619,9 @@ export default function PartyScreen() {
         >
           <View style={styles.content}>
             {/* ── Header — the party card is a STUB (an invite is a ticket) ── */}
-            <View style={styles.stubCard}>
+            <View style={[styles.stubCard, cancelled && styles.stubCardCancelled]}>
               <View style={styles.stubBody}>
-                <Text style={styles.eyebrow}>{cancelled ? 'Party · Cancelled' : 'Party'}</Text>
+                <Text style={styles.eyebrow}>{cancelled ? 'Pre-party · Cancelled' : 'Pre-party'}</Text>
                 <Text style={[styles.title, cancelled && styles.titleCancelled]}>
                   {party.title}
                 </Text>

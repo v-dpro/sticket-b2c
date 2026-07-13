@@ -17,7 +17,6 @@ import type { ThemeTokens } from '../../lib/theme';
 import { useThemedStyles } from '../../lib/theme-context';
 import { PhotoLightbox } from '../event/PhotoLightbox';
 import { BottomSheet } from '../ui/BottomSheet';
-import { StarRow } from './EntityBits';
 import { formatScore } from './format';
 
 interface SeatSectionSheetProps {
@@ -64,16 +63,13 @@ export function SeatSectionSheet({ section, onClose }: SeatSectionSheetProps) {
             <Text style={styles.title} numberOfLines={1}>
               {section.section}
             </Text>
-            {section.avgRating != null && Number.isFinite(section.avgRating) ? (
-              <View style={styles.ratingRow}>
-                <StarRow value={section.avgRating} size={12} />
-                <Text style={styles.ratingText}>{formatScore(section.avgRating)}</Text>
-              </View>
-            ) : null}
           </View>
+          {/* Spec §4 Venue/Seat bowl: "SEC 112" 15/800 + "★ 4.6 · N PHOTOS" mono. */}
           <Text style={styles.countLine}>
-            {section.photoCount} {section.photoCount === 1 ? 'PHOTO' : 'PHOTOS'} FROM THIS
-            SECTION
+            {section.avgRating != null && Number.isFinite(section.avgRating)
+              ? `★ ${formatScore(section.avgRating)} · `
+              : ''}
+            {section.photoCount} {section.photoCount === 1 ? 'PHOTO' : 'PHOTOS'}
           </Text>
 
           <FlatList
@@ -114,7 +110,7 @@ const buildStyles = (tokens: ThemeTokens) =>
     title: {
       flex: 1,
       minWidth: 0,
-      fontSize: 18,
+      fontSize: 15,
       fontWeight: '800',
       letterSpacing: -0.3,
       color: tokens.colors.fg,

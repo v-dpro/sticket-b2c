@@ -16,9 +16,15 @@
 // venue-derived grouping); caps at 24 blocks and notes the rest as
 // "+N MORE SECTIONS".
 
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import type { EventSeatSection } from '../../lib/api/events';
 import { durations, tearIn } from '../../lib/motion';
@@ -29,16 +35,23 @@ import { SpringPressable } from '../ui/SpringPressable';
 type SeatBowlProps = {
   sections: EventSeatSection[];
   onPressSection: (section: EventSeatSection) => void;
+  /** Your section (event page) — pulses once on open to place you (C24). */
+  pulseSection?: string | null;
 };
 
 // ── Layout constants ───────────────────────────────────────────────
 const MAX_BLOCKS = 24;
 const MAX_PER_ARC = 6;
 const BLOCK_GAP = 8;
-const BLOCK_HEIGHT = 38;
+const BLOCK_HEIGHT = 26; // spec: 24–28px tall
 const BLOCK_MIN_WIDTH = 44;
 const BLOCK_MAX_WIDTH = 108;
 const ARC_GAP = 22; // vertical gap between arcs — generous enough to clear the curve's translateY
+
+/** Case/space-insensitive section-name match (your-section pulse). */
+function sameSection(a: string, b: string): boolean {
+  return a.trim().toUpperCase() === b.trim().toUpperCase();
+}
 
 // GA/floor/pit-style sections read as "on the ground, right up front" —
 // cheap heuristic on the name, not a fixed section-name whitelist.
@@ -109,11 +122,11 @@ type BowlRow = { key: string; blocks: BowlBlock[] };
 //
 // Per arc (arcIndex 0 = nearest the stage): rotation edges out to
 // min(9 + arcIndex*3, 18)° (±9-18° per spec, growing arc-by-arc) and each
-// block's translateY bows up to min(8 + arcIndex*2, 14)px at the arc's
-// edges — both zero at the arc's center block, so a row reads as a fan
-// that curves up and away from the stage at its ends. Rows render
-// outermost-first (top of the schematic) down to the floor tier, which
-// sits directly above the STAGE slab.
+// block's translateY bows down to min(8 + arcIndex*2, 14)px at the arc's
+// edges — both zero at the arc's center block, so a row reads as a domed
+// arc whose OUTER blocks sit LOWER (spec), tracing a ring around the
+// stage below. Rows render outermost-first (top of the schematic) down to
+// the floor tier, which sits directly above the STAGE slab.
 function buildBowlRows(sections: EventSeatSection[]): { rows: BowlRow[]; overflow: number } {
   const { arcs, overflow } = buildBowlArcs(sections);
   let cursor = 0;
@@ -133,7 +146,7 @@ function buildBowlRows(sections: EventSeatSection[]): { rows: BowlRow[]; overflo
           return {
             section,
             rotateDeg: -p * rotMax, // fans inward: left tilts clockwise, right tilts counter-clockwise
-            translateY: -Math.abs(p) * curveDepth, // edges bow up, away from the stage
+            translateY: Math.abs(p) * curveDepth, // outer blocks bow DOWN (ring around the stage)
             delay: Math.min(cursor++, 16) * durations.stagger,
           };
         }),
@@ -149,9 +162,59 @@ function blockWidthFor(n: number, containerWidth: number): number {
   return Math.max(BLOCK_MIN_WIDTH, Math.min(BLOCK_MAX_WIDTH, raw));
 }
 
+type BowlBlockViewProps = {
+  block: BowlBlock;
+  width: number;
+  pulse: boolean;
+  styles: ReturnType<typeof buildStyles>;
+  onPress: (section: EventSeatSection) => void;
+};
+
+// One block. Hosts its own shared value so the user's section can pulse
+// once on open (event page) without re-rendering the whole schematic.
+function BowlBlockView({ block, width, pulse, styles, onPress }: BowlBlockViewProps) {
+  const { section, rotateDeg, translateY, delay } = block;
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (!pulse) return;
+    // After the tear-in settles, one attention pulse: 1 → 1.09 → 1.
+    scale.value = withDelay(
+      420,
+      withSequence(withTiming(1.09, { duration: 200 }), withTiming(1, { duration: 260 })),
+    );
+  }, [pulse, scale]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY }, { rotate: `${rotateDeg}deg` }, { scale: scale.value }],
+  }));
+
+  const filled = section.photoCount > 0;
+  const label = filled
+    ? `Section ${section.section}, ${section.photoCount} photo${section.photoCount === 1 ? '' : 's'}`
+    : `Section ${section.section}, no photos yet — be the first`;
+
+  return (
+    <Animated.View entering={tearIn(delay)} style={[{ width }, animStyle]}>
+      <SpringPressable
+        haptic="light"
+        onPress={() => onPress(section)}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={[styles.block, filled ? styles.blockFilled : styles.blockEmpty]}
+      >
+        <Text style={filled ? styles.blockLabel : styles.blockLabelMuted} numberOfLines={1}>
+          {section.section.toUpperCase()}
+          {filled ? ` · ${section.photoCount}` : ''}
+        </Text>
+      </SpringPressable>
+    </Animated.View>
+  );
+}
+
 // Memoized: `sections` is replaced by identity on refetch and callers pass
 // a stable state setter as `onPressSection`, so shallow compare holds.
-export const SeatBowl = memo(function SeatBowl({ sections, onPressSection }: SeatBowlProps) {
+export const SeatBowl = memo(function SeatBowl({ sections, onPressSection, pulseSection }: SeatBowlProps) {
   const [width, setWidth] = useState(0);
   const styles = useThemedStyles(buildStyles);
 
@@ -169,36 +232,16 @@ export const SeatBowl = memo(function SeatBowl({ sections, onPressSection }: Sea
         const bw = blockWidthFor(row.blocks.length, width);
         return (
           <View key={row.key} style={[styles.arcRow, i > 0 && styles.arcRowSpaced]}>
-            {row.blocks.map(({ section, rotateDeg, translateY, delay }) => {
-              const filled = section.photoCount > 0;
-              const label = filled
-                ? `Section ${section.section}, ${section.photoCount} photo${section.photoCount === 1 ? '' : 's'}`
-                : `Section ${section.section}, no photos yet — be the first`;
-              return (
-                <Animated.View
-                  key={section.section}
-                  entering={tearIn(delay)}
-                  style={{ width: bw, transform: [{ translateY }, { rotate: `${rotateDeg}deg` }] }}
-                >
-                  <SpringPressable
-                    haptic="light"
-                    onPress={() => onPressSection(section)}
-                    accessibilityRole="button"
-                    accessibilityLabel={label}
-                    style={[styles.block, filled ? styles.blockFilled : styles.blockEmpty]}
-                  >
-                    <Text style={filled ? styles.blockLabel : styles.blockLabelMuted} numberOfLines={1}>
-                      {section.section.toUpperCase()}
-                    </Text>
-                    {filled ? (
-                      <Text style={styles.blockCount} numberOfLines={1}>
-                        · {section.photoCount}
-                      </Text>
-                    ) : null}
-                  </SpringPressable>
-                </Animated.View>
-              );
-            })}
+            {row.blocks.map((block) => (
+              <BowlBlockView
+                key={block.section.section}
+                block={block}
+                width={bw}
+                pulse={!!pulseSection && sameSection(block.section.section, pulseSection)}
+                styles={styles}
+                onPress={onPressSection}
+              />
+            ))}
           </View>
         );
       })}
@@ -229,18 +272,21 @@ const buildStyles = (t: ThemeTokens) =>
     arcRowSpaced: { marginTop: ARC_GAP },
     block: {
       height: BLOCK_HEIGHT,
-      borderRadius: t.radius.sm,
+      borderRadius: 6, // spec: block radius 6
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 4,
+      paddingHorizontal: 6,
     },
+    // Filled = fg fill + label in bg ink (section has photos).
     blockFilled: { backgroundColor: t.colors.inverseBg },
+    // Empty but tappable ("be the first") = hairline line-border.
     blockEmpty: {
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: t.colors.hairline,
+      borderWidth: 1,
+      borderColor: t.colors.line,
     },
     blockLabel: {
       fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
       fontSize: 10,
       letterSpacing: 0.4,
       textTransform: 'uppercase',
@@ -253,27 +299,21 @@ const buildStyles = (t: ThemeTokens) =>
       textTransform: 'uppercase',
       color: t.colors.muteSoft,
     },
-    blockCount: {
-      fontFamily: t.fontFamilies.mono,
-      fontVariant: ['tabular-nums'],
-      fontSize: 9,
-      color: t.colors.inverseFg,
-      opacity: 0.7,
-      marginTop: 1,
-    },
+    // Stage slab, bottom-center: 150×16, 1.5px fg border, letterspaced STAGE.
     stage: {
       marginTop: ARC_GAP,
-      height: 42,
-      borderRadius: t.radius.sm,
+      alignSelf: 'center',
+      width: 150,
+      height: 16,
+      borderRadius: 6,
       borderWidth: 1.5,
-      borderColor: t.colors.line,
-      backgroundColor: t.colors.card2,
+      borderColor: t.colors.fg,
       alignItems: 'center',
       justifyContent: 'center',
     },
     stageLabel: {
       fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
+      fontSize: 9,
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: t.colors.mute,

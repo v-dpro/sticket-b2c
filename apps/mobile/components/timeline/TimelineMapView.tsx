@@ -30,7 +30,7 @@ import { buildMapGrid, type MapCell, type MapGranularity, type MapRow } from './
 import { GlobeView, buildGlobePoints } from './GlobeView';
 
 const COLUMNS = 3;
-const GRID_GAP = 1;
+const GRID_GAP = 2;
 // Cells past this global index mount without the tear-in stagger.
 const STAGGER_CUTOFF = 12;
 
@@ -264,9 +264,8 @@ const buildStyles = (tokens: ThemeTokens) =>
       overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
-      // Hairline frame around every photo — "border the photo".
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: tokens.colors.hairline,
+      // No per-cell border — Instagram delineates purely with the gutter
+      // gap; a border on top read as a heavy double-line.
     },
     cellFill: {
       backgroundColor: tokens.colors.card2,

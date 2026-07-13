@@ -106,7 +106,7 @@ export function ArtistsTab() {
     },
     avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.colors.card2 },
     body: { flex: 1, minWidth: 0, gap: 3 },
-    name: { fontSize: 16, fontWeight: '700', color: t.colors.fg },
+    name: { fontSize: 14, fontWeight: '800', letterSpacing: -0.2, color: t.colors.fg },
     meta: {
       fontFamily: t.fontFamilies.monoSemi,
       fontVariant: ['tabular-nums'],
@@ -116,19 +116,24 @@ export function ArtistsTab() {
       color: t.colors.muteSoft,
     },
     socialRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 },
-    plannedChip: {
-      paddingVertical: 2,
-      paddingHorizontal: 6,
-      borderRadius: t.radius.sm,
-      backgroundColor: t.colors.inverseBg,
-    },
-    plannedChipText: {
+    // Right-aligned plan state on the DROPS line — success green when
+    // ticketed/marked, muteSoft otherwise (§4 You / C20).
+    plannedText: {
       fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 9,
+      fontSize: 9.5,
       letterSpacing: 0.8,
-      color: t.colors.inverseFg,
+      textTransform: 'uppercase',
+      color: t.colors.success,
     },
-    // The collectible count — a small flat stamp.
+    notPlannedText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 9.5,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    // The collectible seen-count — a small flat stamp. Never-seen = a
+    // dashed "×0" stamp (spec).
     countStamp: {
       borderWidth: 1.5,
       borderColor: t.colors.fg,
@@ -136,12 +141,14 @@ export function ArtistsTab() {
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
+    countStampEmpty: { borderColor: t.colors.dash, borderStyle: 'dashed' },
     countText: {
       fontFamily: t.fontFamilies.monoBold,
       fontVariant: ['tabular-nums'],
       fontSize: 12,
       color: t.colors.fg,
     },
+    countTextEmpty: { color: t.colors.mute },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 40, gap: 12 },
     emptyTitle: { fontSize: 16, fontWeight: '800', color: t.colors.fg, textAlign: 'center' },
     emptySub: { fontSize: 13.5, color: t.colors.mute, textAlign: 'center' },
@@ -266,6 +273,11 @@ export function ArtistsTab() {
             const seen = row.stats?.timesSeen ?? 0;
             const next = nextShowLabel(row);
             const hasPresale = (row.upcomingPresales?.length ?? 0) > 0;
+            const dropText =
+              row.latestDrop?.text ||
+              [next ? `NEXT ${next}` : null, hasPresale ? 'PRESALE SOON' : null]
+                .filter(Boolean)
+                .join(' · ');
             const idx = i++;
             return (
               <Animated.View key={row.artist.id} entering={tearIn(Math.min(idx, 8) * durations.stagger)}>
@@ -287,19 +299,16 @@ export function ArtistsTab() {
                     <Text style={styles.name} numberOfLines={1}>
                       {row.artist.name}
                     </Text>
-                    {/* The drop one-liner — what this artist is doing next. */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {/* DROPS line — what this artist is doing next + plan state. */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
-                        {row.latestDrop?.text ||
-                          [next ? `NEXT ${next}` : null, hasPresale ? 'PRESALE SOON' : null]
-                            .filter(Boolean)
-                            .join(' · ') ||
-                          'NO DATES YET'}
+                        {dropText ? `DROPS · ${dropText}` : 'NO DATES YET'}
                       </Text>
-                      {row.latestDrop?.planned ? (
-                        <View style={styles.plannedChip}>
-                          <Text style={styles.plannedChipText}>PLANNED ✓</Text>
-                        </View>
+                      <View style={{ flex: 1 }} />
+                      {row.latestDrop ? (
+                        <Text style={row.latestDrop.planned ? styles.plannedText : styles.notPlannedText}>
+                          {row.latestDrop.planned ? 'PLANNED ✓' : 'NOT PLANNED'}
+                        </Text>
                       ) : null}
                     </View>
                     {(row.friendsTracking?.length ?? 0) > 0 || (row.friendsSeenMore?.count ?? 0) > 0 ? (
@@ -307,7 +316,7 @@ export function ArtistsTab() {
                         {(row.friendsTracking?.length ?? 0) > 0 ? (
                           <DegreeFacepile
                             people={row.friendsTracking!}
-                            size={18}
+                            size={20}
                             max={3}
                             surfaceColor={tokens.colors.card}
                           />
@@ -328,11 +337,10 @@ export function ArtistsTab() {
                     ) : null}
                   </View>
                   <TierStamp tier={artistTier(seen)} />
-                  {seen > 0 ? (
-                    <View style={styles.countStamp}>
-                      <Text style={styles.countText}>×{seen}</Text>
-                    </View>
-                  ) : null}
+                  {/* Always a stamp — dashed "×0" when never seen (spec). */}
+                  <View style={[styles.countStamp, seen === 0 && styles.countStampEmpty]}>
+                    <Text style={[styles.countText, seen === 0 && styles.countTextEmpty]}>×{seen}</Text>
+                  </View>
                 </SpringPressable>
               </Animated.View>
             );

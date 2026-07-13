@@ -4,9 +4,10 @@
 // then PRESALES (tracked presales with live countdowns + the ticketed/
 // interested agenda). One scroll, three stacked sections.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { durations } from '../../lib/motion';
@@ -15,8 +16,12 @@ import { useThemedStyles } from '../../lib/theme-context';
 import { YourShowsSection } from '../../components/plan/YourShowsSection';
 import { PartiesTab } from '../../components/plan/PartiesTab';
 import { PresalesTab } from '../../components/you/PresalesTab';
+import { EventPickerSheet } from '../../components/party/EventPickerSheet';
+import { PillButton } from '../../components/ui/PillButton';
 
 export default function PlanScreen() {
+  const router = useRouter();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
     header: {
@@ -27,7 +32,7 @@ export default function PlanScreen() {
       paddingTop: 10,
       paddingBottom: 6,
     },
-    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
+    title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, color: t.colors.fg },
     sectionLabel: {
       fontFamily: t.fontFamilies.monoSemi,
       fontSize: 11,
@@ -45,6 +50,15 @@ export default function PlanScreen() {
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.title}>Plan</Text>
+        {/* §4 Plan header — the primary create affordance for a party. */}
+        <PillButton
+          title="+ Party"
+          variant="primary"
+          size="sm"
+          springFeedback
+          haptic="medium"
+          onPress={() => setPickerOpen(true)}
+        />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeIn.duration(durations.fadeThrough)}>
@@ -57,6 +71,18 @@ export default function PlanScreen() {
           <PresalesTab />
         </Animated.View>
       </ScrollView>
+
+      <EventPickerSheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(event) => {
+          setPickerOpen(false);
+          router.push({
+            pathname: '/party/create',
+            params: { eventId: event.id, eventName: event.name, eventDate: event.date },
+          });
+        }}
+      />
     </SafeAreaView>
   );
 }

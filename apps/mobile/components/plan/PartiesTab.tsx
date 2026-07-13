@@ -13,6 +13,7 @@ import Animated from 'react-native-reanimated';
 
 import {
   getMyParties,
+  joinParty,
   respondToRequest,
   type MyParties,
   type PartyLite,
@@ -173,6 +174,59 @@ export function PartiesTab() {
       color: t.colors.muteSoft,
     },
     reqActions: { flexDirection: 'row', gap: 8 },
+    // GOING — a lighter row: host avatar + title + "N GOING" mono (not a stub).
+    goingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: t.density.pad,
+      marginBottom: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: t.radius.card,
+      backgroundColor: t.colors.card,
+      borderWidth: 1,
+      borderColor: t.colors.hairline,
+    },
+    goingBody: { flex: 1, minWidth: 0, gap: 3 },
+    goingTitle: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
+    goingWhen: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    goingCount: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: t.colors.mute,
+    },
+    // INVITED — a dashed plan row (you haven't said yes yet) with a Going CTA.
+    invitedRow: {
+      marginHorizontal: t.density.pad,
+      marginBottom: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: t.radius.card,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.dash,
+      gap: 10,
+    },
+    invitedTop: { gap: 3 },
+    invitedVector: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 10,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    invitedActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 40, gap: 12 },
     emptyTitle: { fontSize: 16, fontWeight: '800', color: t.colors.fg, textAlign: 'center' },
     emptySub: { fontSize: 13.5, color: t.colors.mute, textAlign: 'center', lineHeight: 19 },
@@ -183,6 +237,24 @@ export function PartiesTab() {
       setActing(`${partyId}:${userId}`);
       try {
         await respondToRequest(partyId, userId, action === 'approve');
+        haptics.success();
+        await load();
+      } catch {
+        haptics.error();
+      } finally {
+        setActing(null);
+      }
+    },
+    [load],
+  );
+
+  // Accept an invite (INVITED → GOING). There is no invitee-side "Can't"
+  // endpoint yet, so INVITED rows offer Going only (mirrors the party page).
+  const accept = useCallback(
+    async (partyId: string) => {
+      setActing(`invite:${partyId}`);
+      try {
+        await joinParty(partyId);
         haptics.success();
         await load();
       } catch {
@@ -258,6 +330,127 @@ export function PartiesTab() {
     );
   };
 
+  // A single join request — rendered inline beneath the HOSTING stub it
+  // belongs to (§4 PARTIES: requester avatar + fact + Approve / Pass).
+  const renderRequestRow = (req: MyParties['requests'][number]) => {
+    const key = `${req.party.id}:${req.requester.id}`;
+    const busy = acting === key;
+    return (
+      <View key={key} style={styles.requestRow}>
+        {req.requester.avatarUrl ? (
+          <Image source={{ uri: req.requester.avatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
+        ) : (
+          <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+            <Text style={{ fontWeight: '700', color: tokens.colors.mute }}>
+              {(req.requester.displayName ?? req.requester.username).slice(0, 1).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={styles.reqBody}>
+          <Text style={styles.reqName} numberOfLines={1}>
+            {req.requester.displayName ?? `@${req.requester.username}`}
+          </Text>
+          <Text style={styles.reqMeta} numberOfLines={1}>
+            @{req.requester.username} · WANTS IN
+          </Text>
+        </View>
+        <View style={styles.reqActions}>
+          <PillButton
+            title={busy ? '…' : 'Approve'}
+            variant="primary"
+            size="sm"
+            disabled={busy}
+            onPress={() => void respond(req.party.id, req.requester.id, 'approve')}
+            springFeedback
+            haptic="none"
+          />
+          <PillButton
+            title="Pass"
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onPress={() => void respond(req.party.id, req.requester.id, 'decline')}
+            springFeedback
+            haptic="none"
+          />
+        </View>
+      </View>
+    );
+  };
+
+  // GOING — a lighter row: host avatar + title + "N GOING" mono (not a stub).
+  const renderGoing = (party: PartyLite, index: number) => {
+    const host = party.host;
+    return (
+      <Animated.View key={party.id} entering={tearIn(Math.min(index, 8) * durations.stagger)}>
+        <SpringPressable
+          haptic="light"
+          onPress={() => router.push(`/party/${party.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`${party.title}, ${party.goingCount} going`}
+          style={styles.goingRow}
+        >
+          {host.avatarUrl ? (
+            <Image source={{ uri: host.avatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
+          ) : (
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Text style={{ fontWeight: '700', color: tokens.colors.mute }}>
+                {host.username.slice(0, 1).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.goingBody}>
+            <Text style={styles.goingTitle} numberOfLines={1}>
+              {party.title}
+            </Text>
+            <Text style={styles.goingWhen} numberOfLines={1}>
+              {partyWhen(party)} · @{host.username}
+            </Text>
+          </View>
+          <Text style={styles.goingCount}>{party.goingCount} GOING</Text>
+        </SpringPressable>
+      </Animated.View>
+    );
+  };
+
+  // INVITED — a dashed plan row + provenance + a Going CTA (no "Can't"
+  // endpoint for invitees yet, mirrors the party page).
+  const renderInvited = (party: PartyLite, index: number) => {
+    const busy = acting === `invite:${party.id}`;
+    return (
+      <Animated.View key={party.id} entering={tearIn(Math.min(index, 8) * durations.stagger)}>
+        <View style={styles.invitedRow}>
+          <SpringPressable
+            haptic="light"
+            onPress={() => router.push(`/party/${party.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`${party.title}, you're invited`}
+            style={styles.invitedTop}
+          >
+            <Text style={styles.title} numberOfLines={1}>
+              {party.title}
+            </Text>
+            <Text style={styles.when}>{partyWhen(party)}</Text>
+            <Text style={styles.invitedVector} numberOfLines={1}>
+              INVITED BY @{party.host.username}
+            </Text>
+          </SpringPressable>
+          <View style={styles.invitedActions}>
+            <PillButton
+              title={busy ? '…' : 'Going'}
+              variant="primary"
+              size="sm"
+              disabled={busy}
+              onPress={() => void accept(party.id)}
+              springFeedback
+              haptic="none"
+            />
+          </View>
+        </View>
+      </Animated.View>
+    );
+  };
+
   return (
     <View>
       {empty ? (
@@ -277,87 +470,48 @@ export function PartiesTab() {
           <PillButton title="Find a show" variant="ghost" springFeedback haptic="light" onPress={() => router.push('/(tabs)/explore')} />
         </View>
       ) : (
-        <SpringPressable
-          haptic="light"
-          onPress={() => setPickerOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Host a party"
-          style={styles.hostRow}
-        >
-          <Text style={styles.hostRowText}>Host a party</Text>
-          <Text style={styles.hostRowCue}>Pick a show →</Text>
-        </SpringPressable>
+        <>
+          {data && data.hosting.length > 0 ? (
+            <View>
+              <Text style={styles.section}>Hosting</Text>
+              {data.hosting.map((p) => (
+                <View key={p.id}>
+                  {renderParty(p, p.myStatus === 'COHOST' ? 'CO-HOST' : 'HOST')}
+                  {data.requests
+                    .filter((r) => r.party.id === p.id)
+                    .map((req) => renderRequestRow(req))}
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {data && data.going.length > 0 ? (
+            <View>
+              <Text style={styles.section}>Going</Text>
+              {data.going.map((p, idx) => renderGoing(p, idx))}
+            </View>
+          ) : null}
+
+          {data && data.invited.length > 0 ? (
+            <View>
+              <Text style={styles.section}>Invited</Text>
+              {data.invited.map((p, idx) => renderInvited(p, idx))}
+            </View>
+          ) : null}
+
+          {/* Create row — bottom of PARTIES (§4): start a party from a show. */}
+          <SpringPressable
+            haptic="light"
+            onPress={() => setPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Start a party"
+            style={styles.hostRow}
+          >
+            <Text style={styles.hostRowText}>Start a party</Text>
+            <Text style={styles.hostRowCue}>Pick a show →</Text>
+          </SpringPressable>
+        </>
       )}
-
-      {data && data.requests.length > 0 ? (
-        <View>
-          <Text style={styles.section}>Requests to join</Text>
-          {data.requests.map((req) => {
-            const key = `${req.party.id}:${req.requester.id}`;
-            const busy = acting === key;
-            return (
-              <View key={key} style={styles.requestRow}>
-                {req.requester.avatarUrl ? (
-                  <Image source={{ uri: req.requester.avatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
-                ) : (
-                  <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-                    <Text style={{ fontWeight: '700', color: tokens.colors.mute }}>
-                      {(req.requester.displayName ?? req.requester.username).slice(0, 1).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.reqBody}>
-                  <Text style={styles.reqName} numberOfLines={1}>
-                    {req.requester.displayName ?? `@${req.requester.username}`}
-                  </Text>
-                  <Text style={styles.reqMeta} numberOfLines={1}>
-                    WANTS IN · {req.party.title}
-                  </Text>
-                </View>
-                <View style={styles.reqActions}>
-                  <PillButton
-                    title={busy ? '…' : 'Approve'}
-                    variant="primary"
-                    size="sm"
-                    disabled={busy}
-                    onPress={() => void respond(req.party.id, req.requester.id, 'approve')}
-                    springFeedback
-                    haptic="none"
-                  />
-                  <PillButton
-                    title="Decline"
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy}
-                    onPress={() => void respond(req.party.id, req.requester.id, 'decline')}
-                    springFeedback
-                    haptic="none"
-                  />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      ) : null}
-
-      {data && data.hosting.length > 0 ? (
-        <View>
-          <Text style={styles.section}>Hosting</Text>
-          {data.hosting.map((p) => renderParty(p, p.myStatus === 'COHOST' ? 'CO-HOST' : 'HOST'))}
-        </View>
-      ) : null}
-      {data && data.invited.length > 0 ? (
-        <View>
-          <Text style={styles.section}>Invited</Text>
-          {data.invited.map((p) => renderParty(p, 'INVITED'))}
-        </View>
-      ) : null}
-      {data && data.going.length > 0 ? (
-        <View>
-          <Text style={styles.section}>Going</Text>
-          {data.going.map((p) => renderParty(p))}
-        </View>
-      ) : null}
 
       <EventPickerSheet
         visible={pickerOpen}

@@ -11,6 +11,10 @@ import { apiClient } from './client';
 export interface TrendPhoto {
   url: string;
   logId: string;
+  /** Optional — the HIGHLIGHTS tile scrim shows @author + ♥ count when the
+   * backend supplies them (C23). Absent → the tile is photo-only. */
+  author?: string | null;
+  likeCount?: number | null;
 }
 
 export interface Trend {

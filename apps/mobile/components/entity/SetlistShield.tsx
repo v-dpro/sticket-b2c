@@ -172,9 +172,7 @@ export function SetlistShield({ songs = [], entries = [], onVote }: SetlistShiel
           tint={tokens.isDark ? 'dark' : 'light'}
           style={styles.shield}
         >
-          <Text style={styles.shieldLabel}>
-            {rowCount} songs · spoilers ahead
-          </Text>
+          <Text style={styles.shieldLabel}>HIDDEN · TAP TO REVEAL</Text>
           <PillButton
             title="Reveal setlist"
             variant="secondary"

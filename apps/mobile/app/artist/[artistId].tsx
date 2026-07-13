@@ -225,21 +225,50 @@ export default function ArtistScreen() {
   const styles = useThemedStyles((t) => ({
     screen: { flex: 1, backgroundColor: t.colors.bg },
     heroFallback: { backgroundColor: t.colors.card2, width: '100%' },
+    // Name embedded on the hero media (photo overlay = white ink, C §1.1).
+    heroTextWrap: {
+      position: 'absolute',
+      left: t.density.pad,
+      right: t.density.pad,
+      bottom: 16,
+    },
+    heroName: {
+      fontSize: 30,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+      color: '#FFFFFF',
+      textShadowColor: 'rgba(0,0,0,0.55)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 12,
+    },
+    heroGenres: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.82)',
+      marginTop: 4,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 8,
+    },
     nameBlock: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
       paddingHorizontal: t.density.pad,
       paddingTop: 18,
     },
     name: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4, color: t.colors.fg },
     genres: { fontSize: 13, color: t.colors.mute, marginTop: 4 },
+    // Tracking / Share row (+ followers count trailing).
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: t.density.pad,
+      paddingTop: 14,
+    },
     followers: {
       fontFamily: t.fontFamilies.mono,
       fontSize: 10.5,
       letterSpacing: 1,
       color: t.colors.muteSoft,
-      marginTop: 6,
+      marginLeft: 'auto',
       textTransform: 'uppercase',
     },
     section: { paddingHorizontal: t.density.pad, marginTop: 28 },
@@ -345,7 +374,7 @@ export default function ArtistScreen() {
           />
         }
       >
-        {/* ── Hero ── */}
+        {/* ── Hero — artist name embedded 30/800 on the media ── */}
         <View style={{ height: heroHeight }}>
           {heroImage ? (
             <>
@@ -359,15 +388,25 @@ export default function ArtistScreen() {
                 locations={[0.45, 1]}
                 style={StyleSheet.absoluteFillObject}
               />
+              <View style={styles.heroTextWrap}>
+                <Text style={styles.heroName} numberOfLines={2}>
+                  {artist.name}
+                </Text>
+                {artist.genres?.length ? (
+                  <Text style={styles.heroGenres} numberOfLines={1}>
+                    {artist.genres.slice(0, 3).join(' · ')}
+                  </Text>
+                ) : null}
+              </View>
             </>
           ) : (
             <View style={[styles.heroFallback, { height: heroHeight }]} />
           )}
         </View>
 
-        {/* ── Name + follow ── */}
-        <View style={styles.nameBlock}>
-          <View style={{ flex: 1, minWidth: 0 }}>
+        {/* Fallback name block — only when there's no media to embed on. */}
+        {!heroImage ? (
+          <View style={styles.nameBlock}>
             <Text style={styles.name} numberOfLines={2}>
               {artist.name}
             </Text>
@@ -376,21 +415,60 @@ export default function ArtistScreen() {
                 {artist.genres.slice(0, 3).join(' · ')}
               </Text>
             ) : null}
-            {artist.followerCount > 0 ? (
-              <Text style={styles.followers}>
-                {artist.followerCount.toLocaleString()} followers
-              </Text>
-            ) : null}
           </View>
+        ) : null}
+
+        {/* ── Tracking ✓ / Share ── */}
+        <View style={styles.actionRow}>
           <PillButton
-            title={isFollowing ? 'Following' : 'Follow'}
+            title={isFollowing ? 'Tracking' : 'Track'}
             variant={isFollowing ? 'secondary' : 'primary'}
             springFeedback
             haptic="light"
             disabled={followBusy}
+            icon={
+              isFollowing ? (
+                <Ionicons name="checkmark" size={14} color={tokens.colors.fg} />
+              ) : undefined
+            }
             onPress={() => void handleFollow()}
           />
+          <PillButton
+            title="Share"
+            variant="secondary"
+            springFeedback
+            haptic="light"
+            icon={<Ionicons name="share-outline" size={14} color={tokens.colors.mute} />}
+            onPress={() => void handleShare()}
+          />
+          {artist.followerCount > 0 ? (
+            <Text style={styles.followers}>
+              {artist.followerCount.toLocaleString()} followers
+            </Text>
+          ) : null}
         </View>
+
+        {/* ── YOU × ARTIST — seen / your avg / first year (all mono) ── */}
+        {youStats ? (
+          <View style={styles.section}>
+            <Animated.View entering={FadeInDown.duration(240)} style={styles.youCard}>
+              <Text style={styles.youLabel}>YOU × {artist.name.toUpperCase()}</Text>
+              <View style={styles.youStatsRow}>
+                <StatBlock value={`×${youStats.shows}`} label="Seen" />
+                {youStats.avgNum != null ? (
+                  // The user's own score wears the stamp (C2 flat-surface body).
+                  <View style={styles.youScoreBlock}>
+                    <ScoreStamp score={youStats.avgNum} size={14} />
+                    <Text style={styles.youScoreLabel}>Your avg</Text>
+                  </View>
+                ) : (
+                  <StatBlock value="—" label="Your avg" />
+                )}
+                <StatBlock value={youStats.firstYear} label="First year" />
+              </View>
+            </Animated.View>
+          </View>
+        ) : null}
 
         {/* ── WHO'S SEEN THEM — C15 degree facepile, non-tappable v1 (see
                lib/api/whoSaw.ts note). ── */}
@@ -408,28 +486,6 @@ export default function ArtistScreen() {
             <Animated.View entering={FadeInDown.duration(240)} style={styles.whoRow}>
               <DegreeFacepile people={whoSaw.people} totalCount={whoSaw.totalCount} size={32} surfaceColor={tokens.colors.bg} />
               <Text style={styles.whoCaption}>{whoSawCaption}</Text>
-            </Animated.View>
-          </View>
-        ) : null}
-
-        {/* ── YOU × ARTIST ── */}
-        {youStats ? (
-          <View style={styles.section}>
-            <Animated.View entering={FadeInDown.duration(240)} style={styles.youCard}>
-              <Text style={styles.youLabel}>YOU × {artist.name.toUpperCase()}</Text>
-              <View style={styles.youStatsRow}>
-                <StatBlock value={youStats.shows} label="Shows" />
-                {youStats.avgNum != null ? (
-                  // The user's own score wears the stamp (C2 flat-surface body).
-                  <View style={styles.youScoreBlock}>
-                    <ScoreStamp score={youStats.avgNum} size={14} />
-                    <Text style={styles.youScoreLabel}>Avg score</Text>
-                  </View>
-                ) : (
-                  <StatBlock value="—" label="Avg score" />
-                )}
-                <StatBlock value={youStats.firstYear} label="First seen" />
-              </View>
             </Animated.View>
           </View>
         ) : null}

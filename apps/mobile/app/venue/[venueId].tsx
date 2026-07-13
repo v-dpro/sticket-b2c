@@ -17,12 +17,13 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { EntityNav } from '../../components/entity/EntityChrome';
-import { Chip, SectionLabel, StarRow } from '../../components/entity/EntityBits';
+import { Chip, QuietEmpty, SectionLabel, StarRow } from '../../components/entity/EntityBits';
 import {
   EntityError,
   EntityPageSkeleton,
@@ -30,7 +31,6 @@ import {
 } from '../../components/entity/EntityStates';
 import { formatScore } from '../../components/entity/format';
 import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
-import { SeatViewsGrid } from '../../components/entity/SeatViewsGrid';
 import { TipsList } from '../../components/entity/TipsList';
 import { QASection } from '../../components/venue-qa/QASection';
 import { PillButton } from '../../components/ui/PillButton';
@@ -42,7 +42,7 @@ import { useVenue } from '../../hooks/useVenue';
 import { useVenueQuestions } from '../../hooks/useVenueQuestions';
 import { useVenueTips } from '../../hooks/useVenueTips';
 import type { EventSeatSection } from '../../lib/api/events';
-import { haptics } from '../../lib/motion';
+import { durations, haptics, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import type { VenueDetails } from '../../types/venue';
@@ -119,6 +119,15 @@ export default function VenueScreen() {
     }
   };
 
+  // The single highest-upvoted tip — surfaced as the TOP TIP card.
+  const topTip = useMemo(() => {
+    if (!tipsState.tips.length) return null;
+    return tipsState.tips.reduce(
+      (best, tip) => (tip.upvotes > best.upvotes ? tip : best),
+      tipsState.tips[0],
+    );
+  }, [tipsState.tips]);
+
   // Overall rating = mean of the non-null category averages.
   const overallRating = useMemo(() => {
     if (!venue) return null;
@@ -156,6 +165,105 @@ export default function VenueScreen() {
       color: t.colors.mute,
     },
     noRatings: { fontSize: 12.5, color: t.colors.muteSoft, marginTop: 10 },
+    // Mono stat hairline row (§2) — rating / capacity / seat photos.
+    statRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 16,
+      marginTop: 12,
+      paddingVertical: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.line,
+    },
+    statCell: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    statVal: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: t.colors.text,
+    },
+    statLbl: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11.5,
+      fontWeight: '600',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    // Seat browser rows — SEC mono + rating + photo count + thumb.
+    seatBrowser: { marginTop: 4 },
+    seatRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 8,
+    },
+    seatThumb: {
+      width: 52,
+      height: 52,
+      borderRadius: t.radius.md,
+      backgroundColor: t.colors.card2,
+    },
+    seatRowBody: { flex: 1, minWidth: 0, gap: 3 },
+    seatRowTitle: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 13,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: t.colors.text,
+    },
+    seatRowRating: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    seatRowRatingText: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 11,
+      color: t.colors.mute,
+    },
+    seatRowCount: {
+      fontFamily: t.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10.5,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+    },
+    // TOP TIP card + ▲ upvote block.
+    topTipEyebrow: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+      color: t.colors.muteSoft,
+      marginBottom: 8,
+    },
+    topTipRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+    topTipText: { fontSize: 14, color: t.colors.text, lineHeight: 20 },
+    topTipMeta: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 10,
+      letterSpacing: 0.5,
+      color: t.colors.muteSoft,
+      marginTop: 6,
+    },
+    upvoteBlock: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+      minWidth: 44,
+      borderRadius: t.radius.md,
+      backgroundColor: t.colors.card2,
+      paddingVertical: 8,
+    },
+    upvoteCount: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 12,
+      color: t.colors.text,
+    },
     tabRow: { flexDirection: 'row', gap: 8, marginTop: 20, marginBottom: 20 },
     card: {
       backgroundColor: t.colors.card,
@@ -275,22 +383,34 @@ export default function VenueScreen() {
           }
         >
           <View style={styles.content}>
-            {/* ── Header ── */}
+            {/* ── Header — title + mono stat row (rating / capacity / seat photos) ── */}
             <Text style={styles.name}>{venue.name}</Text>
-            <Text style={styles.metaLine}>
-              {cityLine}
-              {venue.capacity ? ` · CAP ${venue.capacity.toLocaleString()}` : ''}
-            </Text>
-            {overallRating != null ? (
-              <View style={styles.ratingRow}>
-                <StarRow value={overallRating} />
-                <Text style={styles.ratingCount}>
-                  {formatScore(overallRating)} ({venue.ratings.totalRatings})
+            <Text style={styles.metaLine}>{cityLine}</Text>
+            <View style={styles.statRow}>
+              {overallRating != null ? (
+                <View style={styles.statCell}>
+                  <Ionicons name="star" size={11} color={tokens.colors.fg} />
+                  <Text style={styles.statVal}>{formatScore(overallRating)}</Text>
+                  <Text style={styles.statLbl}>
+                    {venue.ratings.totalRatings > 0
+                      ? `(${venue.ratings.totalRatings})`
+                      : 'RATING'}
+                  </Text>
+                </View>
+              ) : null}
+              {venue.capacity ? (
+                <View style={styles.statCell}>
+                  <Text style={styles.statVal}>{venue.capacity.toLocaleString()}</Text>
+                  <Text style={styles.statLbl}>CAP</Text>
+                </View>
+              ) : null}
+              <View style={styles.statCell}>
+                <Text style={styles.statVal}>{seatViewsState.seatViews.length}</Text>
+                <Text style={styles.statLbl}>
+                  {seatViewsState.seatViews.length === 1 ? 'SEAT PHOTO' : 'SEAT PHOTOS'}
                 </Text>
               </View>
-            ) : (
-              <Text style={styles.noRatings}>No ratings yet</Text>
-            )}
+            </View>
 
             {/* ── Tabs ── */}
             <View style={styles.tabRow}>
@@ -364,6 +484,48 @@ export default function VenueScreen() {
                   </Animated.View>
                 ) : null}
 
+                {/* ── TOP TIP card + ▲ upvote block ── */}
+                {topTip ? (
+                  <Animated.View
+                    entering={FadeInDown.delay(60).duration(240)}
+                    style={styles.card}
+                  >
+                    <Text style={styles.topTipEyebrow}>Top tip</Text>
+                    <View style={styles.topTipRow}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.topTipText}>{topTip.text}</Text>
+                        <Text style={styles.topTipMeta}>
+                          @{topTip.user.username} · {topTip.category.toUpperCase()}
+                        </Text>
+                      </View>
+                      <SpringPressable
+                        haptic="light"
+                        onPress={() => tipsState.toggleUpvote(topTip.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Upvote tip, ${topTip.upvotes} upvotes`}
+                        accessibilityState={{ selected: topTip.userUpvoted }}
+                        style={styles.upvoteBlock}
+                      >
+                        <Ionicons
+                          name="caret-up"
+                          size={16}
+                          color={topTip.userUpvoted ? tokens.colors.fg : tokens.colors.mute}
+                        />
+                        <Text
+                          style={[
+                            styles.upvoteCount,
+                            topTip.userUpvoted
+                              ? { color: tokens.colors.fg, fontFamily: tokens.fontFamilies.monoBold }
+                              : null,
+                          ]}
+                        >
+                          {topTip.upvotes}
+                        </Text>
+                      </SpringPressable>
+                    </View>
+                  </Animated.View>
+                ) : null}
+
                 {venue.ratings.totalRatings > 0 ? (
                   <Animated.View entering={FadeInDown.delay(80).duration(240)} style={styles.card}>
                     <SectionLabel>Crowd ratings</SectionLabel>
@@ -405,7 +567,7 @@ export default function VenueScreen() {
               </View>
             ) : null}
 
-            {/* ── SEAT VIEWS ── */}
+            {/* ── SEAT VIEWS — bowl (C24) + section-row seat browser ── */}
             {tab === 'seats' ? (
               seatViewsState.loading && seatViewsState.seatViews.length === 0 ? (
                 <View style={styles.seatGridSkeleton}>
@@ -418,15 +580,62 @@ export default function VenueScreen() {
                     <ShimmerBlock width="60%" height={11} borderRadius={6} />
                   </View>
                 </View>
-              ) : (
+              ) : seatSectionsForBowl.length > 0 ? (
                 <>
-                  {seatSectionsForBowl.length > 0 ? (
-                    <View style={styles.seatBowlWrap}>
-                      <SeatBowl sections={seatSectionsForBowl} onPressSection={setOpenSeatSection} />
-                    </View>
-                  ) : null}
-                  <SeatViewsGrid seatViews={seatViewsState.seatViews} />
+                  <View style={styles.seatBowlWrap}>
+                    <SeatBowl sections={seatSectionsForBowl} onPressSection={setOpenSeatSection} />
+                  </View>
+                  <View style={styles.seatBrowser}>
+                    {seatSectionsForBowl.map((sec, i) => {
+                      const thumb = sec.photos[0]?.thumbnailUrl ?? sec.photos[0]?.photoUrl;
+                      return (
+                        <Animated.View
+                          key={sec.section}
+                          entering={tearIn(Math.min(i, 8) * durations.stagger)}
+                        >
+                          <SpringPressable
+                            haptic="light"
+                            onPress={() => setOpenSeatSection(sec)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Section ${sec.section}, ${sec.photoCount} photos`}
+                            style={styles.seatRow}
+                          >
+                            <Image
+                              source={{ uri: thumb }}
+                              style={styles.seatThumb}
+                              contentFit="cover"
+                              transition={80}
+                              cachePolicy="memory-disk"
+                            />
+                            <View style={styles.seatRowBody}>
+                              <Text style={styles.seatRowTitle} numberOfLines={1}>
+                                SEC {sec.section}
+                              </Text>
+                              {sec.avgRating != null && Number.isFinite(sec.avgRating) ? (
+                                <View style={styles.seatRowRating}>
+                                  <StarRow value={sec.avgRating} size={11} />
+                                  <Text style={styles.seatRowRatingText}>
+                                    {formatScore(sec.avgRating)}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
+                            <Text style={styles.seatRowCount}>
+                              {sec.photoCount} {sec.photoCount === 1 ? 'PHOTO' : 'PHOTOS'}
+                            </Text>
+                            <Ionicons
+                              name="chevron-forward"
+                              size={15}
+                              color={tokens.colors.muteSoft}
+                            />
+                          </SpringPressable>
+                        </Animated.View>
+                      );
+                    })}
+                  </View>
                 </>
+              ) : (
+                <QuietEmpty text="No seat views yet — snap the view from your seat when you log a show." />
               )
             ) : null}
 

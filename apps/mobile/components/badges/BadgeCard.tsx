@@ -15,23 +15,20 @@ interface BadgeCardProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }: BadgeCardProps) {
+/** "JUL 2026" — the earn-date stamp under an earned badge (mono, uppercased). */
+function formatEarned(iso?: string): string {
+  if (!iso) return 'EARNED';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'EARNED';
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+}
+
+export function BadgeCard({ badge, earned, earnedAt, progress, onPress, size = 'medium' }: BadgeCardProps) {
   const iconSize = size === 'small' ? 56 : size === 'large' ? 96 : 72;
 
   const styles = useThemedStyles((t) => ({
     container: { alignItems: 'center', width: 96 },
-    iconWrap: { position: 'relative', marginBottom: 8 },
-    progressStrip: {
-      position: 'absolute',
-      left: 6,
-      right: 6,
-      bottom: 8,
-      height: 5,
-      borderRadius: 999,
-      backgroundColor: t.colors.card2,
-      overflow: 'hidden',
-    },
-    progressFill: { height: '100%', backgroundColor: t.colors.fg },
+    iconWrap: { marginBottom: 8 },
     name: { fontSize: 12, fontWeight: '700', color: t.colors.fg, textAlign: 'center' },
     nameUnearned: { color: t.colors.mute },
     rarityText: {
@@ -65,22 +62,18 @@ export function BadgeCard({ badge, earned, progress, onPress, size = 'medium' }:
           count={getMilestoneCount(badge.criteria)}
           size={iconSize}
         />
-        {!earned && progress ? (
-          <View style={styles.progressStrip}>
-            <View style={[styles.progressFill, { width: `${progress.percentage}%` }]} />
-          </View>
-        ) : null}
       </View>
 
       <Text style={[styles.name, !earned && styles.nameUnearned]} numberOfLines={2}>
         {badge.name}
       </Text>
 
+      {/* Earned = earn-date stamp; locked = exact distance (C11 — no rings). */}
       {earned ? (
-        <Text style={styles.rarityText}>{badge.rarity}</Text>
+        <Text style={styles.rarityText}>{formatEarned(earnedAt)}</Text>
       ) : progress ? (
         <Text style={styles.progressText}>
-          {progress.current}/{progress.target}
+          {Math.max(0, progress.target - progress.current)} TO GO
         </Text>
       ) : (
         <Text style={styles.progressText}>Locked</Text>

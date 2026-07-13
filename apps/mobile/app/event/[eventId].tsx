@@ -1,5 +1,5 @@
 // Event entity page — breadcrumb → header → your-log/interested actions →
-// who went → FROM THE CROWD (FeedCards → full crowd feed) → SEAT VIEWS
+// who went → FROM THE CROWD (3-up grid → full crowd feed) → SEAT VIEWS
 // (section tile map → per-section sheet) → spoiler-shielded crowd setlist
 // (confirm/dispute votes) → FIND TICKETS (future shows) → presales →
 // PARTIES (host-run meetups) → compact comments.
@@ -20,9 +20,11 @@ import {
   RefreshControl,
   ScrollView,
   Share,
+  StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -32,13 +34,11 @@ import { EntityNav } from '../../components/entity/EntityChrome';
 import { QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
 import { EntityError, EntityPageSkeleton, ShimmerBlock } from '../../components/entity/EntityStates';
 import { formatScore, isPast, monoDateYear, sameDay } from '../../components/entity/format';
-import { PhotoGrid } from '../../components/entity/PhotoGrid';
 import { PresaleCard } from '../../components/entity/PresaleCard';
 import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
 import { SetlistShield } from '../../components/entity/SetlistShield';
 import { TrendsRail } from '../../components/entity/TrendsRail';
 import { PartyRow } from '../../components/party/PartyRow';
-import { FeedCard } from '../../components/feed/FeedCard';
 import { DegreeFacepile } from '../../components/ui/DegreeFacepile';
 import { PillButton } from '../../components/ui/PillButton';
 import { SpringPressable } from '../../components/ui/SpringPressable';
@@ -48,7 +48,6 @@ import { SeatBowl } from '../../components/venue/SeatBowl';
 import { useEvent } from '../../hooks/useEvent';
 import { useEventComments } from '../../hooks/useEventComments';
 import { useEventPhotos } from '../../hooks/useEventPhotos';
-import { useSession } from '../../hooks/useSession';
 import {
   getArtistPresales,
   getEventFeed,
@@ -69,8 +68,8 @@ import type { FeedItem } from '../../types/feed';
 
 type AsyncStatus = 'loading' | 'ready' | 'error';
 
-/** First N crowd posts shown inline before "See all →". */
-const CROWD_PREVIEW_COUNT = 3;
+/** Crowd memories previewed in the 3-up grid before "See all →". */
+const CROWD_PREVIEW_COUNT = 6;
 
 export default function EventScreen() {
   const router = useRouter();
@@ -87,7 +86,6 @@ export default function EventScreen() {
   const tourId = params.tourId ? String(params.tourId) : '';
 
   const { event, loading, error, refetch, updateInterested } = useEvent(id);
-  const { user } = useSession();
   const photosState = useEventPhotos(id);
   const commentsState = useEventComments(id);
 
@@ -299,17 +297,68 @@ export default function EventScreen() {
       color: t.colors.mute,
       marginTop: 8,
     },
-    // Header stats line — numbers fg 700 mono, labels muteSoft.
-    statsLine: {
-      fontFamily: t.fontFamilies.mono,
+    // Stat hairline row (§2) — mono 11.5/600, value text-ink, label
+    // muteSoft, 16px gaps, hairlines above and below.
+    statRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'baseline',
+      gap: 16,
+      marginTop: 14,
+      paddingVertical: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.line,
+    },
+    statCell: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
+    statVal: {
+      fontFamily: t.fontFamilies.monoSemi,
       fontVariant: ['tabular-nums'],
-      fontSize: 11,
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: t.colors.text,
+    },
+    statLbl: {
+      fontFamily: t.fontFamilies.mono,
+      fontSize: 11.5,
+      fontWeight: '600',
       letterSpacing: 0.6,
       textTransform: 'uppercase',
       color: t.colors.muteSoft,
-      marginTop: 10,
     },
-    statNum: { color: t.colors.fg, fontWeight: '700' },
+    // From the crowd — 3-up grid with a +N overflow tile.
+    crowdGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -3 },
+    crowdCell: { width: '33.333%', padding: 3 },
+    crowdImg: {
+      width: '100%',
+      aspectRatio: 1,
+      borderRadius: t.radius.md,
+      backgroundColor: t.colors.card2,
+    },
+    crowdOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      margin: 3,
+      borderRadius: t.radius.md,
+      backgroundColor: 'rgba(11,11,16,0.62)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    crowdOverlayText: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontVariant: ['tabular-nums'],
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    // Parties — dashed "plan" row (C3: not a stub; dashed border).
+    partiesDashed: {
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: t.colors.dash,
+      borderRadius: t.radius.lg,
+      paddingVertical: 16,
+      paddingHorizontal: t.density.cardPad,
+    },
     // YOUR NIGHT — the one stub on this page (C3: the user's own logged
     // night). Perforation notches punch through to the page bg.
     stubCard: {
@@ -350,8 +399,7 @@ export default function EventScreen() {
     partyList: { gap: 10 },
     partyEmptyText: { fontSize: 13, color: t.colors.mute, lineHeight: 19 },
     hostPillRow: { flexDirection: 'row', marginTop: 12 },
-    crowdCard: { paddingBottom: 22 },
-    seeAllRow: { flexDirection: 'row', marginTop: 2 },
+    seeAllRow: { flexDirection: 'row', marginTop: 8 },
     whoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     whoCounts: {
       fontFamily: t.fontFamilies.mono,
@@ -435,6 +483,24 @@ export default function EventScreen() {
         .join(' · ') || monoDateYear(event.date)
     : '';
 
+  // From the crowd — 3-up grid tiles. Prefer crowd memory posts (tap → the
+  // memory); fall back to the flat photo grid's images when the feed carries
+  // none. `+N` overflow off the total logged count.
+  const crowdTiles: { key: string; uri: string; logId?: string }[] = crowd
+    .map((item) => {
+      const photo = item.log.photos?.[0];
+      return photo
+        ? { key: item.id, uri: photo.thumbnailUrl ?? photo.photoUrl, logId: item.log.id }
+        : null;
+    })
+    .filter((t): t is { key: string; uri: string; logId: string } => t != null);
+  if (crowdTiles.length === 0) {
+    for (const p of photosState.photos) {
+      crowdTiles.push({ key: p.id, uri: p.thumbnailUrl ?? p.photoUrl });
+    }
+  }
+  const crowdTotal = Math.max(event.logCount, crowdTiles.length);
+
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -505,8 +571,8 @@ export default function EventScreen() {
               ) : null}
             </View>
 
-            {/* ── Header ── */}
-            <Text style={styles.title}>{event.name}</Text>
+            {/* ── Header — venue 24/800 + mono date (the breadcrumb above
+                   already carries the artist and tour) ── */}
             <SpringPressable
               haptic="light"
               onPress={() =>
@@ -519,21 +585,20 @@ export default function EventScreen() {
               accessibilityLabel={`Go to ${event.venue.name}`}
               style={{ alignSelf: 'flex-start' }}
             >
-              <Text style={styles.metaLine}>
-                {event.venue.name.toUpperCase()}, {event.venue.city.toUpperCase()} ·{' '}
-                {monoDateYear(event.date)}
-              </Text>
+              <Text style={styles.title}>{event.venue.name}</Text>
             </SpringPressable>
+            <Text style={styles.metaLine}>
+              {event.venue.city.toUpperCase()} · {monoDateYear(event.date)}
+            </Text>
             {statBits.length > 0 ? (
-              <Text style={styles.statsLine}>
-                {statBits.map((bit, i) => (
-                  <React.Fragment key={bit.label}>
-                    {i > 0 ? ' · ' : ''}
-                    <Text style={styles.statNum}>{bit.num}</Text>
-                    {` ${bit.label}`}
-                  </React.Fragment>
+              <View style={styles.statRow}>
+                {statBits.map((bit) => (
+                  <View key={bit.label} style={styles.statCell}>
+                    <Text style={styles.statVal}>{bit.num}</Text>
+                    <Text style={styles.statLbl}>{bit.label}</Text>
+                  </View>
                 ))}
-              </Text>
+              </View>
             ) : null}
 
             {/* ── Your night — logged shows get the stub (C3); the tap keeps
@@ -617,31 +682,66 @@ export default function EventScreen() {
               )}
             </View>
 
-            {/* ── From the crowd ── */}
+            {/* ── From the crowd — 3-up grid with a +N overflow tile ── */}
             <View style={styles.section}>
               <SectionLabel>From the crowd</SectionLabel>
               {crowdStatus === 'loading' ? (
-                <View style={{ gap: 12 }}>
-                  <ShimmerBlock height={220} borderRadius={22} />
-                  <ShimmerBlock width="46%" height={12} borderRadius={6} />
+                <View style={styles.crowdGrid}>
+                  {[0, 1, 2].map((k) => (
+                    <View key={k} style={styles.crowdCell}>
+                      <ShimmerBlock height={112} borderRadius={tokens.radius.md} />
+                    </View>
+                  ))}
                 </View>
-              ) : crowd.length > 0 ? (
+              ) : crowdTiles.length > 0 ? (
                 <>
-                  {/* FeedCard carries its own 20pt gutters — unwind the page pad. */}
-                  <View style={{ marginHorizontal: -tokens.density.pad }}>
-                    {crowd.slice(0, CROWD_PREVIEW_COUNT).map((item, i) => (
-                      <Animated.View
-                        key={item.id}
-                        entering={tearIn(Math.min(i, 8) * durations.stagger)}
-                        style={styles.crowdCard}
-                      >
-                        <FeedCard item={item} currentUserId={user?.id} />
-                      </Animated.View>
-                    ))}
+                  <View style={styles.crowdGrid}>
+                    {crowdTiles.slice(0, CROWD_PREVIEW_COUNT).map((tile, i, arr) => {
+                      const overflow = crowdTotal - arr.length;
+                      const showOverflow = i === arr.length - 1 && overflow > 0;
+                      const openCrowd = () =>
+                        router.push({
+                          pathname: '/event/crowd/[eventId]',
+                          params: { eventId: id, eventName: event.name },
+                        });
+                      return (
+                        <Animated.View
+                          key={tile.key}
+                          entering={tearIn(Math.min(i, 8) * durations.stagger)}
+                          style={styles.crowdCell}
+                        >
+                          <SpringPressable
+                            haptic="light"
+                            onPress={
+                              showOverflow || !tile.logId
+                                ? openCrowd
+                                : () => router.push(`/log/${tile.logId}`)
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={
+                              showOverflow ? `See all ${crowdTotal} memories` : 'View memory'
+                            }
+                          >
+                            <Image
+                              source={{ uri: tile.uri }}
+                              style={styles.crowdImg}
+                              contentFit="cover"
+                              transition={80}
+                              cachePolicy="memory-disk"
+                            />
+                            {showOverflow ? (
+                              <View style={styles.crowdOverlay}>
+                                <Text style={styles.crowdOverlayText}>+{overflow}</Text>
+                              </View>
+                            ) : null}
+                          </SpringPressable>
+                        </Animated.View>
+                      );
+                    })}
                   </View>
                   <View style={styles.seeAllRow}>
                     <PillButton
-                      title={`See all ${Math.max(event.logCount, crowd.length)} →`}
+                      title={`See all ${crowdTotal} →`}
                       variant="secondary"
                       springFeedback
                       haptic="light"
@@ -654,9 +754,6 @@ export default function EventScreen() {
                     />
                   </View>
                 </>
-              ) : photosState.photos.length > 0 ? (
-                // Crowd feed empty but photos exist — keep the flat grid.
-                <PhotoGrid photos={photosState.photos} />
               ) : (
                 <QuietEmpty
                   text={
@@ -685,7 +782,11 @@ export default function EventScreen() {
                   </View>
                 </View>
               ) : seatSections.length > 0 ? (
-                <SeatBowl sections={seatSections} onPressSection={setOpenSection} />
+                <SeatBowl
+                  sections={seatSections}
+                  onPressSection={setOpenSection}
+                  pulseSection={userLog?.section}
+                />
               ) : (
                 <QuietEmpty text="No seat views yet — add one when you log this show." />
               )}
@@ -702,7 +803,16 @@ export default function EventScreen() {
               </View>
             ) : null}
 
-            {/* ── Find tickets (future shows only) ── */}
+            {/* ── Presales (only when matched) — the code card comes before
+                   the primary tickets CTA per spec. ── */}
+            {presales.length > 0 ? (
+              <View style={styles.section}>
+                <SectionLabel>Presales</SectionLabel>
+                <PresaleCard presales={presales} />
+              </View>
+            ) : null}
+
+            {/* ── Find tickets (future shows only) — primary fg-filled CTA ── */}
             {/* Interim plain search link-outs until affiliate links land — */}
             {/* swap these URLs for the affiliate builders when available.  */}
             {!past ? (
@@ -710,12 +820,12 @@ export default function EventScreen() {
                 <SectionLabel>Find tickets</SectionLabel>
                 <View style={styles.ticketPillRow}>
                   <PillButton
-                    title="Ticketmaster"
-                    variant="secondary"
+                    title="Tickets at Ticketmaster"
+                    variant="primary"
                     springFeedback
                     haptic="light"
                     icon={
-                      <Ionicons name="open-outline" size={13} color={tokens.colors.mute} />
+                      <Ionicons name="open-outline" size={13} color={tokens.colors.inverseFg} />
                     }
                     onPress={() =>
                       void Linking.openURL(
@@ -742,14 +852,6 @@ export default function EventScreen() {
                     }
                   />
                 </View>
-              </View>
-            ) : null}
-
-            {/* ── Presales (only when matched) ── */}
-            {presales.length > 0 ? (
-              <View style={styles.section}>
-                <SectionLabel>Presales</SectionLabel>
-                <PresaleCard presales={presales} />
               </View>
             ) : null}
 
@@ -791,29 +893,31 @@ export default function EventScreen() {
                   }
                   accessibilityRole="button"
                   accessibilityLabel="Host a party"
-                  style={{ alignSelf: 'flex-start' }}
+                  style={styles.partiesDashed}
                 >
                   <Text style={styles.partyEmptyText}>
                     {partiesStatus === 'error'
                       ? "Couldn't load parties — host one anyway."
-                      : 'No parties yet — host one.'}
+                      : 'No parties yet — host one for this show.'}
                   </Text>
                 </SpringPressable>
               )}
-              <View style={styles.hostPillRow}>
-                <PillButton
-                  title="Host a party"
-                  variant="ghost"
-                  springFeedback
-                  haptic="light"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/party/create',
-                      params: { eventId: id, eventName: event.name, eventDate: event.date },
-                    })
-                  }
-                />
-              </View>
+              {parties.length > 0 ? (
+                <View style={styles.hostPillRow}>
+                  <PillButton
+                    title="Host a party"
+                    variant="ghost"
+                    springFeedback
+                    haptic="light"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/party/create',
+                        params: { eventId: id, eventName: event.name, eventDate: event.date },
+                      })
+                    }
+                  />
+                </View>
+              ) : null}
             </View>
 
             {/* ── Comments ── */}
