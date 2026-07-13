@@ -292,22 +292,19 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
               style={styles.scrim}
               pointerEvents="none"
             />
-            {score != null ? (
-              <View style={styles.scoreCorner} pointerEvents="none">
-                <BareScore score={score} size={22} />
-              </View>
-            ) : null}
-            <View style={styles.bottomOverlay} pointerEvents="none">
+            {/* TOP-RIGHT: who attended (circles first), score beneath. */}
+            <View style={styles.topRightOverlay} pointerEvents="none">
               {people.length > 0 ? (
-                <View style={styles.facepileRow}>
-                  <DegreeFacepile
-                    people={people}
-                    size={20}
-                    max={3}
-                    surfaceColor="rgba(11,11,16,0.8)"
-                  />
-                </View>
+                <DegreeFacepile
+                  people={people}
+                  size={20}
+                  max={3}
+                  surfaceColor="rgba(11,11,16,0.8)"
+                />
               ) : null}
+              {score != null ? <BareScore score={score} size={22} /> : null}
+            </View>
+            <View style={styles.bottomOverlay} pointerEvents="none">
               <Text style={styles.title} numberOfLines={1}>
                 {item.event.artist.name}
               </Text>
@@ -329,16 +326,13 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
             <Text style={styles.stripeArtist} numberOfLines={3}>
               {item.event.artist.name}
             </Text>
-            {score != null ? (
-              <View style={styles.scoreCorner} pointerEvents="none">
-                <ScoreStamp score={score} size={12} />
-              </View>
-            ) : null}
-            {people.length > 0 ? (
-              <View style={styles.stripeFacepile} pointerEvents="none">
+            {/* TOP-RIGHT here too: circles, then the stamp. */}
+            <View style={styles.topRightOverlay} pointerEvents="none">
+              {people.length > 0 ? (
                 <DegreeFacepile people={people} size={20} max={3} surfaceColor={c.card2} />
-              </View>
-            ) : null}
+              ) : null}
+              {score != null ? <ScoreStamp score={score} size={12} /> : null}
+            </View>
           </View>
         )}
 
@@ -386,10 +380,12 @@ const buildStyles = (tokens: ThemeTokens) =>
       bottom: 0,
       height: '46%',
     },
-    scoreCorner: {
+    topRightOverlay: {
       position: 'absolute',
       top: 8,
       right: 10,
+      alignItems: 'flex-end',
+      gap: 6,
     },
     bottomOverlay: {
       position: 'absolute',
@@ -399,10 +395,7 @@ const buildStyles = (tokens: ThemeTokens) =>
       paddingHorizontal: 10,
       paddingBottom: 9,
     },
-    facepileRow: {
-      alignItems: 'flex-end',
-      marginBottom: 6,
-    },
+
     title: {
       fontSize: 13.5,
       fontWeight: '700',
@@ -437,11 +430,6 @@ const buildStyles = (tokens: ThemeTokens) =>
       letterSpacing: -0.3,
       textAlign: 'center',
       color: tokens.colors.fg,
-    },
-    stripeFacepile: {
-      position: 'absolute',
-      right: 8,
-      bottom: 8,
     },
 
     burst: {
