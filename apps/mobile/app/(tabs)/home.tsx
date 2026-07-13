@@ -9,6 +9,8 @@
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { haptics } from '../../lib/motion';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -133,6 +135,29 @@ export default function HomeScreen() {
   // Each refresh re-seeds the discovery weave — posts stay chronological,
   // but the woven entity tiles reshuffle so a reload FEELS fresh (RedNote).
   const [weaveNonce, setWeaveNonce] = useState(0);
+  // Swipe left/right anywhere on the feed to walk PUBLIC ↔ FRIENDS ↔
+  // FRIENDS+ (default FRIENDS in the middle).
+  const SCOPE_ORDER = useMemo(() => ['public', 'friends', 'fof'] as const, []);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const scopeSwipe = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-28, 28])
+        .failOffsetY([-16, 16])
+        .onFinalize((e, success) => {
+          if (!success || Math.abs(e.translationX) < 48) return;
+          const idx = SCOPE_ORDER.indexOf(scopeRef.current);
+          const next = e.translationX < 0 ? Math.min(idx + 1, 2) : Math.max(idx - 1, 0);
+          if (next !== idx) {
+            haptics.light();
+            setScope(SCOPE_ORDER[next]!);
+          }
+        })
+        .runOnJS(true),
+    [SCOPE_ORDER, setScope],
+  );
+
   const fullRefresh = useCallback(() => {
     invalidateWaterfallLikeCache();
     invalidateFeedLikeCache();
@@ -319,7 +344,11 @@ export default function HomeScreen() {
       ) : null}
       {/* A6/A10 — pinned agenda card (TONIGHT beats LAST NIGHT), above the feed. */}
       <AgendaPin />
-      {body}
+      <GestureDetector gesture={scopeSwipe}>
+        <View style={{ flex: 1 }} collapsable={false}>
+          {body}
+        </View>
+      </GestureDetector>
     </SafeAreaView>
   );
 }

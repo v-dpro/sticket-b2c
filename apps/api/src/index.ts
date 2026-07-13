@@ -152,10 +152,11 @@ async function getShowCounts(userIds: string[]): Promise<Map<string, number>> {
 }
 
 async function computeProfileStats(targetUserId: string) {
-  const [shows, followers, following] = await Promise.all([
+  const [shows, followers, following, followingArtists] = await Promise.all([
     prisma.userLog.count({ where: { userId: targetUserId } }),
     prisma.follow.count({ where: { followingId: targetUserId } }),
     prisma.follow.count({ where: { followerId: targetUserId } }),
+    prisma.userArtistFollow.count({ where: { userId: targetUserId } }),
   ]);
 
   // Distinct artist + venue ids from logs.
@@ -171,7 +172,9 @@ async function computeProfileStats(targetUserId: string) {
     venues.add(r.event.venueId);
   }
 
-  return { shows, artists: artists.size, venues: venues.size, followers, following };
+  // `following` counts user follows (the degree-1 "friends" list);
+  // `followingArtists` counts UserArtistFollow rows (the FOLLOWING sheet).
+  return { shows, artists: artists.size, venues: venues.size, followers, following, followingArtists };
 }
 
 async function getBadgesForUser(targetUserId: string) {
@@ -2121,6 +2124,86 @@ app.get('/users/:id/following', async (req) => {
     displayName: r.following.displayName ?? undefined,
     avatarUrl: r.following.avatarUrl ?? undefined,
     showCount: showCountByUser.get(r.following.id) ?? 0,
+  }));
+});
+
+// Shared gate for the profile's friends / followed-artists lists: mirrors the
+// buildUserProfilePayload restriction (profileVisibility) and the
+// /users/:id/logs convention of returning empty rather than 403 when hidden.
+// "Friend" = degree-1 = someone the user follows (one-way, per getViewerDegrees).
+async function isProfileListRestricted(viewerId: string | null, targetUserId: string): Promise<boolean> {
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { profileVisibility: true },
+  });
+  if (!target) throw new AppError('User not found', 404);
+
+  if (viewerId && viewerId === targetUserId) return false;
+  if (target.profileVisibility === 'PRIVATE') return true;
+  if (target.profileVisibility === 'FRIENDS') {
+    const viewerFollowsTarget = await getFollowStatus(viewerId, targetUserId);
+    return !viewerFollowsTarget;
+  }
+  return false;
+}
+
+// GET /users/:id/friends — the target's degree-1 people (users they follow),
+// same row shape as /users/:id/following. Empty when the profile is restricted
+// for this viewer.
+app.get('/users/:id/friends', async (req) => {
+  const viewerId = getUserIdFromRequest(req);
+  const { id } = req.params as { id: string };
+  const q = (req.query ?? {}) as { limit?: string; offset?: string };
+  const limit = Math.max(1, Math.min(100, Number(q.limit ?? 50)));
+  const offset = Math.max(0, Number(q.offset ?? 0));
+
+  if (await isProfileListRestricted(viewerId, id)) return [];
+
+  const rows = await prisma.follow.findMany({
+    where: { followerId: id },
+    orderBy: { createdAt: 'desc' },
+    skip: offset,
+    take: limit,
+    include: { following: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+  });
+
+  const showCountByUser = await getShowCounts(rows.map((r) => r.following.id));
+
+  return rows.map((r) => ({
+    id: r.following.id,
+    username: r.following.username,
+    displayName: r.following.displayName ?? undefined,
+    avatarUrl: r.following.avatarUrl ?? undefined,
+    showCount: showCountByUser.get(r.following.id) ?? 0,
+  }));
+});
+
+// GET /users/:id/following-artists — artists the target follows
+// (UserArtistFollow, i.e. taste — distinct from /users/:id/artists which is
+// derived from logged shows). Venues are not followable (no venue-follow
+// model), so the profile FOLLOWING sheet is artists-only. Empty when the
+// profile is restricted for this viewer.
+app.get('/users/:id/following-artists', async (req) => {
+  const viewerId = getUserIdFromRequest(req);
+  const { id } = req.params as { id: string };
+  const q = (req.query ?? {}) as { limit?: string; offset?: string };
+  const limit = Math.max(1, Math.min(200, Number(q.limit ?? 100)));
+  const offset = Math.max(0, Number(q.offset ?? 0));
+
+  if (await isProfileListRestricted(viewerId, id)) return [];
+
+  const rows = await prisma.userArtistFollow.findMany({
+    where: { userId: id },
+    orderBy: { createdAt: 'desc' },
+    skip: offset,
+    take: limit,
+    include: { artist: { select: { id: true, name: true, imageUrl: true } } },
+  });
+
+  return rows.map((r) => ({
+    id: r.artist.id,
+    name: r.artist.name,
+    imageUrl: r.artist.imageUrl ?? undefined,
   }));
 });
 
@@ -7511,8 +7594,9 @@ app.get('/feed', async (req) => {
   const limit = Math.max(1, Math.min(50, Number(q.limit ?? 20)));
   const before = typeof q.before === 'string' ? q.before : undefined;
   // Feed audience: 'friends' (default) = you + people you follow;
-  // 'fof' additionally pulls friends-of-friends, but only their PUBLIC posts.
-  const scope = q.scope === 'fof' ? 'fof' : 'friends';
+  // 'fof' additionally pulls friends-of-friends' PUBLIC posts; 'public' is
+  // the open room — everyone's PUBLIC posts.
+  const scope = q.scope === 'fof' ? 'fof' : q.scope === 'public' ? 'public' : 'friends';
 
   // Also powers the wasThereUsers degree field in the serialized items.
   const degrees = await getViewerDegrees(userId);
@@ -7526,6 +7610,10 @@ app.get('/feed', async (req) => {
 
   if (scope === 'fof' && degrees.secondDegree.size) {
     audience.push({ userId: { in: [...degrees.secondDegree] }, visibility: 'PUBLIC' });
+  }
+  if (scope === 'public') {
+    // The open room — anyone's PUBLIC post, not just your graph.
+    audience.push({ visibility: 'PUBLIC' });
   }
 
   const where: Prisma.UserLogWhereInput = { OR: audience };

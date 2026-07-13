@@ -16,6 +16,9 @@ import { daysUntil, formatShortDate, monthLabel } from './format';
 
 const COLUMNS = 3;
 
+// `monthTag` is set only on the FIRST cell of a new month/group — a tiny
+// "JUL 2026" overlay in the corner. The grid is otherwise one continuous
+// Instagram mosaic; the tag is the only thing marking month boundaries.
 export type MapCell =
   | {
       kind: 'photo';
@@ -24,6 +27,7 @@ export type MapCell =
       thumbnailUrl: string;
       score: number | null;
       label: string;
+      monthTag?: string;
     }
   | {
       kind: 'entry';
@@ -32,6 +36,7 @@ export type MapCell =
       initial: string;
       score: number | null;
       label: string;
+      monthTag?: string;
     }
   | {
       kind: 'plan';
@@ -39,6 +44,7 @@ export type MapCell =
       index: number;
       countdown: string; // "21D" / "TODAY"
       label: string;
+      monthTag?: string;
     };
 
 export type MapRow =
@@ -108,20 +114,23 @@ export function buildMapGrid(
   months: TimelineMonth[],
   granularity: MapGranularity = 'month',
 ): MapRow[] {
-  const rows: MapRow[] = [];
   let index = 0;
 
-  const planCells: MapCell[] = upcoming.map((item) => ({
-    kind: 'plan',
-    key: planRowKey(item),
-    index: index++,
-    countdown: countdownCellLabel(item.date),
-    label: `Planned: ${item.event.artist.name} at ${item.event.venue.name}, ${formatShortDate(item.date)}`,
-  }));
-  if (planCells.length > 0) {
-    rows.push({ type: 'header', key: 'header-upcoming', label: 'UPCOMING' });
-    rows.push(...chunkRows('upcoming', planCells));
-  }
+  // ONE continuous Instagram mosaic: plans first (tagged UPCOMING), then
+  // every logged night contiguous — no per-month rows, no blank cells. The
+  // month/year is a tiny corner tag on the first cell of each group.
+  const cells: MapCell[] = [];
+
+  upcoming.forEach((item, i) => {
+    cells.push({
+      kind: 'plan',
+      key: planRowKey(item),
+      index: index++,
+      countdown: countdownCellLabel(item.date),
+      label: `Planned: ${item.event.artist.name} at ${item.event.venue.name}, ${formatShortDate(item.date)}`,
+      monthTag: i === 0 ? 'UPCOMING' : undefined,
+    });
+  });
 
   // Re-bucket the month payload into the requested granularity, preserving
   // the newest-first entry order the API already guarantees.
@@ -164,9 +173,10 @@ export function buildMapGrid(
 
   for (const group of groups) {
     if (group.cells.length === 0) continue;
-    rows.push({ type: 'header', key: `header-${group.key}`, label: group.label });
-    rows.push(...chunkRows(group.key, group.cells));
+    // Tag the first cell of the group; the rest flow on contiguously.
+    group.cells[0]!.monthTag = group.label;
+    cells.push(...group.cells);
   }
 
-  return rows;
+  return chunkRows('grid', cells);
 }

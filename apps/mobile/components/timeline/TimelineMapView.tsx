@@ -30,7 +30,7 @@ import { buildMapGrid, type MapCell, type MapGranularity, type MapRow } from './
 import { GlobeView, buildGlobePoints } from './GlobeView';
 
 const COLUMNS = 3;
-const GRID_GAP = 1.5;
+const GRID_GAP = 1;
 // Cells past this global index mount without the tear-in stagger.
 const STAGGER_CUTOFF = 12;
 
@@ -73,6 +73,8 @@ function GridCell({
       accessibilityLabel={cell.label}
       style={[
         styles.cell,
+        // Fixed square — one continuous Instagram grid; a partial final row
+        // sits left-aligned like a real profile grid.
         { width: size, height: size },
         cell.kind === 'plan' ? styles.cellPlan : styles.cellFill,
       ]}
@@ -103,6 +105,12 @@ function GridCell({
       ) : (
         <Text style={styles.countdown}>{cell.countdown}</Text>
       )}
+      {/* Tiny month/year tag — only on the first cell of a group. */}
+      {cell.monthTag ? (
+        <View style={styles.monthTag} pointerEvents="none">
+          <Text style={styles.monthTagText}>{cell.monthTag}</Text>
+        </View>
+      ) : null}
     </SpringPressable>
   );
 
@@ -258,9 +266,28 @@ const buildStyles = (tokens: ThemeTokens) =>
       overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
+      // Hairline frame around every photo — "border the photo".
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: tokens.colors.hairline,
     },
     cellFill: {
       backgroundColor: tokens.colors.card2,
+    },
+    monthTag: {
+      position: 'absolute',
+      top: 5,
+      left: 5,
+      backgroundColor: 'rgba(11,11,16,0.72)',
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    monthTagText: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 9,
+      fontWeight: '700',
+      letterSpacing: 0.6,
+      color: '#FFFFFF',
     },
     cellPlan: {
       backgroundColor: tokens.colors.card,

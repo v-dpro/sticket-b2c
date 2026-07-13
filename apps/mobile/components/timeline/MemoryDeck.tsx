@@ -26,7 +26,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -362,7 +362,17 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
           collapsable={false}
           onLayout={(e) => setStageH(e.nativeEvent.layout.height)}
         >
-          {spine && count > 1 ? <TimelineSpine progress={progress} count={count} /> : null}
+          {spine && count > 1 ? (
+            <TimelineSpine
+              progress={progress}
+              count={count}
+              label={item ? readoutFor(item) : ''}
+              onScrubEnd={(target) => {
+                progress.value = withSpring(target, SETTLE_SPRING);
+                settle(target);
+              }}
+            />
+          ) : null}
           {/* The night BEFORE — text only, pinned above the card. */}
           <View style={[styles.slot, { top: 0 }]} pointerEvents="none">
             {prevItem ? (
@@ -405,15 +415,63 @@ export const MemoryDeck = forwardRef<MemoryDeckHandle, MemoryDeckProps>(function
 });
 
 // ─── TimelineSpine ─────────────────────────────────────────────────
-// The line of time. A hairline rail down the left edge of the stage with
-// an ink thumb that glides as the wheel turns — up toward the future,
-// down into history. It rides `progress` directly, so it moves live
-// during drags, momentum spins, and settles.
+// The line of time — and a SCRUBBER. A hairline rail down the left edge
+// with an ink thumb that glides as the wheel turns; grab it and DRAG and
+// the wheel follows live (every card crossing still clicks — the deck's
+// haptic reaction rides `progress`). While scrubbing, a mono chip floats
+// beside the thumb naming the month you're passing ("JUL 2026").
 
-function TimelineSpine({ progress, count }: { progress: SharedValue<number>; count: number }) {
+function TimelineSpine({
+  progress,
+  count,
+  label,
+  onScrubEnd,
+}: {
+  progress: SharedValue<number>;
+  count: number;
+  /** Month/year readout of the item currently under the wheel. */
+  label: string;
+  onScrubEnd: (target: number) => void;
+}) {
   const { tokens } = useTheme();
   const [railHeight, setRailHeight] = useState(0);
+  const [scrubbing, setScrubbing] = useState(false);
   const THUMB = 26;
+
+  const beginScrub = useCallback(() => {
+    haptics.light();
+    setScrubbing(true);
+  }, []);
+  const endScrub = useCallback(
+    (raw: number) => {
+      setScrubbing(false);
+      const max = Math.max(count - 1, 0);
+      onScrubEnd(Math.max(0, Math.min(max, Math.round(raw))));
+    },
+    [count, onScrubEnd],
+  );
+
+  const scrub = useMemo(
+    () =>
+      Gesture.Pan()
+        // Beats the stage pan (±10) when the touch starts on the rail.
+        .activeOffsetY([-2, 2])
+        .hitSlop({ left: 12, right: 16 })
+        .onStart(() => {
+          cancelAnimation(progress);
+          runOnJS(beginScrub)();
+        })
+        .onUpdate((e) => {
+          if (railHeight <= THUMB) return;
+          const max = Math.max(count - 1, 0);
+          const p = Math.max(0, Math.min(1, (e.y - THUMB / 2) / (railHeight - THUMB)));
+          progress.value = p * max;
+        })
+        .onEnd(() => {
+          runOnJS(endScrub)(progress.value);
+        }),
+    [railHeight, count, progress, beginScrub, endScrub],
+  );
 
   const thumbStyle = useAnimatedStyle(() => {
     const max = Math.max(count - 1, 1);
@@ -424,40 +482,73 @@ function TimelineSpine({ progress, count }: { progress: SharedValue<number>; cou
   });
 
   return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: 9,
-        top: LABEL_SLOT,
-        bottom: LABEL_SLOT,
-        width: 3,
-        zIndex: 250,
-      }}
-      onLayout={(e) => setRailHeight(e.nativeEvent.layout.height)}
-    >
+    <GestureDetector gesture={scrub}>
       <View
         style={{
           position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 1,
-          width: 1,
-          backgroundColor: tokens.colors.line,
+          left: 9,
+          top: LABEL_SLOT,
+          bottom: LABEL_SLOT + BOTTOM_LIFT,
+          width: 3,
+          zIndex: 250,
         }}
-      />
-      <Animated.View
-        style={[
-          {
-            width: 3,
-            height: THUMB,
-            borderRadius: 2,
-            backgroundColor: tokens.colors.fg,
-          },
-          thumbStyle,
-        ]}
-      />
-    </View>
+        onLayout={(e) => setRailHeight(e.nativeEvent.layout.height)}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 1,
+            width: 1,
+            backgroundColor: tokens.colors.line,
+          }}
+        />
+        <Animated.View
+          style={[
+            {
+              width: 3,
+              height: THUMB,
+              borderRadius: 2,
+              backgroundColor: tokens.colors.fg,
+            },
+            thumbStyle,
+          ]}
+        />
+        {/* The month you're scrubbing to — rides the thumb. */}
+        {scrubbing ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                left: 14,
+                top: -6,
+                backgroundColor: tokens.colors.card,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: tokens.colors.hairline,
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              },
+              thumbStyle,
+            ]}
+          >
+            <Text
+              style={{
+                fontFamily: tokens.fontFamilies.mono,
+                fontSize: 11,
+                fontWeight: '700',
+                letterSpacing: 1.2,
+                color: tokens.colors.fg,
+              }}
+            >
+              {label}
+            </Text>
+          </Animated.View>
+        ) : null}
+      </View>
+    </GestureDetector>
   );
 }
 

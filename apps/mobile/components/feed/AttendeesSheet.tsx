@@ -39,16 +39,52 @@ interface AttendeesSheetProps {
    * their name — tour page only. Default rendering is unchanged.
    */
   variant?: 'tour';
+  /** Poster of the memory (names the WENT WITH section). */
+  posterName?: string;
+  /** Joint-post co-authors — the poster's own crew at the show. */
+  coAuthors?: AttendeePerson[];
 }
 
 const AVATAR_SIZE = 44;
 const RING_WIDTH = 2;
 
-export function AttendeesSheet({ visible, onClose, people, variant }: AttendeesSheetProps) {
+export function AttendeesSheet({
+  visible,
+  onClose,
+  people,
+  variant,
+  posterName,
+  coAuthors,
+}: AttendeesSheetProps) {
   const router = useRouter();
   const styles = useThemedStyles(buildStyles);
 
-  const ids = useMemo(() => people.map((p) => p.id), [people]);
+  // Two rooms: the poster's own crew (co-authors) first, then everyone
+  // else who was at the show.
+  const crew = useMemo(() => coAuthors ?? [], [coAuthors]);
+  const others = useMemo(() => {
+    if (crew.length === 0) return people;
+    const crewIds = new Set(crew.map((p) => p.id));
+    return people.filter((p) => !crewIds.has(p.id));
+  }, [people, crew]);
+  const rows = useMemo<({ type: 'label'; key: string; text: string } | { type: 'person'; key: string; p: AttendeePerson })[]>(
+    () =>
+      crew.length > 0
+        ? [
+            { type: 'label' as const, key: 'l-with', text: `WENT WITH ${(posterName ?? 'THEM').toUpperCase()}` },
+            ...crew.map((p) => ({ type: 'person' as const, key: `c-${p.id}`, p })),
+            ...(others.length > 0
+              ? [{ type: 'label' as const, key: 'l-also', text: 'ALSO THERE' }]
+              : []),
+            ...others.map((p) => ({ type: 'person' as const, key: `o-${p.id}`, p })),
+          ]
+        : people.map((p) => ({ type: 'person' as const, key: `o-${p.id}`, p })),
+    [crew, others, people, posterName],
+  );
+  const ids = useMemo(
+    () => [...crew, ...people].map((p) => p.id).filter((v, i, a) => a.indexOf(v) === i),
+    [crew, people],
+  );
   const idsKey = ids.join(',');
 
   const [taste, setTaste] = useState<Map<string, number>>(new Map());
@@ -146,9 +182,15 @@ export function AttendeesSheet({ visible, onClose, people, variant }: AttendeesS
         <Text style={styles.title}>WERE THERE · {people.length}</Text>
       </View>
       <FlatList
-        data={people}
-        keyExtractor={(p) => p.id}
-        renderItem={renderRow}
+        data={rows}
+        keyExtractor={(r) => r.key}
+        renderItem={({ item: r }) =>
+          r.type === 'label' ? (
+            <Text style={styles.sectionLabel}>{r.text}</Text>
+          ) : (
+            renderRow({ item: r.p })
+          )
+        }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
       />
@@ -174,6 +216,16 @@ const buildStyles = (tokens: ThemeTokens) =>
     },
     listContent: {
       paddingVertical: 6,
+    },
+    sectionLabel: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      color: tokens.colors.muteSoft,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 2,
     },
     row: {
       flexDirection: 'row',

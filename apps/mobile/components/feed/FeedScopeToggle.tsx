@@ -1,5 +1,5 @@
 // FeedScopeToggle — the two mono pills in the Feed header.
-// "FRIENDS" / "FRIENDS+" drive the audience scope of the feed. Monochrome
+// "PUBLIC" / "FRIENDS" / "FRIENDS+" drive the audience scope. Monochrome
 // per the design bible (C1): the active pill is the ink inversion
 // (inverseBg / inverseFg), the idle pill is a muted mono label on a
 // hairline-bordered card. Springs + light haptic on select.
@@ -17,6 +17,7 @@ interface FeedScopeToggleProps {
 }
 
 const OPTIONS: { value: FeedScope; label: string }[] = [
+  { value: 'public', label: 'Public' },
   { value: 'friends', label: 'Friends' },
   { value: 'fof', label: 'Friends+' },
 ];

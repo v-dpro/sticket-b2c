@@ -52,7 +52,7 @@ interface WaterfallPostTileProps {
 // renders, recycling, and pagination.
 // Vertical-first: phone photos are portrait — tiles lean TALL (h/w), with
 // the occasional square for rhythm. Bigger cards, RedNote energy.
-const PSEUDO_RATIOS = [1.25, 1.35, 1.15, 1.0] as const;
+const PSEUDO_RATIOS = [1.45, 1.6, 1.33, 1.52] as const;
 
 export function postPseudoRatio(item: FeedItem): number {
   const id = item.log.photos?.[0]?.id ?? item.log.id;
@@ -63,10 +63,18 @@ export function postPseudoRatio(item: FeedItem): number {
 
 // Fixed chrome under the photo: author row (16px avatar + 6px padding).
 const AUTHOR_ROW_HEIGHT = 24;
+const TITLE_LINE_HEIGHT = 24; // paddingTop 6 + 18px line
+const CAPTION_LINE_HEIGHT = 16;
 
 /** Estimated tile height at `columnWidth` — drives the masonry accounting. */
-export function estimatePostTileHeight(item: FeedItem, columnWidth: number): number {
-  return Math.round(columnWidth * postPseudoRatio(item)) + AUTHOR_ROW_HEIGHT;
+export function estimatePostTileHeight(item: WaterfallPost, columnWidth: number): number {
+  const hasSecondLine = Boolean(item.trendingTag || item.log.note);
+  return (
+    Math.round(columnWidth * postPseudoRatio(item)) +
+    TITLE_LINE_HEIGHT +
+    (hasSecondLine ? CAPTION_LINE_HEIGHT : 0) +
+    AUTHOR_ROW_HEIGHT
+  );
 }
 
 const DOUBLE_TAP_MS = 260;
@@ -294,12 +302,6 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
               cachePolicy="memory-disk"
               recyclingKey={first?.id ?? item.log.id}
             />
-            {/* Bottom scrim — over-photo chrome stays literal white/scrim */}
-            <LinearGradient
-              colors={['transparent', 'rgba(11,11,16,0.9)']}
-              style={styles.scrim}
-              pointerEvents="none"
-            />
             {/* TOP-RIGHT: who attended (circles first), score beneath. The
                 facepile sits in its own Pressable, above the photoBox's
                 tap/double-tap handler — box-none lets the empty overlay
@@ -322,20 +324,6 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
                 </Pressable>
               ) : null}
               {score != null ? <BareScore score={score} size={22} /> : null}
-            </View>
-            <View style={styles.bottomOverlay} pointerEvents="none">
-              <Text style={styles.title} numberOfLines={1}>
-                {item.event.artist.name}
-              </Text>
-              {item.trendingTag ? (
-                <Text style={styles.tagLine} numberOfLines={1}>
-                  {item.trendingTag}
-                </Text>
-              ) : item.log.note ? (
-                <Text style={styles.captionLine} numberOfLines={1}>
-                  {item.log.note}
-                </Text>
-              ) : null}
             </View>
           </>
         ) : (
@@ -369,7 +357,22 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
         </Animated.View>
       </Pressable>
 
-      {/* Author row — under the photo */}
+      {/* Caption block — RedNote grammar: the photo is clean, words live
+          UNDER it. Title = artist; second line = trend tag or note. */}
+      <Text style={styles.title} numberOfLines={1}>
+        {item.event.artist.name}
+      </Text>
+      {item.trendingTag ? (
+        <Text style={styles.tagLine} numberOfLines={1}>
+          {item.trendingTag}
+        </Text>
+      ) : item.log.note ? (
+        <Text style={styles.captionLine} numberOfLines={1}>
+          {item.log.note}
+        </Text>
+      ) : null}
+
+      {/* Author row */}
       <View style={styles.authorRow}>
         <Avatar
           uri={item.user.avatarUrl}
@@ -380,12 +383,20 @@ export const WaterfallPostTile = memo(function WaterfallPostTile({
           {isSelf ? 'you' : item.user.username}
         </Text>
         <Text style={styles.authorAge}>{formatAge(item.createdAt)}</Text>
+        {like && like.count > 0 ? (
+          <View style={styles.likeChip}>
+            <Ionicons name={like.liked ? 'heart' : 'heart-outline'} size={11} color={like.liked ? c.like : tokens.colors.muteSoft} />
+            <Text style={styles.likeCount}>{like.count}</Text>
+          </View>
+        ) : null}
       </View>
 
       <AttendeesSheet
         visible={attendeesOpen}
         onClose={() => setAttendeesOpen(false)}
         people={people}
+        posterName={item.user.username}
+        coAuthors={item.coAuthors}
       />
     </View>
   );
@@ -433,20 +444,36 @@ const buildStyles = (tokens: ThemeTokens) =>
       fontSize: 13.5,
       fontWeight: '700',
       letterSpacing: -0.2,
-      color: '#FFFFFF',
+      color: tokens.colors.fg,
+      paddingTop: 6,
+      paddingHorizontal: 2,
     },
     captionLine: {
       fontSize: 11.5,
       lineHeight: 15,
-      color: 'rgba(255,255,255,0.85)',
-      marginTop: 2,
+      color: tokens.colors.mute,
+      marginTop: 1,
+      paddingHorizontal: 2,
     },
     tagLine: {
       fontFamily: tokens.fontFamilies.monoSemi,
       fontSize: 10.5,
       letterSpacing: 0.4,
-      color: 'rgba(255,255,255,0.85)',
-      marginTop: 3,
+      color: tokens.colors.mute,
+      marginTop: 2,
+      paddingHorizontal: 2,
+    },
+    likeChip: {
+      marginLeft: 'auto',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    likeCount: {
+      fontFamily: tokens.fontFamilies.mono,
+      fontVariant: ['tabular-nums'],
+      fontSize: 10,
+      color: tokens.colors.muteSoft,
     },
 
     /* Photo-less media — flat ticket stock (card2 + stripes). */

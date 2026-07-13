@@ -44,8 +44,8 @@ export type WaterfallSlot = {
   render: () => ReactNode;
 };
 
-const GUTTER = 8;
-const EDGE = 8;
+const GUTTER = 6;
+const EDGE = 6;
 const INITIAL_RENDER = 14;
 const RENDER_CHUNK = 12;
 // Entrance stagger caps after ~10 tiles — later mounts tear in with no delay.

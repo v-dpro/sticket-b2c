@@ -239,24 +239,20 @@ function buildHtml(points: GlobePoint[]): string {
     renderer.setClearColor(0x0b0b10, 1);
     document.body.appendChild(renderer.domElement);
 
-    // Open facing the user's densest city; fall back to the Americas.
-    var camDir = new THREE.Vector3(0, 0.35, 1);
-    if (POINTS.length) {
-      var top = POINTS.reduce(function (a, b) { return b.count > a.count ? b : a; });
-      camDir = toVec3(top.lat, top.lng, 1);
-    } else {
-      camDir = toVec3(30, -80, 1);
-    }
-    camera.position.copy(camDir.normalize().multiplyScalar(3.0));
+    // ALWAYS open on the continental US — that's where the shows are, and
+    // a familiar starting frame beats spinning the user into the ocean.
+    var camDir = toVec3(39.5, -98.5, 1);
+    camera.position.copy(camDir.normalize().multiplyScalar(2.7));
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    var keyLight = new THREE.DirectionalLight(0xffffff, 0.55);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    var keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
     keyLight.position.set(-2, 2, 2.5);
     scene.add(keyLight);
 
+    // Lifted slate ocean so the brighter landmass dots read against it.
     var globe = new THREE.Mesh(
       new THREE.SphereGeometry(R, 64, 64),
-      new THREE.MeshPhongMaterial({ color: 0x15151c, shininess: 6, specular: 0x0d0d13 })
+      new THREE.MeshPhongMaterial({ color: 0x232330, shininess: 8, specular: 0x14141b })
     );
     scene.add(globe);
 
@@ -380,50 +376,60 @@ function buildHtml(points: GlobePoint[]): string {
     landGeo.setAttribute('position', new THREE.Float32BufferAttribute(landPositions, 3));
     scene.add(new THREE.Points(landGeo, new THREE.PointsMaterial({
       map: dotTexture(true),
-      color: 0x74747f,
-      size: 0.017,
+      color: 0xbcbcc8,
+      size: 0.02,
       transparent: true,
       alphaTest: 0.2,
       depthWrite: false,
       sizeAttenuation: true
     })));
 
-    // — City dots — white glow sprites, sized by show count.
+    // — City pins — a soft glow halo with a SOLID bright core on top, so a
+    // logged city reads as an unmistakable pin, not a fuzzy smudge.
     var glowTex = dotTexture(false);
+    var coreTex = dotTexture(true);
     var cityWorld = [];
     POINTS.forEach(function (p) {
       var pos = toVec3(p.lat, p.lng, R * 1.012);
-      var sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: glowTex,
-        color: 0xffffff,
-        transparent: true,
-        depthWrite: false
+      var s = Math.min(0.07 + 0.04 * Math.sqrt(p.count), 0.26);
+      var glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTex, color: 0xffffff, transparent: true, depthWrite: false, opacity: 0.85
       }));
-      var s = Math.min(0.05 + 0.032 * Math.sqrt(p.count), 0.2);
-      sprite.scale.set(s, s, 1);
-      sprite.position.copy(pos);
-      scene.add(sprite);
+      glow.scale.set(s, s, 1);
+      glow.position.copy(pos);
+      scene.add(glow);
+      var core = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: coreTex, color: 0xffffff, transparent: true, depthWrite: false
+      }));
+      var cs = Math.min(0.03 + 0.014 * Math.sqrt(p.count), 0.075);
+      core.scale.set(cs, cs, 1);
+      core.position.copy(toVec3(p.lat, p.lng, R * 1.02));
+      scene.add(core);
       cityWorld.push({ point: p, pos: pos });
     });
 
     var controls = new OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.rotateSpeed = 0.45;
-    controls.minDistance = 1.6;
+    controls.dampingFactor = 0.08;
+    // Snappier drag/zoom — the globe felt sluggish before.
+    controls.rotateSpeed = 0.85;
+    controls.zoomSpeed = 1.15;
+    controls.minDistance = 1.5;
     controls.maxDistance = 4.5;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.5;
+    // Open STILL on the US; drift in only after the user has had a beat to
+    // orient, and stop again the moment they touch it.
+    controls.autoRotate = false;
+    controls.autoRotateSpeed = 0.45;
 
-    var idleTimer = null;
+    var idleTimer = setTimeout(function () { controls.autoRotate = true; }, 4000);
     controls.addEventListener('start', function () {
       controls.autoRotate = false;
       if (idleTimer) clearTimeout(idleTimer);
     });
     controls.addEventListener('end', function () {
       if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(function () { controls.autoRotate = true; }, 2500);
+      idleTimer = setTimeout(function () { controls.autoRotate = true; }, 4000);
     });
 
     // Tap picking: nearest visible city within 30px of a clean tap (screen

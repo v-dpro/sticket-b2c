@@ -73,6 +73,8 @@ export interface FeedItem {
     /** 1 = you follow them · 2 = friend-of-friend (C15 degree facepile). */
     degree?: 1 | 2;
   }[];
+  /** Joint post (C13): everyone on the byline besides the owner. */
+  coAuthors?: { id: string; username: string; displayName?: string; avatarUrl?: string }[];
 
   // Like data inlined by the feed serializer (absent on older API builds —
   // FeedCard falls back to a lazy GET /logs/:id/likes when missing).

@@ -45,7 +45,7 @@ export function useFeed() {
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(FEED_SCOPE_KEY);
-        if (active && (saved === 'fof' || saved === 'friends')) setScopeState(saved);
+        if (active && (saved === 'fof' || saved === 'friends' || saved === 'public')) setScopeState(saved);
       } catch {
         // fall back to default 'friends'
       } finally {

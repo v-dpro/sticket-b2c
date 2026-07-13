@@ -11,8 +11,9 @@ export type FeedResponse = {
  * Feed audience scope.
  * - 'friends' — your own posts + people you follow (PUBLIC | FRIENDS).
  * - 'fof' — additionally includes friends-of-friends' PUBLIC posts.
+ * - 'public' — everyone's PUBLIC posts (the open room).
  */
-export type FeedScope = 'friends' | 'fof';
+export type FeedScope = 'friends' | 'fof' | 'public';
 
 // Get social feed
 export async function getFeed(options?: {
