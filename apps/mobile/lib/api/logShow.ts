@@ -85,6 +85,23 @@ export async function getArtistEventsBandsintown(artistId: string, includePast: 
 }
 
 /**
+ * Search the app's OWN catalog (real Ticketmaster/Bandsintown DB events) by
+ * artist or event name. This is the primary source for logging — the same real
+ * shows surfaced across the app — with the external APIs as fallback.
+ */
+export async function searchEventsDB(query: string): Promise<SearchEvent[]> {
+  if (!query || query.length < 2) return [];
+  try {
+    const res = await apiClient.get('/events/search', { params: { q: query, limit: 25 } });
+    return res.data ?? [];
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('DB event search error:', error);
+    return [];
+  }
+}
+
+/**
  * Search events by artist name directly (no artist ID needed)
  */
 export async function searchEventsByArtist(artistName: string, includePast: boolean = true): Promise<SearchEvent[]> {

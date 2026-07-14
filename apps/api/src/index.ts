@@ -5517,6 +5517,9 @@ app.get('/events/search', async (req, reply) => {
     const limit = Math.max(1, Math.min(25, Number(limitRaw ?? 10)));
 
     const where = {
+      // Real catalog only — logging pulls from the same TM/Bandsintown shows
+      // the app surfaces everywhere else, never synthetic seed rows.
+      source: { in: REAL_EVENT_SOURCES },
       ...(upcoming ? { date: { gte: new Date() } } : {}),
       OR: [
         { name: { contains: q, mode: 'insensitive' as const } },
@@ -5528,19 +5531,30 @@ app.get('/events/search', async (req, reply) => {
     const rows = await prisma.event.findMany({
       where,
       include: {
-        artist: { select: { id: true, name: true } },
-        venue: { select: { id: true, name: true, city: true } },
+        artist: { select: { id: true, name: true, imageUrl: true } },
+        venue: { select: { id: true, name: true, city: true, state: true, country: true } },
       },
-      orderBy: { date: 'asc' },
+      orderBy: { date: 'desc' }, // recent first — you log shows you just attended
       take: limit,
     });
 
+    // Full SearchEvent shape so the log flow can persist a real event.
     return rows.map((e) => ({
       id: e.id,
+      externalId: e.externalId ?? undefined,
+      source: e.source ?? 'ticketmaster',
       name: e.name,
       date: e.date.toISOString(),
-      artist: { id: e.artist.id, name: e.artist.name },
-      venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
+      imageUrl: e.imageUrl ?? undefined,
+      ticketUrl: e.ticketUrl ?? undefined,
+      artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? null },
+      venue: {
+        id: e.venue.id,
+        name: e.venue.name,
+        city: e.venue.city,
+        state: e.venue.state ?? null,
+        country: e.venue.country ?? '',
+      },
     }));
   } catch (error) {
     if (isDbUnavailable(error)) {

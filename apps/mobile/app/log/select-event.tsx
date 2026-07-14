@@ -17,7 +17,7 @@ import Animated from 'react-native-reanimated';
 import { FlowHeader } from '../../components/log/FlowHeader';
 import { LogRow } from '../../components/log/LogRow';
 import { PillButton } from '../../components/ui/PillButton';
-import { getArtistEventsBandsintown, searchEventsByArtist, type SearchEvent } from '../../lib/api/logShow';
+import { getArtistEventsBandsintown, searchEventsByArtist, searchEventsDB, type SearchEvent } from '../../lib/api/logShow';
 import { durations, tearIn } from '../../lib/motion';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme } from '../../lib/theme-context';
@@ -50,13 +50,16 @@ export default function SelectEventScreen() {
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
-    let data: SearchEvent[] = [];
-    // Both fns swallow network errors and return [] — the empty state below
-    // covers failures too, and offers a retry.
-    if (params.artistId && !String(params.artistId).startsWith('temp_')) {
-      data = await getArtistEventsBandsintown(String(params.artistId), true);
-    } else if (params.artistName) {
-      data = await searchEventsByArtist(String(params.artistName), true);
+    // Our OWN real catalog (DB) first — the same TM/Bandsintown shows surfaced
+    // across the app. Fall back to the external APIs only when the catalog has
+    // nothing for this artist. All fns swallow errors and return [].
+    let data: SearchEvent[] = params.artistName ? await searchEventsDB(String(params.artistName)) : [];
+    if (data.length === 0) {
+      if (params.artistId && !String(params.artistId).startsWith('temp_')) {
+        data = await getArtistEventsBandsintown(String(params.artistId), true);
+      } else if (params.artistName) {
+        data = await searchEventsByArtist(String(params.artistName), true);
+      }
     }
     setEvents(data);
     setLoading(false);
