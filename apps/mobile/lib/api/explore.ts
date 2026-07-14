@@ -22,6 +22,7 @@ export type ExplorePresale = {
   eventId: string | null;
   artistId: string | null;
   artistName: string;
+  artistImageUrl?: string | null;
   tourName?: string | null;
   venueName: string;
   venueCity: string;

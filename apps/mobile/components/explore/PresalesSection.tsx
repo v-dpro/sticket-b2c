@@ -1,26 +1,36 @@
-// PresalesSection — the star of the planning hub. Presales grouped into
-// THIS WEEK / UPCOMING, each an INFORMATIONAL row: artist (+ tour), the
-// presale NAME, the exact WINDOW in mono, the general ON-SALE date, the show
-// line (venue · city · date), and a Get tickets / Sign up CTA. Imminent
-// (live or <48h) rows carry an fg border + live/countdown chip.
+// PresalesSection — the star of the planning hub. Per the design system
+// (Explore: "PRESALES THIS WEEK (bordered list)", compact rows): a dense
+// bordered LIST, not tall cards. Each row is one artist — a recognition
+// thumbnail, the artist + presale type + venue city, and a RIGHT-rail close
+// readout that counts down to the window closing (ticking HH:MM:SS in the last
+// day). Imminent rows (closing < 3 days) carry an fg border so urgency reads at
+// a glance instead of every card looking identical. Sorted soonest-closing
+// first; tap a row for the full presale detail (where Get tickets lives).
 //
-// Compliance: a presale CODE is never rendered — the API never sends one, and
-// there is no copy-code affordance anywhere on this surface.
+// Compliance: a presale CODE is never rendered — the API never sends one.
 
-import React, { useMemo } from 'react';
-import { Linking, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Image, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import type { ExplorePresale } from '../../lib/api/explore';
-import { haptics } from '../../lib/motion';
-import { buildTicketLink } from '../../lib/tickets/affiliate';
 import { useThemedStyles } from '../../lib/theme-context';
-import { PillButton } from '../ui/PillButton';
 import { SpringPressable } from '../ui/SpringPressable';
-import { onsaleLine, presaleCountdown, presaleTiming, showLine } from './format';
+import { presaleClose } from './format';
 
-const WEEK_MS = 7 * 86400000;
-const IMMINENT_MS = 48 * 3600000;
+// Show a focused set on the hub; "All" opens the full per-show list.
+const MAX_ROWS = 6;
+
+/** Re-render every second only while something is actually ticking (< 24h). */
+function useNow(ticking: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!ticking) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [ticking]);
+  return now;
+}
 
 type PresalesSectionProps = {
   presales: ExplorePresale[];
@@ -30,21 +40,17 @@ export function PresalesSection({ presales }: PresalesSectionProps) {
   const router = useRouter();
   const styles = useStyles();
 
-  const { thisWeek, upcoming } = useMemo(() => {
-    const now = Date.now();
-    const weekOut = now + WEEK_MS;
-    const sorted = [...presales].sort(
-      (a, b) => new Date(a.presaleStart).getTime() - new Date(b.presaleStart).getTime(),
-    );
-    const week: ExplorePresale[] = [];
-    const later: ExplorePresale[] = [];
-    for (const p of sorted) {
-      const start = new Date(p.presaleStart).getTime();
-      if (Number.isNaN(start) || start <= weekOut) week.push(p);
-      else later.push(p);
-    }
-    return { thisWeek: week, upcoming: later };
+  const rows = useMemo(() => {
+    const end = (p: ExplorePresale) => (p.presaleEnd ? new Date(p.presaleEnd).getTime() : Infinity);
+    return [...presales].sort((a, b) => end(a) - end(b)).slice(0, MAX_ROWS);
   }, [presales]);
+
+  // Only spin a 1s timer if a shown row closes within the day.
+  const anyTicking = useMemo(
+    () => rows.some((p) => p.presaleEnd && new Date(p.presaleEnd).getTime() - Date.now() < 86400000),
+    [rows],
+  );
+  const now = useNow(anyTicking);
 
   if (presales.length === 0) return null;
 
@@ -61,24 +67,13 @@ export function PresalesSection({ presales }: PresalesSectionProps) {
           <Text style={styles.link}>All</Text>
         </SpringPressable>
       </View>
+      <Text style={styles.groupLabel}>Live now · closing soonest</Text>
 
-      {thisWeek.length > 0 ? (
-        <>
-          <Text style={styles.groupLabel}>This week</Text>
-          {thisWeek.map((p) => (
-            <PresaleRow key={p.id} presale={p} styles={styles} router={router} />
-          ))}
-        </>
-      ) : null}
-
-      {upcoming.length > 0 ? (
-        <>
-          <Text style={[styles.groupLabel, styles.groupLabelSpaced]}>Upcoming</Text>
-          {upcoming.map((p) => (
-            <PresaleRow key={p.id} presale={p} styles={styles} router={router} />
-          ))}
-        </>
-      ) : null}
+      <View style={styles.list}>
+        {rows.map((p) => (
+          <PresaleRow key={p.id} presale={p} styles={styles} router={router} now={now} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -87,92 +82,53 @@ type RowProps = {
   presale: ExplorePresale;
   styles: ReturnType<typeof useStyles>;
   router: ReturnType<typeof useRouter>;
+  now: number;
 };
 
-function PresaleRow({ presale, styles, router }: RowProps) {
-  const start = new Date(presale.presaleStart).getTime();
-  const countdown = presaleCountdown(presale.presaleStart);
-  const isLive = countdown === 'LIVE';
-  const imminent = isLive || (!Number.isNaN(start) && start - Date.now() < IMMINENT_MS);
-
-  const window = presaleTiming(presale.presaleStart, presale.presaleEnd);
-  const onsale = onsaleLine(presale.onsaleStart);
-  const show = showLine(presale.venueName, presale.venueCity, presale.eventDate);
-  // TM presale names often carry a trailing "Onsale"/"Presale" ("VIP Packages
-  // Onsale") — strip it so we don't render "VIP Packages Onsale presale".
-  const type = `${presale.presaleType.replace(/\s*(on\s*sale|pre\s*sale)\s*$/i, '').trim()} presale`;
-
-  // CTA: ticket link (affiliate-wrapped) → signup link → presale detail.
-  const hasTicket = Boolean(presale.ticketUrl);
-  const hasSignup = !hasTicket && Boolean(presale.signupUrl);
-  const ctaLabel = hasTicket ? 'Get tickets' : hasSignup ? 'Sign up' : 'Details';
-
-  const openCta = () => {
-    haptics.light();
-    if (presale.ticketUrl) {
-      const url = buildTicketLink('ticketmaster', {
-        query: `${presale.artistName} ${presale.venueCity}`,
-        directUrl: presale.ticketUrl,
-      });
-      void Linking.openURL(url).catch(() => router.push(`/presales/${presale.id}`));
-    } else if (presale.signupUrl) {
-      void Linking.openURL(presale.signupUrl).catch(() => router.push(`/presales/${presale.id}`));
-    } else {
-      router.push(`/presales/${presale.id}`);
-    }
-  };
+function PresaleRow({ presale, styles, router, now }: RowProps) {
+  const close = presaleClose(presale.presaleEnd, now);
+  // TM presale names often trail with "Onsale"/"Presale"; strip so the subline
+  // reads "OFFICIAL PLATINUM · LAS VEGAS", not "…Onsale presale · Las Vegas".
+  const type = presale.presaleType.replace(/\s*(on\s*sale|pre\s*sale)\s*$/i, '').trim();
+  // City leads — for a planning app the location is the datum that must never
+  // truncate away; the (often long) presale type trails and clips gracefully.
+  const sub = [presale.venueCity, type].filter(Boolean).join(' · ');
 
   return (
-    <View style={[styles.row, imminent && styles.rowImminent]}>
-      <SpringPressable
-        haptic="light"
-        onPress={() => router.push(`/presales/${presale.id}`)}
-        accessibilityRole="button"
-        accessibilityLabel={`${presale.artistName} ${presale.presaleType} presale, ${window}`}
-        style={styles.rowTop}
-      >
-        <View style={styles.rowBody}>
-          <Text style={styles.title} numberOfLines={1}>
-            {presale.artistName}
-            {presale.tourName ? ` — ${presale.tourName}` : ''}
-          </Text>
-          <Text style={styles.type} numberOfLines={1}>
-            {type}
-          </Text>
-          <Text style={styles.window} numberOfLines={1}>
-            {window}
-          </Text>
-          {onsale ? (
-            <Text style={styles.subMono} numberOfLines={1}>
-              {onsale}
-            </Text>
-          ) : null}
-          {show ? (
-            <Text style={styles.subMono} numberOfLines={1}>
-              {show}
-            </Text>
-          ) : null}
+    <SpringPressable
+      haptic="light"
+      onPress={() => router.push(`/presales/${presale.id}`)}
+      accessibilityRole="button"
+      accessibilityLabel={`${presale.artistName} presale, ${close.eyebrow} ${close.value}`}
+      style={[styles.row, close.ticking && styles.rowImminent]}
+    >
+      {presale.artistImageUrl ? (
+        <Image source={{ uri: presale.artistImageUrl }} style={styles.thumb} />
+      ) : (
+        <View style={[styles.thumb, styles.thumbFallback]}>
+          <Text style={styles.thumbInitial}>{presale.artistName.slice(0, 1).toUpperCase()}</Text>
         </View>
-        {isLive ? (
-          <View style={styles.liveChip}>
-            <Text style={styles.liveChipText}>LIVE</Text>
-          </View>
-        ) : (
-          <Text style={styles.countdown}>{countdown}</Text>
-        )}
-      </SpringPressable>
-      <View style={styles.actions}>
-        <View style={{ flex: 1 }} />
-        <PillButton
-          title={ctaLabel}
-          variant={imminent ? 'primary' : 'secondary'}
-          size="sm"
-          springFeedback
-          haptic="none"
-          onPress={openCta}
-        />
+      )}
+
+      <View style={styles.body}>
+        <Text style={styles.title} numberOfLines={1}>
+          {presale.artistName}
+        </Text>
+        <Text style={styles.sub} numberOfLines={1}>
+          {sub}
+        </Text>
       </View>
-    </View>
+
+      <View style={styles.right}>
+        <Text style={[styles.eyebrow, close.imminent && styles.eyebrowImminent]}>{close.eyebrow}</Text>
+        <Text
+          style={[styles.value, close.imminent && styles.valueImminent, close.ticking && styles.valueTicking]}
+          numberOfLines={1}
+        >
+          {close.value}
+        </Text>
+      </View>
+    </SpringPressable>
   );
 }
 
@@ -183,7 +139,7 @@ function useStyles() {
       alignItems: 'baseline',
       justifyContent: 'space-between',
       paddingHorizontal: t.density.pad,
-      marginBottom: 4,
+      marginBottom: 2,
     },
     sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.4, color: t.colors.fg },
     link: {
@@ -195,76 +151,55 @@ function useStyles() {
     },
     groupLabel: {
       fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 11,
+      fontSize: 10.5,
       fontWeight: '600',
       letterSpacing: 1.2,
       textTransform: 'uppercase',
       color: t.colors.muteSoft,
       paddingHorizontal: t.density.pad,
-      marginTop: 10,
-      marginBottom: 8,
-    },
-    groupLabelSpaced: { marginTop: 18 },
-    row: {
-      marginHorizontal: t.density.pad,
       marginBottom: 10,
-      paddingHorizontal: 14,
-      paddingTop: 12,
-      paddingBottom: 12,
+    },
+    list: { paddingHorizontal: t.density.pad, gap: 8 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
       borderRadius: t.radius.card,
       borderWidth: 1,
       borderColor: t.colors.hairline,
       backgroundColor: t.colors.card,
-      gap: 10,
     },
     rowImminent: { borderWidth: 1.5, borderColor: t.colors.fg },
-    rowTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-    rowBody: { flex: 1, minWidth: 0, gap: 3 },
+    thumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: t.colors.card2 },
+    thumbFallback: { alignItems: 'center', justifyContent: 'center' },
+    thumbInitial: { fontSize: 18, fontWeight: '800', color: t.colors.muteSoft },
+    body: { flex: 1, minWidth: 0, gap: 3 },
     title: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2, color: t.colors.fg },
-    type: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 10,
-      fontWeight: '600',
-      letterSpacing: 1.2,
-      textTransform: 'uppercase',
-      color: t.colors.mute,
-    },
-    window: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontVariant: ['tabular-nums'],
-      fontSize: 12,
-      letterSpacing: 0.3,
-      color: t.colors.text,
-      marginTop: 1,
-    },
-    subMono: {
+    sub: {
       fontFamily: t.fontFamilies.mono,
-      fontVariant: ['tabular-nums'],
       fontSize: 10.5,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       color: t.colors.muteSoft,
     },
-    countdown: {
+    right: { alignItems: 'flex-end', gap: 2, minWidth: 74 },
+    eyebrow: {
+      fontFamily: t.fontFamilies.monoSemi,
+      fontSize: 8.5,
+      letterSpacing: 1,
+      color: t.colors.muteSoft,
+    },
+    eyebrowImminent: { color: t.colors.mute },
+    value: {
       fontFamily: t.fontFamilies.monoSemi,
       fontVariant: ['tabular-nums'],
-      fontSize: 11,
-      letterSpacing: 0.5,
-      color: t.colors.fg,
+      fontSize: 13,
+      letterSpacing: 0.3,
+      color: t.colors.text,
     },
-    liveChip: {
-      alignItems: 'center',
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      borderRadius: t.radius.sm,
-      backgroundColor: t.colors.inverseBg,
-    },
-    liveChipText: {
-      fontFamily: t.fontFamilies.monoSemi,
-      fontSize: 10,
-      letterSpacing: 0.5,
-      color: t.colors.inverseFg,
-    },
-    actions: { flexDirection: 'row', alignItems: 'center' },
+    valueImminent: { color: t.colors.fg, fontWeight: '700' },
+    valueTicking: { fontFamily: t.fontFamilies.monoBold, letterSpacing: 0.5 },
   }));
 }

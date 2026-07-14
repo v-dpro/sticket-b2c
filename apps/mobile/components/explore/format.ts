@@ -65,6 +65,37 @@ export function presaleWindow(startStr: string, endStr?: string | null): string 
 }
 
 /**
+ * Close-urgency for a presale's RIGHT-rail readout. Live windows are the whole
+ * point of the hub, so we count down to the CLOSE: a ticking HH:MM:SS in the
+ * last day, "2D 20H" inside three days (both flagged imminent → fg border),
+ * else a plain "CLOSES JUL 25" date. No end ⇒ "OPEN" (on sale, no known close).
+ */
+const _HR = 3600000;
+const _DAY = 86400000;
+export type PresaleClose = { eyebrow: string; value: string; ticking: boolean; imminent: boolean };
+export function presaleClose(endStr?: string | null, now: number = Date.now()): PresaleClose {
+  if (!endStr) return { eyebrow: 'STATUS', value: 'OPEN', ticking: false, imminent: true };
+  const end = new Date(endStr);
+  const t = end.getTime();
+  if (Number.isNaN(t)) return { eyebrow: '', value: '', ticking: false, imminent: false };
+  const ms = t - now;
+  if (ms <= 0) return { eyebrow: 'CLOSED', value: '—', ticking: false, imminent: false };
+  const pad = (n: number) => String(n).padStart(2, '0');
+  if (ms < _DAY) {
+    const h = Math.floor(ms / _HR);
+    const m = Math.floor((ms % _HR) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return { eyebrow: 'CLOSES IN', value: `${pad(h)}:${pad(m)}:${pad(s)}`, ticking: true, imminent: true };
+  }
+  if (ms < 3 * _DAY) {
+    const d = Math.floor(ms / _DAY);
+    const h = Math.floor((ms % _DAY) / _HR);
+    return { eyebrow: 'CLOSES IN', value: `${d}D ${h}H`, ticking: false, imminent: true };
+  }
+  return { eyebrow: 'CLOSES', value: `${MONTHS[end.getMonth()]} ${end.getDate()}`, ticking: false, imminent: false };
+}
+
+/**
  * State-aware presale timing — the single most actionable line. Once a window
  * is OPEN the start is stale (TM's Platinum/VIP sales open months ahead and run
  * for the whole cycle), so a live row surfaces the CLOSE ("CLOSES WED JUL 16 ·

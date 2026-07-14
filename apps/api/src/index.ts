@@ -4653,7 +4653,7 @@ app.get('/explore', async (req) => {
       topPresales.length
         ? prisma.artist.findMany({
             where: { name: { in: [...new Set(topPresales.map((p) => p.artistName))], mode: 'insensitive' } },
-            select: { id: true, name: true },
+            select: { id: true, name: true, imageUrl: true },
           })
         : [],
       trendingIds.length && audience.length
@@ -4740,6 +4740,7 @@ app.get('/explore', async (req) => {
   }
 
   const artistIdByName = new Map(presaleArtists.map((a) => [a.name.toLowerCase(), a.id]));
+  const artistImageByName = new Map(presaleArtists.map((a) => [a.name.toLowerCase(), a.imageUrl]));
   const tourById = new Map(tourRows.map((t) => [t.id, t]));
   const venueById = new Map(venueRows.map((v) => [v.id, v]));
 
@@ -4751,6 +4752,7 @@ app.get('/explore', async (req) => {
       eventId: p.eventId ?? null,
       artistId: artistIdByName.get(p.artistName.toLowerCase()) ?? null,
       artistName: p.artistName,
+      artistImageUrl: artistImageByName.get(p.artistName.toLowerCase()) ?? undefined,
       tourName: p.tourName ?? undefined,
       venueName: p.venueName,
       venueCity: p.venueCity,
