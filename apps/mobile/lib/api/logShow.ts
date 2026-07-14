@@ -92,7 +92,10 @@ export async function getArtistEventsBandsintown(artistId: string, includePast: 
 export async function searchEventsDB(query: string): Promise<SearchEvent[]> {
   if (!query || query.length < 2) return [];
   try {
-    const res = await apiClient.get('/events/search', { params: { q: query, limit: 25 } });
+    // import=1 → the server first pulls this artist's full current tour from TM
+    // live (all cities) and upserts it, so the log flow isn't limited to the
+    // few markets the background cron happened to cover.
+    const res = await apiClient.get('/events/search', { params: { q: query, limit: 25, import: 1 } });
     return res.data ?? [];
   } catch (error) {
     // eslint-disable-next-line no-console

@@ -3997,8 +3997,10 @@ const TM_INGEST_CITIES = (
   .map((s) => s.trim())
   .filter(Boolean);
 
-async function ingestTmMarket(city: string): Promise<number> {
-  const tmEvents = await tmSearchEvents({ city, size: 50 });
+// Upsert a batch of standardized TM events (artist → venue → event → presales),
+// keyed on artistId_venueId_date so re-imports never duplicate. Shared by the
+// market cron and the on-demand log-flow import.
+async function upsertTmStandardEvents(tmEvents: Awaited<ReturnType<typeof tmSearchEvents>>): Promise<number> {
   let n = 0;
   for (const te of tmEvents) {
     try {
@@ -4047,6 +4049,24 @@ async function ingestTmMarket(city: string): Promise<number> {
     }
   }
   return n;
+}
+
+async function ingestTmMarket(city: string): Promise<number> {
+  return upsertTmStandardEvents(await tmSearchEvents({ city, size: 50 }));
+}
+
+// On-demand: pull an artist's FULL current tour from TM (all markets) and
+// upsert it, so the log flow shows every date — not just the few cities the
+// market cron happened to cover. Best-effort; failures fall back to the DB.
+async function importTmByKeyword(keyword: string): Promise<number> {
+  const k = keyword.trim();
+  if (k.length < 2) return 0;
+  try {
+    return await upsertTmStandardEvents(await tmSearchEvents({ keyword: k, size: 50 }));
+  } catch (err) {
+    console.warn('[tmImport] keyword import failed', k, err);
+    return 0;
+  }
 }
 
 async function ingestTmMarkets(): Promise<void> {
@@ -5511,11 +5531,19 @@ app.get('/events/search', async (req, reply) => {
     const q = ((req.query ?? {}) as { q?: string }).q?.trim();
     const upcomingRaw = ((req.query ?? {}) as { upcoming?: string }).upcoming;
     const limitRaw = ((req.query ?? {}) as { limit?: string }).limit;
+    const importRaw = ((req.query ?? {}) as { import?: string }).import;
 
     if (!q) return [];
 
     const upcoming = upcomingRaw === 'true' || upcomingRaw === '1';
     const limit = Math.max(1, Math.min(25, Number(limitRaw ?? 10)));
+
+    // Log flow (import=1): pull the artist's full current tour from TM live and
+    // upsert it first, so every city shows — not just the markets the cron
+    // covered. Best-effort and deduped by artistId_venueId_date on upsert.
+    if (importRaw === '1' || importRaw === 'true') {
+      await importTmByKeyword(q);
+    }
 
     const where = {
       // Real catalog only — logging pulls from the same TM/Bandsintown shows
@@ -5536,11 +5564,21 @@ app.get('/events/search', async (req, reply) => {
         venue: { select: { id: true, name: true, city: true, state: true, country: true } },
       },
       orderBy: { date: 'desc' }, // recent first — you log shows you just attended
-      take: limit,
+      take: limit * 3, // over-fetch; the catalog carries duplicate event rows
+    });
+
+    // The catalog has duplicate event rows (same act, same night, same venue) —
+    // collapse by day+venue so "pick the night" doesn't show a date twice.
+    const seen = new Set<string>();
+    const deduped = rows.filter((e) => {
+      const key = `${e.date.toISOString().slice(0, 10)}|${e.venueId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
 
     // Full SearchEvent shape so the log flow can persist a real event.
-    return rows.map((e) => ({
+    return deduped.slice(0, limit).map((e) => ({
       id: e.id,
       externalId: e.externalId ?? undefined,
       source: e.source ?? 'ticketmaster',
