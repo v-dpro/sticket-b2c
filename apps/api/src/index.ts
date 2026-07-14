@@ -4649,7 +4649,9 @@ app.get('/explore', async (req) => {
   const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts, venueSeatAgg, venueUpcomingAgg, recommendedEvents] =
     await Promise.all([
       // Rising-artist candidates ranked below by followerCount + logCount.
+      // Real catalog only — no synthetic-seed artists as cards.
       prisma.artist.findMany({
+        where: { events: { some: { source: { in: REAL_EVENT_SOURCES } } } },
         select: { id: true, name: true, imageUrl: true, _count: { select: { followers: true } } },
         orderBy: { followers: { _count: 'desc' } },
         take: 300,
@@ -6553,10 +6555,15 @@ app.get('/search', async (req, reply) => {
     // Artists
     if (!type || type === 'all' || type === 'artists') {
       const artists = await prisma.artist.findMany({
-        where: { name: { contains: query, mode: 'insensitive' } },
+        // Only artists that actually appear in the REAL catalog — keeps stale /
+        // synthetic-seed artists (no Ticketmaster events) out of search.
+        where: {
+          name: { contains: query, mode: 'insensitive' },
+          events: { some: { source: { in: REAL_EVENT_SOURCES } } },
+        },
         select: { id: true, name: true, imageUrl: true, genres: true },
         orderBy: { name: 'asc' },
-        take: limit,
+        take: limit * 3, // over-fetch; deduped by name below
       });
 
       const artistIds = artists.map((a) => a.id);
@@ -6565,29 +6572,44 @@ app.get('/search', async (req, reply) => {
           ? []
           : await prisma.event.groupBy({
               by: ['artistId'],
-              where: { artistId: { in: artistIds }, date: { gte: now } },
+              where: { artistId: { in: artistIds }, date: { gte: now }, source: { in: REAL_EVENT_SOURCES } },
               _count: { _all: true },
             });
       const upcomingCountByArtistId = new Map(upcomingCounts.map((r) => [r.artistId, r._count._all]));
 
-      results.artists = artists.map((a) => ({
-        id: a.id,
-        name: a.name,
-        imageUrl: a.imageUrl ?? undefined,
-        genres: a.genres?.length ? a.genres : [],
-        upcomingEventCount: upcomingCountByArtistId.get(a.id) ?? 0,
-      }));
+      // Collapse duplicate artist rows by name, keeping the richest (image +
+      // most upcoming shows) so search isn't cluttered with repeats.
+      const artistSeen = new Set<string>();
+      results.artists = artists
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          imageUrl: a.imageUrl ?? undefined,
+          genres: a.genres?.length ? a.genres : [],
+          upcomingEventCount: upcomingCountByArtistId.get(a.id) ?? 0,
+        }))
+        .sort((a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)) || b.upcomingEventCount - a.upcomingEventCount)
+        .filter((a) => {
+          const k = a.name.toLowerCase();
+          if (artistSeen.has(k)) return false;
+          artistSeen.add(k);
+          return true;
+        })
+        .slice(0, limit);
     }
 
     // Venues
     if (!type || type === 'all' || type === 'venues') {
       const venues = await prisma.venue.findMany({
         where: {
+          // Only venues with an UPCOMING real show — a venue with nothing coming
+          // up is noise here (kills stale "Strawberry Arena"-type rows).
+          events: { some: { source: { in: REAL_EVENT_SOURCES }, date: { gte: now } } },
           OR: [{ name: { contains: query, mode: 'insensitive' } }, { city: { contains: query, mode: 'insensitive' } }],
         },
         select: { id: true, name: true, city: true, state: true, imageUrl: true },
         orderBy: { name: 'asc' },
-        take: limit,
+        take: limit * 3, // over-fetch; deduped by name+city below
       });
 
       const venueIds = venues.map((v) => v.id);
@@ -6596,25 +6618,38 @@ app.get('/search', async (req, reply) => {
           ? []
           : await prisma.event.groupBy({
               by: ['venueId'],
-              where: { venueId: { in: venueIds }, date: { gte: now } },
+              where: { venueId: { in: venueIds }, date: { gte: now }, source: { in: REAL_EVENT_SOURCES } },
               _count: { _all: true },
             });
       const upcomingCountByVenueId = new Map(upcomingCounts.map((r) => [r.venueId, r._count._all]));
 
-      results.venues = venues.map((v) => ({
-        id: v.id,
-        name: v.name,
-        city: v.city,
-        state: v.state ?? undefined,
-        imageUrl: v.imageUrl ?? undefined,
-        upcomingEventCount: upcomingCountByVenueId.get(v.id) ?? 0,
-      }));
+      // Catalog carries duplicate venue rows (e.g. "Strawberry Arena" ×4) —
+      // collapse by name+city, keeping the one with the most upcoming shows.
+      const venueSeen = new Set<string>();
+      results.venues = venues
+        .map((v) => ({
+          id: v.id,
+          name: v.name,
+          city: v.city,
+          state: v.state ?? undefined,
+          imageUrl: v.imageUrl ?? undefined,
+          upcomingEventCount: upcomingCountByVenueId.get(v.id) ?? 0,
+        }))
+        .sort((a, b) => b.upcomingEventCount - a.upcomingEventCount)
+        .filter((v) => {
+          const k = `${v.name.toLowerCase()}|${v.city.toLowerCase()}`;
+          if (venueSeen.has(k)) return false;
+          venueSeen.add(k);
+          return true;
+        })
+        .slice(0, limit);
     }
 
     // Events (upcoming + past)
     if (!type || type === 'all' || type === 'events') {
       const events = await prisma.event.findMany({
         where: {
+          source: { in: REAL_EVENT_SOURCES },
           OR: [
             { name: { contains: query, mode: 'insensitive' } },
             { artist: { name: { contains: query, mode: 'insensitive' } } },
