@@ -4483,7 +4483,8 @@ app.get('/explore', async (req) => {
   const faceUserSelect = { select: { id: true, username: true, displayName: true, avatarUrl: true } } as const;
 
   // ---- Phase 1: independent base queries ----
-  const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows] = await Promise.all([
+  const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows, viewerTaste, viewerFollows] =
+    await Promise.all([
     // Actionable presales for still-upcoming shows: opening soon (future
     // presaleStart → live countdown) OR open right now (future presaleEnd →
     // "LIVE, closes in N"). We deliberately exclude fully-ended windows —
@@ -4548,7 +4549,23 @@ app.get('/explore', async (req) => {
       orderBy: [{ event: { date: 'asc' } }, { startsAt: { sort: 'asc', nulls: 'last' } }],
       take: 6,
     }),
+    // Viewer taste — Spotify top artists power the "Recommended" rail.
+    prisma.user.findUnique({ where: { id: userId }, select: { spotifyTopArtists: true } }),
+    // …and artists the viewer follows (a manual follow is taste too).
+    prisma.userArtistFollow.findMany({
+      where: { userId },
+      select: { source: true, artist: { select: { name: true } } },
+    }),
   ]);
+
+  // Recommendation seed: names the viewer listens to (Spotify) or follows.
+  // Spotify names are ranked (most-listened first); follows fill in behind.
+  const recSpotify = (viewerTaste?.spotifyTopArtists ?? []).map((n) => n.trim()).filter(Boolean);
+  const recFollowed = viewerFollows.map((f) => f.artist.name);
+  const recReasonByName = new Map<string, 'listen' | 'follow'>();
+  for (const n of recFollowed) recReasonByName.set(n.toLowerCase(), 'follow');
+  for (const n of recSpotify) recReasonByName.set(n.toLowerCase(), 'listen'); // listen wins
+  const recNames = [...new Set([...recSpotify, ...recFollowed])].slice(0, 60);
 
   // Collapse to one row per ARTIST — an event carries several presale TYPES
   // (Artist / Promoter / Radio / VIP), and a tour hits many cities, so keying
@@ -4629,7 +4646,7 @@ app.get('/explore', async (req) => {
     .map(([id]) => id);
 
   // ---- Phase 2: metadata + facepile source rows for the picked ids ----
-  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts, venueSeatAgg, venueUpcomingAgg] =
+  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts, venueSeatAgg, venueUpcomingAgg, recommendedEvents] =
     await Promise.all([
       // Rising-artist candidates ranked below by followerCount + logCount.
       prisma.artist.findMany({
@@ -4699,10 +4716,58 @@ app.get('/explore', async (req) => {
             _count: { _all: true },
           })
         : [],
+      // Recommended: upcoming REAL shows by artists the viewer listens to /
+      // follows. Deduped to the soonest show per artist below.
+      recNames.length
+        ? prisma.event.findMany({
+            where: {
+              date: { gte: now },
+              source: { in: REAL_EVENT_SOURCES },
+              artist: { name: { in: recNames, mode: 'insensitive' } },
+            },
+            include: {
+              artist: { select: { id: true, name: true, imageUrl: true } },
+              venue: { select: { id: true, name: true, city: true } },
+            },
+            orderBy: { date: 'asc' },
+            take: 60,
+          })
+        : [],
     ]);
 
   const venueSeatByVenue = new Map(venueSeatAgg.map((s) => [s.venueId, s]));
   const venueUpcomingByVenue = new Map(venueUpcomingAgg.map((e) => [e.venueId, e._count._all]));
+
+  // Recommended shows — one card per artist (their soonest upcoming show),
+  // ordered by the viewer's Spotify ranking, tagged with why we picked it.
+  // Key by NAME, not id — the catalog carries duplicate Artist rows for the
+  // same act, so id-dedup would still repeat a name down the rail.
+  const recByArtist = new Map<string, (typeof recommendedEvents)[number]>();
+  for (const e of recommendedEvents) {
+    const key = e.artist.name.toLowerCase();
+    const cur = recByArtist.get(key);
+    if (!cur || e.date < cur.date) recByArtist.set(key, e);
+  }
+  const recRank = new Map(recNames.map((n, i) => [n.toLowerCase(), i]));
+  const recommended = [...recByArtist.values()]
+    .sort(
+      (a, b) =>
+        (recRank.get(a.artist.name.toLowerCase()) ?? 9999) - (recRank.get(b.artist.name.toLowerCase()) ?? 9999),
+    )
+    .slice(0, 12)
+    .map((e) => ({
+      eventId: e.id,
+      eventName: e.name,
+      date: e.date.toISOString(),
+      imageUrl: e.imageUrl ?? undefined,
+      ticketUrl: e.ticketUrl ?? undefined,
+      artistId: e.artist.id,
+      artistName: e.artist.name,
+      artistImageUrl: e.artist.imageUrl ?? undefined,
+      venueName: e.venue.name,
+      venueCity: e.venue.city,
+      reason: recReasonByName.get(e.artist.name.toLowerCase()) ?? 'listen',
+    }));
 
   // ---- Rising artists: simple totals of follows + logs ----
   const rising = artistRows
@@ -4745,6 +4810,8 @@ app.get('/explore', async (req) => {
   const venueById = new Map(venueRows.map((v) => [v.id, v]));
 
   return {
+    // Recommended shows from the viewer's Spotify taste / follows (may be []).
+    recommended,
     // Informational presale rows for the planning hub. Codes are NEVER
     // serialized (compliance — TM presales carry none, and we don't expose any).
     presales: topPresales.map((p) => ({

@@ -37,6 +37,22 @@ export type ExplorePresale = {
   ticketUrl?: string | null;
 };
 
+// A show recommended from the viewer's Spotify taste (or follows). `reason`
+// drives the concrete "BECAUSE YOU LISTEN TO X" / "YOU FOLLOW X" line.
+export type ExploreRecommended = {
+  eventId: string;
+  eventName: string;
+  date: string;
+  imageUrl?: string | null;
+  ticketUrl?: string | null;
+  artistId: string;
+  artistName: string;
+  artistImageUrl?: string | null;
+  venueName: string;
+  venueCity: string;
+  reason: 'listen' | 'follow';
+};
+
 export type ExploreTrendingEvent = {
   id: string;
   name: string;
@@ -110,6 +126,7 @@ export type ExplorePublicParty = {
 };
 
 export type ExploreData = {
+  recommended: ExploreRecommended[];
   presales: ExplorePresale[];
   trendingEvents: ExploreTrendingEvent[];
   risingArtists: ExploreRisingArtist[];
@@ -124,6 +141,7 @@ export async function getExplore(): Promise<ExploreData> {
   const data = response.data ?? {};
   // Defensive defaults — every section renders (or skips) independently.
   return {
+    recommended: Array.isArray(data.recommended) ? data.recommended : [],
     presales: Array.isArray(data.presales) ? data.presales : [],
     trendingEvents: Array.isArray(data.trendingEvents) ? data.trendingEvents : [],
     risingArtists: Array.isArray(data.risingArtists) ? data.risingArtists : [],

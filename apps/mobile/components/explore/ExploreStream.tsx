@@ -1,9 +1,9 @@
 // ExploreStream — the C14 stanza, assembled. The approved rhythm repeats
 // RAIL (utility) → FULL-WIDTH entity spotlight → MOSAIC (crowd posts):
 //
-//   PresalesSection → TrendingEventCard (biggest) → CrowdMosaic →
-//   TourSpotlightCard → RisingArtistsRail → CrowdMosaic →
-//   VenueSpotlightCard → medium trending events.
+//   PresaleRail → TrendingEventCard (biggest) → RecommendedRail (Spotify) →
+//   CrowdMosaic → TourSpotlightCard → PartiesRail → RisingArtistsRail →
+//   CrowdMosaic → VenueSpotlightCard → medium trending events.
 //
 // Crowd posts are the connective tissue between entity cards; never two
 // rails or two mosaics adjacent (empty sections drop out and adjacent
@@ -21,7 +21,8 @@ import { Skeleton } from '../ui/Skeleton';
 import { CrowdMosaic } from './CrowdMosaic';
 import { EventMediumCard } from './EventMediumCard';
 import { PartiesRail } from './PartiesRail';
-import { PresalesSection } from './PresalesSection';
+import { PresaleRail } from './PresaleRail';
+import { RecommendedRail } from './RecommendedRail';
 import { RisingArtistsRail } from './RisingArtistsRail';
 import { TourSpotlightCard } from './TourSpotlightCard';
 import { TrendingEventCard } from './TrendingEventCard';
@@ -54,7 +55,8 @@ export function ExploreStream({ data }: ExploreStreamProps) {
   }));
 
   const sections = useMemo<Section[]>(() => {
-    const { presales, trendingEvents, risingArtists, spotlightTours, venues, crowdPosts, publicParties } = data;
+    const { recommended, presales, trendingEvents, risingArtists, spotlightTours, venues, crowdPosts, publicParties } =
+      data;
 
     // Crowd-post split — two mosaics of 4–6 tiles when supply allows. When
     // both entities between them (tour + rising rail) are empty, the two
@@ -69,14 +71,15 @@ export function ExploreStream({ data }: ExploreStreamProps) {
 
     const built: Section[] = [];
 
-    // Presales is a compact LIST (not a full-width card). Tagging it 'full'
-    // made it and the hero two adjacent 'full's, so the rhythm-fixup shoved the
-    // crowd mosaic between them and pushed the big hero off-screen. 'list' keeps
-    // the intended beat: presales list → big hero → mosaic.
+    // Presales lead as a HORIZONTAL rail (one swipeable band, not a wall) →
+    // big trending hero → the taste-driven "For you" rail. Alternating
+    // rail/full/rail keeps the big/small rhythm the stream is built on.
     if (presales.length > 0)
-      built.push({ key: 'presales', kind: 'list', node: <PresalesSection presales={presales} /> });
+      built.push({ key: 'presales', kind: 'rail', node: <PresaleRail presales={presales} /> });
     if (heroEvent)
       built.push({ key: 'hero-event', kind: 'full', node: <TrendingEventCard event={heroEvent} /> });
+    if (recommended.length > 0)
+      built.push({ key: 'recommended', kind: 'rail', node: <RecommendedRail items={recommended} /> });
     if (firstMosaic.length > 0)
       built.push({
         key: 'mosaic-1',
