@@ -191,10 +191,22 @@ export function TrendingEventCard({ event }: TrendingEventCardProps) {
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={1}>
+        {/* Artist + venue are their own tap targets → their pages; the rest of
+            the card opens the event. Text onPress wins the touch. */}
+        <Text
+          style={styles.title}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={event.artist.id ? () => router.push(`/artist/${event.artist.id}`) : undefined}
+        >
           {event.artist.name || event.name}
         </Text>
-        <Text style={styles.venue} numberOfLines={1}>
+        <Text
+          style={styles.venue}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={event.venue.id ? () => router.push(`/venue/${event.venue.id}`) : undefined}
+        >
           {[event.venue.name, event.venue.city].filter(Boolean).join(' · ')}
         </Text>
 

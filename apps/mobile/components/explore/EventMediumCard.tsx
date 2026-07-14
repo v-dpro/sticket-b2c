@@ -90,10 +90,20 @@ export function EventMediumCard({ event }: EventMediumCardProps) {
         <Text style={styles.date} numberOfLines={1}>
           {monoDate(event.date)}
         </Text>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text
+          style={styles.name}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={event.artist.id ? () => router.push(`/artist/${event.artist.id}`) : undefined}
+        >
           {event.artist.name || event.name}
         </Text>
-        <Text style={styles.venue} numberOfLines={1}>
+        <Text
+          style={styles.venue}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={event.venue.id ? () => router.push(`/venue/${event.venue.id}`) : undefined}
+        >
           {[event.venue.name, event.venue.city].filter(Boolean).join(' · ')}
         </Text>
       </View>

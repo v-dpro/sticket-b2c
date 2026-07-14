@@ -48,6 +48,7 @@ export type ExploreRecommended = {
   artistId: string;
   artistName: string;
   artistImageUrl?: string | null;
+  venueId: string;
   venueName: string;
   venueCity: string;
   reason: 'listen' | 'follow';

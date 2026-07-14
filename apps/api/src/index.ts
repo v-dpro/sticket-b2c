@@ -4766,6 +4766,7 @@ app.get('/explore', async (req) => {
       artistId: e.artist.id,
       artistName: e.artist.name,
       artistImageUrl: e.artist.imageUrl ?? undefined,
+      venueId: e.venue.id,
       venueName: e.venue.name,
       venueCity: e.venue.city,
       reason: recReasonByName.get(e.artist.name.toLowerCase()) ?? 'listen',

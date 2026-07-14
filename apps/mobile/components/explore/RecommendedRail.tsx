@@ -78,13 +78,26 @@ function RecommendedCard({ item, styles, router }: CardProps) {
         </View>
       </View>
       <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={1}>
+        {/* Artist + venue are their own tap targets → their pages; the rest of
+            the card opens the event. (Text onPress wins the touch over the
+            parent Pressable, so taps don't double-fire.) */}
+        <Text
+          style={styles.title}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={() => router.push(`/artist/${item.artistId}`)}
+        >
           {item.artistName}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
           {meta}
         </Text>
-        <Text style={styles.venue} numberOfLines={1}>
+        <Text
+          style={styles.venue}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={() => router.push(`/venue/${item.venueId}`)}
+        >
           {item.venueName}
         </Text>
       </View>

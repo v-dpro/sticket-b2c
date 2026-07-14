@@ -109,7 +109,14 @@ function PresaleCard({ presale, styles, router, now }: CardProps) {
         )}
       </View>
       <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={1}>
+        {/* Artist name jumps to the artist page; the rest of the card opens the
+            presale. Text onPress wins the touch, so taps don't double-fire. */}
+        <Text
+          style={styles.title}
+          numberOfLines={1}
+          suppressHighlighting
+          onPress={presale.artistId ? () => router.push(`/artist/${presale.artistId}`) : undefined}
+        >
           {presale.artistName}
         </Text>
         <Text style={styles.city} numberOfLines={1}>
