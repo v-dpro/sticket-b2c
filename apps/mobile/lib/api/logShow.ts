@@ -33,6 +33,22 @@ export type SearchEvent = {
 };
 
 /**
+ * Algorithm-driven show suggestions for the log popup — real shows by artists
+ * you listen to / follow, across a recent-past → near-future window, ranked by
+ * taste. Each is a full SearchEvent, so a tap goes straight to /log/details.
+ */
+export async function getLogRecommendedShows(): Promise<SearchEvent[]> {
+  try {
+    const res = await apiClient.get('/log/recommended-shows');
+    return res.data ?? [];
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Log recommendations error:', error);
+    return [];
+  }
+}
+
+/**
  * Search for artists via Spotify
  */
 export async function searchArtistsSpotify(query: string): Promise<SearchArtist[]> {

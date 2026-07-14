@@ -14,7 +14,7 @@ import Animated from 'react-native-reanimated';
 import { FlowHeader } from '../../components/log/FlowHeader';
 import { LogRow } from '../../components/log/LogRow';
 import { PillButton } from '../../components/ui/PillButton';
-import { searchArtistsSpotify, type SearchArtist } from '../../lib/api/logShow';
+import { getLogRecommendedShows, searchArtistsSpotify, type SearchArtist, type SearchEvent } from '../../lib/api/logShow';
 import { durations, tearIn } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 import { useSpotifyArtists } from '../../hooks/useSpotifyArtists';
@@ -58,6 +58,37 @@ export default function LogSearchArtist() {
 
   const { artists: spotifyArtists } = useSpotifyArtists();
   const suggested = useMemo(() => spotifyArtists.slice(0, 5), [spotifyArtists]);
+
+  // Algorithm-driven show suggestions (taste-based) for one-tap logging.
+  const [recommended, setRecommended] = useState<SearchEvent[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void getLogRecommendedShows().then((r) => alive && setRecommended(r));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // A recommended show carries full detail → skip artist/event pick, log it.
+  const logShow = (e: SearchEvent) => {
+    router.push({
+      pathname: '/log/details',
+      params: {
+        eventId: e.id,
+        eventName: e.name,
+        eventDate: e.date,
+        artistId: e.artist.id,
+        artistName: e.artist.name,
+        artistImage: e.artist.imageUrl || '',
+        venueId: e.venue.id,
+        venueName: e.venue.name,
+        venueCity: e.venue.city,
+        venueState: e.venue.state || '',
+        source: e.source,
+        externalId: e.externalId || '',
+      },
+    });
+  };
 
   const selectArtist = (artist: SearchArtist) => {
     setRecents((prev) => [artist.name, ...prev.filter((x) => x !== artist.name)].slice(0, 8));
@@ -162,6 +193,26 @@ export default function LogSearchArtist() {
           ) : null
         ) : (
           <View style={{ gap: 28, paddingTop: 8 }}>
+            {recommended.length > 0 ? (
+              <View>
+                <SectionLabel text="Recommended for you" />
+                {recommended.map((e, i) => (
+                  <Animated.View key={e.id} entering={tearIn(Math.min(i, 8) * durations.stagger)}>
+                    <LogRow
+                      title={e.artist.name}
+                      subtitle={[e.venue.name, e.venue.city].filter(Boolean).join(' · ')}
+                      imageUrl={e.artist.imageUrl || undefined}
+                      icon="sparkles-outline"
+                      meta={recDate(e.date)}
+                      chevron
+                      separator={i < recommended.length - 1}
+                      onPress={() => logShow(e)}
+                    />
+                  </Animated.View>
+                ))}
+              </View>
+            ) : null}
+
             {recents.length > 0 ? (
               <View>
                 <SectionLabel text="Recent" />
@@ -225,6 +276,13 @@ export default function LogSearchArtist() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/** ISO → "JUL 24" for the recommended-show row's mono meta. */
+function recDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
 function SectionLabel({ text }: { text: string }) {

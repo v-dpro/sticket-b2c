@@ -5606,6 +5606,93 @@ app.get('/events/search', async (req, reply) => {
   }
 });
 
+// GET /log/recommended-shows — algorithm-driven suggestions for the log popup.
+// Same taste signals as the Explore "For you" rail (Spotify top artists ∪
+// follows, ranked by listening order) but tuned for LOGGING: real shows by
+// those artists across a recent-past → near-future window, so a user can
+// one-tap the night they were at. Full detail shape → straight to /log/details.
+app.get('/log/recommended-shows', async (req, reply) => {
+  try {
+    const userId = requireAccessUserId(req as any);
+    const now = new Date();
+    const [viewer, follows] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { spotifyTopArtists: true } }),
+      prisma.userArtistFollow.findMany({ where: { userId }, select: { artist: { select: { name: true } } } }),
+    ]);
+    const spotify = (viewer?.spotifyTopArtists ?? []).map((n) => n.trim()).filter(Boolean);
+    const followed = follows.map((f) => f.artist.name);
+    const names = [...new Set([...spotify, ...followed])].slice(0, 60);
+    if (!names.length) return [];
+    const rank = new Map(names.map((n, i) => [n.toLowerCase(), i]));
+
+    const events = await prisma.event.findMany({
+      where: {
+        source: { in: REAL_EVENT_SOURCES },
+        date: { gte: new Date(now.getTime() - 90 * DAY_MS), lte: new Date(now.getTime() + 180 * DAY_MS) },
+        artist: { name: { in: names, mode: 'insensitive' } },
+      },
+      include: {
+        artist: { select: { id: true, name: true, imageUrl: true } },
+        venue: { select: { id: true, name: true, city: true, state: true, country: true } },
+      },
+      orderBy: { date: 'desc' },
+      take: 80,
+    });
+
+    // One card per show (day+venue), ranked by taste order then recency-to-now.
+    const seen = new Set<string>();
+    const unique = events.filter((e) => {
+      const k = `${e.date.toISOString().slice(0, 10)}|${e.venueId}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    const scored = unique
+      .map((e) => ({
+        e,
+        taste: rank.get(e.artist.name.toLowerCase()) ?? 9999,
+        proximity: Math.abs(e.date.getTime() - now.getTime()),
+      }))
+      .sort((a, b) => a.taste - b.taste || a.proximity - b.proximity);
+
+    // Cap to 2 shows per artist so the list spans several of your artists
+    // instead of one act's whole residency dominating.
+    const perArtist = new Map<string, number>();
+    const picked: typeof scored = [];
+    for (const s of scored) {
+      const k = s.e.artist.name.toLowerCase();
+      const c = perArtist.get(k) ?? 0;
+      if (c >= 2) continue;
+      perArtist.set(k, c + 1);
+      picked.push(s);
+      if (picked.length >= 12) break;
+    }
+
+    return picked.map(({ e }) => ({
+      id: e.id,
+      externalId: e.externalId ?? undefined,
+      source: e.source ?? 'ticketmaster',
+      name: e.name,
+      date: e.date.toISOString(),
+      imageUrl: e.imageUrl ?? undefined,
+      ticketUrl: e.ticketUrl ?? undefined,
+      artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? null },
+      venue: {
+        id: e.venue.id,
+        name: e.venue.name,
+        city: e.venue.city,
+        state: e.venue.state ?? null,
+        country: e.venue.country ?? '',
+      },
+    }));
+  } catch (error) {
+    if (isDbUnavailable(error)) return [];
+    req.log.error({ error }, 'Log recommendations error');
+    reply.status(500);
+    return { error: 'Failed to load recommendations' };
+  }
+});
+
 app.get('/events/:id', async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
@@ -9903,12 +9990,30 @@ app.post('/events/import', async (req, reply) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) throw new AppError('Invalid date', 400);
 
-  const artist =
-    (await prisma.artist.findFirst({ where: { name: artistName } })) ??
-    (await prisma.artist.create({ data: { name: artistName, genres: [] } }));
+  // Case-insensitive match so a hand-typed "the weeknd" links to the existing
+  // "The Weeknd" instead of spawning a duplicate. Only create when truly new.
+  let artist = await prisma.artist.findFirst({ where: { name: { equals: artistName, mode: 'insensitive' } } });
+  if (!artist) {
+    // New artist → try to borrow their real photo + genres from TM so the
+    // manual log still shows a proper artist card.
+    let imageUrl: string | null = null;
+    let genres: string[] = [];
+    try {
+      const [tm] = await tmSearchAttractions(artistName, 1);
+      if (tm && tm.name.toLowerCase() === artistName.toLowerCase()) {
+        imageUrl = tm.imageUrl;
+        genres = tm.genres ?? [];
+      }
+    } catch {
+      // best-effort enrichment
+    }
+    artist = await prisma.artist.create({ data: { name: artistName, imageUrl, genres } });
+  }
 
   const venue =
-    (await prisma.venue.findFirst({ where: { name: venueName, city: venueCity } })) ??
+    (await prisma.venue.findFirst({
+      where: { name: { equals: venueName, mode: 'insensitive' }, city: { equals: venueCity, mode: 'insensitive' } },
+    })) ??
     (await prisma.venue.create({ data: { name: venueName, city: venueCity, country: venueCountry } }));
 
   const event = await prisma.event.upsert({
