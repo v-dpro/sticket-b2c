@@ -8083,6 +8083,9 @@ app.get('/feed/public', async (req) => {
 
   const where: Prisma.UserLogWhereInput = {
     visibility: 'PUBLIC',
+    // Same gallery opt-out the Explore crowd respects — also how demo/seed
+    // accounts are muted from real users' public feeds (flag, not delete).
+    user: { showInGalleries: true },
   };
 
   if (followedArtistIds.length || city) {
