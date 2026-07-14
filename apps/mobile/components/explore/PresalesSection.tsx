@@ -18,8 +18,10 @@ import { useThemedStyles } from '../../lib/theme-context';
 import { SpringPressable } from '../ui/SpringPressable';
 import { presaleClose } from './format';
 
-// Show a focused set on the hub; "All" opens the full per-show list.
-const MAX_ROWS = 6;
+// A TIGHT set on the hub — presales are one beat in a big/small stream, not a
+// wall that buries the trending hero and event cards below. "All" opens the
+// full per-show list.
+const MAX_ROWS = 3;
 
 /** Re-render every second only while something is actually ticking (< 24h). */
 function useNow(ticking: boolean) {

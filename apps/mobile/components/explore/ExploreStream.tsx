@@ -69,8 +69,12 @@ export function ExploreStream({ data }: ExploreStreamProps) {
 
     const built: Section[] = [];
 
+    // Presales is a compact LIST (not a full-width card). Tagging it 'full'
+    // made it and the hero two adjacent 'full's, so the rhythm-fixup shoved the
+    // crowd mosaic between them and pushed the big hero off-screen. 'list' keeps
+    // the intended beat: presales list → big hero → mosaic.
     if (presales.length > 0)
-      built.push({ key: 'presales', kind: 'full', node: <PresalesSection presales={presales} /> });
+      built.push({ key: 'presales', kind: 'list', node: <PresalesSection presales={presales} /> });
     if (heroEvent)
       built.push({ key: 'hero-event', kind: 'full', node: <TrendingEventCard event={heroEvent} /> });
     if (firstMosaic.length > 0)
