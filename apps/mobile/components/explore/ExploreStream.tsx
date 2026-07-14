@@ -1,7 +1,7 @@
 // ExploreStream — the C14 stanza, assembled. The approved rhythm repeats
 // RAIL (utility) → FULL-WIDTH entity spotlight → MOSAIC (crowd posts):
 //
-//   PresaleRail → TrendingEventCard (biggest) → CrowdMosaic →
+//   PresalesSection → TrendingEventCard (biggest) → CrowdMosaic →
 //   TourSpotlightCard → RisingArtistsRail → CrowdMosaic →
 //   VenueSpotlightCard → medium trending events.
 //
@@ -21,7 +21,7 @@ import { Skeleton } from '../ui/Skeleton';
 import { CrowdMosaic } from './CrowdMosaic';
 import { EventMediumCard } from './EventMediumCard';
 import { PartiesRail } from './PartiesRail';
-import { PresaleRail } from './PresaleRail';
+import { PresalesSection } from './PresalesSection';
 import { RisingArtistsRail } from './RisingArtistsRail';
 import { TourSpotlightCard } from './TourSpotlightCard';
 import { TrendingEventCard } from './TrendingEventCard';
@@ -70,7 +70,7 @@ export function ExploreStream({ data }: ExploreStreamProps) {
     const built: Section[] = [];
 
     if (presales.length > 0)
-      built.push({ key: 'presales', kind: 'rail', node: <PresaleRail presales={presales} /> });
+      built.push({ key: 'presales', kind: 'full', node: <PresalesSection presales={presales} /> });
     if (heroEvent)
       built.push({ key: 'hero-event', kind: 'full', node: <TrendingEventCard event={heroEvent} /> });
     if (firstMosaic.length > 0)

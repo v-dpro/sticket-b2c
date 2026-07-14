@@ -15,13 +15,25 @@ export type ExplorePerson = {
   degree?: 1 | 2;
 };
 
+// Informational presale for the planning hub. The API NEVER serializes a
+// presale code (compliance) — there is no `code` field here by design.
 export type ExplorePresale = {
   id: string;
+  eventId: string | null;
   artistId: string | null;
   artistName: string;
+  tourName?: string | null;
+  venueName: string;
+  venueCity: string;
+  venueState?: string | null;
+  eventDate: string;
   presaleType: string;
   presaleStart: string;
-  code?: string | null;
+  presaleEnd?: string | null;
+  onsaleStart?: string | null;
+  signupUrl?: string | null;
+  signupDeadline?: string | null;
+  ticketUrl?: string | null;
 };
 
 export type ExploreTrendingEvent = {
@@ -29,6 +41,8 @@ export type ExploreTrendingEvent = {
   name: string;
   date: string;
   imageUrl?: string | null;
+  /** Primary "buy tickets" deep-link (TM event url / Bandsintown offer). */
+  ticketUrl?: string | null;
   artist: { id: string; name: string; imageUrl?: string | null };
   venue: { id: string; name: string; city: string };
   logCount: number;
@@ -67,6 +81,12 @@ export type ExploreVenue = {
   city: string;
   imageUrl?: string | null;
   eventCount: number;
+  /** Upcoming (real-source) events at this venue — the planning-relevant count. */
+  upcomingCount?: number;
+  /** Seat-view photos on file for this venue. */
+  seatViewCount?: number;
+  /** Avg seat-view rating (0–5, one decimal) or absent when unrated. */
+  avgRating?: number | null;
 };
 
 export type ExploreCrowdPost = {

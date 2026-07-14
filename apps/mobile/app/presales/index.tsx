@@ -59,18 +59,6 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
     presaleTypeText: { fontFamily: t.fontFamilies.mono, fontSize: 11, fontWeight: '600', color: t.colors.text, textTransform: 'uppercase', letterSpacing: 0.5 },
     timeText: { fontFamily: t.fontFamilies.mono, fontSize: 13, fontWeight: '600', color: t.colors.mute },
     timeTextLive: { color: t.colors.success },
-    codeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: t.spacing.sm,
-      marginTop: t.spacing.md,
-      paddingTop: t.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: t.colors.hairline,
-    },
-    codeLabel: { fontSize: 13, color: t.colors.mute },
-    codeBadge: { backgroundColor: t.colors.card2, paddingHorizontal: 12, paddingVertical: 6, borderRadius: t.radius.sm },
-    codeText: { fontFamily: t.fontFamilies.monoBold, fontSize: 14, fontWeight: '700', color: t.colors.fg },
     signupWarning: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -84,7 +72,10 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
   }));
 
   const getTimeLabel = () => {
-    if (hasStarted) return 'Live Now';
+    if (hasStarted) {
+      // Open now → the close time is the actionable datum, not the stale start.
+      return presale.presaleEnd ? `Live · closes ${format(new Date(presale.presaleEnd), 'MMM d')}` : 'Live Now';
+    }
     if (isToday(startDate)) return `Today at ${format(startDate, 'h:mm a')}`;
     if (isTomorrow(startDate)) return `Tomorrow at ${format(startDate, 'h:mm a')}`;
     return format(startDate, "MMM d 'at' h:mm a");
@@ -124,15 +115,6 @@ function PresaleCard({ presale, onToggleAlert }: { presale: PresaleItem; onToggl
         </View>
         <Text style={[styles.timeText, hasStarted && styles.timeTextLive]}>{getTimeLabel()}</Text>
       </View>
-
-      {presale.code ? (
-        <View style={styles.codeRow}>
-          <Text style={styles.codeLabel}>Code:</Text>
-          <View style={styles.codeBadge}>
-            <Text style={styles.codeText}>{presale.code}</Text>
-          </View>
-        </View>
-      ) : null}
 
       {presale.signupUrl && presale.signupDeadline ? (
         <View style={styles.signupWarning}>

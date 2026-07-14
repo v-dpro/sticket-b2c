@@ -46,6 +46,11 @@ import { notify, notifyMany, startNotificationJobs } from './notificationEngine.
 // carry no fabricated codes (TM does not expose presale codes).
 const PRESALE_SOURCES = ['ticketmaster', 'Manual', 'Community'];
 
+// Real (ingested) event sources for Explore discovery. Synthetic seed events
+// ('catalog-seed', 'seed', NULL) anchor the demo account but must never surface
+// as trending/venue/tour discovery for real users — filter Explore to these.
+const REAL_EVENT_SOURCES = ['ticketmaster', 'bandsintown'];
+
 // Mobile app defaults to 3001 (see apps/mobile/lib/api/client.ts)
 const preferredPort = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -4479,15 +4484,23 @@ app.get('/explore', async (req) => {
 
   // ---- Phase 1: independent base queries ----
   const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows] = await Promise.all([
-    // Presales starting in the next 14 days, soonest first.
+    // Actionable presales for still-upcoming shows: opening soon (future
+    // presaleStart → live countdown) OR open right now (future presaleEnd →
+    // "LIVE, closes in N"). We deliberately exclude fully-ended windows —
+    // presaleCountdown() labels any past start "LIVE", so a closed presale
+    // would mislead. Deduped to one row per event below; take wide to survive it.
     prisma.presale.findMany({
-      where: { presaleStart: { gte: now, lte: new Date(now.getTime() + 14 * DAY_MS) }, source: { in: PRESALE_SOURCES } },
+      where: {
+        source: { in: PRESALE_SOURCES },
+        eventDate: { gte: now },
+        OR: [{ presaleStart: { gte: now } }, { presaleEnd: { gte: now } }],
+      },
       orderBy: { presaleStart: 'asc' },
-      take: 6,
+      take: 80,
     }),
-    // Trending candidates: upcoming or recent-past (last 60 days) events.
+    // Trending candidates: upcoming or recent-past (last 60 days) real events.
     prisma.event.findMany({
-      where: { date: { gte: new Date(now.getTime() - 60 * DAY_MS) } },
+      where: { date: { gte: new Date(now.getTime() - 60 * DAY_MS) }, source: { in: REAL_EVENT_SOURCES } },
       include: {
         artist: { select: { id: true, name: true, imageUrl: true } },
         venue: { select: { id: true, name: true, city: true } },
@@ -4537,6 +4550,34 @@ app.get('/explore', async (req) => {
     }),
   ]);
 
+  // Collapse to one row per ARTIST — an event carries several presale TYPES
+  // (Artist / Promoter / Radio / VIP), and a tour hits many cities, so keying
+  // by event would repeat the same name down the list. Keep the most urgent
+  // window per artist (live-now closing soonest, else soonest to open); the
+  // "All" link opens the full per-show breakdown. Keeps the hub scannable.
+  type PresaleRow = (typeof presaleRows)[number];
+  const isLiveNow = (r: PresaleRow) =>
+    r.presaleStart <= now && (r.presaleEnd ? r.presaleEnd >= now : true);
+  const presaleByEvent = new Map<string, PresaleRow>();
+  for (const p of presaleRows) {
+    const key = p.artistName.toLowerCase();
+    const cur = presaleByEvent.get(key);
+    if (!cur) {
+      presaleByEvent.set(key, p);
+      continue;
+    }
+    const pLive = isLiveNow(p);
+    const curLive = isLiveNow(cur);
+    let better: boolean;
+    if (pLive && curLive) better = (p.presaleEnd?.getTime() ?? Infinity) < (cur.presaleEnd?.getTime() ?? Infinity);
+    else if (pLive !== curLive) better = pLive; // a live window beats a not-yet-open one
+    else better = p.presaleStart < cur.presaleStart; // both upcoming: soonest to open
+    if (better) presaleByEvent.set(key, p);
+  }
+  const topPresales = [...presaleByEvent.values()]
+    .sort((a, b) => a.presaleStart.getTime() - b.presaleStart.getTime())
+    .slice(0, 14);
+
   // ---- Trending: logCount + interestedCount + a small recency boost ----
   const trending = candidateEvents
     .map((event) => {
@@ -4552,7 +4593,8 @@ app.get('/explore', async (req) => {
   // ---- Join the log aggregation back through event metadata ----
   const loggedEvents = logAgg.length
     ? await prisma.event.findMany({
-        where: { id: { in: logAgg.map((a) => a.eventId) } },
+        // Real events only — synthetic-seed logs don't drive tour/venue/artist discovery.
+        where: { id: { in: logAgg.map((a) => a.eventId) }, source: { in: REAL_EVENT_SOURCES } },
         select: { id: true, artistId: true, tourId: true, venueId: true },
       })
     : [];
@@ -4587,7 +4629,7 @@ app.get('/explore', async (req) => {
     .map(([id]) => id);
 
   // ---- Phase 2: metadata + facepile source rows for the picked ids ----
-  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts] =
+  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts, venueSeatAgg, venueUpcomingAgg] =
     await Promise.all([
       // Rising-artist candidates ranked below by followerCount + logCount.
       prisma.artist.findMany({
@@ -4608,9 +4650,9 @@ app.get('/explore', async (req) => {
           })
         : [],
       // Presale rows only carry a denormalized artistName; resolve to Artist ids.
-      presaleRows.length
+      topPresales.length
         ? prisma.artist.findMany({
-            where: { name: { in: [...new Set(presaleRows.map((p) => p.artistName))], mode: 'insensitive' } },
+            where: { name: { in: [...new Set(topPresales.map((p) => p.artistName))], mode: 'insensitive' } },
             select: { id: true, name: true },
           })
         : [],
@@ -4640,7 +4682,27 @@ app.get('/explore', async (req) => {
           })
         : [],
       getPartyCounts(publicPartyRows.map((p) => p.id)),
+      // Venue intel: seat-view photo count + avg seat-view rating for the picked venues.
+      topVenueIds.length
+        ? prisma.seatView.groupBy({
+            by: ['venueId'],
+            where: { venueId: { in: topVenueIds } },
+            _count: { _all: true, photoUrl: true },
+            _avg: { rating: true },
+          })
+        : [],
+      // Venue intel: count of upcoming REAL events per picked venue.
+      topVenueIds.length
+        ? prisma.event.groupBy({
+            by: ['venueId'],
+            where: { venueId: { in: topVenueIds }, date: { gte: now }, source: { in: REAL_EVENT_SOURCES } },
+            _count: { _all: true },
+          })
+        : [],
     ]);
+
+  const venueSeatByVenue = new Map(venueSeatAgg.map((s) => [s.venueId, s]));
+  const venueUpcomingByVenue = new Map(venueUpcomingAgg.map((e) => [e.venueId, e._count._all]));
 
   // ---- Rising artists: simple totals of follows + logs ----
   const rising = artistRows
@@ -4682,21 +4744,32 @@ app.get('/explore', async (req) => {
   const venueById = new Map(venueRows.map((v) => [v.id, v]));
 
   return {
-    presales: presaleRows.map((p) => ({
+    // Informational presale rows for the planning hub. Codes are NEVER
+    // serialized (compliance — TM presales carry none, and we don't expose any).
+    presales: topPresales.map((p) => ({
       id: p.id,
       eventId: p.eventId ?? null,
       artistId: artistIdByName.get(p.artistName.toLowerCase()) ?? null,
       artistName: p.artistName,
+      tourName: p.tourName ?? undefined,
+      venueName: p.venueName,
+      venueCity: p.venueCity,
+      venueState: p.venueState ?? undefined,
+      eventDate: p.eventDate.toISOString(),
       presaleType: p.presaleType,
       presaleStart: p.presaleStart.toISOString(),
+      presaleEnd: p.presaleEnd ? p.presaleEnd.toISOString() : undefined,
+      onsaleStart: p.onsaleStart ? p.onsaleStart.toISOString() : undefined,
+      signupUrl: p.signupUrl ?? undefined,
+      signupDeadline: p.signupDeadline ? p.signupDeadline.toISOString() : undefined,
       ticketUrl: p.ticketUrl ?? undefined,
-      code: p.code ?? undefined,
     })),
     trendingEvents: trending.map(({ event: e }) => ({
       id: e.id,
       name: e.name,
       date: e.date.toISOString(),
       imageUrl: e.imageUrl ?? undefined,
+      ticketUrl: e.ticketUrl ?? undefined,
       artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
       venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
       logCount: e._count.logs,
@@ -4731,13 +4804,19 @@ app.get('/explore', async (req) => {
     venues: topVenueIds
       .map((id) => venueById.get(id))
       .filter((v): v is NonNullable<typeof v> => Boolean(v))
-      .map((v) => ({
-        id: v.id,
-        name: v.name,
-        city: v.city,
-        imageUrl: v.imageUrl ?? undefined,
-        eventCount: v._count.events,
-      })),
+      .map((v) => {
+        const seat = venueSeatByVenue.get(v.id);
+        return {
+          id: v.id,
+          name: v.name,
+          city: v.city,
+          imageUrl: v.imageUrl ?? undefined,
+          eventCount: v._count.events,
+          upcomingCount: venueUpcomingByVenue.get(v.id) ?? 0,
+          seatViewCount: seat?._count.photoUrl ?? 0,
+          avgRating: seat && seat._avg.rating != null ? round1(seat._avg.rating) : undefined,
+        };
+      }),
     publicParties: publicPartyRows.map((p) => ({
       id: p.id,
       title: p.title,
@@ -8886,9 +8965,13 @@ app.get('/presales', async (req, reply) => {
     const q = (req.query ?? {}) as { artistId?: string; limit?: string };
     const limit = Math.max(1, Math.min(200, Number(q.limit ?? 50)));
 
+    const nowD = new Date();
+    // Live-now (window still open) OR opening-soon presales, for still-upcoming
+    // shows. Matches /explore — a start-only filter hides every open window.
     const where: any = {
-      presaleStart: { gte: new Date() },
       source: { in: PRESALE_SOURCES },
+      eventDate: { gte: nowD },
+      OR: [{ presaleStart: { gte: nowD } }, { presaleEnd: { gte: nowD } }],
     };
 
     if (q.artistId) {
@@ -8939,7 +9022,8 @@ app.get('/presales', async (req, reply) => {
       presaleStart: p.presaleStart.toISOString(),
       presaleEnd: p.presaleEnd ? p.presaleEnd.toISOString() : null,
       onsaleStart: p.onsaleStart ? p.onsaleStart.toISOString() : null,
-      code: p.code ?? null,
+      // Presale codes are intentionally NOT serialized — surfacing them breaks
+      // ticketing-platform policy. The column stays for ingestion bookkeeping.
       signupUrl: p.signupUrl ?? null,
       signupDeadline: p.signupDeadline ? p.signupDeadline.toISOString() : null,
       ticketUrl: p.ticketUrl ?? null,

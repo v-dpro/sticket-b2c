@@ -15,7 +15,8 @@ export type PresaleItem = {
   presaleStart: string;
   presaleEnd: string | null;
   onsaleStart?: string | null;
-  code: string | null;
+  // Presale CODES are never modeled client-side — surfacing a code violates
+  // ticketing-platform policy, so the API doesn't send one and the UI can't show one.
   signupUrl: string | null;
   signupDeadline: string | null;
   ticketUrl?: string | null;

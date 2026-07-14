@@ -5,6 +5,14 @@
 import type { ExplorePerson } from '../../lib/api/explore';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+/** Date → "10:00 AM" (uppercased 12h clock, used inside mono windows). */
+function timeOf(d: Date): string {
+  return d
+    .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    .toUpperCase();
+}
 
 /** ISO date → { month: "AUG", day: "22" } for the stacked date block. */
 export function dateBlock(dateStr: string): { month: string; day: string } | null {
@@ -29,6 +37,96 @@ export function presaleWhen(dateStr: string): string {
   const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
   const time = mins === 0 ? `${h12}${ampm}` : `${h12}:${String(mins).padStart(2, '0')}${ampm}`;
   return `${MONTHS[d.getMonth()]} ${d.getDate()} · ${time}`;
+}
+
+/**
+ * Presale window → "WED JUL 16 · 10:00 AM–10:00 PM". Same-day windows collapse
+ * the end to a bare time; cross-day windows spell the end date. No end ⇒ just
+ * the start. This is the planning value — the exact window in mono.
+ */
+export function presaleWindow(startStr: string, endStr?: string | null): string {
+  const start = new Date(startStr);
+  if (Number.isNaN(start.getTime())) return '';
+  const head = `${DOW[start.getDay()]} ${MONTHS[start.getMonth()]} ${start.getDate()}`;
+  const startTime = timeOf(start);
+  if (endStr) {
+    const end = new Date(endStr);
+    if (!Number.isNaN(end.getTime())) {
+      const sameDay =
+        end.getFullYear() === start.getFullYear() &&
+        end.getMonth() === start.getMonth() &&
+        end.getDate() === start.getDate();
+      return sameDay
+        ? `${head} · ${startTime}–${timeOf(end)}`
+        : `${head} · ${startTime} → ${MONTHS[end.getMonth()]} ${end.getDate()} ${timeOf(end)}`;
+    }
+  }
+  return `${head} · ${startTime}`;
+}
+
+/**
+ * State-aware presale timing — the single most actionable line. Once a window
+ * is OPEN the start is stale (TM's Platinum/VIP sales open months ahead and run
+ * for the whole cycle), so a live row surfaces the CLOSE ("CLOSES WED JUL 16 ·
+ * 11:00 PM"); a not-yet-open row surfaces the OPEN. This replaces a raw
+ * start→end window, which reads backwards when the start is a year in the past.
+ */
+export function presaleTiming(startStr: string, endStr?: string | null, now: number = Date.now()): string {
+  const start = new Date(startStr);
+  if (Number.isNaN(start.getTime())) return '';
+  const end = endStr ? new Date(endStr) : null;
+  const endValid = end && !Number.isNaN(end.getTime());
+  if (start.getTime() <= now) {
+    return endValid
+      ? `CLOSES ${DOW[end!.getDay()]} ${MONTHS[end!.getMonth()]} ${end!.getDate()} · ${timeOf(end!)}`
+      : 'ON SALE NOW';
+  }
+  return `OPENS ${DOW[start.getDay()]} ${MONTHS[start.getMonth()]} ${start.getDate()} · ${timeOf(start)}`;
+}
+
+/**
+ * General on-sale → "ON SALE JUL 20 · 10:00 AM". Only an upcoming milestone is
+ * worth a line; a past onsale (tickets already public) is noise, so return ''.
+ */
+export function onsaleLine(iso?: string | null, now: number = Date.now()): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime()) || d.getTime() <= now) return '';
+  return `ON SALE ${MONTHS[d.getMonth()]} ${d.getDate()} · ${timeOf(d)}`;
+}
+
+/** Show line → "MSG · NEW YORK · AUG 22" from venue/city/date parts. */
+export function showLine(
+  venueName?: string | null,
+  venueCity?: string | null,
+  eventDate?: string | null,
+): string {
+  const parts: string[] = [];
+  if (venueName) parts.push(venueName);
+  if (venueCity) parts.push(venueCity);
+  if (eventDate) {
+    const d = monoDate(eventDate);
+    if (d) parts.push(d);
+  }
+  return parts.join(' · ');
+}
+
+/**
+ * Countdown to a presale start — hour-granular since presales are timed.
+ * "LIVE" once open, then "45 MIN" / "6 HRS" / "3 DAYS". Mirrors the Plan tab.
+ */
+export function presaleCountdown(startStr: string, now: number = Date.now()): string {
+  const start = new Date(startStr).getTime();
+  if (Number.isNaN(start)) return '';
+  if (start <= now) return 'LIVE';
+  const diff = start - now;
+  if (diff < 3600000) return `${Math.max(1, Math.ceil(diff / 60000))} MIN`;
+  if (diff < 86400000) {
+    const hrs = Math.ceil(diff / 3600000);
+    return `${hrs} ${hrs === 1 ? 'HR' : 'HRS'}`;
+  }
+  const days = Math.ceil(diff / 86400000);
+  return `${days} ${days === 1 ? 'DAY' : 'DAYS'}`;
 }
 
 /** Whether the event date is today or later (drives GOING vs WENT verbs). */
