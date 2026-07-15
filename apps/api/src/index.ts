@@ -22,7 +22,7 @@ import { getUserIdFromRequest } from './lib/auth.js';
 import { AppError } from './lib/errors.js';
 import { BADGES } from './lib/badges/badgeDefinitions.js';
 import { checkBadges, getBadgeProgress, getEarnedBadges } from './lib/badges/badgeChecker.js';
-import { computeLogXp, buildXpReason, levelFor, monthRange, monthKey, XP_PHOTO } from './lib/xp.js';
+import { computeLogXp, buildXpReason, isFreshLog, levelFor, monthRange, monthKey, XP_PHOTO } from './lib/xp.js';
 import {
   generateTokens,
   verifyToken,
@@ -2997,6 +2997,56 @@ app.get('/users/me/scout', async (req) => {
   ]);
 
   return { tips, tipUpvotesReceived, seatViews, answers, answerUpvotesReceived };
+});
+
+// GET /users/me/sets — TOUR STUBS: the viewer's logs rolled up by tour, the
+// completion-set mechanic behind the collection. `collected` counts distinct
+// tour dates logged; FOLLOWED stamps at 2+ (you chased the tour), COMPLETE
+// when every date is collected. Ordered most-collected first.
+app.get('/users/me/sets', async (req) => {
+  const userId = requireAccessUserId(req as any);
+
+  const logs = await prisma.userLog.findMany({
+    where: { userId, event: { tourId: { not: null } } },
+    select: { eventId: true, event: { select: { tourId: true } } },
+  });
+
+  const eventsByTour = new Map<string, Set<string>>();
+  for (const log of logs) {
+    const tourId = log.event.tourId!;
+    const events = eventsByTour.get(tourId) ?? new Set<string>();
+    events.add(log.eventId);
+    eventsByTour.set(tourId, events);
+  }
+  if (eventsByTour.size === 0) return { tours: [] };
+
+  const tours = await prisma.tour.findMany({
+    where: { id: { in: [...eventsByTour.keys()] } },
+    include: {
+      artist: { select: { id: true, name: true } },
+      _count: { select: { events: true } },
+    },
+  });
+
+  return {
+    tours: tours
+      .map((t) => {
+        const collected = eventsByTour.get(t.id)?.size ?? 0;
+        const totalDates = t._count.events;
+        return {
+          id: t.id,
+          name: t.name,
+          artistId: t.artist.id,
+          artistName: t.artist.name,
+          imageUrl: t.imageUrl ?? undefined,
+          collected,
+          totalDates,
+          followed: collected >= 2,
+          complete: totalDates > 0 && collected >= totalDates,
+        };
+      })
+      .sort((a, b) => b.collected - a.collected || a.name.localeCompare(b.name)),
+  };
 });
 
 // GET /users/me/collection - the viewer's logged history rolled up by artist,
@@ -8641,6 +8691,7 @@ app.post('/logs', async (req, reply) => {
       // stays correct if log creation ever accepts inline photos.
       hasPhoto: false,
       firstOfMonth: monthLogCount === 0,
+      isFresh: isFreshLog(event.date),
     };
     const xpGain = computeLogXp(xpInputs);
     const xpReason = buildXpReason(xpInputs);

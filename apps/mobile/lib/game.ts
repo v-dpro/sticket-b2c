@@ -29,6 +29,7 @@ const XP_NEW_ARTIST = 20;
 const XP_REVIEW = 10;
 const XP_PHOTO = 5;
 const XP_FIRST_OF_MONTH = 15;
+const XP_FRESH_LOG = 10;
 
 export function xpForShow(opts: {
   isNewVenue: boolean;
@@ -36,6 +37,7 @@ export function xpForShow(opts: {
   hasReview: boolean;
   hasPhoto: boolean;
   firstOfMonth: boolean;
+  isFresh?: boolean;
 }): number {
   let xp = XP_BASE;
   if (opts.isNewVenue) xp += XP_NEW_VENUE;
@@ -43,7 +45,17 @@ export function xpForShow(opts: {
   if (opts.hasReview) xp += XP_REVIEW;
   if (opts.hasPhoto) xp += XP_PHOTO;
   if (opts.firstOfMonth) xp += XP_FIRST_OF_MONTH;
-  return xp; // Max: 50+15+20+10+5+15 = 115
+  if (opts.isFresh) xp += XP_FRESH_LOG;
+  return xp; // Max: 50+15+20+10+5+15+10 = 125
+}
+
+/** Mirrors apps/api/src/lib/xp.ts isFreshLog — logged within 48h after the
+    show (12h grace before, for doors-time timestamps). */
+export function isFreshLog(eventDate: string, at: Date = new Date()): boolean {
+  const d = new Date(eventDate);
+  if (Number.isNaN(d.getTime())) return false;
+  const hoursSince = (at.getTime() - d.getTime()) / 3600000;
+  return hoursSince >= -12 && hoursSince <= 48;
 }
 
 // ---------------------------------------------------------------------------
@@ -324,9 +336,10 @@ export function previewLogRewards(
   const hasPhoto = Boolean(draft.photos && draft.photos.length > 0);
   const draftMonth = toMonthKey(draft.date);
   const firstOfMonth = !pastMonths.has(draftMonth);
+  const isFresh = isFreshLog(draft.date);
 
   // XP
-  const xpGain = xpForShow({ isNewVenue, isNewArtist, hasReview, hasPhoto, firstOfMonth });
+  const xpGain = xpForShow({ isNewVenue, isNewArtist, hasReview, hasPhoto, firstOfMonth, isFresh });
 
   // Build reasons list
   const reasons: Array<{ label: string; value: string }> = [];
@@ -336,6 +349,7 @@ export function previewLogRewards(
   if (hasReview) reasons.push({ label: 'Review', value: `+${XP_REVIEW}` });
   if (hasPhoto) reasons.push({ label: 'Photo', value: `+${XP_PHOTO}` });
   if (firstOfMonth) reasons.push({ label: 'First of month', value: `+${XP_FIRST_OF_MONTH}` });
+  if (isFresh) reasons.push({ label: 'Fresh log', value: `+${XP_FRESH_LOG}` });
 
   // Past XP total (recalculate from past shows)
   const xpBefore = pastShows.reduce((acc, show, idx) => {

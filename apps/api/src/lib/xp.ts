@@ -16,6 +16,7 @@ export const XP_NEW_ARTIST = 20;
 export const XP_REVIEW = 10;
 export const XP_PHOTO = 5;
 export const XP_FIRST_OF_MONTH = 15;
+export const XP_FRESH_LOG = 10;
 
 export type XpBonusInputs = {
   /** First log this user has ever made at this Venue.id. */
@@ -28,9 +29,14 @@ export type XpBonusInputs = {
   hasPhoto: boolean;
   /** First log this user has made in the show's calendar month. */
   firstOfMonth: boolean;
+  /** Logged while it's hot — within 48h after the show (12h grace before,
+      for doors-time timestamps and timezone drift). Memory is freshest and
+      intel is most accurate right after the night; backfills still earn
+      everything else, just not this. */
+  isFresh: boolean;
 };
 
-/** Computes the XP awarded for a single log. Max: 50+15+20+10+5+15 = 115. */
+/** Computes the XP awarded for a single log. Max: 50+15+20+10+5+15+10 = 125. */
 export function computeLogXp(opts: XpBonusInputs): number {
   let xp = XP_BASE;
   if (opts.isNewVenue) xp += XP_NEW_VENUE;
@@ -38,7 +44,14 @@ export function computeLogXp(opts: XpBonusInputs): number {
   if (opts.hasReview) xp += XP_REVIEW;
   if (opts.hasPhoto) xp += XP_PHOTO;
   if (opts.firstOfMonth) xp += XP_FIRST_OF_MONTH;
+  if (opts.isFresh) xp += XP_FRESH_LOG;
   return xp;
+}
+
+/** The freshness window shared by server + client preview. */
+export function isFreshLog(eventDate: Date, at: Date = new Date()): boolean {
+  const hoursSince = (at.getTime() - eventDate.getTime()) / 3600000;
+  return hoursSince >= -12 && hoursSince <= 48;
 }
 
 /** Human-readable audit trail stored on XpEntry.reason, e.g. "base+new_venue+review". */
@@ -49,6 +62,7 @@ export function buildXpReason(opts: XpBonusInputs): string {
   if (opts.hasReview) reasons.push('review');
   if (opts.hasPhoto) reasons.push('photo');
   if (opts.firstOfMonth) reasons.push('first_of_month');
+  if (opts.isFresh) reasons.push('fresh');
   return reasons.join('+');
 }
 
