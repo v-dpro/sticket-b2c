@@ -14,6 +14,7 @@ import { durations } from '../../lib/motion';
 import { useThemedStyles } from '../../lib/theme-context';
 
 import { YourShowsSection } from '../../components/plan/YourShowsSection';
+import { FriendOverlapSection } from '../../components/plan/FriendOverlapSection';
 import { PartiesTab } from '../../components/plan/PartiesTab';
 import { PresalesTab } from '../../components/you/PresalesTab';
 import { EventPickerSheet } from '../../components/party/EventPickerSheet';
@@ -63,6 +64,9 @@ export default function PlanScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeIn.duration(durations.fadeThrough)}>
           <YourShowsSection />
+
+          {/* WITH FRIENDS — overlap radar; renders nothing without overlap. */}
+          <FriendOverlapSection />
 
           <Text style={styles.sectionLabel}>Parties</Text>
           <PartiesTab />

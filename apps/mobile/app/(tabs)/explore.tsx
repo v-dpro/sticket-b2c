@@ -22,6 +22,8 @@ import { useTheme, useThemedStyles } from '../../lib/theme-context';
 function isEmpty(data: ExploreData): boolean {
   return (
     data.presales.length === 0 &&
+    data.thisWeekend.length === 0 &&
+    data.friendGravity.length === 0 &&
     data.trendingEvents.length === 0 &&
     data.risingArtists.length === 0 &&
     data.spotlightTours.length === 0 &&
