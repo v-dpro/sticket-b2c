@@ -168,7 +168,26 @@ export default function LogSuccess() {
     }
   }, [milestoneVisible]);
 
-  const done = () => router.replace('/(tabs)/you');
+  // Exit routes through the INTEL DROP (one skippable screen: seat verdict +
+  // one venue tip) when we can name the venue — every log should leave
+  // something behind for the next planner. No venue → straight home.
+  const done = () => {
+    if (params.venueId || params.eventId) {
+      router.replace({
+        pathname: '/log/intel',
+        params: {
+          ...(params.eventId ? { eventId: String(params.eventId) } : {}),
+          ...(eventName ? { eventName } : {}),
+          ...(params.venueId ? { venueId: String(params.venueId) } : {}),
+          ...(params.venueName ? { venueName: String(params.venueName) } : {}),
+          ...(params.section ? { section: String(params.section) } : {}),
+          ...(params.row ? { row: String(params.row) } : {}),
+        },
+      });
+      return;
+    }
+    router.replace('/(tabs)/you');
+  };
   const canMakeMemory = Boolean(params.logId);
 
   // A9: defer the memory to the morning — persist a draft + schedule the 10:00

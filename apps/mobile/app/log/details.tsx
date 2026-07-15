@@ -166,6 +166,11 @@ export default function LogDetails() {
           eventId,
           eventName,
           venueName: event?.venue?.name || (params.venueName ? String(params.venueName) : ''),
+          // venueId + seat thread through compare → success → the intel drop.
+          ...(event?.venue?.id ? { venueId: event.venue.id } : {}),
+          ...(section.trim() ? { section: section.trim() } : {}),
+          ...(row.trim() ? { row: row.trim() } : {}),
+          ...(seat.trim() ? { seat: seat.trim() } : {}),
           eventDate: eventDate ?? '',
           first: res.hasScoredHistory ? '0' : '1',
           ...(typeof res.xpGain === 'number' ? { xpGain: String(res.xpGain) } : {}),
