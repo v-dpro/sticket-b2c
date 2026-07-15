@@ -14,6 +14,7 @@ import { useMyArtists } from '../../hooks/useMyArtists';
 import { getMyCollection, type CollectionTrophies, type MyCollection } from '../../lib/api/collection';
 import { durations, tearIn } from '../../lib/motion';
 import { artistTier } from '../../lib/gamification';
+import { ScoutCard } from './ScoutCard';
 import { TierStamp } from './TierStamp';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { DegreeFacepile } from '../ui/DegreeFacepile';
@@ -434,6 +435,9 @@ export function ArtistsTab() {
           })}
         </View>
       ) : null}
+
+      {/* SCOUT — the contribution ladder (tips / seat views / answers). */}
+      <ScoutCard />
     </View>
   );
 }
