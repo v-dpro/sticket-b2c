@@ -16,6 +16,7 @@ import { durations, tearIn } from '../../lib/motion';
 import { artistTier } from '../../lib/gamification';
 import { ScoutCard } from './ScoutCard';
 import { TierStamp } from './TierStamp';
+import { TourSetsSection } from './TourSetsSection';
 import { useTheme, useThemedStyles } from '../../lib/theme-context';
 import { DegreeFacepile } from '../ui/DegreeFacepile';
 import { PillButton } from '../ui/PillButton';
@@ -435,6 +436,9 @@ export function ArtistsTab() {
           })}
         </View>
       ) : null}
+
+      {/* TOUR STUBS — completion sets: dates collected per tour. */}
+      <TourSetsSection />
 
       {/* SCOUT — the contribution ladder (tips / seat views / answers). */}
       <ScoutCard />
