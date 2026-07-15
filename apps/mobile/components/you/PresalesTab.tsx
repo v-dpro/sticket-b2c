@@ -341,10 +341,11 @@ export function PresalesTab() {
             disabled={!row.eventId}
             shakeWhenDisabled={false}
             onPress={() => {
-              if (row.eventId) router.push(`/event/${row.eventId}`);
+              // Ticketed rows open THE NIGHT — the per-show plan canvas.
+              if (row.eventId) router.push(`/night/${row.eventId}`);
             }}
             accessibilityRole="button"
-            accessibilityLabel={`${row.artistName} at ${row.venueName}, ${formatShowDate(row.date)}`}
+            accessibilityLabel={`${row.artistName} at ${row.venueName}, ${formatShowDate(row.date)} — open your night plan`}
             style={styles.stubRow}
           >
             {rowImage(row)}
@@ -385,7 +386,9 @@ export function PresalesTab() {
           disabled={!row.eventId}
           shakeWhenDisabled={false}
           onPress={() => {
-            if (row.eventId) router.push(`/event/${row.eventId}`);
+            // Interested rows open THE NIGHT too — it carries the presale /
+            // find-tickets path for unticketed plans.
+            if (row.eventId) router.push(`/night/${row.eventId}`);
           }}
           accessibilityRole="button"
           accessibilityLabel={`${row.artistName} at ${row.venueName}, ${formatShowDate(row.date)}`}

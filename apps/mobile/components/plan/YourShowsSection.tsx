@@ -7,6 +7,7 @@
 // name, venue · date mono, a live countdown ("TONIGHT" / "IN 7D"), a party
 // chip line when a party rides that event (mirrors the timeline PlanCard), and
 // a REMIND ME switch (ShowReminder) that fires a show-day morning nudge.
+// Tapping a card opens THE NIGHT (/night/[eventId]) — the per-show plan canvas.
 
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Switch, Text, View } from 'react-native';
@@ -244,9 +245,9 @@ export function YourShowsSection() {
         <View style={styles.card}>
           <SpringPressable
             haptic="light"
-            onPress={() => router.push(`/event/${event.id}`)}
+            onPress={() => router.push(`/night/${event.id}`)}
             accessibilityRole="button"
-            accessibilityLabel={`${event.name} at ${event.venue.name}, ${countdownLabel(item.date)}`}
+            accessibilityLabel={`${event.name} at ${event.venue.name}, ${countdownLabel(item.date)} — open your night plan`}
             style={styles.showRow}
           >
             {imageUrl ? (
