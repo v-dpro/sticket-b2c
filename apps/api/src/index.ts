@@ -2980,6 +2980,25 @@ app.get('/users/me/concert-life', async (req) => {
   };
 });
 
+// GET /users/me/scout — the viewer's CONTRIBUTION tally, the raw counts
+// behind the Scout ladder (a second reputation track, separate from
+// attendance): venue tips + seat views + Q&A answers authored, and the
+// upvotes those earned. Upvotes received ≈ "people your intel helped plan".
+// Pure counts; the rank math lives client-side in lib/gamification.ts.
+app.get('/users/me/scout', async (req) => {
+  const userId = requireAccessUserId(req as any);
+
+  const [tips, tipUpvotesReceived, seatViews, answers, answerUpvotesReceived] = await Promise.all([
+    prisma.venueTip.count({ where: { userId } }),
+    prisma.tipUpvote.count({ where: { tip: { userId } } }),
+    prisma.seatView.count({ where: { userId } }),
+    prisma.venueAnswer.count({ where: { authorId: userId } }),
+    prisma.venueAnswerUpvote.count({ where: { answer: { authorId: userId } } }),
+  ]);
+
+  return { tips, tipUpvotesReceived, seatViews, answers, answerUpvotesReceived };
+});
+
 // GET /users/me/collection - the viewer's logged history rolled up by artist,
 // venue, and city (counts DESC). One query; grouping happens in memory.
 app.get('/users/me/collection', async (req) => {
@@ -4503,7 +4522,7 @@ app.get('/explore', async (req) => {
   const faceUserSelect = { select: { id: true, username: true, displayName: true, avatarUrl: true } } as const;
 
   // ---- Phase 1: independent base queries ----
-  const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows, viewerTaste, viewerFollows] =
+  const [presaleRows, candidateEvents, logAgg, crowdLogs, publicPartyRows, viewerTaste, viewerFollows, friendInterestRows, viewerInterestedRows, viewerTicketRows] =
     await Promise.all([
     // Actionable presales for still-upcoming shows: opening soon (future
     // presaleStart → live countdown) OR open right now (future presaleEnd →
@@ -4569,13 +4588,31 @@ app.get('/explore', async (req) => {
       orderBy: [{ event: { date: 'asc' } }, { startsAt: { sort: 'asc', nulls: 'last' } }],
       take: 6,
     }),
-    // Viewer taste — Spotify top artists power the "Recommended" rail.
-    prisma.user.findUnique({ where: { id: userId }, select: { spotifyTopArtists: true } }),
+    // Viewer taste — Spotify top artists power the "Recommended" rail;
+    // city powers the "This weekend" rail.
+    prisma.user.findUnique({ where: { id: userId }, select: { spotifyTopArtists: true, city: true } }),
     // …and artists the viewer follows (a manual follow is taste too).
     prisma.userArtistFollow.findMany({
       where: { userId },
       select: { source: true, artist: { select: { name: true } } },
     }),
+    // Friend gravity: interest marks from the viewer's 2-hop graph on
+    // upcoming real shows. UserInterested carries no per-row visibility;
+    // scope is the same 2-hop graph the facepiles already expose.
+    degrees.firstDegree.size || degrees.secondDegree.size
+      ? prisma.userInterested.findMany({
+          where: {
+            userId: { in: [...degrees.firstDegree, ...degrees.secondDegree] },
+            event: { date: { gte: now }, source: { in: REAL_EVENT_SOURCES } },
+          },
+          select: { eventId: true, user: faceUserSelect },
+          take: 500,
+        })
+      : Promise.resolve([] as { eventId: string; user: { id: string; username: string; displayName: string | null; avatarUrl: string | null } }[]),
+    // The viewer's own plans — friend-gravity rows exclude nights already
+    // on their radar (the Plan tab owns that overlap).
+    prisma.userInterested.findMany({ where: { userId }, select: { eventId: true } }),
+    prisma.userTicket.findMany({ where: { userId }, select: { eventId: true } }),
   ]);
 
   // Recommendation seed: names the viewer listens to (Spotify) or follows.
@@ -4665,8 +4702,32 @@ app.get('/explore', async (req) => {
     .slice(0, 6)
     .map(([id]) => id);
 
+  // ---- Friend gravity: rank upcoming events by distinct friends interested ----
+  const plannedEventIds = new Set([...viewerInterestedRows, ...viewerTicketRows].map((r) => r.eventId));
+  const gravityRows = friendInterestRows.filter((r) => !plannedEventIds.has(r.eventId));
+  const gravityCountByEvent = new Map<string, Set<string>>();
+  for (const r of gravityRows) {
+    const users = gravityCountByEvent.get(r.eventId) ?? new Set<string>();
+    users.add(r.user.id);
+    gravityCountByEvent.set(r.eventId, users);
+  }
+  const gravityIds = [...gravityCountByEvent.entries()]
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, 8)
+    .map(([id]) => id);
+  const gravityFaces = groupFacepiles(gravityRows, (r) => r.eventId, (r) => r.user, degrees.degreeOf, 5);
+
+  // ---- This weekend: Fri 00:00 → Mon 00:00 of the running week, viewer's city ----
+  const viewerCity = viewerTaste?.city?.trim() || null;
+  const dow = now.getDay(); // 0 Sun … 6 Sat; Sunday still belongs to the running weekend
+  const friStart = new Date(now);
+  friStart.setHours(0, 0, 0, 0);
+  friStart.setDate(friStart.getDate() + (dow === 0 ? -2 : 5 - dow));
+  const weekendEnd = new Date(friStart.getTime() + 3 * DAY_MS);
+  const weekendFrom = now > friStart ? now : friStart;
+
   // ---- Phase 2: metadata + facepile source rows for the picked ids ----
-  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts, venueSeatAgg, venueUpcomingAgg, recommendedEvents] =
+  const [artistRows, tourRows, venueRows, presaleArtists, trendingFriendLogs, tourFriendLogs, crowdPhotoRows, publicPartyCounts, venueSeatAgg, venueUpcomingAgg, recommendedEvents, weekendEvents, gravityEvents] =
     await Promise.all([
       // Rising-artist candidates ranked below by followerCount + logCount.
       // Real catalog only — no synthetic-seed artists as cards.
@@ -4755,6 +4816,34 @@ app.get('/explore', async (req) => {
             take: 60,
           })
         : [],
+      // This weekend near the viewer's city (no city set → rail drops out).
+      viewerCity && weekendFrom < weekendEnd
+        ? prisma.event.findMany({
+            where: {
+              date: { gte: weekendFrom, lt: weekendEnd },
+              source: { in: REAL_EVENT_SOURCES },
+              venue: { city: { equals: viewerCity, mode: 'insensitive' } },
+            },
+            include: {
+              artist: { select: { id: true, name: true, imageUrl: true } },
+              venue: { select: { id: true, name: true, city: true } },
+              _count: { select: { logs: true, interested: true } },
+            },
+            orderBy: { date: 'asc' },
+            take: 8,
+          })
+        : [],
+      // Metadata for the friend-gravity picks.
+      gravityIds.length
+        ? prisma.event.findMany({
+            where: { id: { in: gravityIds } },
+            include: {
+              artist: { select: { id: true, name: true, imageUrl: true } },
+              venue: { select: { id: true, name: true, city: true } },
+              _count: { select: { logs: true, interested: true } },
+            },
+          })
+        : [],
     ]);
 
   const venueSeatByVenue = new Map(venueSeatAgg.map((s) => [s.venueId, s]));
@@ -4832,9 +4921,44 @@ app.get('/explore', async (req) => {
   const tourById = new Map(tourRows.map((t) => [t.id, t]));
   const venueById = new Map(venueRows.map((v) => [v.id, v]));
 
+  // Friend-gravity rows keep the ranked order (most friends first).
+  const gravityEventById = new Map(gravityEvents.map((e) => [e.id, e]));
+
   return {
     // Recommended shows from the viewer's Spotify taste / follows (may be []).
     recommended,
+    // This weekend near the viewer's city — the most common real-world query,
+    // answered without a search. Trending-event shape so cards are reusable.
+    weekendCity: viewerCity ?? undefined,
+    thisWeekend: weekendEvents.map((e) => ({
+      id: e.id,
+      name: e.name,
+      date: e.date.toISOString(),
+      imageUrl: e.imageUrl ?? undefined,
+      ticketUrl: e.ticketUrl ?? undefined,
+      artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
+      venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
+      logCount: e._count.logs,
+      interestedCount: e._count.interested,
+      friendsWent: [],
+      crowdPhotos: [],
+    })),
+    // Friend gravity — upcoming shows the viewer's 2-hop graph is circling
+    // that aren't on the viewer's own radar yet. The decide-stage nudge.
+    friendGravity: gravityIds
+      .map((id) => gravityEventById.get(id))
+      .filter((e): e is NonNullable<typeof e> => Boolean(e))
+      .map((e) => ({
+        id: e.id,
+        name: e.name,
+        date: e.date.toISOString(),
+        imageUrl: e.imageUrl ?? undefined,
+        ticketUrl: e.ticketUrl ?? undefined,
+        artist: { id: e.artist.id, name: e.artist.name, imageUrl: e.artist.imageUrl ?? undefined },
+        venue: { id: e.venue.id, name: e.venue.name, city: e.venue.city },
+        friendCount: gravityCountByEvent.get(e.id)?.size ?? 0,
+        friendsInterested: gravityFaces.get(e.id) ?? [],
+      })),
     // Informational presale rows for the planning hub. Codes are NEVER
     // serialized (compliance — TM presales carry none, and we don't expose any).
     presales: topPresales.map((p) => ({

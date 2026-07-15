@@ -126,9 +126,30 @@ export type ExplorePublicParty = {
   goingCount: number;
 };
 
+// An upcoming show the viewer's 2-hop graph is circling that isn't on the
+// viewer's own radar yet — the decide-stage nudge.
+export type ExploreFriendGravity = {
+  id: string;
+  name: string;
+  date: string;
+  imageUrl?: string | null;
+  ticketUrl?: string | null;
+  artist: { id: string; name: string; imageUrl?: string | null };
+  venue: { id: string; name: string; city: string };
+  /** Distinct friends (1st/2nd degree) interested. */
+  friendCount: number;
+  /** ≤5 faces of those friends. */
+  friendsInterested: ExplorePerson[];
+};
+
 export type ExploreData = {
   recommended: ExploreRecommended[];
   presales: ExplorePresale[];
+  /** Shows this weekend in the viewer's city (empty without a set city). */
+  thisWeekend: ExploreTrendingEvent[];
+  /** The city the weekend rows were matched against. */
+  weekendCity?: string | null;
+  friendGravity: ExploreFriendGravity[];
   trendingEvents: ExploreTrendingEvent[];
   risingArtists: ExploreRisingArtist[];
   spotlightTours: ExploreSpotlightTour[];
@@ -144,6 +165,9 @@ export async function getExplore(): Promise<ExploreData> {
   return {
     recommended: Array.isArray(data.recommended) ? data.recommended : [],
     presales: Array.isArray(data.presales) ? data.presales : [],
+    thisWeekend: Array.isArray(data.thisWeekend) ? data.thisWeekend : [],
+    weekendCity: typeof data.weekendCity === 'string' ? data.weekendCity : undefined,
+    friendGravity: Array.isArray(data.friendGravity) ? data.friendGravity : [],
     trendingEvents: Array.isArray(data.trendingEvents) ? data.trendingEvents : [],
     risingArtists: Array.isArray(data.risingArtists) ? data.risingArtists : [],
     spotlightTours: Array.isArray(data.spotlightTours) ? data.spotlightTours : [],

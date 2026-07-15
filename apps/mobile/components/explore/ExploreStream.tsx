@@ -1,9 +1,10 @@
 // ExploreStream — the C14 stanza, assembled. The approved rhythm repeats
 // RAIL (utility) → FULL-WIDTH entity spotlight → MOSAIC (crowd posts):
 //
-//   PresaleRail → TrendingEventCard (biggest) → RecommendedRail (Spotify) →
-//   CrowdMosaic → TourSpotlightCard → PartiesRail → RisingArtistsRail →
-//   CrowdMosaic → VenueSpotlightCard → medium trending events.
+//   PresaleRail → THIS WEEKEND list (city urgency) → TrendingEventCard
+//   (biggest) → RecommendedRail (Spotify) → FriendGravityList (friends
+//   eyeing) → CrowdMosaic → TourSpotlightCard → PartiesRail →
+//   RisingArtistsRail → CrowdMosaic → VenueSpotlightCard → medium events.
 //
 // Crowd posts are the connective tissue between entity cards; never two
 // rails or two mosaics adjacent (empty sections drop out and adjacent
@@ -20,6 +21,7 @@ import { useThemedStyles } from '../../lib/theme-context';
 import { Skeleton } from '../ui/Skeleton';
 import { CrowdMosaic } from './CrowdMosaic';
 import { EventMediumCard } from './EventMediumCard';
+import { FriendGravityList } from './FriendGravityList';
 import { PartiesRail } from './PartiesRail';
 import { PresaleRail } from './PresaleRail';
 import { RecommendedRail } from './RecommendedRail';
@@ -55,7 +57,7 @@ export function ExploreStream({ data }: ExploreStreamProps) {
   }));
 
   const sections = useMemo<Section[]>(() => {
-    const { recommended, presales, trendingEvents, risingArtists, spotlightTours, venues, crowdPosts, publicParties } =
+    const { recommended, presales, thisWeekend, weekendCity, friendGravity, trendingEvents, risingArtists, spotlightTours, venues, crowdPosts, publicParties } =
       data;
 
     // Crowd-post split — two mosaics of 4–6 tiles when supply allows. When
@@ -76,10 +78,37 @@ export function ExploreStream({ data }: ExploreStreamProps) {
     // rail/full/rail keeps the big/small rhythm the stream is built on.
     if (presales.length > 0)
       built.push({ key: 'presales', kind: 'rail', node: <PresaleRail presales={presales} /> });
+    // THIS WEEKEND — time pressure right behind presales: shows in the
+    // viewer's city before Monday. A tight list, capped at 4.
+    if (thisWeekend.length > 0)
+      built.push({
+        key: 'weekend',
+        kind: 'list',
+        node: (
+          <View>
+            <View style={styles.listHead}>
+              <Text style={styles.listTitle}>
+                {weekendCity ? `This weekend · ${weekendCity}` : 'This weekend'}
+              </Text>
+            </View>
+            {thisWeekend.slice(0, 4).map((event) => (
+              <EventMediumCard key={event.id} event={event} />
+            ))}
+          </View>
+        ),
+      });
     if (heroEvent)
       built.push({ key: 'hero-event', kind: 'full', node: <TrendingEventCard event={heroEvent} /> });
     if (recommended.length > 0)
       built.push({ key: 'recommended', kind: 'rail', node: <RecommendedRail items={recommended} /> });
+    // FRIEND GRAVITY — shows the viewer's people are circling that aren't
+    // on the viewer's radar yet. The decide-stage nudge.
+    if (friendGravity.length > 0)
+      built.push({
+        key: 'gravity',
+        kind: 'list',
+        node: <FriendGravityList items={friendGravity} />,
+      });
     if (firstMosaic.length > 0)
       built.push({
         key: 'mosaic-1',
