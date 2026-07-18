@@ -5331,6 +5331,26 @@ app.get('/venues/:id/seat-views', async (req, reply) => {
   }
 });
 
+// GET /venues/:id/seat-map — real Ticketmaster seat geometry for this venue
+// (replicated from the ERP; see prisma/import-seatmaps.ts), or null when we have
+// no map. The log flow uses it to render a tappable section picker; a null map
+// falls back to the synthetic SeatBowl / GA state on the client.
+app.get('/venues/:id/seat-map', async (req, reply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const venue = await prisma.venue.findUnique({ where: { id }, select: { seatMapData: true } });
+    if (!venue) {
+      reply.status(404);
+      return { error: 'Venue not found' };
+    }
+    return { seatMap: (venue.seatMapData as unknown) ?? null };
+  } catch (error) {
+    req.log.error({ error }, 'Get seat map error');
+    reply.status(500);
+    return { error: 'Failed to load seat map' };
+  }
+});
+
 // POST /venues/:id/seat-ratings — photo-less seat rating (JSON). A seat view
 // photo can be attached later via /venues/:id/seat-views; both write SeatView.
 app.post('/venues/:id/seat-ratings', async (req, reply) => {
@@ -5383,6 +5403,11 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
     const ratingRaw = fields.rating?.value;
     const ratingNum = typeof ratingRaw === 'string' ? Number(ratingRaw) : typeof ratingRaw === 'number' ? ratingRaw : NaN;
     const rating = Number.isInteger(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : null;
+    // Link the seat view to the event being logged (the client sends it), so the
+    // sightline photo also surfaces on that event's seat-section view — not only
+    // the venue's. Without this, event seat-sections show nothing for this photo.
+    const eventId =
+      typeof fields.eventId?.value === 'string' && fields.eventId.value.trim() ? fields.eventId.value.trim() : null;
 
     if (!section) {
       reply.status(400);
@@ -5420,6 +5445,7 @@ app.post('/venues/:id/seat-views', async (req, reply) => {
         section,
         row: row || null,
         rating,
+        eventId,
         photoUrl,
         thumbnailUrl: photoUrl,
       },
