@@ -29,7 +29,6 @@ import { MemoryCard } from '../../components/log/memory/MemoryCard';
 import { MemoryChip } from '../../components/log/memory/MemoryChip';
 import { PhotoStrip, type PhotoItem } from '../../components/log/memory/PhotoStrip';
 import { StarRow } from '../../components/log/memory/StarRow';
-import { SeatMapPicker } from '../../components/venue/SeatMapPicker';
 import { XpChip } from '../../components/log/memory/XpChip';
 import { Avatar } from '../../components/ui/Avatar';
 import { PillButton } from '../../components/ui/PillButton';
@@ -39,7 +38,7 @@ import { useUserStats } from '../../hooks/useUserStats';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { getEvent } from '../../lib/api/events';
 import { inviteCoAuthors, updateLog, uploadLogPhoto } from '../../lib/api/logs';
-import { getVenueSeatMap, submitSeatRating, submitVenueRatings, submitVenueTip, uploadSeatView, type SeatMap } from '../../lib/api/venues';
+import { submitSeatRating, submitVenueRatings, submitVenueTip, uploadSeatView } from '../../lib/api/venues';
 import { haptics } from '../../lib/motion';
 import { useTheme } from '../../lib/theme-context';
 import type { EventDetails } from '../../types/event';
@@ -148,23 +147,6 @@ export default function LogMemory() {
   // it uploads via uploadSeatView carrying seatStars as the rating; without a
   // photo the stars fall back to the photo-less submitSeatRating call.
   const [seatPhoto, setSeatPhoto] = useState<{ uri: string; mimeType?: string; fileName?: string } | null>(null);
-
-  // Real venue seat map (if we have one) → the section step becomes a tappable
-  // map. Null → the manual Section text field below is the fallback.
-  const [seatMap, setSeatMap] = useState<SeatMap | null>(null);
-  useEffect(() => {
-    if (!venueId) {
-      setSeatMap(null);
-      return;
-    }
-    let alive = true;
-    getVenueSeatMap(venueId)
-      .then((m) => alive && setSeatMap(m))
-      .catch(() => alive && setSeatMap(null));
-    return () => {
-      alive = false;
-    };
-  }, [venueId]);
 
   // POST TOGETHER — co-authors invited on Post (optional, never blocks).
   const [coAuthors, setCoAuthors] = useState<CoAuthorPerson[]>([]);
@@ -572,25 +554,6 @@ export default function LogMemory() {
                   >
                     Seat
                   </Text>
-                  {/* Real seat map → tap your section (fills the Section field
-                      below). Sparse maps (GA blobs, <6 sections) fall to manual. */}
-                  {seatMap && seatMap.sections.length >= 6 ? (
-                    <View style={{ gap: 6 }}>
-                      <Text
-                        style={{
-                          fontFamily: tokens.fontFamilies.mono,
-                          fontSize: 10,
-                          fontWeight: '600',
-                          letterSpacing: 1.5,
-                          textTransform: 'uppercase',
-                          color: c.muteSoft,
-                        }}
-                      >
-                        Tap your section on the map
-                      </Text>
-                      <SeatMapPicker seatMap={seatMap} selectedSection={section} onSelect={setSection} />
-                    </View>
-                  ) : null}
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <View style={{ flex: 1 }}>
                       <LogField compact mono placeholder="Section" value={section} onChangeText={setSection} />

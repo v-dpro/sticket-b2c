@@ -17,15 +17,6 @@ export async function getVenue(venueId: string): Promise<VenueDetails> {
   return response.data;
 }
 
-// Real Ticketmaster seat geometry for the section picker; null when we have no
-// map for this venue (client falls back to manual section entry).
-export type SeatMapSection = { id: string; name: string; level: string; path: string; labelX: number; labelY: number };
-export type SeatMap = { width: number; height: number; sections: SeatMapSection[] };
-export async function getVenueSeatMap(venueId: string): Promise<SeatMap | null> {
-  const response = await apiClient.get(`/venues/${venueId}/seat-map`);
-  return (response.data?.seatMap as SeatMap | null) ?? null;
-}
-
 // Get venue shows
 export async function getVenueShows(
   venueId: string,
