@@ -31,6 +31,8 @@ function getDevHostFromExpo(): string | null {
   return host || null;
 }
 
+// NOTE: EXPO_PUBLIC_API_URL is inlined at bundle time. For release builds the
+// Fastfile pins it (PRODUCTION_API_URL). Backend host = Render (post-Railway).
 function resolveApiUrl(): string {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   

@@ -3,7 +3,7 @@ default_platform(:ios)
 APP_STORE_APP_ID = "6757096316" # App Store Connect app ID
 TEAM_ID = "N5L7VN2BG7"
 BUNDLE_ID = "com.sticket.app"
-PRODUCTION_API_URL = "https://sticket-b2c-production.up.railway.app"
+PRODUCTION_API_URL = "https://sticket-b2c-api.onrender.com" # Render (replaced cancelled Railway 2026-07-19)
 
 platform :ios do
   desc "Show the latest build number currently on TestFlight"
