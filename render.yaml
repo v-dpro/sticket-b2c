@@ -1,0 +1,21 @@
+# Render Blueprint — hosts the Sticket consumer API (Express + Prisma) on Render's
+# free tier, backed by the existing Neon Postgres. Replaces the cancelled Railway.
+#
+# No dashboard env-var setup needed: all runtime config (incl. DATABASE_URL for
+# Neon) loads from the committed apps/api/.env via `dotenv/config` at startup.
+#
+# Deploy: Render dashboard → New → Blueprint → pick this repo → Apply.
+services:
+  - type: web
+    name: sticket-b2c-api
+    runtime: node
+    plan: free
+    rootDir: apps/api
+    healthCheckPath: /health
+    autoDeploy: true
+    buildCommand: npm install && npx prisma migrate deploy && npm run build
+    startCommand: npm start
+    envVars:
+      # Pin Node so the build doesn't drift onto an unexpected default.
+      - key: NODE_VERSION
+        value: "22"
