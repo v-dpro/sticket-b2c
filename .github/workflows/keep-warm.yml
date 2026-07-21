@@ -1,0 +1,13 @@
+# Keeps the Render free-tier API from sleeping (which causes ~30-60s cold-start
+# delays, e.g. slow sign-in). Pings /health every ~10 min. Free — no account.
+name: keep-render-warm
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render health
+        run: curl -sS -m 90 https://sticket-b2c-api.onrender.com/health || true

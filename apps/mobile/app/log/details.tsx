@@ -28,6 +28,8 @@ import { PillButton } from '../../components/ui/PillButton';
 import { getErrorMessage } from '../../lib/api/errorUtils';
 import { getEvent } from '../../lib/api/events';
 import { createLog, updateLog } from '../../lib/api/logs';
+import { getVenueSeatMap, type SeatMap } from '../../lib/api/venues';
+import { SeatMapPicker } from '../../components/venue/SeatMapPicker';
 import { useSafeBack } from '../../lib/navigation/safeNavigation';
 import { useTheme } from '../../lib/theme-context';
 import { useSession } from '../../hooks/useSession';
@@ -81,6 +83,7 @@ export default function LogDetails() {
   const [row, setRow] = useState(params.row ? String(params.row) : '');
   const [seat, setSeat] = useState(params.seat ? String(params.seat) : '');
   const [note, setNote] = useState('');
+  const [seatMap, setSeatMap] = useState<SeatMap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -113,6 +116,22 @@ export default function LogDetails() {
   useEffect(() => {
     void loadEvent();
   }, [loadEvent]);
+
+  // Fetch the venue's real seat map (if any) so section entry is a tappable map.
+  const venueId = event?.venue?.id ?? '';
+  useEffect(() => {
+    if (!venueId) {
+      setSeatMap(null);
+      return;
+    }
+    let alive = true;
+    getVenueSeatMap(venueId)
+      .then((m) => alive && setSeatMap(m))
+      .catch(() => alive && setSeatMap(null));
+    return () => {
+      alive = false;
+    };
+  }, [venueId]);
 
   // Display values — params paint instantly, the fetch fills the gaps.
   const eventName = event?.name || (params.eventName ? String(params.eventName) : 'Your show');
@@ -250,8 +269,11 @@ export default function LogDetails() {
                 color: c.mute,
               }}
             >
-              Your seat · optional
+              {seatMap && seatMap.sections.length >= 6 ? 'Your seat · tap the map or type' : 'Your seat · optional'}
             </Text>
+            {seatMap && seatMap.sections.length >= 6 ? (
+              <SeatMapPicker seatMap={seatMap} selectedSection={section} onSelect={setSection} />
+            ) : null}
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <SeatTile label="Sec" value={section} onChangeText={setSection} />
               <SeatTile label="Row" value={row} onChangeText={setRow} />
