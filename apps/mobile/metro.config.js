@@ -39,4 +39,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     : resolve(context, moduleName, platform);
 };
 
+// Release/CI builds set METRO_NO_CACHE=1 (see fastlane/Fastfile) to disable
+// Metro's persistent transform cache. Otherwise Xcode's "Bundle React Native
+// code" phase can ship a STALE main.jsbundle (old JS / old API URL) even on a
+// clean build, because the cache lives outside Xcode's DerivedData.
+if (process.env.METRO_NO_CACHE) {
+  config.cacheStores = [];
+}
+
 module.exports = config;

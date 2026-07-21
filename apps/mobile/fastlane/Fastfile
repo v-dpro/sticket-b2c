@@ -42,6 +42,10 @@ platform :ios do
     # Metro inlines EXPO_PUBLIC_* vars at bundle time; pin the production API
     # so a locally modified .env can't leak into a TestFlight build
     ENV["EXPO_PUBLIC_API_URL"] = PRODUCTION_API_URL
+    # Disable Metro's persistent transform cache for this build (see
+    # metro.config.js). Without it, Xcode's bundle phase can ship a STALE
+    # main.jsbundle (old JS / old URL) even on a clean build.
+    ENV["METRO_NO_CACHE"] = "1"
 
     auth_xcargs = [
       "-allowProvisioningUpdates",
@@ -54,6 +58,11 @@ platform :ios do
       workspace: "ios/Sticket.xcworkspace",
       scheme: "Sticket",
       configuration: "Release",
+      # Force a clean archive every time. Xcode's "Bundle React Native code"
+      # phase otherwise skips on an incremental build and ships a STALE
+      # main.jsbundle (baking old JS / old API URLs). Clean = ~10min slower but
+      # guarantees the bundle matches current source.
+      clean: true,
       output_directory: "ios/build",
       # NOTE: gym applies xcargs to the exportArchive step too — don't add
       # export_xcargs with the same auth flags or xcodebuild gets them twice
