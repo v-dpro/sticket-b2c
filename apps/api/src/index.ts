@@ -18,6 +18,7 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { prisma } from './lib/prisma.js';
 import { getEventsForMultipleArtists } from './lib/bandsintown.js';
 import { searchEvents as tmSearchEvents, searchEventsByArtists as tmSearchByArtists, searchAttractions as tmSearchAttractions } from './lib/ticketmaster.js';
+import { fetchTmSeatMap } from './lib/seatMapFetch.js';
 import { getUserIdFromRequest } from './lib/auth.js';
 import { AppError } from './lib/errors.js';
 import { BADGES } from './lib/badges/badgeDefinitions.js';
@@ -5331,10 +5332,11 @@ app.get('/venues/:id/seat-views', async (req, reply) => {
   }
 });
 
-// GET /venues/:id/seat-map — real Ticketmaster seat geometry for this venue
-// (replicated from the ERP; see prisma/import-seatmaps.ts), or null when we have
-// no map. The log flow uses it to render a tappable section picker; a null map
-// falls back to the synthetic SeatBowl / GA state on the client.
+// GET /venues/:id/seat-map — real Ticketmaster seat geometry for this venue.
+// Served from Venue.seatMapData when cached; otherwise fetched LIVE from TM's
+// maps API by an upcoming event's Discovery id (fetchTmSeatMap) and cached, so
+// coverage is ~every seated TM venue, not just the pre-replicated set. Null map
+// → the client falls back to manual section entry.
 app.get('/venues/:id/seat-map', async (req, reply) => {
   try {
     const { id } = req.params as { id: string };
@@ -5343,7 +5345,19 @@ app.get('/venues/:id/seat-map', async (req, reply) => {
       reply.status(404);
       return { error: 'Venue not found' };
     }
-    return { seatMap: (venue.seatMapData as unknown) ?? null };
+    if (venue.seatMapData) return { seatMap: venue.seatMapData as unknown };
+
+    // Not cached — fetch on demand from TM using any TM event at this venue.
+    const ev = await prisma.event.findFirst({
+      where: { venueId: id, source: 'ticketmaster', externalId: { not: null } },
+      select: { externalId: true },
+      orderBy: { date: 'desc' },
+    });
+    if (!ev?.externalId) return { seatMap: null };
+    const map = await fetchTmSeatMap(ev.externalId);
+    if (!map) return { seatMap: null };
+    await prisma.venue.update({ where: { id }, data: { seatMapData: map as unknown as object, seatMapFetchedAt: new Date() } });
+    return { seatMap: map };
   } catch (error) {
     req.log.error({ error }, 'Get seat map error');
     reply.status(500);

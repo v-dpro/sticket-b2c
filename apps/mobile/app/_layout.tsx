@@ -148,6 +148,15 @@ function RootShell() {
   const [splashDone, setSplashDone] = useState(false);
   const onSplashDone = useCallback(() => setSplashDone(true), []);
 
+  // Safety net: the launch logo must NEVER hang. If session bootstrap or font
+  // loading stalls (cold API, a font that fails to resolve, etc.), force the
+  // splash to clear anyway after a few seconds so the app is always reachable.
+  const [forceReady, setForceReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setForceReady(true), 3500);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     // GestureHandlerRootView at the very root — GestureDetector surfaces
     // (memory deck, backfill swipe cards) die without it.
@@ -179,7 +188,7 @@ function RootShell() {
         </Stack>
       </ErrorBoundary>
       {!splashDone ? (
-        <AnimatedSplash ready={!isLoading && fontsLoaded} onDone={onSplashDone} />
+        <AnimatedSplash ready={forceReady || (!isLoading && fontsLoaded)} onDone={onSplashDone} />
       ) : null}
     </GestureHandlerRootView>
   );

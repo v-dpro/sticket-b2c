@@ -148,31 +148,45 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         return;
       }
 
+      // Boot INSTANTLY from the last validated session so the splash never
+      // waits on the network — the free-tier API can take 30-60s to wake from
+      // idle, which otherwise freezes the launch logo. Validate + refresh in
+      // the background; sign out only on a real 401/403.
+      const cached = await readCachedSnapshot();
+      if (cached) {
+        set({ ...cached, isBootstrapped: true, isLoading: false });
+        void (async () => {
+          try {
+            const snapshot = toSnapshot((await getMe()) as MePayload);
+            await persistSnapshot(snapshot);
+            if (get().user) set({ ...snapshot }); // don't clobber a sign-out that raced in
+          } catch (e: any) {
+            const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+              await clearStoredSession();
+              set({ ...signedOutState });
+            }
+            // Network/server failure → keep the cached session; screens surface
+            // their own error/loading states.
+          }
+        })();
+        return;
+      }
+
+      // No cached session yet (first launch right after sign-in) — we need
+      // /auth/me to get the user. This runs once, right after a login that just
+      // hit the API, so the server is warm.
       try {
-        // Validate the stored token against the API (the client transparently
-        // refreshes expired access tokens via /auth/refresh).
         const snapshot = toSnapshot((await getMe()) as MePayload);
         await persistSnapshot(snapshot);
         set({ ...snapshot, isBootstrapped: true, isLoading: false });
       } catch (e: any) {
         const status = e?.response?.status;
         if (status === 401 || status === 403) {
-          // Refresh was already attempted by the api client — the session is
-          // no longer valid, so sign out.
           await clearStoredSession();
           set({ ...signedOutState, isBootstrapped: true, isLoading: false });
           return;
         }
-
-        // Network/server failure: fall back to the last validated session so
-        // the app still boots offline. Screens fetch from the API themselves
-        // and surface their own error states.
-        const cached = await readCachedSnapshot();
-        if (cached) {
-          set({ ...cached, isBootstrapped: true, isLoading: false });
-          return;
-        }
-
         set({ ...signedOutState, error: getErrorMessage(e), isBootstrapped: true, isLoading: false });
       }
     } catch (e) {
