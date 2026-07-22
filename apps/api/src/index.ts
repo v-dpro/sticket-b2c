@@ -9601,7 +9601,8 @@ app.get('/presales/:id', async (req) => {
     presaleStart: presale.presaleStart.toISOString(),
     presaleEnd: presale.presaleEnd ? presale.presaleEnd.toISOString() : null,
     onsaleStart: presale.onsaleStart ? presale.onsaleStart.toISOString() : null,
-    code: presale.code ?? null,
+    // NOTE: presale `code` is intentionally NEVER serialized (ticketing-platform
+    // compliance) — matches GET /presales. Do not add it back.
     signupUrl: presale.signupUrl ?? null,
     signupDeadline: presale.signupDeadline ? presale.signupDeadline.toISOString() : null,
     ticketUrl: presale.ticketUrl ?? null,
