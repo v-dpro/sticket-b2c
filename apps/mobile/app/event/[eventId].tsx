@@ -34,7 +34,7 @@ import { EntityNav } from '../../components/entity/EntityChrome';
 import { QuietEmpty, SectionLabel } from '../../components/entity/EntityBits';
 import { EntityError, EntityPageSkeleton, ShimmerBlock } from '../../components/entity/EntityStates';
 import { formatScore, isPast, monoDateYear, sameDay } from '../../components/entity/format';
-import { PresaleCard } from '../../components/entity/PresaleCard';
+import { PresalePlanCard } from '../../components/entity/PresalePlanCard';
 import { SeatSectionSheet } from '../../components/entity/SeatSectionSheet';
 import { SetlistShield } from '../../components/entity/SetlistShield';
 import { TrendsRail } from '../../components/entity/TrendsRail';
@@ -50,6 +50,7 @@ import { SeatBowl } from '../../components/venue/SeatBowl';
 import { useEvent } from '../../hooks/useEvent';
 import { useEventComments } from '../../hooks/useEventComments';
 import { useEventPhotos } from '../../hooks/useEventPhotos';
+import { usePresales } from '../../hooks/usePresales';
 import {
   getArtistPresales,
   getEventFeed,
@@ -90,10 +91,12 @@ export default function EventScreen() {
   const { event, loading, error, refetch, updateInterested } = useEvent(id);
   const photosState = useEventPhotos(id);
   const commentsState = useEventComments(id);
+  const { toggleAlert } = usePresales();
 
   const [refreshing, setRefreshing] = useState(false);
   const [interestedBusy, setInterestedBusy] = useState(false);
   const [ticketsSheet, setTicketsSheet] = useState(false);
+  const [ticketsDirectUrl, setTicketsDirectUrl] = useState<string | null>(null);
   const [setlistEntries, setSetlistEntries] = useState<SetlistEntry[]>([]);
   const [presales, setPresales] = useState<EventPresale[]>([]);
 
@@ -264,6 +267,29 @@ export default function EventScreen() {
     } finally {
       setInterestedBusy(false);
     }
+  };
+
+  // Presale alert toggle — optimistic on the matched-presales list, using
+  // usePresales' toggleAlert (same mutation + rollback the Presales tab uses)
+  // for the actual POST/DELETE.
+  const handleTogglePresaleAlert = async (presale: EventPresale) => {
+    const current = !!presale.hasAlert;
+    setPresales((prev) => prev.map((p) => (p.id === presale.id ? { ...p, hasAlert: !current } : p)));
+    try {
+      await toggleAlert(presale.id, current);
+      haptics.medium();
+    } catch {
+      setPresales((prev) => prev.map((p) => (p.id === presale.id ? { ...p, hasAlert: current } : p)));
+      haptics.error();
+    }
+  };
+
+  // Presale "Get tickets" — opens the shared FindTicketsSheet, preferring the
+  // presale's own ticket/signup link (affiliate-wrapped by buildTicketLink)
+  // over the event's generic ticketUrl when one exists.
+  const handlePresaleGetTickets = (presale: EventPresale) => {
+    setTicketsDirectUrl(presale.ticketUrl || presale.signupUrl || null);
+    setTicketsSheet(true);
   };
 
   const styles = useThemedStyles((t) => ({
@@ -806,12 +832,16 @@ export default function EventScreen() {
               </View>
             ) : null}
 
-            {/* ── Presales (only when matched) — the code card comes before
-                   the primary tickets CTA per spec. ── */}
+            {/* ── Presales (only when matched) — the planning card comes
+                   before the primary tickets CTA per spec. ── */}
             {presales.length > 0 ? (
               <View style={styles.section}>
                 <SectionLabel>Presales</SectionLabel>
-                <PresaleCard presales={presales} />
+                <PresalePlanCard
+                  presales={presales}
+                  onToggleAlert={(p) => void handleTogglePresaleAlert(p)}
+                  onGetTickets={handlePresaleGetTickets}
+                />
               </View>
             ) : null}
 
@@ -845,7 +875,10 @@ export default function EventScreen() {
                     springFeedback
                     haptic="light"
                     icon={<Ionicons name="pricetags-outline" size={13} color={tokens.colors.mute} />}
-                    onPress={() => setTicketsSheet(true)}
+                    onPress={() => {
+                      setTicketsDirectUrl(null);
+                      setTicketsSheet(true);
+                    }}
                   />
                 </View>
               </View>
@@ -935,7 +968,7 @@ export default function EventScreen() {
         visible={ticketsSheet}
         onClose={() => setTicketsSheet(false)}
         query={`${event.artist.name} ${event.venue.city}`}
-        directUrl={event.ticketUrl}
+        directUrl={ticketsDirectUrl ?? event.ticketUrl}
       />
     </View>
   );

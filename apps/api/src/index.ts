@@ -9487,7 +9487,7 @@ app.get('/presales/my-alerts', async (req) => {
     presaleStart: a.presale.presaleStart.toISOString(),
     presaleEnd: a.presale.presaleEnd ? a.presale.presaleEnd.toISOString() : null,
     onsaleStart: a.presale.onsaleStart ? a.presale.onsaleStart.toISOString() : null,
-    code: a.presale.code ?? null,
+    // presale `code` intentionally NEVER serialized (compliance) — see /presales.
     signupUrl: a.presale.signupUrl ?? null,
     signupDeadline: a.presale.signupDeadline ? a.presale.signupDeadline.toISOString() : null,
     ticketUrl: a.presale.ticketUrl ?? null,

@@ -146,8 +146,15 @@ export interface EventPresale {
   onsaleStart?: string | null;
   code: string | null;
   signupUrl: string | null;
+  // Server sends this alongside signupUrl; the API never sends `code` (see
+  // above) — compliance, not an omission.
+  signupDeadline?: string | null;
   ticketUrl?: string | null;
   notes?: string | null;
+  // Only present when the request is authenticated (GET /presales computes
+  // it from the caller's PresaleAlert rows regardless of the artistId
+  // filter) — absent/undefined for logged-out requests, treat as false.
+  hasAlert?: boolean;
 }
 
 // GET /presales?artistId= — upcoming presales for an artist. There is no
