@@ -5578,13 +5578,6 @@ app.get('/events/search', async (req, reply) => {
     const upcoming = upcomingRaw === 'true' || upcomingRaw === '1';
     const limit = Math.max(1, Math.min(25, Number(limitRaw ?? 10)));
 
-    // Log flow (import=1): pull the artist's full current tour from TM live and
-    // upsert it first, so every city shows — not just the markets the cron
-    // covered. Best-effort and deduped by artistId_venueId_date on upsert.
-    if (importRaw === '1' || importRaw === 'true') {
-      await importTmByKeyword(q);
-    }
-
     const where = {
       // Real catalog only — logging pulls from the same TM/Bandsintown shows
       // the app surfaces everywhere else, never synthetic seed rows.
@@ -5597,25 +5590,41 @@ app.get('/events/search', async (req, reply) => {
       ],
     };
 
-    const rows = await prisma.event.findMany({
-      where,
-      include: {
-        artist: { select: { id: true, name: true, imageUrl: true } },
-        venue: { select: { id: true, name: true, city: true, state: true, country: true } },
-      },
-      orderBy: { date: 'desc' }, // recent first — you log shows you just attended
-      take: limit * 3, // over-fetch; the catalog carries duplicate event rows
-    });
-
     // The catalog has duplicate event rows (same act, same night, same venue) —
     // collapse by day+venue so "pick the night" doesn't show a date twice.
-    const seen = new Set<string>();
-    const deduped = rows.filter((e) => {
-      const key = `${e.date.toISOString().slice(0, 10)}|${e.venueId}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    const runQuery = async () => {
+      const rows = await prisma.event.findMany({
+        where,
+        include: {
+          artist: { select: { id: true, name: true, imageUrl: true } },
+          venue: { select: { id: true, name: true, city: true, state: true, country: true } },
+        },
+        orderBy: { date: 'desc' }, // recent first — you log shows you just attended
+        take: limit * 3, // over-fetch; the catalog carries duplicate event rows
+      });
+      const seen = new Set<string>();
+      return rows.filter((e) => {
+        const key = `${e.date.toISOString().slice(0, 10)}|${e.venueId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+
+    let deduped = await runQuery();
+
+    // Log flow (import=1): enrich the catalog from TM. Only BLOCK on the live
+    // import when we have nothing locally — otherwise return instantly and let
+    // the import run in the background so the next search is fuller. Blocking
+    // EVERY search on a live TM tour import is what made "find shows" slow.
+    if (importRaw === '1' || importRaw === 'true') {
+      if (deduped.length === 0) {
+        await importTmByKeyword(q).catch(() => {});
+        deduped = await runQuery();
+      } else {
+        void importTmByKeyword(q).catch(() => {});
+      }
+    }
 
     // Full SearchEvent shape so the log flow can persist a real event.
     return deduped.slice(0, limit).map((e) => ({
